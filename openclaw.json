@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.13",
-    "lastTouchedAt": "2026-04-14T09:02:24.851Z"
+    "lastTouchedAt": "2026-04-14T09:09:15.420Z"
   },
   "wizard": {
     "lastRunAt": "2026-02-05T16:16:05.545Z",
@@ -226,7 +226,7 @@
   "agents": {
     "defaults": {
       "model": {
-        "primary": "coze/auto"
+        "primary": "coze/doubao-seed-2-0-pro-260215"
       },
       "imageModel": {
         "primary": "coze/doubao-seed-1-8-251228"
