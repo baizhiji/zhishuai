@@ -1,7 +1,7 @@
 {
   "meta": {
     "lastTouchedVersion": "2026.3.13",
-    "lastTouchedAt": "2026-04-14T09:09:15.420Z"
+    "lastTouchedAt": "2026-04-14T09:40:12.558Z"
   },
   "wizard": {
     "lastRunAt": "2026-02-05T16:16:05.545Z",
@@ -242,8 +242,8 @@
         "model": "doubao-embedding-vision-251215",
         "query": {
           "hybrid": {
-            "vectorWeight": 0.85,
-            "textWeight": 0.15
+            "vectorWeight": 0.75,
+            "textWeight": 0.25
           }
         }
       },
