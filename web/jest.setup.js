@@ -15,6 +15,31 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
+// 模拟 window.performance
+Object.defineProperty(window, 'performance', {
+  writable: true,
+  value: {
+    timing: {
+      domainLookupStart: 0,
+      domainLookupEnd: 50,
+      connectStart: 50,
+      connectEnd: 100,
+      responseStart: 200,
+      responseEnd: 300,
+      domInteractive: 400,
+      domComplete: 500,
+      domContentLoadedEventEnd: 600,
+      loadEventEnd: 700,
+      navigationStart: 0,
+    },
+    mark: jest.fn(),
+    measure: jest.fn(),
+    clearMarks: jest.fn(),
+    clearMeasures: jest.fn(),
+    getEntriesByName: jest.fn(() => [{ duration: 100 }]),
+  },
+})
+
 // 模拟 IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
   constructor() {}
