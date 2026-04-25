@@ -8,7 +8,7 @@ jest.mock('antd', () => ({
     success: jest.fn(),
     warning: jest.fn(),
     info: jest.fn(),
-    loading: jest.fn(),
+    loading: jest.fn(() => 'loading-key'),
   },
 }))
 
