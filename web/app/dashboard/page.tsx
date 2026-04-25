@@ -14,6 +14,7 @@ import {
   ClockCircleOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
+  ArrowRightOutlined,
   SyncOutlined,
   ReloadOutlined,
 } from '@ant-design/icons'
