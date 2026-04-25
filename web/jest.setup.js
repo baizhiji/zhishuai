@@ -24,7 +24,7 @@ global.IntersectionObserver = class IntersectionObserver {
     return []
   }
   unobserve() {}
-} as any
+}
 
 // 模拟 ResizeObserver
 global.ResizeObserver = class ResizeObserver {
@@ -32,7 +32,7 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
   observe() {}
   unobserve() {}
-} as any
+}
 
 // 模拟 next/navigation
 jest.mock('next/navigation', () => ({
@@ -67,5 +67,5 @@ jest.mock('next/navigation', () => ({
 // 模拟 next/image
 jest.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => <img {...props} />,
+  default: (props) => <img {...props} />,
 }))
