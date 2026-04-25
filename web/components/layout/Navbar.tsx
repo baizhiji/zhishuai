@@ -140,13 +140,19 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       key: 'profile',
       label: '个人资料',
       icon: <UserOutlined />,
-      onClick: () => router.push('/profile'),
+      onClick: () => {
+        // 开发阶段暂不跳转
+        console.log('查看个人资料')
+      },
     },
     {
       key: 'switch',
       label: '切换账号',
       icon: <UserSwitchOutlined />,
-      onClick: () => router.push('/login'),
+      onClick: () => {
+        // 开发阶段暂不跳转
+        console.log('切换账号')
+      },
     },
     {
       type: 'divider' as const,
@@ -157,10 +163,11 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       icon: <LogoutOutlined />,
       danger: true,
       onClick: () => {
-        // 清除用户信息
+        // 清除用户信息（开发阶段暂时不跳转登录页）
         localStorage.removeItem('userInfo')
         localStorage.removeItem('token')
-        router.push('/login')
+        console.log('已退出登录')
+        // router.push('/login') // 开发阶段暂不跳转
       },
     },
   ]
