@@ -179,24 +179,23 @@ export default function DashboardPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-        <div className="container mx-auto px-4 py-8">
-          {/* 页面头部 */}
-          <FadeIn direction="down">
-            <div className="mb-8 flex justify-between items-start">
-              <div>
-                <Title level={2} className="mb-2">欢迎回来 👋</Title>
-                <Text type="secondary">这是您的智枢AI工作台，概览您的工作进展</Text>
-              </div>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={handleRefresh}
-                loading={loading}
-              >
-                刷新数据
-              </Button>
+      <div className="p-6">
+        {/* 页面头部 */}
+        <FadeIn direction="down">
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <Title level={2} className="mb-2">欢迎回来 👋</Title>
+              <Text type="secondary">这是您的智枢AI工作台，概览您的工作进展</Text>
             </div>
-          </FadeIn>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+              loading={loading}
+            >
+              刷新数据
+            </Button>
+          </div>
+        </FadeIn>
 
           {/* 系统公告 */}
           <FadeIn delay={0.1}>
@@ -386,7 +385,7 @@ export default function DashboardPage() {
             </Card>
           </FadeIn>
         </div>
-      </div>
-    </PageTransition>
+      </PageTransition>
+    </>
   )
 }
