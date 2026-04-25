@@ -21,6 +21,8 @@ import {
   Progress,
   Divider,
   Tooltip,
+  Row,
+  Col,
 } from 'antd'
 import {
   ArrowLeftOutlined,
