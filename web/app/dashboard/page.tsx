@@ -1,291 +1,392 @@
 'use client'
 
-import React from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, Row, Col, Button, Space, Typography, Avatar, Dropdown } from 'antd'
+import { Card, Button, Space, Typography, Row, Col, Progress, Table, Tag, Badge, Statistic, Divider, Alert } from 'antd'
 import {
-  VideoCameraOutlined,
-  ShoppingOutlined,
-  UserOutlined,
-  ThunderboltOutlined,
-  ShareAltOutlined,
+  RobotOutlined,
   TeamOutlined,
+  ShopOutlined,
   SettingOutlined,
-  CustomerServiceOutlined,
-  LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
+  RiseOutlined,
+  FallOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  SyncOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
-import { useAuthStore } from '@/lib/store'
-import { getGradientColor } from '@/utils'
+import { PageTransition, FadeIn, ScaleIn, StaggerIn } from '@/components/animations/PageTransition'
+import { StatCardSkeleton } from '@/components/skeleton/Skeleton'
 
 const { Title, Text } = Typography
 
-interface ModuleCard {
-  id: string
-  title: string
-  description: string
-  icon: React.ReactNode
-  path: string
-  priority: number
-  color: string
-}
-
-const modules: ModuleCard[] = [
-  {
-    id: 'media',
-    title: '自媒体板块',
-    description: 'AI内容生成、矩阵账号管理、批量发布、数据统计',
-    icon: <VideoCameraOutlined className="text-4xl" />,
-    path: '/media',
-    priority: 5,
-    color: 'from-blue-500 to-purple-600',
-  },
-  {
-    id: 'ecommerce',
-    title: '电商板块',
-    description: '智能详情页生成、多店铺管理、自动上架、价格监控',
-    icon: <ShoppingOutlined className="text-4xl" />,
-    path: '/e-commerce',
-    priority: 5,
-    color: 'from-green-500 to-teal-600',
-  },
-  {
-    id: 'hr',
-    title: 'HR功能',
-    description: '职位发布、AI简历筛选、自动回复、面试安排',
-    icon: <UserOutlined className="text-4xl" />,
-    path: '/hr',
-    priority: 4,
-    color: 'from-orange-500 to-red-600',
-  },
-  {
-    id: 'customer',
-    title: '获客功能',
-    description: '潜在客户发现、自动发送信息、二维码发送、转化统计',
-    icon: <ThunderboltOutlined className="text-4xl" />,
-    path: '/customer',
-    priority: 5,
-    color: 'from-pink-500 to-rose-600',
-  },
-  {
-    id: 'referral',
-    title: '推荐分享',
-    description: '二维码生成、推荐链接生成、推荐追踪',
-    icon: <ShareAltOutlined className="text-4xl" />,
-    path: '/referral',
-    priority: 4,
-    color: 'from-cyan-500 to-blue-600',
-  },
-  {
-    id: 'introduction',
-    title: '转介绍',
-    description: '我的推荐、推荐管理',
-    icon: <TeamOutlined className="text-4xl" />,
-    path: '/introduction',
-    priority: 4,
-    color: 'from-yellow-500 to-orange-600',
-  },
-  {
-    id: 'account',
-    title: '账号管理',
-    description: '用户管理、代理商管理、客户管理',
-    icon: <CustomerServiceOutlined className="text-4xl" />,
-    path: '/account',
-    priority: 3,
-    color: 'from-indigo-500 to-purple-600',
-  },
-  {
-    id: 'system',
-    title: '系统配置',
-    description: 'API配置、知识库管理、APP定制',
-    icon: <SettingOutlined className="text-4xl" />,
-    path: '/system',
-    priority: 3,
-    color: 'from-emerald-500 to-green-600',
-  },
-]
-
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const handleLogout = () => {
-    logout()
-    router.push('/login')
+  // 模拟刷新数据
+  const handleRefresh = async () => {
+    setLoading(true)
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    setLoading(false)
   }
 
-  const userMenuItems = [
+  // 统计卡片数据
+  const stats = [
     {
-      key: 'profile',
-      label: '个人资料',
-      icon: <UserOutlined />,
-      onClick: () => router.push('/profile'),
+      title: 'AI生成内容',
+      value: 1284,
+      suffix: '篇',
+      icon: <RobotOutlined className="text-4xl" />,
+      color: 'from-blue-500 to-blue-600',
+      trend: 12.5,
+      trendUp: true,
+      loading: false,
     },
     {
-      type: 'divider' as const,
+      title: '矩阵账号',
+      value: 56,
+      suffix: '个',
+      icon: <TeamOutlined className="text-4xl" />,
+      color: 'from-green-500 to-green-600',
+      trend: 8.3,
+      trendUp: true,
+      loading: false,
     },
     {
-      key: 'logout',
-      label: '退出登录',
-      icon: <LogoutOutlined />,
-      onClick: handleLogout,
-      danger: true,
+      title: '管理店铺',
+      value: 23,
+      suffix: '家',
+      icon: <ShopOutlined className="text-4xl" />,
+      color: 'from-purple-500 to-purple-600',
+      trend: -2.1,
+      trendUp: false,
+      loading: false,
+    },
+    {
+      title: '系统状态',
+      value: '正常',
+      suffix: '',
+      icon: <CheckCircleOutlined className="text-4xl" />,
+      color: 'from-orange-500 to-orange-600',
+      trend: 0,
+      trendUp: true,
+      loading: false,
+    },
+  ]
+
+  // 快捷入口
+  const shortcuts = [
+    {
+      title: 'AI内容生成',
+      description: '使用AI生成高质量内容',
+      icon: <RobotOutlined className="text-3xl" />,
+      link: '/media/ai-create',
+      color: 'bg-blue-100',
+      iconColor: 'text-blue-500',
+    },
+    {
+      title: '矩阵账号管理',
+      description: '统一管理多个平台账号',
+      icon: <TeamOutlined className="text-3xl" />,
+      link: '/media/accounts',
+      color: 'bg-green-100',
+      iconColor: 'text-green-500',
+    },
+    {
+      title: '多店铺管理',
+      description: '集中管理电商店铺',
+      icon: <ShopOutlined className="text-3xl" />,
+      link: '/e-commerce/shops',
+      color: 'bg-purple-100',
+      iconColor: 'text-purple-500',
+    },
+    {
+      title: '系统设置',
+      description: '配置系统参数',
+      icon: <SettingOutlined className="text-3xl" />,
+      link: '/system',
+      color: 'bg-orange-100',
+      iconColor: 'text-orange-500',
+    },
+  ]
+
+  // 最新活动
+  const activities = [
+    {
+      id: '1',
+      type: 'success',
+      title: '成功发布 10 条内容到抖音',
+      time: '10分钟前',
+    },
+    {
+      id: '2',
+      type: 'processing',
+      title: '正在同步淘宝店铺数据',
+      time: '30分钟前',
+    },
+    {
+      id: '3',
+      type: 'warning',
+      title: '发现 5 个竞品价格变动',
+      time: '1小时前',
+    },
+    {
+      id: '4',
+      type: 'default',
+      title: '新增 3 个潜在客户',
+      time: '2小时前',
+    },
+  ]
+
+  // 快速链接
+  const quickLinks = [
+    { title: '批量发布', link: '/media/publish', count: 1284 },
+    { title: '价格监控', link: '/e-commerce/price-monitor', count: 89 },
+    { title: '客户发现', link: '/customer/discovery', count: 567 },
+    { title: '用户管理', link: '/system/users', count: 12 },
+  ]
+
+  const columns = [
+    {
+      title: '活动',
+      dataIndex: 'title',
+      key: 'title',
+    },
+    {
+      title: '时间',
+      dataIndex: 'time',
+      key: 'time',
+      render: (time: string) => <Text type="secondary">{time}</Text>,
+    },
+    {
+      title: '状态',
+      key: 'status',
+      render: (_: any, record: any) => {
+        const statusMap: Record<string, { text: string; color: string }> = {
+          success: { text: '成功', color: 'success' },
+          processing: { text: '进行中', color: 'processing' },
+          warning: { text: '警告', color: 'warning' },
+          default: { text: '默认', color: 'default' },
+        }
+        const s = statusMap[record.type]
+        return <Badge status={record.type} text={s.text} />
+      },
     },
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* 顶部导航栏 */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Button
-                type="text"
-                icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                className="mr-4"
-              />
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="container mx-auto px-4 py-8">
+          {/* 页面头部 */}
+          <FadeIn direction="down">
+            <div className="mb-8 flex justify-between items-start">
               <div>
-                <h1 className="text-xl font-bold text-gray-900">智枢AI</h1>
-                <p className="text-xs text-gray-500">智能商业平台</p>
+                <Title level={2} className="mb-2">欢迎回来 👋</Title>
+                <Text type="secondary">这是您的智枢AI工作台，概览您的工作进展</Text>
               </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-                <Button type="text" className="flex items-center space-x-2">
-                  <Avatar icon={<UserOutlined />} />
-                  <span className="text-sm font-medium text-gray-700">
-                    {user?.username || '用户'}
-                  </span>
-                </Button>
-              </Dropdown>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* 主内容区 */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 欢迎区域 */}
-        <div className="mb-8">
-          <Title level={2}>欢迎回来，{user?.username || '用户'}！</Title>
-          <Text type="secondary">选择下方功能板块开始您的智能之旅</Text>
-        </div>
-
-        {/* 功能模块卡片 */}
-        <Row gutter={[24, 24]}>
-          {modules.map((module, index) => (
-            <Col xs={24} sm={12} lg={6} key={module.id}>
-              <Card
-                hoverable
-                className={`h-full card-hover overflow-hidden bg-gradient-to-br ${module.color}`}
-                styles={{
-                  body: { padding: '24px' },
-                }}
-                onClick={() => router.push(module.path)}
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+                loading={loading}
               >
-                <div className="text-white">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="bg-white/20 rounded-lg p-3">
-                      {module.icon}
-                    </div>
-                    {module.priority === 5 && (
-                      <span className="bg-yellow-400 text-yellow-900 text-xs font-semibold px-2 py-1 rounded-full">
-                        核心
-                      </span>
-                    )}
-                  </div>
+                刷新数据
+              </Button>
+            </div>
+          </FadeIn>
 
-                  <h3 className="text-xl font-bold mb-2">{module.title}</h3>
-                  <p className="text-sm opacity-90 leading-relaxed">
-                    {module.description}
-                  </p>
+          {/* 系统公告 */}
+          <FadeIn delay={0.1}>
+            <Alert
+              message="🎉 系统更新"
+              description="智枢AI系统已完成全新升级，新增客户管理和电商板块功能，快来体验吧！"
+              type="success"
+              showIcon
+              closable
+              className="mb-6"
+            />
+          </FadeIn>
 
-                  <div className="mt-4 flex items-center text-sm opacity-80">
-                    <span>立即使用</span>
-                    <svg
-                      className="ml-2 w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+          {/* 统计卡片 */}
+          <FadeIn delay={0.2}>
+            <Row gutter={[16, 16]} className="mb-6">
+              {stats.map((stat, index) => (
+                <Col xs={12} sm={6} key={index}>
+                  <ScaleIn delay={index * 0.1}>
+                    <Card
+                      className="h-full hover:shadow-lg transition-shadow duration-300"
+                      styles={{ body: { padding: '24px' } }}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
+                      <div className="flex items-start justify-between mb-4">
+                        <div
+                          className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white`}
+                        >
+                          {stat.icon}
+                        </div>
+                        {stat.trend !== 0 && (
+                          <Space size="small">
+                            {stat.trendUp ? (
+                              <ArrowUpOutlined className="text-green-500" />
+                            ) : (
+                              <ArrowDownOutlined className="text-red-500" />
+                            )}
+                            <Text
+                              className={stat.trendUp ? 'text-green-500' : 'text-red-500'}
+                            >
+                              {Math.abs(stat.trend)}%
+                            </Text>
+                          </Space>
+                        )}
+                      </div>
+                      <div className="text-gray-500 text-sm mb-2">{stat.title}</div>
+                      <div className="flex items-baseline gap-2">
+                        <div className="text-3xl font-bold">{stat.value}</div>
+                        {stat.suffix && (
+                          <div className="text-gray-400">{stat.suffix}</div>
+                        )}
+                      </div>
+                    </Card>
+                  </ScaleIn>
+                </Col>
+              ))}
+            </Row>
+          </FadeIn>
 
-        {/* 统计数据概览 */}
-        <div className="mt-12">
-          <Title level={3}>数据概览</Title>
-          <Row gutter={[24, 24]}>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600 mb-2">0</div>
-                  <div className="text-sm text-gray-500">自媒体账号</div>
-                </div>
-              </Card>
+          {/* 快捷入口 */}
+          <FadeIn delay={0.3}>
+            <Card
+              title="快捷入口"
+              extra={
+                <Button type="link" onClick={() => router.push('/media')}>
+                  查看全部 →
+                </Button>
+              }
+              className="mb-6"
+            >
+              <StaggerIn staggerDelay={0.1}>
+                <Row gutter={[16, 16]}>
+                  {shortcuts.map((shortcut, index) => (
+                    <Col xs={12} sm={6} key={index}>
+                      <ScaleIn delay={index * 0.1}>
+                        <Card
+                          hoverable
+                          onClick={() => router.push(shortcut.link)}
+                          className="h-full border-2 border-transparent hover:border-blue-500 transition-colors"
+                        >
+                          <div className={`p-4 rounded-xl mb-3 ${shortcut.color}`}>
+                            <div className={shortcut.iconColor}>{shortcut.icon}</div>
+                          </div>
+                          <Title level={5} className="mb-2">{shortcut.title}</Title>
+                          <Text type="secondary" className="text-sm">
+                            {shortcut.description}
+                          </Text>
+                        </Card>
+                      </ScaleIn>
+                    </Col>
+                  ))}
+                </Row>
+              </StaggerIn>
+            </Card>
+          </FadeIn>
+
+          <Row gutter={[16, 16]} className="mb-6">
+            {/* 最新活动 */}
+            <Col xs={24} lg={14}>
+              <FadeIn delay={0.4}>
+                <Card
+                  title="最新活动"
+                  extra={
+                    <Button type="link" size="small">
+                      查看全部
+                    </Button>
+                  }
+                >
+                  <Table
+                    dataSource={activities}
+                    columns={columns}
+                    rowKey="id"
+                    pagination={false}
+                    showHeader={false}
+                  />
+                </Card>
+              </FadeIn>
             </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600 mb-2">0</div>
-                  <div className="text-sm text-gray-500">电商店铺</div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-orange-600 mb-2">0</div>
-                  <div className="text-sm text-gray-500">已发布内容</div>
-                </div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600 mb-2">0</div>
-                  <div className="text-sm text-gray-500">潜在客户</div>
-                </div>
-              </Card>
+
+            {/* 快速链接 */}
+            <Col xs={24} lg={10}>
+              <FadeIn delay={0.5}>
+                <Card title="快速链接">
+                  <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                    {quickLinks.map((link, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => router.push(link.link)}
+                      >
+                        <Text>{link.title}</Text>
+                        <Space>
+                          <Badge count={link.count} showZero color="blue" />
+                          <Text type="secondary">→</Text>
+                        </Space>
+                      </div>
+                    ))}
+                  </Space>
+                </Card>
+              </FadeIn>
             </Col>
           </Row>
-        </div>
-      </main>
 
-      {/* 页脚 */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <Text type="secondary">© 2024 智枢AI. 保留所有权利。</Text>
-            <Space>
-              <a href="#" className="text-gray-500 hover:text-gray-700 text-sm">
-                隐私政策
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-700 text-sm">
-                服务条款
-              </a>
-              <a href="#" className="text-gray-500 hover:text-gray-700 text-sm">
-                帮助中心
-              </a>
-            </Space>
-          </div>
+          {/* 数据概览 */}
+          <FadeIn delay={0.6}>
+            <Card title="数据概览">
+              <Row gutter={[16, 16]}>
+                <Col xs={24} sm={8}>
+                  <div className="text-center p-4">
+                    <Progress
+                      type="circle"
+                      percent={75}
+                      strokeColor="#52c41a"
+                      format={(percent) => `${percent}%`}
+                    />
+                    <div className="mt-3">
+                      <Text type="secondary">本月目标完成度</Text>
+                    </div>
+                  </div>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <div className="text-center p-4">
+                    <Progress
+                      type="circle"
+                      percent={60}
+                      strokeColor="#1890ff"
+                      format={(percent) => `${percent}%`}
+                    />
+                    <div className="mt-3">
+                      <Text type="secondary">账号活跃度</Text>
+                    </div>
+                  </div>
+                </Col>
+                <Col xs={24} sm={8}>
+                  <div className="text-center p-4">
+                    <Progress
+                      type="circle"
+                      percent={85}
+                      strokeColor="#722ed1"
+                      format={(percent) => `${percent}%`}
+                    />
+                    <div className="mt-3">
+                      <Text type="secondary">店铺转化率</Text>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
+          </FadeIn>
         </div>
-      </footer>
-    </div>
+      </div>
+    </PageTransition>
   )
 }
