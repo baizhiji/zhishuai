@@ -20,13 +20,13 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@components/*": ["./src/components/*"],
-      "@lib/*": ["./src/lib/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@hooks/*": ["./src/hooks/*"],
-      "@store/*": ["./src/store/*"],
-      "@types/*": ["./src/types/*"],
+      "@/*": ["./*"],
+      "@components/*": ["./components/*"],
+      "@lib/*": ["./lib/*"],
+      "@utils/*": ["./utils/*"],
+      "@types/*": ["./types/*"],
+      "@hooks/*": ["./hooks/*"],
+      "@store/*": ["./store/*"],
       "@config/*": ["../skills-config/*"]
     }
   },
