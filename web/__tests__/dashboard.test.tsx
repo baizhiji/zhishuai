@@ -1,11 +1,10 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import '@testing-library/jest-dom'
 
 describe('Dashboard Page', () => {
   beforeEach(() => {
     // 重置所有模拟
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   it('应该渲染页面标题', async () => {

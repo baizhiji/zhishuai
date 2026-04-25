@@ -1,21 +1,20 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { message } from 'antd'
 import ErrorHandler from '@/lib/errorHandler'
 
 // 模拟antd的message
-vi.mock('antd', () => ({
+jest.mock('antd', () => ({
   message: {
-    error: vi.fn(),
-    success: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
-    loading: vi.fn(),
+    error: jest.fn(),
+    success: jest.fn(),
+    warning: jest.fn(),
+    info: jest.fn(),
+    loading: jest.fn(),
   },
 }))
 
 describe('ErrorHandler', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    jest.clearAllMocks()
   })
 
   describe('handleApiError', () => {

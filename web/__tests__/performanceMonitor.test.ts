@@ -1,4 +1,3 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import PerformanceMonitor from '@/lib/performanceMonitor'
 
 describe('PerformanceMonitor', () => {
@@ -113,11 +112,11 @@ describe('PerformanceMonitor', () => {
           loadEventEnd: 700,
           navigationStart: 0,
         },
-        mark: vi.fn(),
-        measure: vi.fn(),
-        clearMarks: vi.fn(),
-        clearMeasures: vi.fn(),
-        getEntriesByName: vi.fn(() => [{ duration: 100 }]),
+        mark: jest.fn(),
+        measure: jest.fn(),
+        clearMarks: jest.fn(),
+        clearMeasures: jest.fn(),
+        getEntriesByName: jest.fn(() => [{ duration: 100 }]),
       }
 
       monitor.recordPageLoad()
