@@ -155,7 +155,7 @@ export interface Resume {
   experience: string
   skills: string[]
   matchScore: number
-  status: 'pending' | 'reviewed' | 'interviewed' 'hired' | 'rejected'
+  status: 'pending' | 'reviewed' | 'interviewed' | 'hired' | 'rejected'
   notes: string
   jobId: string
   createdAt: Date
@@ -172,7 +172,7 @@ export interface CustomerLead {
   source: 'keyword' | 'topic' | 'behavior' | 'live'
   tags: string[]
   intention: 'high' | 'medium' | 'low'
-  contactStatus: 'pending' | 'contacted' | 'responded' 'converted'
+  contactStatus: 'pending' | 'contacted' | 'responded' | 'converted'
   lastContactTime?: Date
   conversionStatus: boolean
   notes: string

@@ -386,6 +386,5 @@ export default function DashboardPage() {
           </FadeIn>
         </div>
       </PageTransition>
-    </>
   )
 }

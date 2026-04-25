@@ -11,7 +11,6 @@ import {
   Switch,
   Space,
   Typography,
-  Message,
   Row,
   Col,
   Tabs,
@@ -19,6 +18,7 @@ import {
   InputNumber,
   Radio,
   Alert,
+  message,
 } from 'antd'
 import {
   ArrowLeftOutlined,
@@ -32,7 +32,7 @@ import {
   SyncOutlined,
 } from '@ant-design/icons'
 
-const { Title, Text, TextArea } = Typography
+const { Title, Text } = Typography
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -44,9 +44,9 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
-      Message.success('API配置保存成功！')
+      message.success('API配置保存成功！')
     } catch (error) {
-      Message.error('保存失败，请重试')
+      message.error('保存失败，请重试')
     } finally {
       setSaving(false)
     }
@@ -57,9 +57,9 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
-      Message.success('系统配置保存成功！')
+      message.success('系统配置保存成功！')
     } catch (error) {
-      Message.error('保存失败，请重试')
+      message.error('保存失败，请重试')
     } finally {
       setSaving(false)
     }
@@ -70,9 +70,9 @@ export default function SettingsPage() {
     setSaving(true)
     try {
       await new Promise(resolve => setTimeout(resolve, 1000))
-      Message.success('通知配置保存成功！')
+      message.success('通知配置保存成功！')
     } catch (error) {
-      Message.error('保存失败，请重试')
+      message.error('保存失败，请重试')
     } finally {
       setSaving(false)
     }
@@ -80,30 +80,30 @@ export default function SettingsPage() {
 
   // 测试连接
   const handleTestConnection = async () => {
-    Message.loading('测试连接中...', 0)
+    message.loading('测试连接中...', 0)
     try {
       await new Promise(resolve => setTimeout(resolve, 1500))
-      Message.destroy()
-      Message.success('连接测试成功！')
+      message.destroy()
+      message.success('连接测试成功！')
     } catch (error) {
-      Message.destroy()
-      Message.error('连接测试失败')
+      message.destroy()
+      message.error('连接测试失败')
     }
   }
 
   // 导出配置
   const handleExportConfig = () => {
-    Message.success('配置已导出')
+    message.success('配置已导出')
   }
 
   // 导入配置
   const handleImportConfig = () => {
-    Message.success('配置已导入')
+    message.success('配置已导入')
   }
 
   // 重置配置
   const handleResetConfig = () => {
-    Message.info('配置已重置为默认值')
+    message.info('配置已重置为默认值')
   }
 
   return (
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                         label="系统描述"
                         name="siteDescription"
                       >
-                        <TextArea rows={3} placeholder="请输入系统描述" />
+                        <Input.TextArea rows={3} placeholder="请输入系统描述" />
                       </Form.Item>
 
                       <Divider>上传设置</Divider>
@@ -398,7 +398,7 @@ export default function SettingsPage() {
                               <Select.Option value="pdf">PDF</Select.Option>
                               <Select.Option value="doc">DOC</Select.Option>
                             </Select>
-                          </Select>
+                          </Form.Item>
                         </Col>
                       </Row>
 

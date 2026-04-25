@@ -34,7 +34,7 @@ interface NavigationItem {
   key: string
   label: string
   icon: React.ReactNode
-  path: string
+  path?: string
   children?: NavigationItem[]
 }
 
