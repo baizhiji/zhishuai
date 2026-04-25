@@ -38,7 +38,7 @@ import type { UploadProps, UploadFile } from 'antd'
 import { MediaContent } from '@/types'
 import { getPlatformIcon, getPlatformName } from '@/utils'
 
-const { Title, Text, TextArea } = Typography
+const { Title, Text } = Typography
 const { RangePicker } = DatePicker
 
 export default function PublishPage() {
@@ -322,7 +322,7 @@ export default function PublishPage() {
                   name="description"
                   rules={[{ required: true, message: '请输入描述' }]}
                 >
-                  <TextArea
+                  <Input.TextArea
                     rows={4}
                     placeholder="请输入内容描述，吸引更多观众"
                     maxLength={500}
