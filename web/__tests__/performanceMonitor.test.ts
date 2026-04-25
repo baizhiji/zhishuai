@@ -1,4 +1,4 @@
-import PerformanceMonitor from '@/lib/performanceMonitor'
+import { PerformanceMonitor } from '@/lib/performanceMonitor'
 
 describe('PerformanceMonitor', () => {
   let monitor: PerformanceMonitor

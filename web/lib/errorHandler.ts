@@ -70,7 +70,7 @@ export class ErrorHandler {
   /**
    * 显示加载消息
    */
-  static showLoading(msg = '加载中...', duration = 0): void {
+  static showLoading(msg = '加载中...', duration = 0): any {
     return message.loading(msg, duration)
   }
 
