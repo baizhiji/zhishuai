@@ -1,137 +1,180 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Card, Row, Col, Button, Typography, Breadcrumb, Tabs, Form, Input, Select, Switch, Upload, message } from 'antd'
-import { ArrowLeftOutlined, ApiOutlined, BookOutlined, MobileOutlined, SettingOutlined } from '@ant-design/icons'
-import type { UploadProps } from 'antd'
+import { Card, Button, Typography, Space, Row, Col, Badge, Divider } from 'antd'
+import {
+  ArrowLeftOutlined,
+  ApiOutlined,
+  BookOutlined,
+  MobileOutlined,
+  UserOutlined,
+  SettingOutlined,
+  DatabaseOutlined,
+  BellOutlined,
+  ShieldCheckOutlined,
+} from '@ant-design/icons'
 
-const { Title, Text, TextArea } = Typography
+const { Title, Text, Paragraph } = Typography
+
+const modules = [
+  {
+    id: 'api-config',
+    title: 'API配置',
+    icon: <ApiOutlined className="text-4xl" />,
+    description: '配置AI模型的API密钥和参数',
+    status: 'completed',
+    link: '/system/settings',
+    badge: '推荐',
+  },
+  {
+    id: 'knowledge-base',
+    title: '知识库管理',
+    icon: <BookOutlined className="text-4xl" />,
+    description: '上传和管理知识库文档',
+    status: 'completed',
+    link: '/system/knowledge',
+    badge: null,
+  },
+  {
+    id: 'app-customization',
+    title: 'APP定制',
+    icon: <MobileOutlined className="text-4xl" />,
+    description: '定制APK应用的外观和功能',
+    status: 'completed',
+    link: '/system/app-customize',
+    badge: null,
+  },
+  {
+    id: 'user-management',
+    title: '用户管理',
+    icon: <UserOutlined className="text-4xl" />,
+    description: '管理系统用户和权限',
+    status: 'new',
+    link: '/system/users',
+    badge: 'NEW',
+  },
+  {
+    id: 'system-settings',
+    title: '系统设置',
+    icon: <SettingOutlined className="text-4xl" />,
+    description: '配置系统参数和通知',
+    status: 'new',
+    link: '/system/settings',
+    badge: null,
+  },
+]
 
 export default function SystemPage() {
   const router = useRouter()
-  const [apiForm] = Form.useForm()
-  const [appForm] = Form.useForm()
-  const [kbForm] = Form.useForm()
-
-  const uploadProps: UploadProps = {
-    name: 'file',
-    beforeUpload: () => false,
-    onChange: (info) => {
-      if (info.file.status === 'done') {
-        message.success('上传成功')
-      }
-    },
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-green-100">
+    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-100">
       <div className="container mx-auto px-4 py-8">
-        <Breadcrumb className="mb-6">
-          <Breadcrumb.Item onClick={() => router.push('/dashboard')} className="cursor-pointer">首页</Breadcrumb.Item>
-          <Breadcrumb.Item>系统配置</Breadcrumb.Item>
-        </Breadcrumb>
-
-        <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => router.push('/dashboard')} className="mb-6">
+        {/* 返回按钮 */}
+        <Button
+          type="text"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => router.push('/')}
+          className="mb-6"
+        >
           返回首页
         </Button>
 
+        {/* 标题 */}
         <div className="mb-8">
-          <Title level={2}>系统配置</Title>
-          <Text type="secondary">配置API服务商、知识库、APP定制等功能</Text>
+          <Title level={2}>系统设置</Title>
+          <Text type="secondary">配置和管理系统各项设置</Text>
         </div>
 
-        <Card>
-          <Tabs
-            items={[
-              {
-                key: 'api',
-                label: <span><ApiOutlined /> API配置</span>,
-                children: (
-                  <Form form={apiForm} layout="vertical" onFinish={(v) => { message.success('保存成功') }}>
-                    <Form.Item label="API服务商" name="provider" initialValue="qwen">
-                      <Select>
-                        <Select.Option value="qwen">阿里云百炼</Select.Option>
-                        <Select.Option value="volcano">火山引擎</Select.Option>
-                      </Select>
-                    </Form.Item>
-                    <Form.Item label="API Key" name="apiKey" rules={[{ required: true }]}>
-                      <Input.Password placeholder="请输入API Key" />
-                    </Form.Item>
-                    <Form.Item label="API Secret" name="apiSecret">
-                      <Input.Password placeholder="请输入API Secret" />
-                    </Form.Item>
-                    <Form.Item label="Base URL" name="baseUrl" initialValue="https://dashscope.aliyuncs.com">
-                      <Input placeholder="请输入API Base URL" />
-                    </Form.Item>
-                    <Form.Item>
-                      <Button type="primary" htmlType="submit">保存配置</Button>
-                    </Form.Item>
-                  </Form>
-                ),
-              },
-              {
-                key: 'kb',
-                label: <span><BookOutlined /> 知识库管理</span>,
-                children: (
-                  <Form form={kbForm} layout="vertical">
-                    <Form.Item label="上传知识库文件">
-                      <Upload.Dragger {...uploadProps}>
-                        <p className="ant-upload-text">点击或拖拽文件到此处上传</p>
-                        <p className="ant-upload-hint">支持PDF、TXT、Markdown等格式</p>
-                      </Upload.Dragger>
-                    </Form.Item>
-                    <Form.Item label="添加知识条目" name="knowledge">
-                      <TextArea rows={4} placeholder="输入知识条目内容" />
-                    </Form.Item>
-                    <Form.Item>
-                      <Button type="primary" htmlType="submit">添加知识</Button>
-                    </Form.Item>
-                  </Form>
-                ),
-              },
-              {
-                key: 'app',
-                label: <span><MobileOutlined /> APP定制</span>,
-                children: (
-                  <Form form={appForm} layout="vertical" onFinish={(v) => { message.success('保存成功') }}>
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <Form.Item label="APP名称" name="appName" initialValue="智枢AI">
-                          <Input />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item label="主题颜色" name="themeColor" initialValue="#1890ff">
-                          <Input type="color" />
-                        </Form.Item>
-                      </Col>
-                    </Row>
-                    <Form.Item label="APP Logo">
-                      <Upload {...uploadProps} listType="picture-card">
-                        <div><PlusOutlined /><div style={{ marginTop: 8 }}>上传</div></div>
-                      </Upload>
-                    </Form.Item>
-                    <Form.Item label="主题风格" name="theme" initialValue="light">
-                      <Select>
-                        <Select.Option value="light">浅色主题</Select.Option>
-                        <Select.Option value="dark">深色主题</Select.Option>
-                        <Select.Option value="auto">跟随系统</Select.Option>
-                      </Select>
-                    </Form.Item>
-                    <Form.Item label="功能按键点击方式" name="clickMode" initialValue="click">
-                      <Select>
-                        <Select.Option value="click">点击进入</Select.Option>
-                        <Select.Option value="slide">滑动进入</Select.Option>
-                      </Select>
-                    </Form.Item>
-                    <Form.Item>
-                      <Button type="primary" htmlType="submit">保存配置</Button>
-                    </Form.Item>
-                  </Form>
-                ),
-              },
-            ]}
-          />
+        {/* 系统状态概览 */}
+        <Row gutter={[16, 16]} className="mb-8">
+          <Col xs={24} sm={8}>
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-gray-500 text-sm mb-2">系统版本</div>
+                  <div className="text-xl font-bold">v1.0.0</div>
+                </div>
+                <div className="bg-blue-100 p-3 rounded-full">
+                  <ShieldCheckOutlined className="text-2xl text-blue-500" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-gray-500 text-sm mb-2">运行状态</div>
+                  <div className="text-xl font-bold text-green-500">正常运行</div>
+                </div>
+                <div className="bg-green-100 p-3 rounded-full">
+                  <DatabaseOutlined className="text-2xl text-green-500" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-gray-500 text-sm mb-2">最后更新</div>
+                  <div className="text-xl font-bold">2024-01-16</div>
+                </div>
+                <div className="bg-purple-100 p-3 rounded-full">
+                  <BellOutlined className="text-2xl text-purple-500" />
+                </div>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* 功能模块 */}
+        <Row gutter={[16, 16]}>
+          {modules.map((module) => (
+            <Col xs={24} sm={12} md={8} key={module.id}>
+              <Card
+                hoverable
+                onClick={() => router.push(module.link)}
+                className="h-full"
+              >
+                <div className="flex flex-col h-full">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="bg-violet-100 p-4 rounded-lg">
+                      {module.icon}
+                    </div>
+                    {module.badge && (
+                      <Badge count={module.badge} color="volcano" />
+                    )}
+                  </div>
+                  <Title level={4} className="mb-2">{module.title}</Title>
+                  <Paragraph type="secondary" className="flex-1">
+                    {module.description}
+                  </Paragraph>
+                  <div className="flex items-center justify-between mt-4">
+                    <Text type="secondary" className="text-sm">
+                      {module.status === 'new' ? '新功能' : '已配置'}
+                    </Text>
+                    <Button type="link" size="small">
+                      进入配置 →
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+
+        {/* 快速操作 */}
+        <Card className="mt-8">
+          <Title level={4}>快速操作</Title>
+          <Divider />
+          <Space wrap>
+            <Button icon={<SettingOutlined />}>重置所有配置</Button>
+            <Button icon={<DatabaseOutlined />}>备份数据</Button>
+            <Button icon={<ShieldCheckOutlined />}>安全检查</Button>
+            <Button icon={<BellOutlined />}>系统通知</Button>
+          </Space>
         </Card>
       </div>
     </div>
