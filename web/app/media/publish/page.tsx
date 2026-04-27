@@ -634,21 +634,21 @@ export default function PublishCenterPage() {
             </Radio.Group>
           </Form.Item>
 
-          {publishType === 'scheduled' && (
-            <Form.Item
-              name="scheduledTime"
-              label="定时发布时间"
-              rules={[{ required: true, message: '请选择发布时间' }]}
-            >
-              <DatePicker
-                showTime
-                format="YYYY-MM-DD HH:mm:ss"
-                placeholder="选择发布时间"
-                style={{ width: '100%' }}
-                disabledDate={(current) => current && current < dayjs().endOf('day')}
-              />
-            </Form.Item>
-          )}
+          <Form.Item
+            name="scheduledTime"
+            label="定时发布时间"
+            rules={publishType === 'scheduled' ? [{ required: true, message: '请选择发布时间' }] : []}
+            hidden={publishType !== 'scheduled'}
+            style={{ display: publishType !== 'scheduled' ? 'none' : undefined }}
+          >
+            <DatePicker
+              showTime
+              format="YYYY-MM-DD HH:mm:ss"
+              placeholder="选择发布时间"
+              style={{ width: '100%' }}
+              disabledDate={(current) => current && current < dayjs().endOf('day')}
+            />
+          </Form.Item>
         </Form>
       </Modal>
 
