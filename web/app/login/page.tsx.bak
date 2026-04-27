@@ -9,8 +9,10 @@ import {
   SafetyOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
+import apiAdapter from '@/services/apiAdapter';
+import { setAuthToken, setUserInfo } from '@/lib/request';
 
-export default function LoginPageSimple() {
+export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('password');
@@ -19,7 +21,15 @@ export default function LoginPageSimple() {
   const handlePasswordLogin = async (values: any) => {
     setLoading(true);
     try {
+      const result = await apiAdapter.auth.login(values.phone, values.password);
+
+      // 保存token和用户信息
+      setAuthToken(result.token);
+      setUserInfo(result.user);
+
       message.success('登录成功');
+
+      // 跳转到首页
       setTimeout(() => {
         router.push('/dashboard');
       }, 500);
@@ -34,7 +44,16 @@ export default function LoginPageSimple() {
   const handleCodeLogin = async (values: any) => {
     setLoading(true);
     try {
+      // 暂时使用密码登录接口模拟
+      const result = await apiAdapter.auth.login(values.phone, values.password || '123456');
+
+      // 保存token和用户信息
+      setAuthToken(result.token);
+      setUserInfo(result.user);
+
       message.success('登录成功');
+
+      // 跳转到首页
       setTimeout(() => {
         router.push('/dashboard');
       }, 500);

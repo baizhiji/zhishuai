@@ -122,9 +122,6 @@ const nextConfig = {
   async redirects() {
     return []
   },
-
-  // 构建配置
-  buildId: 'build-id-' + Date.now(),
 }
 
 module.exports = nextConfig
