@@ -84,69 +84,32 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
             label: '自媒体运营',
             icon: <VideoCameraOutlined />,
             children: [
-              { key: 'media-content', label: '内容管理', icon: <HomeOutlined />, path: '/media/content' },
+              { key: 'media-factory', label: '内容工厂', icon: <ThunderboltOutlined />, path: '/media/factory' },
               { key: 'media-matrix', label: '矩阵管理', icon: <TeamOutlined />, path: '/media/matrix' },
-              { key: 'media-data', label: '数据统计', icon: <PieChartOutlined />, path: '/media/data' },
-              { key: 'media-publish', label: '一键发布', icon: <ThunderboltOutlined />, path: '/media/publish' },
+              { key: 'media-publish', label: '发布中心', icon: <ShareAltOutlined />, path: '/media/publish' },
+              { key: 'media-report', label: '数据报表', icon: <PieChartOutlined />, path: '/media/report' },
+            ],
+          },
+          {
+            key: 'recruitment',
+            label: '招聘助手',
+            icon: <TeamOutlined />,
+            children: [
+              { key: 'recruitment-publish', label: '职位发布', icon: <ShareAltOutlined />, path: '/recruitment/publish' },
+              { key: 'recruitment-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/recruitment/screen' },
+              { key: 'recruitment-reply', label: '自动回复', icon: <ThunderboltOutlined />, path: '/recruitment/reply' },
+              { key: 'recruitment-interview', label: '面试管理', icon: <TeamOutlined />, path: '/recruitment/interview' },
+              { key: 'recruitment-stats', label: '招聘看板', icon: <PieChartOutlined />, path: '/recruitment/stats' },
             ],
           },
           {
             key: 'acquisition',
-            label: '获客工具',
+            label: '智能获客',
             icon: <UserAddOutlined />,
             children: [
-              { key: 'acquisition-form', label: '表单获客', icon: <ApiOutlined />, path: '/acquisition/form' },
-              { key: 'acquisition-miniprogram', label: '小程序', icon: <ShopOutlined />, path: '/acquisition/miniprogram' },
-              { key: 'acquisition-landing', label: '落地页', icon: <PictureOutlined />, path: '/acquisition/landing' },
-            ],
-          },
-          {
-            key: 'marketing',
-            label: '营销推广',
-            icon: <ShareAltOutlined />,
-            children: [
-              { key: 'marketing-coupon', label: '优惠券', icon: <ShopOutlined />, path: '/marketing/coupon' },
-              { key: 'marketing-activity', label: '活动管理', icon: <ThunderboltOutlined />, path: '/marketing/activity' },
-              { key: 'marketing-statistics', label: '数据统计', icon: <PieChartOutlined />, path: '/marketing/statistics' },
-            ],
-          },
-          {
-            key: 'hr',
-            label: '招聘管理',
-            icon: <TeamOutlined />,
-            children: [
-              { key: 'hr-resume', label: '简历库', icon: <UserOutlined />, path: '/hr/resume' },
-              { key: 'hr-position', label: '职位管理', icon: <UserAddOutlined />, path: '/hr/position' },
-              { key: 'hr-interview', label: '面试管理', icon: <VideoCameraOutlined />, path: '/hr/interview' },
-            ],
-          },
-          {
-            key: 'ecommerce',
-            label: '电商管理',
-            icon: <ShopOutlined />,
-            children: [
-              { key: 'ecommerce-products', label: '商品管理', icon: <PictureOutlined />, path: '/ecommerce/products' },
-              { key: 'ecommerce-orders', label: '订单管理', icon: <ShopOutlined />, path: '/ecommerce/orders' },
-              { key: 'ecommerce-finance', label: '财务对账', icon: <PieChartOutlined />, path: '/ecommerce/finance' },
-            ],
-          },
-        ]
-      case 'agent':
-        return [
-          {
-            key: 'dashboard',
-            label: '代理商管理台',
-            icon: <PieChartOutlined />,
-            path: '/agent/dashboard',
-          },
-          {
-            key: 'crm',
-            label: '客户管理',
-            icon: <TeamOutlined />,
-            children: [
-              { key: 'crm-list', label: '客户列表', icon: <TeamOutlined />, path: '/crm/list' },
-              { key: 'crm-funnel', label: '销售漏斗', icon: <PieChartOutlined />, path: '/crm/funnel' },
-              { key: 'crm-tags', label: '标签管理', icon: <ApiOutlined />, path: '/crm/tags' },
+              { key: 'acquisition-discover', label: '潜客发现', icon: <UserAddOutlined />, path: '/acquisition/discover' },
+              { key: 'acquisition-task', label: '引流任务', icon: <ShareAltOutlined />, path: '/acquisition/task' },
+              { key: 'acquisition-stats', label: '获客看板', icon: <PieChartOutlined />, path: '/acquisition/stats' },
             ],
           },
           {
@@ -154,38 +117,120 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
             label: '推荐分享',
             icon: <ShareAltOutlined />,
             children: [
-              { key: 'share-link', label: '分享链接', icon: <ShareAltOutlined />, path: '/share/link' },
-              { key: 'share-reward', label: '奖励管理', icon: <ShopOutlined />, path: '/share/reward' },
-              { key: 'share-statistics', label: '数据统计', icon: <PieChartOutlined />, path: '/share/statistics' },
+              { key: 'share-code', label: '码生成', icon: <PictureOutlined />, path: '/share/code' },
+              { key: 'share-track', label: '推荐追踪', icon: <PieChartOutlined />, path: '/share/track' },
+            ],
+          },
+          {
+            key: 'account',
+            label: '账号与配置',
+            icon: <SettingOutlined />,
+            children: [
+              { key: 'account-staff', label: '员工管理', icon: <TeamOutlined />, path: '/account/staff' },
+              { key: 'account-api', label: 'API服务商配置', icon: <ApiOutlined />, path: '/account/api' },
+              { key: 'account-knowledge', label: '知识库管理', icon: <ThunderboltOutlined />, path: '/account/knowledge' },
+              { key: 'account-log', label: '操作日志', icon: <PieChartOutlined />, path: '/account/log' },
+            ],
+          },
+          {
+            key: 'settings',
+            label: '系统设置',
+            icon: <SettingOutlined />,
+            children: [
+              { key: 'settings-company', label: '公司信息', icon: <TeamOutlined />, path: '/settings/company' },
+              { key: 'settings-security', label: '安全设置', icon: <SettingOutlined />, path: '/settings/security' },
+              { key: 'settings-theme', label: '主题设置', icon: <PictureOutlined />, path: '/settings/theme' },
+            ],
+          },
+          // 预留扩展
+          {
+            key: 'ecommerce',
+            label: '电商运营',
+            icon: <ShopOutlined />,
+            children: [
+              { key: 'ecommerce-placeholder', label: '即将上线', icon: <ShopOutlined />, path: '/ecommerce' },
+            ],
+          },
+          {
+            key: 'crm',
+            label: '客户管理',
+            icon: <TeamOutlined />,
+            children: [
+              { key: 'crm-placeholder', label: '即将上线', icon: <TeamOutlined />, path: '/crm' },
+            ],
+          },
+          {
+            key: 'hr',
+            label: '员工管理',
+            icon: <TeamOutlined />,
+            children: [
+              { key: 'hr-placeholder', label: '即将上线', icon: <TeamOutlined />, path: '/hr' },
+            ],
+          },
+          {
+            key: 'marketing',
+            label: '营销功能',
+            icon: <ShareAltOutlined />,
+            children: [
+              { key: 'marketing-placeholder', label: '即将上线', icon: <ShareAltOutlined />, path: '/marketing' },
+            ],
+          },
+        ]
+      case 'agent':
+        return [
+          {
+            key: 'customers',
+            label: '客户管理',
+            icon: <TeamOutlined />,
+            children: [
+              { key: 'customer-list', label: '客户列表', icon: <TeamOutlined />, path: '/agent/customers' },
+              { key: 'customer-feature', label: '功能开关管理', icon: <SettingOutlined />, path: '/agent/features' },
+            ],
+          },
+          {
+            key: 'data',
+            label: '数据看板',
+            icon: <PieChartOutlined />,
+            children: [
+              { key: 'referral-data', label: '推荐数据', icon: <ShareAltOutlined />, path: '/agent/referral' },
+              { key: 'usage-data', label: '使用数据', icon: <PieChartOutlined />, path: '/agent/usage' },
             ],
           },
         ]
       case 'admin':
         return [
           {
-            key: 'dashboard',
-            label: '开发者总后台',
+            key: 'tenants',
+            label: '租户管理',
+            icon: <TeamOutlined />,
+            children: [
+              { key: 'tenant-list', label: '租户列表', icon: <TeamOutlined />, path: '/admin/tenants' },
+              { key: 'tenant-agents', label: '代理商管理', icon: <TeamOutlined />, path: '/admin/agents' },
+            ],
+          },
+          {
+            key: 'features',
+            label: '功能开关总控',
+            icon: <SettingOutlined />,
+            path: '/admin/features',
+          },
+          {
+            key: 'branding',
+            label: '贴牌配置',
+            icon: <PictureOutlined />,
+            path: '/admin/branding',
+          },
+          {
+            key: 'data',
+            label: '数据大盘',
             icon: <PieChartOutlined />,
-            path: '/admin/dashboard',
+            path: '/admin/data',
           },
           {
             key: 'system',
-            label: '系统管理',
+            label: '系统配置',
             icon: <SettingOutlined />,
-            children: [
-              { key: 'system-users', label: '用户管理', icon: <UserOutlined />, path: '/system/users' },
-              { key: 'system-roles', label: '角色权限', icon: <TeamOutlined />, path: '/system/roles' },
-              { key: 'system-settings', label: '系统设置', icon: <SettingOutlined />, path: '/system/settings' },
-            ],
-          },
-          {
-            key: 'account',
-            label: '账号管理',
-            icon: <UserOutlined />,
-            children: [
-              { key: 'account-staff', label: '员工管理', icon: <TeamOutlined />, path: '/account/staff' },
-              { key: 'account-permissions', label: '权限管理', icon: <ApiOutlined />, path: '/account/permissions' },
-            ],
+            path: '/admin/system',
           },
         ]
       default:
