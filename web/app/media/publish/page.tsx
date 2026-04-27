@@ -82,6 +82,7 @@ export default function PublishCenterPage() {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [publishing, setPublishing] = useState(false)
   const [publishProgress, setPublishProgress] = useState(0)
+  const [publishType, setPublishType] = useState<'immediate' | 'scheduled'>('immediate')
   const [form] = Form.useForm()
 
   // 从 localStorage 加载数据
@@ -181,15 +182,20 @@ export default function PublishCenterPage() {
 
   // 打开发布模态框
   const handleOpenPublishModal = () => {
+    setPublishType('immediate')
+    form.resetFields()
+    form.setFieldsValue({
+      contentType: 'text',
+      publishType: 'immediate',
+    })
     setIsPublishModalVisible(true)
-    // 延迟重置表单，确保 Modal 已经打开
-    setTimeout(() => {
-      form.resetFields()
-      form.setFieldsValue({
-        contentType: 'text',
-        publishType: 'immediate',
-      })
-    }, 0)
+  }
+
+  // 关闭发布模态框
+  const handleClosePublishModal = () => {
+    form.resetFields()
+    setPublishType('immediate')
+    setIsPublishModalVisible(false)
   }
 
   // 提交发布任务
@@ -551,11 +557,12 @@ export default function PublishCenterPage() {
       <Modal
         title="创建发布任务"
         open={isPublishModalVisible}
-        onCancel={() => setIsPublishModalVisible(false)}
+        onCancel={handleClosePublishModal}
         onOk={() => form.submit()}
         width={700}
         okText="创建任务"
         cancelText="取消"
+        destroyOnClose
       >
         <Form form={form} layout="vertical" onFinish={handlePublish}>
           <Form.Item
@@ -606,36 +613,30 @@ export default function PublishCenterPage() {
             label="发布方式"
             initialValue="immediate"
           >
-            <Radio.Group>
+            <Radio.Group
+              value={publishType}
+              onChange={(e) => setPublishType(e.target.value)}
+            >
               <Radio value="immediate">立即发布</Radio>
               <Radio value="scheduled">定时发布</Radio>
             </Radio.Group>
           </Form.Item>
 
-          <Form.Item
-            noStyle
-            shouldUpdate={(prevValues, currentValues) =>
-              prevValues?.publishType !== currentValues?.publishType
-            }
-          >
-            {({ getFieldValue }) =>
-              getFieldValue('publishType') === 'scheduled' ? (
-                <Form.Item
-                  name="scheduledTime"
-                  label="定时发布时间"
-                  rules={[{ required: true, message: '请选择发布时间' }]}
-                >
-                  <DatePicker
-                    showTime
-                    format="YYYY-MM-DD HH:mm:ss"
-                    placeholder="选择发布时间"
-                    style={{ width: '100%' }}
-                    disabledDate={(current) => current && current < dayjs().endOf('day')}
-                  />
-                </Form.Item>
-              ) : null
-            }
-          </Form.Item>
+          {publishType === 'scheduled' && (
+            <Form.Item
+              name="scheduledTime"
+              label="定时发布时间"
+              rules={[{ required: true, message: '请选择发布时间' }]}
+            >
+              <DatePicker
+                showTime
+                format="YYYY-MM-DD HH:mm:ss"
+                placeholder="选择发布时间"
+                style={{ width: '100%' }}
+                disabledDate={(current) => current && current < dayjs().endOf('day')}
+              />
+            </Form.Item>
+          )}
         </Form>
       </Modal>
 
