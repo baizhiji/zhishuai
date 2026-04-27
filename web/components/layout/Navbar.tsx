@@ -10,7 +10,6 @@ import {
   Space,
   Button,
   theme,
-  Card,
   Image,
 } from 'antd'
 import {
@@ -29,6 +28,7 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavigationStore } from '@/stores/navigationStore'
 
 const { Header, Content } = Layout
 const { useToken } = theme
@@ -263,14 +263,13 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   // 导航菜单项
   const navItems = getNavigationItems(currentRole)
 
-  // 受控的菜单展开状态 - 根据当前路由初始化
-  const [openKeys, setOpenKeys] = useState<string[]>(getOpenKeys(navItems, pathname))
+  // 使用全局状态管理 openKeys
+  const { openKeys, setOpenKeys, updateOpenKeysForPath } = useNavigationStore()
 
   // 当路由变化时，更新菜单展开状态
   useEffect(() => {
-    const newOpenKeys = getOpenKeys(navItems, pathname)
-    setOpenKeys(newOpenKeys)
-  }, [pathname, currentRole])
+    updateOpenKeysForPath(pathname)
+  }, [pathname, updateOpenKeysForPath])
 
   // 用户下拉菜单
   const userMenuItems = [
