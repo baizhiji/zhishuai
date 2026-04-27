@@ -6,7 +6,7 @@ import { Spin } from 'antd';
 import { isAuthenticated } from '@/lib/permissions';
 
 // 公开页面列表（不需要认证即可访问）
-const publicPaths = ['/login', '/register', '/'];
+const publicPaths = ['/login', '/register'];
 
 // 受保护页面列表（需要特定权限）
 const protectedPaths: Record<string, string[]> = {

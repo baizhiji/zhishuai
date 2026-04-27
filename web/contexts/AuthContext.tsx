@@ -28,7 +28,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // 公开页面列表（不需要认证即可访问）
-const publicPaths = ['/login', '/register', '/'];
+const publicPaths = ['/login', '/register'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();

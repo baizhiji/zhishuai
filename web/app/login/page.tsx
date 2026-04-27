@@ -9,9 +9,11 @@ import {
   SafetyOutlined
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPageSimple() {
   const router = useRouter();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('password');
 
@@ -19,12 +21,28 @@ export default function LoginPageSimple() {
   const handlePasswordLogin = async (values: any) => {
     setLoading(true);
     try {
-      message.success('登录成功');
+      // 模拟登录 token（实际应该从后端 API 获取）
+      const token = `token_${Date.now()}`;
+
+      // 构造用户信息
+      const user = {
+        id: '1',
+        name: '测试用户',
+        phone: values.phone,
+        role: 'customer' as const,
+        status: 'active' as const
+      };
+
+      // 调用 AuthContext 的 login 函数
+      login(token, user);
+
+      // 跳转到工作台
       setTimeout(() => {
         router.push('/dashboard');
       }, 500);
     } catch (error) {
       console.error('登录失败:', error);
+      message.error('登录失败，请重试');
     } finally {
       setLoading(false);
     }
@@ -34,12 +52,28 @@ export default function LoginPageSimple() {
   const handleCodeLogin = async (values: any) => {
     setLoading(true);
     try {
-      message.success('登录成功');
+      // 模拟登录 token（实际应该从后端 API 获取）
+      const token = `token_${Date.now()}`;
+
+      // 构造用户信息
+      const user = {
+        id: '1',
+        name: '测试用户',
+        phone: values.phone,
+        role: 'customer' as const,
+        status: 'active' as const
+      };
+
+      // 调用 AuthContext 的 login 函数
+      login(token, user);
+
+      // 跳转到工作台
       setTimeout(() => {
         router.push('/dashboard');
       }, 500);
     } catch (error) {
       console.error('登录失败:', error);
+      message.error('登录失败，请重试');
     } finally {
       setLoading(false);
     }
