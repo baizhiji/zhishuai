@@ -266,6 +266,13 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   // 使用全局状态管理 openKeys
   const { openKeys, setOpenKeys, updateOpenKeysForPath } = useNavigationStore()
 
+  // 首次挂载时初始化 openKeys
+  useEffect(() => {
+    if (openKeys.length === 0 && pathname !== '/') {
+      updateOpenKeysForPath(pathname)
+    }
+  }, []) // 只在首次挂载时执行
+
   // 当路由变化时，更新菜单展开状态
   useEffect(() => {
     updateOpenKeysForPath(pathname)
