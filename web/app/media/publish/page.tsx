@@ -558,13 +558,27 @@ export default function PublishCenterPage() {
         title="创建发布任务"
         open={isPublishModalVisible}
         onCancel={handleClosePublishModal}
-        onOk={() => form.submit()}
+        onOk={() => {
+          console.log('Modal OK clicked')
+          form.submit()
+        }}
         width={700}
         okText="创建任务"
         cancelText="取消"
         destroyOnClose
       >
-        <Form form={form} layout="vertical" onFinish={handlePublish}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={(values) => {
+            console.log('Form submitted:', values)
+            handlePublish(values)
+          }}
+          initialValues={{
+            contentType: 'text',
+            publishType: 'immediate',
+          }}
+        >
           <Form.Item
             name="contentType"
             label="内容类型"
@@ -611,7 +625,6 @@ export default function PublishCenterPage() {
           <Form.Item
             name="publishType"
             label="发布方式"
-            initialValue="immediate"
           >
             <Radio.Group
               value={publishType}
