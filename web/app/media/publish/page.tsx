@@ -206,6 +206,15 @@ export default function PublishCenterPage() {
     bilibili: 'B站',
   }
 
+  // 平台定时发布时间限制（天数）
+  const platformScheduledLimit: Record<string, number> = {
+    douyin: 7,      // 抖音：7天
+    kuaishou: 7,    // 快手：7天
+    xiaohongshu: 7, // 小红书：7天
+    weixin: 7,      // 视频号：7天
+    bilibili: 7,    // B站：7天
+  }
+
   const statusConfig = {
     pending: { text: '待发布', color: 'default', icon: null },
     scheduled: { text: '已定时', color: 'processing', icon: <ClockCircleOutlined /> },
@@ -236,6 +245,35 @@ export default function PublishCenterPage() {
       }
       return false // 阻止自动上传，只显示预览
     },
+  }
+
+  // 计算定时发布时间限制
+  const getScheduledLimitDays = () => {
+    if (formData.accounts.length === 0) {
+      return 7 // 默认7天
+    }
+
+    // 获取选中账号的平台列表
+    const selectedPlatforms = formData.accounts
+      .map(accountId => {
+        const account = accounts.find(a => a.id === accountId)
+        return account?.platform
+      })
+      .filter(Boolean) as string[]
+
+    if (selectedPlatforms.length === 0) {
+      return 7 // 默认7天
+    }
+
+    // 获取所有选中平台的时间限制，取最小值
+    const limits = selectedPlatforms.map(platform => platformScheduledLimit[platform] || 7)
+    return Math.min(...limits)
+  }
+
+  // 计算最大可选日期
+  const getMaxScheduledDate = () => {
+    const limitDays = getScheduledLimitDays()
+    return dayjs().add(limitDays, 'day').endOf('day')
   }
 
   // 打开发布模态框
@@ -865,10 +903,21 @@ export default function PublishCenterPage() {
                 format="YYYY-MM-DD HH:mm:ss"
                 placeholder="选择发布时间"
                 style={{ width: '100%' }}
-                disabledDate={(current) => current && current < dayjs().endOf('day')}
+                disabledDate={(current) => {
+                  if (!current) return false
+                  const minDate = dayjs().endOf('day')
+                  const maxDate = getMaxScheduledDate()
+                  return current < minDate || current > maxDate
+                }}
                 value={formData.scheduledTime}
                 onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
               />
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
+                {formData.accounts.length > 0
+                  ? `根据所选平台规则，最多可定时 ${getScheduledLimitDays()} 天`
+                  : '请先选择账号，系统将根据平台规则显示可定时范围'
+                }
+              </Text>
             </div>
           )}
         </div>
@@ -1113,10 +1162,21 @@ export default function PublishCenterPage() {
                 format="YYYY-MM-DD HH:mm:ss"
                 placeholder="选择发布时间"
                 style={{ width: '100%' }}
-                disabledDate={(current) => current && current < dayjs().endOf('day')}
+                disabledDate={(current) => {
+                  if (!current) return false
+                  const minDate = dayjs().endOf('day')
+                  const maxDate = getMaxScheduledDate()
+                  return current < minDate || current > maxDate
+                }}
                 value={formData.scheduledTime}
                 onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
               />
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
+                {formData.accounts.length > 0
+                  ? `根据所选平台规则，最多可定时 ${getScheduledLimitDays()} 天`
+                  : '请先选择账号，系统将根据平台规则显示可定时范围'
+                }
+              </Text>
             </div>
           )}
         </div>
