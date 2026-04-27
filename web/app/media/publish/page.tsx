@@ -553,25 +553,37 @@ export default function PublishCenterPage() {
         />
       </Card>
 
-      {/* 发布任务创建模态框 */}
+      {/* 发布任务创建模态框 - 测试版本 2: 添加简单 Form */}
       <Modal
         title="创建发布任务"
         open={isPublishModalVisible}
         onCancel={handleClosePublishModal}
         onOk={() => {
-          console.log('Modal OK clicked - test version')
-          setIsPublishModalVisible(false)
-          message.success('测试成功')
+          console.log('Modal OK clicked - test version 2')
+          form.submit()
         }}
         width={700}
         okText="创建任务"
         cancelText="取消"
         destroyOnClose={false}
       >
-        <div style={{ padding: '20px' }}>
-          <p>这是一个简化的测试版本</p>
-          <p>如果能看到这个内容，说明 Modal 可以正常打开</p>
-        </div>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={(values) => {
+            console.log('Form submitted:', values)
+            setIsPublishModalVisible(false)
+            message.success('测试成功: ' + JSON.stringify(values))
+          }}
+        >
+          <Form.Item
+            name="title"
+            label="标题"
+            rules={[{ required: true, message: '请输入标题' }]}
+          >
+            <Input placeholder="输入内容标题" maxLength={100} showCount />
+          </Form.Item>
+        </Form>
       </Modal>
 
       {/* 素材库抽屉 */}
