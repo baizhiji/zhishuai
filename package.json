@@ -1,0 +1,39 @@
+{
+  "name": "zhishuai",
+  "version": "1.0.0",
+  "description": "智枢AI SaaS多租户超级应用 - 包含APK端、Web端和后端服务",
+  "private": true,
+  "scripts": {
+    "install:all": "npm run install:web && npm run install:apk && npm run install:backend",
+    "install:web": "cd web && npm install",
+    "install:apk": "cd apk && npm install",
+    "install:backend": "cd backend && npm install",
+    "dev:web": "cd web && npm run dev",
+    "dev:apk": "cd apk && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build:web": "cd web && npm run build",
+    "build:apk": "cd apk && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "build:all": "npm run build:web && npm run build:apk && npm run build:backend",
+    "start:web": "cd web && npm start",
+    "start:apk": "cd apk && npm start",
+    "start:backend": "cd backend && npm start"
+  },
+  "workspaces": [
+    "web",
+    "apk",
+    "backend"
+  ],
+  "keywords": [
+    "AI",
+    "SaaS",
+    "自媒体",
+    "电商",
+    "HR",
+    "营销",
+    "APK",
+    "Web"
+  ],
+  "author": "智枢AI",
+  "license": "All rights reserved"
+}
