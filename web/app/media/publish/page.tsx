@@ -83,7 +83,16 @@ export default function PublishCenterPage() {
   const [publishing, setPublishing] = useState(false)
   const [publishProgress, setPublishProgress] = useState(0)
   const [publishType, setPublishType] = useState<'immediate' | 'scheduled'>('immediate')
-  const [form] = Form.useForm()
+
+  // 受控表单状态
+  const [formData, setFormData] = useState({
+    contentType: 'text',
+    title: '',
+    content: '',
+    platforms: [] as string[],
+    publishType: 'immediate' as 'immediate' | 'scheduled',
+    scheduledTime: null as dayjs.Dayjs | null,
+  })
 
   // 从 localStorage 加载数据
   useEffect(() => {
@@ -183,56 +192,66 @@ export default function PublishCenterPage() {
   // 打开发布模态框
   const handleOpenPublishModal = () => {
     setPublishType('immediate')
-    form.resetFields()
-    form.setFieldsValue({
+    setFormData({
       contentType: 'text',
+      title: '',
+      content: '',
+      platforms: [],
       publishType: 'immediate',
+      scheduledTime: null,
     })
     setIsPublishModalVisible(true)
   }
 
   // 关闭发布模态框
   const handleClosePublishModal = () => {
-    form.resetFields()
     setPublishType('immediate')
     setIsPublishModalVisible(false)
   }
 
   // 提交发布任务
-  const handlePublish = async (values: any) => {
-    if (!values.platforms || values.platforms.length === 0) {
+  const handlePublish = async () => {
+    if (!formData.title) {
+      message.warning('请输入标题')
+      return
+    }
+
+    if (!formData.content) {
+      message.warning('请输入内容')
+      return
+    }
+
+    if (!formData.platforms || formData.platforms.length === 0) {
       message.warning('请至少选择一个发布平台')
+      return
+    }
+
+    if (formData.publishType === 'scheduled' && !formData.scheduledTime) {
+      message.warning('请选择发布时间')
       return
     }
 
     const task: PublishTask = {
       id: `task_${Date.now()}`,
-      type: values.contentType,
-      title: values.title || '未命名',
-      content: values.content || '',
-      platforms: values.platforms,
+      type: formData.contentType,
+      title: formData.title,
+      content: formData.content,
+      platforms: formData.platforms,
       status: 'pending',
       createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     }
 
     // 如果是定时发布
-    if (values.publishType === 'scheduled' && values.scheduledTime) {
-      task.scheduledTime = values.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
+    if (formData.publishType === 'scheduled' && formData.scheduledTime) {
+      task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
       task.status = 'scheduled'
-    }
-
-    // 如果上传了文件
-    if (values.file && values.file.fileList && values.file.fileList.length > 0) {
-      task.file = values.file.fileList[0]
-      task.thumbnail = URL.createObjectURL(values.file.fileList[0].originFileObj as File)
     }
 
     setTasks([task, ...tasks])
     setIsPublishModalVisible(false)
-    form.resetFields()
 
     // 如果是立即发布
-    if (values.publishType === 'immediate') {
+    if (formData.publishType === 'immediate') {
       await handlePublishTask(task.id)
     } else {
       message.success('发布任务创建成功')
@@ -553,37 +572,105 @@ export default function PublishCenterPage() {
         />
       </Card>
 
-      {/* 发布任务创建模态框 - 测试版本 2: 添加简单 Form */}
+      {/* 发布任务创建模态框 - 受控组件版本 */}
       <Modal
         title="创建发布任务"
         open={isPublishModalVisible}
         onCancel={handleClosePublishModal}
-        onOk={() => {
-          console.log('Modal OK clicked - test version 2')
-          form.submit()
-        }}
+        onOk={handlePublish}
         width={700}
         okText="创建任务"
         cancelText="取消"
         destroyOnClose={false}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={(values) => {
-            console.log('Form submitted:', values)
-            setIsPublishModalVisible(false)
-            message.success('测试成功: ' + JSON.stringify(values))
-          }}
-        >
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入标题' }]}
-          >
-            <Input placeholder="输入内容标题" maxLength={100} showCount />
-          </Form.Item>
-        </Form>
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              内容类型 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <Radio.Group
+              value={formData.contentType}
+              onChange={(e) => setFormData({ ...formData, contentType: e.target.value })}
+            >
+              <Radio value="text">文本</Radio>
+              <Radio value="image">图片</Radio>
+              <Radio value="video">视频</Radio>
+              <Radio value="digital-human">数字人</Radio>
+            </Radio.Group>
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              标题 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <Input
+              placeholder="输入内容标题"
+              maxLength={100}
+              showCount
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              内容 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <TextArea
+              rows={6}
+              placeholder="输入发布内容"
+              maxLength={2000}
+              showCount
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              发布平台 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <Checkbox.Group
+              options={platformOptions}
+              value={formData.platforms}
+              onChange={(values) => setFormData({ ...formData, platforms: values as string[] })}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              发布方式
+            </label>
+            <Radio.Group
+              value={formData.publishType}
+              onChange={(e) => {
+                const newPublishType = e.target.value
+                setPublishType(newPublishType)
+                setFormData({ ...formData, publishType: newPublishType })
+              }}
+            >
+              <Radio value="immediate">立即发布</Radio>
+              <Radio value="scheduled">定时发布</Radio>
+            </Radio.Group>
+          </div>
+
+          {publishType === 'scheduled' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                定时发布时间 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <DatePicker
+                showTime
+                format="YYYY-MM-DD HH:mm:ss"
+                placeholder="选择发布时间"
+                style={{ width: '100%' }}
+                disabledDate={(current) => current && current < dayjs().endOf('day')}
+                value={formData.scheduledTime}
+                onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
+              />
+            </div>
+          )}
+        </div>
       </Modal>
 
       {/* 素材库抽屉 */}
