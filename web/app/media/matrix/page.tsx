@@ -18,6 +18,8 @@ import {
   Avatar,
   Switch,
   Divider,
+  QRCode,
+  Steps,
 } from 'antd'
 import {
   PlusOutlined,
@@ -26,6 +28,7 @@ import {
   LinkOutlined,
   EyeOutlined,
   SyncOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text } = Typography
@@ -76,14 +79,16 @@ export default function MatrixManagementPage() {
   ])
 
   const [isModalVisible, setIsModalVisible] = useState(false)
+  const [authStep, setAuthStep] = useState<'select' | 'qrcode' | 'success'>('select')
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('')
   const [form] = Form.useForm()
 
   const platformOptions = [
-    { label: '抖音', value: 'douyin' },
-    { label: '快手', value: 'kuaishou' },
-    { label: '小红书', value: 'xiaohongshu' },
-    { label: '视频号', value: 'weixin' },
-    { label: 'B站', value: 'bilibili' },
+    { label: '抖音', value: 'douyin', qrcodeUrl: 'https://open.douyin.com/qr' },
+    { label: '快手', value: 'kuaishou', qrcodeUrl: 'https://open.kuaishou.com/qr' },
+    { label: '小红书', value: 'xiaohongshu', qrcodeUrl: 'https://open.xiaohongshu.com/qr' },
+    { label: '视频号', value: 'weixin', qrcodeUrl: 'https://open.weixin.qq.com/qr' },
+    { label: 'B站', value: 'bilibili', qrcodeUrl: 'https://open.bilibili.com/qr' },
   ]
 
   const statusConfig = {
@@ -201,6 +206,21 @@ export default function MatrixManagementPage() {
 
   const handleAdd = () => {
     setIsModalVisible(true)
+    setAuthStep('select')
+    setSelectedPlatform('')
+    form.resetFields()
+  }
+
+  const handlePlatformSelect = (platform: string) => {
+    setSelectedPlatform(platform)
+    setAuthStep('qrcode')
+  }
+
+  const handleAuthComplete = () => {
+    setAuthStep('success')
+    // 模拟从授权信息中获取账号名称
+    const platformName = platformOptions.find(p => p.value === selectedPlatform)?.label || ''
+    form.setFieldValue('accountName', `${platformName}账号_${Math.floor(Math.random() * 10000)}`)
   }
 
   const handleModalOk = async () => {
@@ -218,14 +238,138 @@ export default function MatrixManagementPage() {
       setAccounts([...accounts, newAccount])
       setIsModalVisible(false)
       form.resetFields()
+      setAuthStep('select')
+      setSelectedPlatform('')
       message.success('添加成功')
     } catch (error) {
       console.error('表单验证失败:', error)
     }
   }
 
+  const handleModalCancel = () => {
+    setIsModalVisible(false)
+    setAuthStep('select')
+    setSelectedPlatform('')
+    form.resetFields()
+  }
+
   const handleBatchSync = () => {
     message.success('正在批量同步所有账号...')
+  }
+
+  const renderStepContent = () => {
+    switch (authStep) {
+      case 'select':
+        return (
+          <Form form={form} layout="vertical">
+            <Form.Item
+              label="选择平台"
+              name="platform"
+              rules={[{ required: true, message: '请选择平台' }]}
+            >
+              <Select
+                options={platformOptions}
+                onChange={handlePlatformSelect}
+                placeholder="请选择要授权的平台"
+              />
+            </Form.Item>
+            <Form.Item
+              label="开启自动发布"
+              name="autoPublish"
+              valuePropName="checked"
+              initialValue={true}
+            >
+              <Switch />
+            </Form.Item>
+            <Divider />
+            <div className="bg-blue-50 p-4 rounded">
+              <Title level={5}>授权说明</Title>
+              <Text type="secondary">
+                选择平台后，将显示该平台的授权二维码。请使用{form.getFieldValue('platform')}扫描二维码完成授权，授权成功后账号名称会自动填写。
+              </Text>
+            </div>
+          </Form>
+        )
+
+      case 'qrcode':
+        const platformInfo = platformOptions.find(p => p.value === selectedPlatform)
+        return (
+          <div>
+            <Steps current={1} size="small" className="mb-6">
+              <Steps.Step title="选择平台" />
+              <Steps.Step title="扫描授权" />
+              <Steps.Step title="完成" />
+            </Steps>
+
+            <div className="text-center mb-4">
+              <Title level={4}>请使用{platformInfo?.label}扫描二维码</Title>
+              <Text type="secondary">扫描下方二维码完成账号授权</Text>
+            </div>
+
+            <div className="flex justify-center mb-6">
+              <QRCode
+                value={platformInfo?.qrcodeUrl || ''}
+                size={256}
+                style={{ border: '1px solid #d9d9d9', padding: '16px', borderRadius: '8px' }}
+              />
+            </div>
+
+            <div className="text-center">
+              <Text type="secondary">
+                请在{platformInfo?.label}中打开扫一扫功能，扫描上方二维码完成授权
+              </Text>
+            </div>
+
+            <Divider />
+
+            <div className="text-center">
+              <Button onClick={handleAuthComplete} type="primary" size="large">
+                我已完成授权
+              </Button>
+              <div className="mt-2">
+                <Button type="link" onClick={() => setAuthStep('select')}>
+                  返回重新选择
+                </Button>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'success':
+        return (
+          <div>
+            <Steps current={2} size="small" className="mb-6">
+              <Steps.Step title="选择平台" />
+              <Steps.Step title="扫描授权" />
+              <Steps.Step title="完成" />
+            </Steps>
+
+            <div className="text-center py-8">
+              <CheckCircleOutlined style={{ fontSize: '64px', color: '#52c41a' }} />
+              <Title level={3} className="mt-4">授权成功！</Title>
+              <Text type="secondary">您的账号已成功绑定</Text>
+            </div>
+
+            <Divider />
+
+            <Form form={form} layout="vertical">
+              <Form.Item
+                label="账号名称（已自动填写）"
+                name="accountName"
+                rules={[{ required: true, message: '请输入账号名称' }]}
+              >
+                <Input placeholder="账号名称已自动填写" />
+              </Form.Item>
+            </Form>
+
+            <div className="text-center">
+              <Button type="link" onClick={() => setAuthStep('select')}>
+                返回重新授权
+              </Button>
+            </div>
+          </div>
+        )
+    }
   }
 
   return (
@@ -270,7 +414,7 @@ export default function MatrixManagementPage() {
         <Col xs={12} sm={6}>
           <Card>
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-2">3</div>
+              <div className="text-3xl font-bold text-orange-500 mb-2">{platformOptions.length}</div>
               <div className="text-gray-600 text-sm">支持平台</div>
             </div>
           </Card>
@@ -304,43 +448,16 @@ export default function MatrixManagementPage() {
 
       {/* 添加账号弹窗 */}
       <Modal
-        title="添加账号"
+        title={authStep === 'select' ? '添加账号' : authStep === 'qrcode' ? '扫码授权' : '授权成功'}
         open={isModalVisible}
-        onOk={handleModalOk}
-        onCancel={() => setIsModalVisible(false)}
+        onOk={authStep === 'success' ? handleModalOk : undefined}
+        onCancel={handleModalCancel}
         width={600}
+        okText="确定"
+        cancelText="取消"
+        okButtonProps={{ disabled: authStep !== 'success' }}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            label="选择平台"
-            name="platform"
-            rules={[{ required: true, message: '请选择平台' }]}
-          >
-            <Select options={platformOptions} />
-          </Form.Item>
-          <Form.Item
-            label="账号名称"
-            name="accountName"
-            rules={[{ required: true, message: '请输入账号名称' }]}
-          >
-            <Input placeholder="请输入账号名称" />
-          </Form.Item>
-          <Form.Item
-            label="开启自动发布"
-            name="autoPublish"
-            valuePropName="checked"
-            initialValue={true}
-          >
-            <Switch />
-          </Form.Item>
-          <Divider />
-          <div className="bg-blue-50 p-4 rounded">
-            <Title level={5}>授权说明</Title>
-            <Text type="secondary">
-              点击确定后，将跳转到{form.getFieldValue('platform')}授权页面，请完成授权流程
-            </Text>
-          </div>
-        </Form>
+        {renderStepContent()}
       </Modal>
     </div>
   )
