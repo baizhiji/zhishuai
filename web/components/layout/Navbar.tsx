@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   Layout,
@@ -28,7 +28,6 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
-import { useNavigationStore } from '@/stores/navigationStore'
 
 const { Header, Content } = Layout
 const { useToken } = theme
@@ -260,8 +259,13 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   // 开发阶段默认为customer角色
   const [currentRole, setCurrentRole] = useState<Role>(user?.role || 'customer')
 
-  // 导航菜单项
-  const navItems = getNavigationItems(currentRole)
+  // 使用 useMemo 缓存导航菜单项，避免每次渲染都创建新引用
+  const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole])
+
+  // 根据路径获取应该展开的菜单
+  const getOpenKeys = useCallback((path: string): string[] => {
+    return getOpenKeysForPath(navItems, path)
+  }, [navItems])
 
   // 直接从 localStorage 读取持久化的 openKeys
   const [openKeys, setOpenKeys] = useState<string[]>(() => {
@@ -270,7 +274,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem('navigation-storage')
         if (stored) {
           const parsed = JSON.parse(stored)
-          const keysFromPath = getOpenKeysForPath(navItems, pathname)
+          const keysFromPath = getOpenKeys(pathname)
           // 如果当前路径有匹配的菜单，优先使用路径计算的结果
           if (keysFromPath.length > 0) {
             return keysFromPath
@@ -283,12 +287,11 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       }
     }
     // 如果没有存储值，根据路径计算
-    return getOpenKeysForPath(navItems, pathname)
+    return getOpenKeys(pathname)
   })
 
-  // 当用户手动折叠/展开菜单时，保存到 localStorage
-  const handleOpenChange = (keys: string[]) => {
-    setOpenKeys(keys)
+  // 保存到 localStorage
+  const saveToStorage = useCallback((keys: string[]) => {
     if (typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('navigation-storage') || '{}'
@@ -299,26 +302,22 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
         console.error('Failed to save navigation storage:', error)
       }
     }
-  }
+  }, [])
 
   // 当路由变化时，更新菜单展开状态
   useEffect(() => {
-    const keysFromPath = getOpenKeysForPath(navItems, pathname)
+    const keysFromPath = getOpenKeys(pathname)
     if (keysFromPath.length > 0) {
       setOpenKeys(keysFromPath)
-      // 同步保存到 localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem('navigation-storage') || '{}'
-          const parsed = JSON.parse(stored)
-          parsed.state = { ...parsed.state, openKeys: keysFromPath }
-          localStorage.setItem('navigation-storage', JSON.stringify(parsed))
-        } catch (error) {
-          console.error('Failed to save navigation storage:', error)
-        }
-      }
+      saveToStorage(keysFromPath)
     }
-  }, [pathname, navItems])
+  }, [pathname, getOpenKeys, saveToStorage])
+
+  // 当用户手动折叠/展开菜单时
+  const handleOpenChange = useCallback((keys: string[]) => {
+    setOpenKeys(keys)
+    saveToStorage(keys)
+  }, [saveToStorage])
 
   // 用户下拉菜单
   const userMenuItems = [
