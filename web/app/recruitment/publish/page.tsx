@@ -41,6 +41,7 @@ interface JobPosition {
   salaryMax: number
   experience: string
   education: string
+  description?: string
   status: 'active' | 'closed' | 'draft'
   createdAt: string
   applicants: number

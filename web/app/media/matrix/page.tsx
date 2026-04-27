@@ -295,11 +295,16 @@ export default function MatrixManagementPage() {
         const platformInfo = platformOptions.find(p => p.value === selectedPlatform)
         return (
           <div>
-            <Steps current={1} size="small" className="mb-6">
-              <Steps.Step title="选择平台" />
-              <Steps.Step title="扫描授权" />
-              <Steps.Step title="完成" />
-            </Steps>
+            <Steps
+              current={1}
+              size="small"
+              className="mb-6"
+              items={[
+                { title: '选择平台' },
+                { title: '扫描授权' },
+                { title: '完成' }
+              ]}
+            />
 
             <div className="text-center mb-4">
               <Title level={4}>请使用{platformInfo?.label}扫描二维码</Title>
@@ -338,11 +343,16 @@ export default function MatrixManagementPage() {
       case 'success':
         return (
           <div>
-            <Steps current={2} size="small" className="mb-6">
-              <Steps.Step title="选择平台" />
-              <Steps.Step title="扫描授权" />
-              <Steps.Step title="完成" />
-            </Steps>
+            <Steps
+              current={2}
+              size="small"
+              className="mb-6"
+              items={[
+                { title: '选择平台' },
+                { title: '扫描授权' },
+                { title: '完成' }
+              ]}
+            />
 
             <div className="text-center py-8">
               <CheckCircleOutlined style={{ fontSize: '64px', color: '#52c41a' }} />

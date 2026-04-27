@@ -59,7 +59,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           height: '100vh'
         }}
       >
-        <Spin size="large" tip="正在加载..." />
+        <Spin size="large" description="正在加载..." />
       </div>
     );
   }

@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
       {/* 系统公告 */}
       <Alert
-        message="🎉 欢迎使用智枢AI"
+        title="🎉 欢迎使用智枢AI"
         description="请选择下方的功能版块开始使用。AI生成内容将自动保存到素材库。"
         type="success"
         showIcon

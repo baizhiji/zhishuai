@@ -33,7 +33,7 @@ request.interceptors.response.use(
 
     // 业务成功
     if (code === 200) {
-      return response.data;
+      return response.data as any;
     }
 
     // 业务失败

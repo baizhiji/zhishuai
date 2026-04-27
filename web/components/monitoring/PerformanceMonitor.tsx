@@ -81,7 +81,8 @@ export default function PerformanceMonitor() {
           const fidObserver = new PerformanceObserver((list) => {
             const entries = list.getEntries();
             if (entries.length > 0) {
-              metricsRef.current.firstInputDelay = entries[0].processingStart - entries[0].startTime;
+              const entry = entries[0] as PerformanceEventTiming;
+              metricsRef.current.firstInputDelay = entry.processingStart - entry.startTime;
             }
           });
           fidObserver.observe({ entryTypes: ['first-input'] });
