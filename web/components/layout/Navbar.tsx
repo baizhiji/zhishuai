@@ -263,31 +263,60 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   // 导航菜单项
   const navItems = getNavigationItems(currentRole)
 
-  // 使用全局状态管理 openKeys
-  const { openKeys: storeOpenKeys, setOpenKeys, updateOpenKeysForPath } = useNavigationStore()
-
-  // 初始 openKeys：先根据当前路径计算，如果没有则使用 store 中的值
-  const initialOpenKeys = useMemo(() => {
-    const keysFromPath = getOpenKeysForPath(navItems, pathname)
-    if (keysFromPath.length > 0) {
-      return keysFromPath
+  // 直接从 localStorage 读取持久化的 openKeys
+  const [openKeys, setOpenKeys] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('navigation-storage')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          const keysFromPath = getOpenKeysForPath(navItems, pathname)
+          // 如果当前路径有匹配的菜单，优先使用路径计算的结果
+          if (keysFromPath.length > 0) {
+            return keysFromPath
+          }
+          // 否则使用存储的值
+          return parsed.state.openKeys || []
+        }
+      } catch (error) {
+        console.error('Failed to read navigation storage:', error)
+      }
     }
-    return storeOpenKeys
-  }, [navItems, pathname, storeOpenKeys])
+    // 如果没有存储值，根据路径计算
+    return getOpenKeysForPath(navItems, pathname)
+  })
 
-  // 本地状态，初始化时立即设置正确的值
-  const [openKeys, setOpenKeysLocal] = useState<string[]>(initialOpenKeys)
-
-  // 同步到 store
-  useEffect(() => {
-    setOpenKeys(openKeys)
-  }, [openKeys, setOpenKeys])
+  // 当用户手动折叠/展开菜单时，保存到 localStorage
+  const handleOpenChange = (keys: string[]) => {
+    setOpenKeys(keys)
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('navigation-storage') || '{}'
+        const parsed = JSON.parse(stored)
+        parsed.state = { ...parsed.state, openKeys: keys }
+        localStorage.setItem('navigation-storage', JSON.stringify(parsed))
+      } catch (error) {
+        console.error('Failed to save navigation storage:', error)
+      }
+    }
+  }
 
   // 当路由变化时，更新菜单展开状态
   useEffect(() => {
     const keysFromPath = getOpenKeysForPath(navItems, pathname)
     if (keysFromPath.length > 0) {
-      setOpenKeysLocal(keysFromPath)
+      setOpenKeys(keysFromPath)
+      // 同步保存到 localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('navigation-storage') || '{}'
+          const parsed = JSON.parse(stored)
+          parsed.state = { ...parsed.state, openKeys: keysFromPath }
+          localStorage.setItem('navigation-storage', JSON.stringify(parsed))
+        } catch (error) {
+          console.error('Failed to save navigation storage:', error)
+        }
+      }
     }
   }, [pathname, navItems])
 
@@ -372,7 +401,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           mode="inline"
           selectedKeys={getSelectedKeys(navItems, pathname)}
           openKeys={openKeys}
-          onOpenChange={setOpenKeysLocal}
+          onOpenChange={handleOpenChange}
           style={{ border: 'none' }}
           items={navItems.map(item => ({
             key: item.key,
