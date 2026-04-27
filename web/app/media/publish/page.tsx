@@ -48,7 +48,8 @@ import {
 } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
 
-const { Title, Text, TextArea } = Typography
+const { Title, Text } = Typography
+const { TextArea } = Input
 const { RangePicker } = DatePicker
 
 interface PublishTask {
