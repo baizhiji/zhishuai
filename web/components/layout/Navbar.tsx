@@ -26,6 +26,7 @@ import {
   PieChartOutlined,
   ApiOutlined,
   ThunderboltOutlined,
+  AppstoreOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -256,59 +257,26 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   const { token } = useToken()
   const { user, logout } = useAuth()
 
+  // Logo 图片加载状态
+  const [logoError, setLogoError] = useState(false)
+
   // 开发阶段默认为customer角色
   const [currentRole, setCurrentRole] = useState<Role>(user?.role || 'customer')
 
   // 使用 useMemo 缓存导航菜单项，避免每次渲染都创建新引用
   const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole])
 
-  // 根据路径获取应该展开的菜单
-  const getOpenKeys = useCallback((path: string): string[] => {
-    return getOpenKeysForPath(navItems, path)
-  }, [navItems])
+  // 使用 useMemo 根据当前路径直接计算应该展开的菜单
+  // 这样每次路由变化时，展开状态都会自动更新，确保导航栏始终正确显示
+  const openKeys = useMemo(() => {
+    return getOpenKeysForPath(navItems, pathname)
+  }, [navItems, pathname])
 
-  // 直接从 localStorage 读取持久化的 openKeys
-  const [openKeys, setOpenKeys] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('navigation-storage')
-        if (stored) {
-          const parsed = JSON.parse(stored)
-          return parsed.state.openKeys || []
-        }
-      } catch (error) {
-        console.error('Failed to read navigation storage:', error)
-      }
-    }
-    return []
-  })
-
-  // 保存到 localStorage
-  const saveToStorage = useCallback((keys: string[]) => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('navigation-storage') || '{}'
-        const parsed = JSON.parse(stored)
-        parsed.state = { ...parsed.state, openKeys: keys }
-        localStorage.setItem('navigation-storage', JSON.stringify(parsed))
-      } catch (error) {
-        console.error('Failed to save navigation storage:', error)
-      }
-    }
-  }, [])
-
-  // 当路由变化时，更新菜单展开状态
-  useEffect(() => {
-    const keysFromPath = getOpenKeysForPath(navItems, pathname)
-    setOpenKeys(keysFromPath)
-    saveToStorage(keysFromPath)
-  }, [pathname, navItems, saveToStorage])
-
-  // 当用户手动折叠/展开菜单时
+  // 用户手动展开/折叠菜单时（暂时禁用手动控制，确保路由切换时自动更新）
   const handleOpenChange = useCallback((keys: string[]) => {
-    setOpenKeys(keys)
-    saveToStorage(keys)
-  }, [saveToStorage])
+    // 未来可以在这里添加 localStorage 持久化逻辑
+    console.log('Menu open change:', keys)
+  }, [])
 
   // 用户下拉菜单
   const userMenuItems = [
@@ -372,14 +340,30 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           style={{ borderColor: token.colorBorderSecondary }}
         >
           <Space>
-            <Image
-              src="/logo.png"
-              alt="智枢AI"
-              width={32}
-              height={32}
-              preview={false}
-              style={{ borderRadius: '6px' }}
-            />
+            {logoError ? (
+              // 图片加载失败时显示备选方案
+              <div
+                className="flex items-center justify-center"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: token.colorPrimary,
+                  borderRadius: '6px',
+                }}
+              >
+                <AppstoreOutlined style={{ color: '#fff', fontSize: 18 }} />
+              </div>
+            ) : (
+              <Image
+                src="/logo.png"
+                alt="智枢AI"
+                width={32}
+                height={32}
+                preview={false}
+                style={{ borderRadius: '6px' }}
+                onError={() => setLogoError(true)}
+              />
+            )}
             <span className="font-bold text-lg" style={{ color: token.colorText }}>
               智枢AI
             </span>
