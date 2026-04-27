@@ -627,7 +627,6 @@ export default function PublishCenterPage() {
             label="发布方式"
           >
             <Radio.Group
-              value={publishType}
               onChange={(e) => setPublishType(e.target.value)}
             >
               <Radio value="immediate">立即发布</Radio>
