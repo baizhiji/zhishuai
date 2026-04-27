@@ -559,97 +559,19 @@ export default function PublishCenterPage() {
         open={isPublishModalVisible}
         onCancel={handleClosePublishModal}
         onOk={() => {
-          console.log('Modal OK clicked')
-          form.submit()
+          console.log('Modal OK clicked - test version')
+          setIsPublishModalVisible(false)
+          message.success('测试成功')
         }}
         width={700}
         okText="创建任务"
         cancelText="取消"
-        destroyOnClose
+        destroyOnClose={false}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={(values) => {
-            console.log('Form submitted:', values)
-            handlePublish(values)
-          }}
-          initialValues={{
-            contentType: 'text',
-            publishType: 'immediate',
-          }}
-        >
-          <Form.Item
-            name="contentType"
-            label="内容类型"
-            rules={[{ required: true, message: '请选择内容类型' }]}
-          >
-            <Radio.Group>
-              <Radio value="text">文本</Radio>
-              <Radio value="image">图片</Radio>
-              <Radio value="video">视频</Radio>
-              <Radio value="digital-human">数字人</Radio>
-            </Radio.Group>
-          </Form.Item>
-
-          <Form.Item
-            name="title"
-            label="标题"
-            rules={[{ required: true, message: '请输入标题' }]}
-          >
-            <Input placeholder="输入内容标题" maxLength={100} showCount />
-          </Form.Item>
-
-          <Form.Item
-            name="content"
-            label="内容"
-            rules={[{ required: true, message: '请输入内容' }]}
-          >
-            <TextArea rows={6} placeholder="输入发布内容" maxLength={2000} showCount />
-          </Form.Item>
-
-          <Form.Item name="file" label="上传文件">
-            <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />}>上传</Button>
-            </Upload>
-          </Form.Item>
-
-          <Form.Item
-            name="platforms"
-            label="发布平台"
-            rules={[{ required: true, message: '请至少选择一个平台' }]}
-          >
-            <Checkbox.Group options={platformOptions} />
-          </Form.Item>
-
-          <Form.Item
-            name="publishType"
-            label="发布方式"
-          >
-            <Radio.Group
-              onChange={(e) => setPublishType(e.target.value)}
-            >
-              <Radio value="immediate">立即发布</Radio>
-              <Radio value="scheduled">定时发布</Radio>
-            </Radio.Group>
-          </Form.Item>
-
-          <Form.Item
-            name="scheduledTime"
-            label="定时发布时间"
-            rules={publishType === 'scheduled' ? [{ required: true, message: '请选择发布时间' }] : []}
-            hidden={publishType !== 'scheduled'}
-            style={{ display: publishType !== 'scheduled' ? 'none' : undefined }}
-          >
-            <DatePicker
-              showTime
-              format="YYYY-MM-DD HH:mm:ss"
-              placeholder="选择发布时间"
-              style={{ width: '100%' }}
-              disabledDate={(current) => current && current < dayjs().endOf('day')}
-            />
-          </Form.Item>
-        </Form>
+        <div style={{ padding: '20px' }}>
+          <p>这是一个简化的测试版本</p>
+          <p>如果能看到这个内容，说明 Modal 可以正常打开</p>
+        </div>
       </Modal>
 
       {/* 素材库抽屉 */}
