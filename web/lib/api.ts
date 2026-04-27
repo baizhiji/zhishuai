@@ -36,7 +36,7 @@ class ApiClient {
     // 响应拦截器
     this.client.interceptors.response.use(
       (response: AxiosResponse<ApiResponse>) => {
-        return response.data
+        return response.data as any
       },
       (error) => {
         const message = error.response?.data?.message || error.message || '请求失败'

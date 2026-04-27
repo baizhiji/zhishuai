@@ -11,7 +11,7 @@ import {
   SettingOutlined,
   DatabaseOutlined,
   BellOutlined,
-  ShieldCheckOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text, Paragraph } = Typography
@@ -96,7 +96,7 @@ export default function SystemPage() {
                   <div className="text-xl font-bold">v1.0.0</div>
                 </div>
                 <div className="bg-blue-100 p-3 rounded-full">
-                  <ShieldCheckOutlined className="text-2xl text-blue-500" />
+                  <SafetyOutlined className="text-2xl text-blue-500" />
                 </div>
               </div>
             </Card>
@@ -172,7 +172,7 @@ export default function SystemPage() {
           <Space wrap>
             <Button icon={<SettingOutlined />}>重置所有配置</Button>
             <Button icon={<DatabaseOutlined />}>备份数据</Button>
-            <Button icon={<ShieldCheckOutlined />}>安全检查</Button>
+            <Button icon={<SafetyOutlined />}>安全检查</Button>
             <Button icon={<BellOutlined />}>系统通知</Button>
           </Space>
         </Card>

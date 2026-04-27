@@ -12,7 +12,7 @@ import {
   Tag,
   Space,
   Typography,
-  Message,
+  message,
   Modal,
   Row,
   Col,
@@ -133,11 +133,11 @@ export default function UsersPage() {
       }
 
       setUsers([newUser, ...users])
-      Message.success('用户添加成功！')
+      message.success('用户添加成功！')
       setAddModalVisible(false)
       form.resetFields()
     } catch (error) {
-      Message.error('添加失败，请重试')
+      message.error('添加失败，请重试')
     }
   }
 
@@ -152,12 +152,12 @@ export default function UsersPage() {
           : u
       ))
 
-      Message.success('用户更新成功！')
+      message.success('用户更新成功！')
       setEditModalVisible(false)
       setSelectedUser(null)
       form.resetFields()
     } catch (error) {
-      Message.error('更新失败，请重试')
+      message.error('更新失败，请重试')
     }
   }
 
@@ -168,7 +168,7 @@ export default function UsersPage() {
       content: '确定要删除这个用户吗？',
       onOk: () => {
         setUsers(users.filter(u => u.id !== id))
-        Message.success('用户已删除')
+        message.success('用户已删除')
       },
     })
   }
@@ -178,7 +178,7 @@ export default function UsersPage() {
     setUsers(users.map(u => {
       if (u.id === id) {
         const newStatus = u.status === 'active' ? 'inactive' : 'active'
-        Message.success(u.status === 'active' ? '用户已停用' : '用户已启用')
+        message.success(u.status === 'active' ? '用户已停用' : '用户已启用')
         return { ...u, status: newStatus as 'active' | 'inactive' | 'locked' }
       }
       return u
@@ -191,7 +191,7 @@ export default function UsersPage() {
       title: '重置密码',
       content: `确定要重置用户 ${username} 的密码吗？`,
       onOk: () => {
-        Message.success('密码已重置，新密码已发送至用户邮箱')
+        message.success('密码已重置，新密码已发送至用户邮箱')
       },
     })
   }
