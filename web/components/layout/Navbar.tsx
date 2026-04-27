@@ -28,6 +28,7 @@ import {
   ApiOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons'
+import { useAuth } from '@/contexts/AuthContext'
 
 const { Header, Content } = Layout
 const { useToken } = theme
@@ -47,9 +48,10 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { token } = useToken()
+  const { user, logout } = useAuth()
 
   // 开发阶段默认为customer角色
-  const [currentRole, setCurrentRole] = useState<Role>('customer')
+  const [currentRole, setCurrentRole] = useState<Role>(user?.role || 'customer')
 
   // 根据角色获取导航菜单
   const getNavigationItems = (role: Role): NavigationItem[] => {
@@ -302,11 +304,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       label: '退出登录',
       icon: <LogoutOutlined />,
       danger: true,
-      onClick: () => {
-        localStorage.removeItem('userInfo')
-        localStorage.removeItem('token')
-        console.log('已退出登录')
-      },
+      onClick: logout,
     },
   ]
 
@@ -385,7 +383,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
                 <Avatar size={32} icon={<UserOutlined />} style={{ background: token.colorPrimary }} />
-                <span style={{ color: token.colorText }}>管理员</span>
+                <span style={{ color: token.colorText }}>{user?.name || '用户'}</span>
               </Space>
             </Dropdown>
           </Space>
