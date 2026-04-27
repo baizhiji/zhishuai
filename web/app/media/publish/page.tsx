@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   Row,
@@ -17,7 +17,18 @@ import {
   Input,
   Form,
   Image,
+  Upload,
+  DatePicker,
+  Radio,
+  Drawer,
+  List,
+  Divider,
+  Badge,
+  Progress,
+  Tooltip,
+  Popconfirm,
 } from 'antd'
+import type { UploadFile, UploadProps } from 'antd'
 import {
   SendOutlined,
   EditOutlined,
@@ -26,49 +37,100 @@ import {
   CheckCircleOutlined,
   EyeOutlined,
   PlusOutlined,
+  UploadOutlined,
+  FileTextOutlined,
+  PictureOutlined,
+  VideoCameraOutlined,
+  AppstoreOutlined,
+  CalendarOutlined,
+  InboxOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
+import dayjs, { Dayjs } from 'dayjs'
 
-const { Title, Text } = Typography
+const { Title, Text, TextArea } = Typography
+const { RangePicker } = DatePicker
 
 interface PublishTask {
   id: string
-  type: string
+  type: 'text' | 'image' | 'video' | 'digital-human'
   title: string
   content: string
   thumbnail?: string
+  file?: UploadFile
   platforms: string[]
   scheduledTime?: string
-  status: 'pending' | 'scheduled' | 'published' | 'failed'
+  status: 'pending' | 'scheduled' | 'publishing' | 'published' | 'failed'
   createdAt: string
+  publishedAt?: string
+  error?: string
+}
+
+interface Material {
+  id: string
+  type: 'text' | 'image' | 'video'
+  content: string
+  timestamp: number
+  status: 'unused' | 'used'
 }
 
 export default function PublishCenterPage() {
-  const [tasks, setTasks] = useState<PublishTask[]>([
-    {
-      id: '1',
-      type: 'text',
-      title: '抖音文案 - AI智能生成',
-      content: '这是一段关于AI技术的抖音文案...',
-      platforms: ['douyin', 'xiaohongshu'],
-      status: 'published',
-      createdAt: '2024-03-25 10:30:00',
-    },
-    {
-      id: '2',
-      type: 'image',
-      title: '产品宣传图',
-      content: '生成的产品宣传图片',
-      thumbnail: '/placeholder-image.jpg',
-      platforms: ['weixin'],
-      scheduledTime: '2024-03-26 12:00:00',
-      status: 'scheduled',
-      createdAt: '2024-03-25 09:00:00',
-    },
-  ])
-
-  const [isScheduleModalVisible, setIsScheduleModalVisible] = useState(false)
+  const [tasks, setTasks] = useState<PublishTask[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [isPublishModalVisible, setIsPublishModalVisible] = useState(false)
+  const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false)
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
+  const [publishing, setPublishing] = useState(false)
+  const [publishProgress, setPublishProgress] = useState(0)
   const [form] = Form.useForm()
 
+  // 从 localStorage 加载数据
+  useEffect(() => {
+    // 加载发布任务
+    const savedTasks = localStorage.getItem('publish-tasks')
+    if (savedTasks) {
+      try {
+        setTasks(JSON.parse(savedTasks))
+      } catch (error) {
+        console.error('加载发布任务失败:', error)
+      }
+    }
+
+    // 加载素材库
+    const savedMaterials = localStorage.getItem('materials')
+    if (savedMaterials) {
+      try {
+        setMaterials(JSON.parse(savedMaterials))
+      } catch (error) {
+        console.error('加载素材库失败:', error)
+      }
+    }
+  }, [])
+
+  // 保存发布任务到 localStorage
+  useEffect(() => {
+    localStorage.setItem('publish-tasks', JSON.stringify(tasks))
+  }, [tasks])
+
+  // 检查定时任务并自动发布
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = dayjs().format('YYYY-MM-DD HH:mm:ss')
+      setTasks(prevTasks =>
+        prevTasks.map(task => {
+          if (task.status === 'scheduled' && task.scheduledTime && task.scheduledTime <= now) {
+            // 开始发布
+            return { ...task, status: 'publishing' }
+          }
+          return task
+        })
+      )
+    }, 5000) // 每5秒检查一次
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // 平台选项
   const platformOptions = [
     { label: '抖音', value: 'douyin' },
     { label: '快手', value: 'kuaishou' },
@@ -86,19 +148,159 @@ export default function PublishCenterPage() {
   }
 
   const statusConfig = {
-    pending: { text: '待发布', color: 'default' },
-    scheduled: { text: '已定时', color: 'processing' },
-    published: { text: '已发布', color: 'success' },
-    failed: { text: '失败', color: 'error' },
+    pending: { text: '待发布', color: 'default', icon: null },
+    scheduled: { text: '已定时', color: 'processing', icon: <ClockCircleOutlined /> },
+    publishing: { text: '发布中', color: 'processing', icon: <ReloadOutlined spin /> },
+    published: { text: '已发布', color: 'success', icon: <CheckCircleOutlined /> },
+    failed: { text: '失败', color: 'error', icon: null },
   }
 
   const typeConfig = {
-    text: { label: '文本', color: 'blue' },
-    image: { label: '图片', color: 'green' },
-    video: { label: '视频', color: 'purple' },
-    'digital-human': { label: '数字人', color: 'orange' },
+    text: { label: '文本', color: 'blue', icon: <FileTextOutlined /> },
+    image: { label: '图片', color: 'green', icon: <PictureOutlined /> },
+    video: { label: '视频', color: 'purple', icon: <VideoCameraOutlined /> },
+    'digital-human': { label: '数字人', color: 'orange', icon: <AppstoreOutlined /> },
   }
 
+  // 文件上传配置
+  const uploadProps: UploadProps = {
+    name: 'file',
+    multiple: false,
+    listType: 'picture-card',
+    maxCount: 1,
+    beforeUpload: (file) => {
+      const isVideo = file.type.startsWith('video/')
+      const isImage = file.type.startsWith('image/')
+      if (!isVideo && !isImage) {
+        message.error('只能上传视频或图片文件')
+        return false
+      }
+      return false // 阻止自动上传，只显示预览
+    },
+  }
+
+  // 打开发布模态框
+  const handleOpenPublishModal = () => {
+    setIsPublishModalVisible(true)
+    form.resetFields()
+  }
+
+  // 提交发布任务
+  const handlePublish = async (values: any) => {
+    if (!values.platforms || values.platforms.length === 0) {
+      message.warning('请至少选择一个发布平台')
+      return
+    }
+
+    const task: PublishTask = {
+      id: `task_${Date.now()}`,
+      type: values.contentType,
+      title: values.title || '未命名',
+      content: values.content || '',
+      platforms: values.platforms,
+      status: 'pending',
+      createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    }
+
+    // 如果是定时发布
+    if (values.publishType === 'scheduled' && values.scheduledTime) {
+      task.scheduledTime = values.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
+      task.status = 'scheduled'
+    }
+
+    // 如果上传了文件
+    if (values.file && values.file.fileList && values.file.fileList.length > 0) {
+      task.file = values.file.fileList[0]
+      task.thumbnail = URL.createObjectURL(values.file.fileList[0].originFileObj as File)
+    }
+
+    setTasks([task, ...tasks])
+    setIsPublishModalVisible(false)
+    form.resetFields()
+
+    // 如果是立即发布
+    if (values.publishType === 'immediate') {
+      await handlePublishTask(task.id)
+    } else {
+      message.success('发布任务创建成功')
+    }
+  }
+
+  // 发布单个任务
+  const handlePublishTask = async (taskId: string) => {
+    setPublishing(true)
+    setPublishProgress(0)
+
+    // 模拟发布进度
+    const progressInterval = setInterval(() => {
+      setPublishProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval)
+          return 90
+        }
+        return prev + Math.random() * 15
+      })
+    }, 200)
+
+    setTimeout(() => {
+      clearInterval(progressInterval)
+      setPublishProgress(100)
+
+      setTasks(prevTasks =>
+        prevTasks.map(task => {
+          if (task.id === taskId) {
+            // 模拟部分平台发布失败
+            const shouldFail = Math.random() > 0.8
+            return {
+              ...task,
+              status: shouldFail ? 'failed' : 'published',
+              publishedAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+              error: shouldFail ? '平台接口调用失败，请重试' : undefined,
+            }
+          }
+          return task
+        })
+      )
+
+      setPublishing(false)
+      message.success('发布完成')
+    }, 3000)
+  }
+
+  // 批量发布
+  const handleBatchPublish = async () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要发布的任务')
+      return
+    }
+
+    setPublishing(true)
+
+    // 依次发布每个任务
+    for (const taskId of selectedRowKeys) {
+      await handlePublishTask(taskId as string)
+    }
+
+    setSelectedRowKeys([])
+  }
+
+  // 从素材库选择
+  const handleSelectFromMaterial = (material: Material) => {
+    form.setFieldsValue({
+      contentType: material.type,
+      content: material.content,
+    })
+    setIsMaterialDrawerVisible(false)
+    message.success('已从素材库导入内容')
+  }
+
+  // 删除任务
+  const handleDeleteTask = (taskId: string) => {
+    setTasks(tasks.filter(t => t.id !== taskId))
+    message.success('删除成功')
+  }
+
+  // 列配置
   const columns = [
     {
       title: '类型',
@@ -107,7 +309,11 @@ export default function PublishCenterPage() {
       width: 80,
       render: (type: string) => {
         const config = typeConfig[type as keyof typeof typeConfig]
-        return <Tag color={config.color}>{config.label}</Tag>
+        return (
+          <Tooltip title={config.label}>
+            <Tag color={config.color} icon={config.icon} />
+          </Tooltip>
+        )
       },
     },
     {
@@ -115,13 +321,27 @@ export default function PublishCenterPage() {
       dataIndex: 'title',
       key: 'title',
       ellipsis: true,
+      width: 200,
+    },
+    {
+      title: '内容预览',
+      dataIndex: 'content',
+      key: 'content',
+      ellipsis: true,
+      render: (content: string, record: PublishTask) => {
+        if (record.thumbnail) {
+          return <Image src={record.thumbnail} width={60} height={40} />
+        }
+        return <Text type="secondary" ellipsis={{ tooltip: content }}>{content}</Text>
+      },
     },
     {
       title: '发布平台',
       dataIndex: 'platforms',
       key: 'platforms',
+      width: 150,
       render: (platforms: string[]) => (
-        <Space size={4}>
+        <Space size={4} wrap>
           {platforms.map((p) => (
             <Tag key={p}>{platformLabel[p]}</Tag>
           ))}
@@ -132,6 +352,7 @@ export default function PublishCenterPage() {
       title: '定时发布',
       dataIndex: 'scheduledTime',
       key: 'scheduledTime',
+      width: 160,
       render: (time: string) => (time ? time : '-'),
     },
     {
@@ -139,64 +360,72 @@ export default function PublishCenterPage() {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: string) => {
+      render: (status: string, record: PublishTask) => {
         const config = statusConfig[status as keyof typeof statusConfig]
-        return <Tag color={config.color}>{config.text}</Tag>
+        return (
+          <Space>
+            {config.icon}
+            <Tag color={config.color}>{config.text}</Tag>
+          </Space>
+        )
       },
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 180,
+      width: 160,
     },
     {
       title: '操作',
       key: 'action',
       width: 200,
+      fixed: 'right' as const,
       render: (_: any, record: PublishTask) => (
         <Space size="small">
-          <Button
-            type="link"
-            icon={<EyeOutlined />}
-            onClick={() => message.success('查看详情')}
-          >
-            查看
-          </Button>
           {record.status === 'pending' && (
             <Button
               type="link"
               icon={<SendOutlined />}
-              onClick={() => message.success('发布成功')}
+              onClick={() => handlePublishTask(record.id)}
+              disabled={publishing}
             >
               发布
             </Button>
           )}
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: '确认删除',
-                content: '确定要删除这个任务吗？',
-                onOk: () => {
-                  setTasks(tasks.filter(t => t.id !== record.id))
-                  message.success('删除成功')
-                },
-              })
-            }}
+          {record.status === 'published' && (
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              onClick={() => message.success('查看详情')}
+            >
+              查看
+            </Button>
+          )}
+          {record.status === 'failed' && (
+            <Button
+              type="link"
+              icon={<ReloadOutlined />}
+              onClick={() => handlePublishTask(record.id)}
+            >
+              重试
+            </Button>
+          )}
+          <Popconfirm
+            title="确认删除"
+            description="确定要删除这个任务吗？"
+            onConfirm={() => handleDeleteTask(record.id)}
+            okText="确定"
+            cancelText="取消"
           >
-            删除
-          </Button>
+            <Button type="link" danger icon={<DeleteOutlined />} disabled={publishing}>
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
   ]
-
-  const handleBatchPublish = () => {
-    message.success('批量发布功能开发中')
-  }
 
   return (
     <div className="p-6">
@@ -207,6 +436,23 @@ export default function PublishCenterPage() {
         </Text>
       </div>
 
+      {/* 发布进度 */}
+      {publishing && (
+        <Card className="mb-4" style={{ borderColor: '#1890ff' }}>
+          <Space direction="vertical" className="w-full">
+            <div className="flex justify-between items-center">
+              <Space>
+                <SendOutlined spin className="text-blue-500" />
+                <Text strong>正在发布内容...</Text>
+              </Space>
+              <Text>{Math.round(publishProgress)}%</Text>
+            </div>
+            <Progress percent={Math.round(publishProgress)} status="active" />
+          </Space>
+        </Card>
+      )}
+
+      {/* 统计卡片 */}
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={6}>
           <Card>
@@ -250,14 +496,24 @@ export default function PublishCenterPage() {
         </Col>
       </Row>
 
+      {/* 发布任务列表 */}
       <Card
         title="发布任务"
         extra={
           <Space>
-            <Button icon={<PlusOutlined />} onClick={() => message.success('从素材库选择')}>
-              从素材库选择
+            {selectedRowKeys.length > 0 && (
+              <>
+                <Text type="secondary">已选择 {selectedRowKeys.length} 项</Text>
+                <Divider type="vertical" />
+              </>
+            )}
+            <Button icon={<InboxOutlined />} onClick={() => setIsMaterialDrawerVisible(true)}>
+              素材库 ({materials.length})
             </Button>
-            <Button type="primary" icon={<SendOutlined />} onClick={handleBatchPublish}>
+            <Button icon={<PlusOutlined />} onClick={handleOpenPublishModal}>
+              创建发布任务
+            </Button>
+            <Button type="primary" icon={<SendOutlined />} onClick={handleBatchPublish} disabled={publishing || selectedRowKeys.length === 0}>
               批量发布
             </Button>
           </Space>
@@ -267,13 +523,174 @@ export default function PublishCenterPage() {
           dataSource={tasks}
           columns={columns}
           rowKey="id"
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+            getCheckboxProps: (record) => ({
+              disabled: record.status === 'published' || record.status === 'publishing',
+            }),
+          }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`,
           }}
+          scroll={{ x: 1400 }}
         />
       </Card>
+
+      {/* 发布任务创建模态框 */}
+      <Modal
+        title="创建发布任务"
+        open={isPublishModalVisible}
+        onCancel={() => setIsPublishModalVisible(false)}
+        onOk={() => form.submit()}
+        width={700}
+        okText="创建任务"
+        cancelText="取消"
+      >
+        <Form form={form} layout="vertical" onFinish={handlePublish}>
+          <Form.Item
+            name="contentType"
+            label="内容类型"
+            rules={[{ required: true, message: '请选择内容类型' }]}
+          >
+            <Radio.Group>
+              <Radio value="text">文本</Radio>
+              <Radio value="image">图片</Radio>
+              <Radio value="video">视频</Radio>
+              <Radio value="digital-human">数字人</Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          <Form.Item
+            name="title"
+            label="标题"
+            rules={[{ required: true, message: '请输入标题' }]}
+          >
+            <Input placeholder="输入内容标题" maxLength={100} showCount />
+          </Form.Item>
+
+          <Form.Item
+            name="content"
+            label="内容"
+            rules={[{ required: true, message: '请输入内容' }]}
+          >
+            <TextArea rows={6} placeholder="输入发布内容" maxLength={2000} showCount />
+          </Form.Item>
+
+          <Form.Item name="file" label="上传文件">
+            <Upload {...uploadProps}>
+              <Button icon={<UploadOutlined />}>上传</Button>
+            </Upload>
+          </Form.Item>
+
+          <Form.Item
+            name="platforms"
+            label="发布平台"
+            rules={[{ required: true, message: '请至少选择一个平台' }]}
+          >
+            <Checkbox.Group options={platformOptions} />
+          </Form.Item>
+
+          <Form.Item
+            name="publishType"
+            label="发布方式"
+            initialValue="immediate"
+          >
+            <Radio.Group>
+              <Radio value="immediate">立即发布</Radio>
+              <Radio value="scheduled">定时发布</Radio>
+            </Radio.Group>
+          </Form.Item>
+
+          <Form.Item
+            noStyle
+            shouldUpdate={(prevValues, currentValues) => prevValues.publishType !== currentValues.publishType}
+          >
+            {({ getFieldValue }) =>
+              getFieldValue('publishType') === 'scheduled' ? (
+                <Form.Item
+                  name="scheduledTime"
+                  label="定时发布时间"
+                  rules={[{ required: true, message: '请选择发布时间' }]}
+                >
+                  <DatePicker
+                    showTime
+                    format="YYYY-MM-DD HH:mm:ss"
+                    placeholder="选择发布时间"
+                    style={{ width: '100%' }}
+                    disabledDate={(current) => current && current < dayjs().endOf('day')}
+                  />
+                </Form.Item>
+              ) : null
+            }
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 素材库抽屉 */}
+      <Drawer
+        title="素材库"
+        onClose={() => setIsMaterialDrawerVisible(false)}
+        open={isMaterialDrawerVisible}
+        width={600}
+      >
+        {materials.length === 0 ? (
+          <div className="text-center py-8">
+            <InboxOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+            <div className="mt-4 text-gray-500">暂无素材</div>
+            <div className="mt-2 text-gray-400 text-sm">请先到内容工厂生成内容</div>
+          </div>
+        ) : (
+          <List
+            dataSource={materials}
+            renderItem={(material) => (
+              <List.Item
+                actions={[
+                  <Button
+                    type="link"
+                    onClick={() => handleSelectFromMaterial(material)}
+                  >
+                    使用
+                  </Button>,
+                ]}
+              >
+                <List.Item.Meta
+                  avatar={
+                    <div className="w-12 h-12 rounded bg-blue-50 flex items-center justify-center">
+                      {material.type === 'text' && <FileTextOutlined className="text-blue-500" />}
+                      {material.type === 'image' && <PictureOutlined className="text-green-500" />}
+                      {material.type === 'video' && <VideoCameraOutlined className="text-purple-500" />}
+                    </div>
+                  }
+                  title={
+                    <Space>
+                      <Tag color={typeConfig[material.type].color}>
+                        {typeConfig[material.type].label}
+                      </Tag>
+                      <Tag color={material.status === 'unused' ? 'default' : 'success'}>
+                        {material.status === 'unused' ? '未使用' : '已使用'}
+                      </Tag>
+                    </Space>
+                  }
+                  description={
+                    <div>
+                      <div className="text-gray-600 text-sm mb-1">
+                        {material.content.slice(0, 100)}...
+                      </div>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        {dayjs(material.timestamp).format('YYYY-MM-DD HH:mm:ss')}
+                      </Text>
+                    </div>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        )}
+      </Drawer>
     </div>
   )
 }
