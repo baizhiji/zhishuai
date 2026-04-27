@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import {
   Layout,
@@ -238,7 +238,7 @@ function getSelectedKeys(items: NavigationItem[], path: string): string[] {
 }
 
 // 获取当前展开的菜单项
-function getOpenKeys(items: NavigationItem[], path: string): string[] {
+function getOpenKeysForPath(items: NavigationItem[], path: string): string[] {
   for (const item of items) {
     if (item.children) {
       for (const child of item.children) {
@@ -264,19 +264,32 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   const navItems = getNavigationItems(currentRole)
 
   // 使用全局状态管理 openKeys
-  const { openKeys, setOpenKeys, updateOpenKeysForPath } = useNavigationStore()
+  const { openKeys: storeOpenKeys, setOpenKeys, updateOpenKeysForPath } = useNavigationStore()
 
-  // 首次挂载时初始化 openKeys
-  useEffect(() => {
-    if (openKeys.length === 0 && pathname !== '/') {
-      updateOpenKeysForPath(pathname)
+  // 初始 openKeys：先根据当前路径计算，如果没有则使用 store 中的值
+  const initialOpenKeys = useMemo(() => {
+    const keysFromPath = getOpenKeysForPath(navItems, pathname)
+    if (keysFromPath.length > 0) {
+      return keysFromPath
     }
-  }, []) // 只在首次挂载时执行
+    return storeOpenKeys
+  }, [navItems, pathname, storeOpenKeys])
+
+  // 本地状态，初始化时立即设置正确的值
+  const [openKeys, setOpenKeysLocal] = useState<string[]>(initialOpenKeys)
+
+  // 同步到 store
+  useEffect(() => {
+    setOpenKeys(openKeys)
+  }, [openKeys, setOpenKeys])
 
   // 当路由变化时，更新菜单展开状态
   useEffect(() => {
-    updateOpenKeysForPath(pathname)
-  }, [pathname, updateOpenKeysForPath])
+    const keysFromPath = getOpenKeysForPath(navItems, pathname)
+    if (keysFromPath.length > 0) {
+      setOpenKeysLocal(keysFromPath)
+    }
+  }, [pathname, navItems])
 
   // 用户下拉菜单
   const userMenuItems = [
@@ -359,7 +372,7 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           mode="inline"
           selectedKeys={getSelectedKeys(navItems, pathname)}
           openKeys={openKeys}
-          onOpenChange={setOpenKeys}
+          onOpenChange={setOpenKeysLocal}
           style={{ border: 'none' }}
           items={navItems.map(item => ({
             key: item.key,
