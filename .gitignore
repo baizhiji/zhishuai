@@ -1,8 +1,20 @@
 # 1. 忽略当前目录下的所有文件和文件夹
 /*
 
-# 2. 只追踪配置文件、coze文件
+# 2. 只追踪配置文件、coze文件、web源代码
 !/openclaw.json
 !/scripts
 !/.coze
 !/.gitignore
+!/web
+
+# 3. web目录下的忽略项
+web/.next
+web/node_modules
+web/.env*
+web/.turbo
+web/dist
+web/out
+web/.DS_Store
+web/*.log
+web/.pnpm-debug.log*

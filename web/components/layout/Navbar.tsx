@@ -11,6 +11,7 @@ import {
   Button,
   theme,
   Card,
+  Image,
 } from 'antd'
 import {
   HomeOutlined,
@@ -325,14 +326,14 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           style={{ borderColor: token.colorBorderSecondary }}
         >
           <Space>
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{
-                background: `linear-gradient(135deg, ${token.colorPrimary}, ${token.colorSuccess})`,
-              }}
-            >
-              <span className="text-white font-bold text-sm">智</span>
-            </div>
+            <Image
+              src="/logo.png"
+              alt="智枢AI"
+              width={32}
+              height={32}
+              preview={false}
+              style={{ borderRadius: '6px' }}
+            />
             <span className="font-bold text-lg" style={{ color: token.colorText }}>
               智枢AI
             </span>
@@ -395,9 +396,24 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           style={{
             background: `linear-gradient(135deg, ${token.colorBgLayout} 0%, ${token.colorBgContainer} 100%)`,
             minHeight: 'calc(100vh - 64px)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          {children}
+          <div style={{ flex: 1 }}>{children}</div>
+
+          {/* 版权信息 */}
+          <div
+            className="text-center py-4 border-t"
+            style={{
+              background: token.colorBgContainer,
+              borderColor: token.colorBorderSecondary,
+              color: token.colorTextSecondary,
+              fontSize: '12px',
+            }}
+          >
+            <div className="mb-1">智枢 AI SaaS 系统版权所属：上海百智集网络科技有限公司</div>
+          </div>
         </Content>
       </Layout>
     </Layout>
