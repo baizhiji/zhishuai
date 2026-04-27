@@ -266,16 +266,20 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   // 使用 useMemo 缓存导航菜单项，避免每次渲染都创建新引用
   const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole])
 
-  // 使用 useMemo 根据当前路径直接计算应该展开的菜单
-  // 这样每次路由变化时，展开状态都会自动更新，确保导航栏始终正确显示
-  const openKeys = useMemo(() => {
-    return getOpenKeysForPath(navItems, pathname)
-  }, [navItems, pathname])
+  // 管理菜单展开状态
+  const [openKeys, setOpenKeys] = useState<string[]>([])
 
-  // 用户手动展开/折叠菜单时（暂时禁用手动控制，确保路由切换时自动更新）
+  // 当路由变化时，自动更新菜单展开状态
+  useEffect(() => {
+    const keysFromPath = getOpenKeysForPath(navItems, pathname)
+    if (keysFromPath.length > 0) {
+      setOpenKeys(keysFromPath)
+    }
+  }, [pathname, navItems])
+
+  // 用户手动展开/折叠菜单时
   const handleOpenChange = useCallback((keys: string[]) => {
-    // 未来可以在这里添加 localStorage 持久化逻辑
-    console.log('Menu open change:', keys)
+    setOpenKeys(keys)
   }, [])
 
   // 用户下拉菜单
