@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import AuthGuard from '@/components/auth/AuthGuard'
+import AntdProvider from '@/components/providers/AntdProvider'
 
 export const metadata: Metadata = {
   title: '智枢AI - 智能商业平台',
@@ -19,11 +20,13 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="antialiased">
-        <AuthProvider>
-          <AuthGuard>
-            {children}
-          </AuthGuard>
-        </AuthProvider>
+        <AntdProvider>
+          <AuthProvider>
+            <AuthGuard>
+              {children}
+            </AuthGuard>
+          </AuthProvider>
+        </AntdProvider>
       </body>
     </html>
   )
