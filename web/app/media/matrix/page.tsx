@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   Row,
@@ -20,7 +20,12 @@ import {
   Divider,
   QRCode,
   Steps,
+  Tooltip,
+  Popconfirm,
+  Badge,
+  Dropdown,
 } from 'antd'
+import type { MenuProps } from 'antd'
 import {
   PlusOutlined,
   EditOutlined,
@@ -29,6 +34,10 @@ import {
   EyeOutlined,
   SyncOutlined,
   CheckCircleOutlined,
+  MoreOutlined,
+  StopOutlined,
+  PlayCircleOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text } = Typography
@@ -45,38 +54,85 @@ interface Account {
 }
 
 export default function MatrixManagementPage() {
-  const [accounts, setAccounts] = useState<Account[]>([
-    {
-      id: '1',
-      platform: 'douyin',
-      accountName: '智枢AI官方',
-      avatar: '/placeholder-avatar.jpg',
-      fans: 12580,
-      status: 'active',
-      lastSync: '2024-03-25 10:30:00',
-      autoPublish: true,
-    },
-    {
-      id: '2',
-      platform: 'xiaohongshu',
-      accountName: '智枢AI助手',
-      avatar: '/placeholder-avatar.jpg',
-      fans: 8642,
-      status: 'active',
-      lastSync: '2024-03-24 15:20:00',
-      autoPublish: true,
-    },
-    {
-      id: '3',
-      platform: 'weixin',
-      accountName: '智枢AI视频号',
-      avatar: '/placeholder-avatar.jpg',
-      fans: 5320,
-      status: 'inactive',
-      lastSync: '2024-03-23 09:15:00',
-      autoPublish: false,
-    },
-  ])
+  // 从 localStorage 加载账号数据
+  const [accounts, setAccounts] = useState<Account[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('matrix-accounts')
+      if (saved) {
+        try {
+          return JSON.parse(saved)
+        } catch (error) {
+          console.error('加载账号数据失败:', error)
+        }
+      }
+    }
+    // 默认数据
+    return [
+      {
+        id: '1',
+        platform: 'douyin',
+        accountName: '智枢AI官方',
+        avatar: '/placeholder-avatar.jpg',
+        fans: 12580,
+        status: 'active',
+        lastSync: '2024-03-25 10:30:00',
+        autoPublish: true,
+      },
+      {
+        id: '2',
+        platform: 'xiaohongshu',
+        accountName: '智枢AI助手',
+        avatar: '/placeholder-avatar.jpg',
+        fans: 8642,
+        status: 'active',
+        lastSync: '2024-03-24 15:20:00',
+        autoPublish: true,
+      },
+      {
+        id: '3',
+        platform: 'weixin',
+        accountName: '智枢AI视频号',
+        avatar: '/placeholder-avatar.jpg',
+        fans: 5320,
+        status: 'inactive',
+        lastSync: '2024-03-23 09:15:00',
+        autoPublish: false,
+      },
+    ]
+  })
+
+  // 选中的账号（用于批量操作）
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
+  const [syncing, setSyncing] = useState(false)
+
+  // 保存账号数据到 localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('matrix-accounts', JSON.stringify(accounts))
+    }
+  }, [accounts])
+
+  // 模拟实时更新粉丝数
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAccounts(prevAccounts =>
+        prevAccounts.map(account => {
+          if (account.status === 'active' && Math.random() > 0.7) {
+            // 随机增减粉丝数
+            const change = Math.floor(Math.random() * 100) - 20
+            return {
+              ...account,
+              fans: Math.max(0, account.fans + change),
+              lastSync: new Date().toLocaleString('zh-CN'),
+            }
+          }
+          return account
+        })
+      )
+    }, 30000) // 每30秒更新一次
+
+    return () => clearInterval(interval)
+  }, [])
 
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [authStep, setAuthStep] = useState<'select' | 'qrcode' | 'success'>('select')
@@ -103,16 +159,25 @@ export default function MatrixManagementPage() {
       dataIndex: 'platform',
       key: 'platform',
       width: 120,
-      render: (platform: string) => {
+      render: (platform: string, record: Account) => {
         const config = {
-          douyin: { label: '抖音', color: 'black' },
-          kuaishou: { label: '快手', color: 'orange' },
-          xiaohongshu: { label: '小红书', color: 'red' },
-          weixin: { label: '视频号', color: 'green' },
-          bilibili: { label: 'B站', color: 'blue' },
+          douyin: { label: '抖音', color: 'black', icon: '🎵' },
+          kuaishou: { label: '快手', color: 'orange', icon: '🔥' },
+          xiaohongshu: { label: '小红书', color: 'red', icon: '📕' },
+          weixin: { label: '视频号', color: 'green', icon: '💬' },
+          bilibili: { label: 'B站', color: 'blue', icon: '📺' },
         }
         const conf = config[platform as keyof typeof config]
-        return <Tag color={conf.color}>{conf.label}</Tag>
+        return (
+          <Badge
+            dot={record.status === 'active'}
+            offset={[-5, 5]}
+          >
+            <Tag color={conf.color} style={{ fontSize: '14px', padding: '4px 12px' }}>
+              {conf.icon} {conf.label}
+            </Tag>
+          </Badge>
+        )
       },
     },
     {
@@ -121,10 +186,18 @@ export default function MatrixManagementPage() {
       key: 'accountName',
       render: (name: string, record: Account) => (
         <Space>
-          <Avatar src={record.avatar} icon={<LinkOutlined />} />
+          <Avatar
+            src={record.avatar}
+            icon={<LinkOutlined />}
+            style={{ backgroundColor: getPlatformColor(record.platform) }}
+          >
+            {name.charAt(0)}
+          </Avatar>
           <div>
             <div className="font-medium">{name}</div>
-            <Text type="secondary" className="text-xs">{record.fans.toLocaleString()} 粉丝</Text>
+            <Text type="secondary" className="text-xs">
+              {record.fans.toLocaleString()} 粉丝
+            </Text>
           </div>
         </Space>
       ),
@@ -134,9 +207,13 @@ export default function MatrixManagementPage() {
       dataIndex: 'status',
       key: 'status',
       width: 100,
-      render: (status: string) => {
+      render: (status: string, record: Account) => {
         const config = statusConfig[status as keyof typeof statusConfig]
-        return <Tag color={config.color}>{config.text}</Tag>
+        return (
+          <Tooltip title={`最后同步: ${record.lastSync}`}>
+            <Tag color={config.color}>{config.text}</Tag>
+          </Tooltip>
+        )
       },
     },
     {
@@ -161,48 +238,74 @@ export default function MatrixManagementPage() {
       dataIndex: 'lastSync',
       key: 'lastSync',
       width: 180,
+      render: (time: string) => (
+        <Text type="secondary" style={{ fontSize: '12px' }}>
+          {time}
+        </Text>
+      ),
     },
     {
       title: '操作',
       key: 'action',
       width: 250,
+      fixed: 'right' as const,
       render: (_: any, record: Account) => (
         <Space size="small">
-          <Button
-            type="link"
-            icon={<SyncOutlined />}
-            onClick={() => message.success('正在同步数据...')}
-          >
-            同步
-          </Button>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => message.success('编辑功能开发中')}
-          >
-            编辑
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => {
-              Modal.confirm({
-                title: '确认删除',
-                content: '确定要删除这个账号吗？',
-                onOk: () => {
-                  setAccounts(accounts.filter(a => a.id !== record.id))
-                  message.success('删除成功')
-                },
-              })
+          <Tooltip title="同步数据">
+            <Button
+              type="link"
+              icon={<SyncOutlined />}
+              onClick={() => {
+                setAccounts(accounts.map(a =>
+                  a.id === record.id
+                    ? { ...a, lastSync: new Date().toLocaleString('zh-CN') }
+                    : a
+                ))
+                message.success('同步成功')
+              }}
+            >
+              同步
+            </Button>
+          </Tooltip>
+          <Tooltip title="编辑账号">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => message.info('编辑功能开发中')}
+            >
+              编辑
+            </Button>
+          </Tooltip>
+          <Popconfirm
+            title="确认删除"
+            description="确定要删除这个账号吗？"
+            onConfirm={() => {
+              setAccounts(accounts.filter(a => a.id !== record.id))
+              message.success('删除成功')
             }}
+            okText="确定"
+            cancelText="取消"
           >
-            删除
-          </Button>
+            <Button type="link" danger icon={<DeleteOutlined />}>
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
   ]
+
+  // 获取平台颜色
+  const getPlatformColor = (platform: string): string => {
+    const colors: Record<string, string> = {
+      douyin: '#000000',
+      kuaishou: '#ff7f00',
+      xiaohongshu: '#ff2442',
+      weixin: '#07c160',
+      bilibili: '#00a1d6',
+    }
+    return colors[platform] || '#1890ff'
+  }
 
   const handleAdd = () => {
     setIsModalVisible(true)
@@ -254,8 +357,89 @@ export default function MatrixManagementPage() {
   }
 
   const handleBatchSync = () => {
-    message.success('正在批量同步所有账号...')
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要同步的账号')
+      return
+    }
+    setSyncing(true)
+    message.success(`正在同步 ${selectedRowKeys.length} 个账号...`)
+    setTimeout(() => {
+      setSyncing(false)
+      setAccounts(prevAccounts =>
+        prevAccounts.map(account =>
+          selectedRowKeys.includes(account.id)
+            ? { ...account, lastSync: new Date().toLocaleString('zh-CN') }
+            : account
+        )
+      )
+      message.success('批量同步完成')
+      setSelectedRowKeys([])
+    }, 2000)
   }
+
+  const handleBatchDelete = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要删除的账号')
+      return
+    }
+    Modal.confirm({
+      title: '确认批量删除',
+      content: `确定要删除选中的 ${selectedRowKeys.length} 个账号吗？`,
+      onOk: () => {
+        setAccounts(accounts.filter(a => !selectedRowKeys.includes(a.id)))
+        setSelectedRowKeys([])
+        message.success('批量删除成功')
+      },
+    })
+  }
+
+  const handleBatchToggleAutoPublish = (enable: boolean) => {
+    if (selectedRowKeys.length === 0) {
+      message.warning('请先选择要操作的账号')
+      return
+    }
+    setAccounts(prevAccounts =>
+      prevAccounts.map(account =>
+        selectedRowKeys.includes(account.id)
+          ? { ...account, autoPublish: enable }
+          : account
+      )
+    )
+    message.success(`已${enable ? '开启' : '关闭'}选中账号的自动发布`)
+    setSelectedRowKeys([])
+  }
+
+  // 批量操作菜单
+  const batchMenuItems: MenuProps['items'] = [
+    {
+      key: 'sync',
+      label: '批量同步',
+      icon: <SyncOutlined />,
+      onClick: handleBatchSync,
+    },
+    {
+      key: 'enable',
+      label: '开启自动发布',
+      icon: <PlayCircleOutlined />,
+      onClick: () => handleBatchToggleAutoPublish(true),
+    },
+    {
+      key: 'disable',
+      label: '关闭自动发布',
+      icon: <StopOutlined />,
+      onClick: () => handleBatchToggleAutoPublish(false),
+    },
+    {
+      type: 'divider',
+    },
+    {
+      key: 'delete',
+      label: '批量删除',
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: handleBatchDelete,
+    },
+  ]
 
   const renderStepContent = () => {
     switch (authStep) {
@@ -435,7 +619,19 @@ export default function MatrixManagementPage() {
         title="账号列表"
         extra={
           <Space>
-            <Button icon={<SyncOutlined />} onClick={handleBatchSync}>
+            {selectedRowKeys.length > 0 && (
+              <>
+                <Text type="secondary">已选择 {selectedRowKeys.length} 项</Text>
+                <Divider type="vertical" />
+                <Dropdown menu={{ items: batchMenuItems }} trigger={['click']}>
+                  <Button icon={<MoreOutlined />}>
+                    批量操作
+                  </Button>
+                </Dropdown>
+                <Divider type="vertical" />
+              </>
+            )}
+            <Button icon={<ReloadOutlined />} onClick={handleBatchSync}>
               批量同步
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
@@ -448,11 +644,17 @@ export default function MatrixManagementPage() {
           dataSource={accounts}
           columns={columns}
           rowKey="id"
+          rowSelection={{
+            selectedRowKeys,
+            onChange: setSelectedRowKeys,
+          }}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条记录`,
           }}
+          scroll={{ x: 1200 }}
         />
       </Card>
 
