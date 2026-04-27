@@ -427,23 +427,6 @@ export default function PublishCenterPage() {
     }, 3000)
   }
 
-  // 批量发布
-  const handleBatchPublish = async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要发布的任务')
-      return
-    }
-
-    setPublishing(true)
-
-    // 依次发布每个任务
-    for (const taskId of selectedRowKeys) {
-      await handlePublishTask(taskId as string)
-    }
-
-    setSelectedRowKeys([])
-  }
-
   // 从素材库选择
   const handleSelectFromMaterial = (material: Material) => {
     form.setFieldsValue({
