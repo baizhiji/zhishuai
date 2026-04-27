@@ -274,20 +274,13 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
         const stored = localStorage.getItem('navigation-storage')
         if (stored) {
           const parsed = JSON.parse(stored)
-          const keysFromPath = getOpenKeys(pathname)
-          // 如果当前路径有匹配的菜单，优先使用路径计算的结果
-          if (keysFromPath.length > 0) {
-            return keysFromPath
-          }
-          // 否则使用存储的值
           return parsed.state.openKeys || []
         }
       } catch (error) {
         console.error('Failed to read navigation storage:', error)
       }
     }
-    // 如果没有存储值，根据路径计算
-    return getOpenKeys(pathname)
+    return []
   })
 
   // 保存到 localStorage
@@ -306,12 +299,10 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
 
   // 当路由变化时，更新菜单展开状态
   useEffect(() => {
-    const keysFromPath = getOpenKeys(pathname)
-    if (keysFromPath.length > 0) {
-      setOpenKeys(keysFromPath)
-      saveToStorage(keysFromPath)
-    }
-  }, [pathname, getOpenKeys, saveToStorage])
+    const keysFromPath = getOpenKeysForPath(navItems, pathname)
+    setOpenKeys(keysFromPath)
+    saveToStorage(keysFromPath)
+  }, [pathname, navItems, saveToStorage])
 
   // 当用户手动折叠/展开菜单时
   const handleOpenChange = useCallback((keys: string[]) => {
