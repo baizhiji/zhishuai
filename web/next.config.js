@@ -5,11 +5,12 @@ const nextConfig = {
 
   // 图片优化配置
   images: {
-    domains: ['code.coze.cn', 'api.dicebear.com'],
+    domains: ['code.coze.cn', 'api.dicebear.com', 'via.placeholder.com'],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     unoptimized: false,
+    minimumCacheTTL: 60,
   },
 
   // 压缩配置
@@ -18,6 +19,7 @@ const nextConfig = {
   // 实验性功能
   experimental: {
     optimizePackageImports: ['antd'],
+    optimizeCss: true,
   },
 
   // 环境变量
@@ -27,7 +29,7 @@ const nextConfig = {
   },
 
   // Webpack配置
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     // 优化打包体积
     config.optimization = {
       ...config.optimization,
@@ -41,15 +43,39 @@ const nextConfig = {
             name: 'commons',
             chunks: 'all',
             minChunks: 2,
+            priority: -10,
           },
           // Antd 单独打包
           antd: {
             name: 'antd',
             chunks: 'all',
             test: /[\\/]node_modules[\\/](antd|@ant-design)[\\/]/,
+            priority: 10,
+          },
+          // React 相关库
+          react: {
+            name: 'react',
+            chunks: 'all',
+            test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+            priority: 20,
+          },
+          // 工具库
+          utils: {
+            name: 'utils',
+            chunks: 'all',
+            test: /[\\/]node_modules[\\/](lodash|axios|dayjs)[\\/]/,
+            priority: 5,
           },
         },
       },
+    }
+
+    // 移除 moment.js 的 locale 减小体积
+    if (!isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        moment$: 'moment/moment.js',
+      }
     }
 
     return config
@@ -80,8 +106,25 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
     ]
   },
+
+  // 重定向配置
+  async redirects() {
+    return []
+  },
+
+  // 构建配置
+  buildId: 'build-id-' + Date.now(),
 }
 
 module.exports = nextConfig
