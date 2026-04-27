@@ -182,7 +182,14 @@ export default function PublishCenterPage() {
   // 打开发布模态框
   const handleOpenPublishModal = () => {
     setIsPublishModalVisible(true)
-    form.resetFields()
+    // 延迟重置表单，确保 Modal 已经打开
+    setTimeout(() => {
+      form.resetFields()
+      form.setFieldsValue({
+        contentType: 'text',
+        publishType: 'immediate',
+      })
+    }, 0)
   }
 
   // 提交发布任务
@@ -607,7 +614,9 @@ export default function PublishCenterPage() {
 
           <Form.Item
             noStyle
-            shouldUpdate={(prevValues, currentValues) => prevValues.publishType !== currentValues.publishType}
+            shouldUpdate={(prevValues, currentValues) =>
+              prevValues?.publishType !== currentValues?.publishType
+            }
           >
             {({ getFieldValue }) =>
               getFieldValue('publishType') === 'scheduled' ? (
