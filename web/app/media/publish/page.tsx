@@ -27,6 +27,8 @@ import {
   Progress,
   Tooltip,
   Popconfirm,
+  Avatar,
+  Empty,
 } from 'antd'
 import type { UploadFile, UploadProps } from 'antd'
 import {
@@ -60,6 +62,8 @@ interface PublishTask {
   thumbnail?: string
   file?: UploadFile
   platforms: string[]
+  accounts: string[]  // 添加账号ID
+  tags: string[]  // 添加标签
   scheduledTime?: string
   status: 'pending' | 'scheduled' | 'publishing' | 'published' | 'failed'
   createdAt: string
@@ -71,15 +75,29 @@ interface Material {
   id: string
   type: 'text' | 'image' | 'video'
   content: string
+  title: string  // 添加标题
   timestamp: number
   status: 'unused' | 'used'
+}
+
+interface Account {
+  id: string
+  platform: string
+  accountName: string
+  avatar: string
+  fans: number
+  status: 'active' | 'inactive' | 'expired'
+  lastSync: string
+  autoPublish: boolean
 }
 
 export default function PublishCenterPage() {
   const [tasks, setTasks] = useState<PublishTask[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
+  const [accounts, setAccounts] = useState<Account[]>([])  // 添加账号状态
   const [isPublishModalVisible, setIsPublishModalVisible] = useState(false)
   const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false)
+  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)  // 添加批量发布Modal
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [publishing, setPublishing] = useState(false)
   const [publishProgress, setPublishProgress] = useState(0)
@@ -91,9 +109,29 @@ export default function PublishCenterPage() {
     title: '',
     content: '',
     platforms: [] as string[],
+    accounts: [] as string[],  // 添加账号选择
+    tags: [] as string[],  // 添加标签
     publishType: 'immediate' as 'immediate' | 'scheduled',
     scheduledTime: null as dayjs.Dayjs | null,
   })
+
+  // 批量发布状态
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])  // 选中的素材ID列表
+  const [batchPublishProgress, setBatchPublishProgress] = useState(0)  // 批量发布进度
+
+  // 常用标签
+  const popularTags = [
+    'AI人工智能',
+    '智枢AI',
+    '科技分享',
+    '教程',
+    '干货',
+    '短视频',
+    '数字人',
+    'AIGC',
+    '自动化',
+    '效率工具',
+  ]
 
   // 从 localStorage 加载数据
   useEffect(() => {
@@ -114,6 +152,16 @@ export default function PublishCenterPage() {
         setMaterials(JSON.parse(savedMaterials))
       } catch (error) {
         console.error('加载素材库失败:', error)
+      }
+    }
+
+    // 加载账号数据
+    const savedAccounts = localStorage.getItem('matrix-accounts')
+    if (savedAccounts) {
+      try {
+        setAccounts(JSON.parse(savedAccounts))
+      } catch (error) {
+        console.error('加载账号数据失败:', error)
       }
     }
   }, [])
@@ -198,6 +246,8 @@ export default function PublishCenterPage() {
       title: '',
       content: '',
       platforms: [],
+      accounts: [],
+      tags: [],
       publishType: 'immediate',
       scheduledTime: null,
     })
@@ -210,6 +260,76 @@ export default function PublishCenterPage() {
     setIsPublishModalVisible(false)
   }
 
+  // 从素材库选择素材
+  const handleSelectMaterial = (material: Material) => {
+    setFormData({
+      ...formData,
+      title: material.title || '',
+      content: material.content,
+      contentType: material.type as 'text' | 'image' | 'video',
+    })
+    setIsMaterialDrawerVisible(false)
+    message.success('已选择素材')
+  }
+
+  // 打开批量发布模态框
+  const handleOpenBatchPublishModal = () => {
+    setSelectedMaterials([])
+    setIsBatchPublishModalVisible(true)
+  }
+
+  // 执行批量发布
+  const handleBatchPublish = async () => {
+    if (selectedMaterials.length === 0) {
+      message.warning('请至少选择一个素材')
+      return
+    }
+
+    if (formData.accounts.length === 0) {
+      message.warning('请至少选择一个账号')
+      return
+    }
+
+    setIsBatchPublishModalVisible(false)
+    setPublishing(true)
+
+    // 为每个选中的素材创建发布任务
+    for (let i = 0; i < selectedMaterials.length; i++) {
+      const materialId = selectedMaterials[i]
+      const material = materials.find(m => m.id === materialId)
+
+      if (material) {
+        const task: PublishTask = {
+          id: `task_${Date.now()}_${i}`,
+          type: material.type as 'text' | 'image' | 'video',
+          title: material.title || '未命名',
+          content: material.content,
+          platforms: formData.platforms,
+          accounts: formData.accounts,
+          tags: formData.tags,
+          status: formData.publishType === 'immediate' ? 'publishing' : 'scheduled',
+          createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        }
+
+        if (formData.publishType === 'scheduled' && formData.scheduledTime) {
+          task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
+        }
+
+        setTasks(prevTasks => [task, ...prevTasks])
+
+        // 更新进度
+        setBatchPublishProgress(Math.round(((i + 1) / selectedMaterials.length) * 100))
+
+        // 模拟发布延迟
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+    }
+
+    setPublishing(false)
+    setBatchPublishProgress(0)
+    message.success(`成功创建 ${selectedMaterials.length} 个发布任务`)
+  }
+
   // 提交发布任务
   const handlePublish = async () => {
     if (!formData.title) {
@@ -219,6 +339,11 @@ export default function PublishCenterPage() {
 
     if (!formData.content) {
       message.warning('请输入内容')
+      return
+    }
+
+    if (formData.accounts.length === 0) {
+      message.warning('请至少选择一个账号')
       return
     }
 
@@ -238,6 +363,8 @@ export default function PublishCenterPage() {
       title: formData.title,
       content: formData.content,
       platforms: formData.platforms,
+      accounts: formData.accounts,
+      tags: formData.tags,
       status: 'pending',
       createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     }
@@ -546,7 +673,7 @@ export default function PublishCenterPage() {
             <Button icon={<PlusOutlined />} onClick={handleOpenPublishModal}>
               创建发布任务
             </Button>
-            <Button type="primary" icon={<SendOutlined />} onClick={handleBatchPublish} disabled={publishing || selectedRowKeys.length === 0}>
+            <Button type="primary" icon={<SendOutlined />} onClick={handleOpenBatchPublishModal}>
               批量发布
             </Button>
           </Space>
@@ -585,6 +712,24 @@ export default function PublishCenterPage() {
         destroyOnClose={false}
       >
         <div style={{ padding: '20px' }}>
+          {/* 素材选择 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              从素材库选择
+            </label>
+            <Button
+              icon={<InboxOutlined />}
+              onClick={() => setIsMaterialDrawerVisible(true)}
+            >
+              选择素材
+            </Button>
+            {formData.content && (
+              <Text type="secondary" style={{ marginLeft: 8 }}>
+                已选择素材
+              </Text>
+            )}
+          </div>
+
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               内容类型 <span style={{ color: 'red' }}>*</span>
@@ -627,15 +772,87 @@ export default function PublishCenterPage() {
             />
           </div>
 
+          {/* 账号选择 */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              发布平台 <span style={{ color: 'red' }}>*</span>
+              选择账号 <span style={{ color: 'red' }}>*</span>
+            </label>
+            {accounts.length > 0 ? (
+              <Checkbox.Group
+                value={formData.accounts}
+                onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
+              >
+                <Space direction="vertical">
+                  {accounts.map((account) => (
+                    <Checkbox key={account.id} value={account.id}>
+                      <Space>
+                        <Avatar src={account.avatar} size="small" />
+                        <Text>{account.accountName}</Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          ({platformLabel[account.platform]})
+                        </Text>
+                      </Space>
+                    </Checkbox>
+                  ))}
+                </Space>
+              </Checkbox.Group>
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <Space>
+                    <Text type="secondary">暂无账号</Text>
+                    <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
+                      去添加
+                    </Button>
+                  </Space>
+                }
+              />
+            )}
+          </div>
+
+          {/* 标签选择 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              话题/标签
             </label>
             <Checkbox.Group
-              options={platformOptions}
-              value={formData.platforms}
-              onChange={(values) => setFormData({ ...formData, platforms: values as string[] })}
+              options={popularTags.map(tag => ({ label: tag, value: tag }))}
+              value={formData.tags}
+              onChange={(values) => setFormData({ ...formData, tags: values as string[] })}
             />
+            <div style={{ marginTop: 8 }}>
+              <Input
+                placeholder="自定义标签（回车添加）"
+                onPressEnter={(e) => {
+                  const value = (e.target as HTMLInputElement).value.trim()
+                  if (value && !formData.tags.includes(value)) {
+                    setFormData({ ...formData, tags: [...formData.tags, value] })
+                  }
+                  (e.target as HTMLInputElement).value = ''
+                }}
+              />
+            </div>
+            {formData.tags.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <Space wrap>
+                  {formData.tags.map((tag, index) => (
+                    <Tag
+                      key={index}
+                      closable
+                      onClose={() => {
+                        setFormData({
+                          ...formData,
+                          tags: formData.tags.filter((_, i) => i !== index)
+                        })
+                      }}
+                    >
+                      #{tag}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: 16 }}>
@@ -695,7 +912,7 @@ export default function PublishCenterPage() {
                 actions={[
                   <Button
                     type="link"
-                    onClick={() => handleSelectFromMaterial(material)}
+                    onClick={() => handleSelectMaterial(material)}
                   >
                     使用
                   </Button>,
@@ -714,15 +931,14 @@ export default function PublishCenterPage() {
                       <Tag color={typeConfig[material.type].color}>
                         {typeConfig[material.type].label}
                       </Tag>
-                      <Tag color={material.status === 'unused' ? 'default' : 'success'}>
-                        {material.status === 'unused' ? '未使用' : '已使用'}
-                      </Tag>
+                      <Text>{material.title || '无标题'}</Text>
                     </Space>
                   }
                   description={
                     <div>
                       <div className="text-gray-600 text-sm mb-1">
-                        {material.content.slice(0, 100)}...
+                        {material.content.slice(0, 100)}
+                        {material.content.length > 100 ? '...' : ''}
                       </div>
                       <Text type="secondary" style={{ fontSize: '12px' }}>
                         {dayjs(material.timestamp).format('YYYY-MM-DD HH:mm:ss')}
@@ -735,6 +951,193 @@ export default function PublishCenterPage() {
           />
         )}
       </Drawer>
+
+      {/* 批量发布模态框 */}
+      <Modal
+        title="批量发布"
+        open={isBatchPublishModalVisible}
+        onCancel={() => setIsBatchPublishModalVisible(false)}
+        onOk={handleBatchPublish}
+        width={800}
+        okText="开始批量发布"
+        cancelText="取消"
+        destroyOnClose={false}
+      >
+        <div style={{ padding: '20px' }}>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              选择素材 <span style={{ color: 'red' }}>*</span>
+            </label>
+            {materials.length === 0 ? (
+              <Empty description="暂无素材，请先到内容工厂生成" />
+            ) : (
+              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                <List
+                  dataSource={materials}
+                  renderItem={(material) => (
+                    <List.Item
+                      actions={[
+                        <Checkbox
+                          checked={selectedMaterials.includes(material.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedMaterials([...selectedMaterials, material.id])
+                            } else {
+                              setSelectedMaterials(selectedMaterials.filter(id => id !== material.id))
+                            }
+                          }}
+                        />
+                      ]}
+                    >
+                      <List.Item.Meta
+                        avatar={
+                          <div className="w-12 h-12 rounded bg-blue-50 flex items-center justify-center">
+                            {material.type === 'text' && <FileTextOutlined className="text-blue-500" />}
+                            {material.type === 'image' && <PictureOutlined className="text-green-500" />}
+                            {material.type === 'video' && <VideoCameraOutlined className="text-purple-500" />}
+                          </div>
+                        }
+                        title={
+                          <Space>
+                            <Tag color={typeConfig[material.type].color}>
+                              {typeConfig[material.type].label}
+                            </Tag>
+                            <Text>{material.title || '无标题'}</Text>
+                          </Space>
+                        }
+                        description={
+                          <div>
+                            <div className="text-gray-600 text-sm">
+                              {material.content.slice(0, 80)}...
+                            </div>
+                          </div>
+                        }
+                      />
+                    </List.Item>
+                  )}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* 账号选择 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              选择账号 <span style={{ color: 'red' }}>*</span>
+            </label>
+            {accounts.length > 0 ? (
+              <Checkbox.Group
+                value={formData.accounts}
+                onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
+              >
+                <Space direction="vertical">
+                  {accounts.map((account) => (
+                    <Checkbox key={account.id} value={account.id}>
+                      <Space>
+                        <Avatar src={account.avatar} size="small" />
+                        <Text>{account.accountName}</Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          ({platformLabel[account.platform]})
+                        </Text>
+                      </Space>
+                    </Checkbox>
+                  ))}
+                </Space>
+              </Checkbox.Group>
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <Space>
+                    <Text type="secondary">暂无账号</Text>
+                    <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
+                      去添加
+                    </Button>
+                  </Space>
+                }
+              />
+            )}
+          </div>
+
+          {/* 标签选择 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              话题/标签
+            </label>
+            <Checkbox.Group
+              options={popularTags.map(tag => ({ label: tag, value: tag }))}
+              value={formData.tags}
+              onChange={(values) => setFormData({ ...formData, tags: values as string[] })}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Input
+                placeholder="自定义标签（回车添加）"
+                onPressEnter={(e) => {
+                  const value = (e.target as HTMLInputElement).value.trim()
+                  if (value && !formData.tags.includes(value)) {
+                    setFormData({ ...formData, tags: [...formData.tags, value] })
+                  }
+                  (e.target as HTMLInputElement).value = ''
+                }}
+              />
+            </div>
+            {formData.tags.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <Space wrap>
+                  {formData.tags.map((tag, index) => (
+                    <Tag
+                      key={index}
+                      closable
+                      onClose={() => {
+                        setFormData({
+                          ...formData,
+                          tags: formData.tags.filter((_, i) => i !== index)
+                        })
+                      }}
+                    >
+                      #{tag}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              发布方式
+            </label>
+            <Radio.Group
+              value={formData.publishType}
+              onChange={(e) => {
+                const newPublishType = e.target.value
+                setPublishType(newPublishType)
+                setFormData({ ...formData, publishType: newPublishType })
+              }}
+            >
+              <Radio value="immediate">立即发布</Radio>
+              <Radio value="scheduled">定时发布</Radio>
+            </Radio.Group>
+          </div>
+
+          {publishType === 'scheduled' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                定时发布时间 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <DatePicker
+                showTime
+                format="YYYY-MM-DD HH:mm:ss"
+                placeholder="选择发布时间"
+                style={{ width: '100%' }}
+                disabledDate={(current) => current && current < dayjs().endOf('day')}
+                value={formData.scheduledTime}
+                onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
+              />
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }
