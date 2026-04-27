@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   Row,
@@ -21,6 +21,8 @@ import {
   Progress,
   Divider,
   Empty,
+  List,
+  Drawer,
 } from 'antd'
 import {
   FileTextOutlined,
@@ -34,10 +36,24 @@ import {
   SettingOutlined,
   AppstoreOutlined,
   ScissorOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  CopyOutlined,
 } from '@ant-design/icons'
+import { generateText, generateImage } from '@/lib/ai/aliyun'
 
 const { Title, Text, Paragraph } = Typography
 const { TextArea } = Input
+
+// 生成记录类型
+interface GenerationRecord {
+  id: string
+  type: 'text' | 'image' | 'video' | 'digitalHuman'
+  content: string
+  config: any
+  timestamp: number
+  status: 'success' | 'failed'
+}
 
 export default function ContentFactoryPage() {
   const [activeTab, setActiveTab] = useState('text')
@@ -45,51 +61,192 @@ export default function ContentFactoryPage() {
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
   const [generatedContent, setGeneratedContent] = useState<string | null>(null)
+  const [historyVisible, setHistoryVisible] = useState(false)
+  const [generationHistory, setGenerationHistory] = useState<GenerationRecord[]>([])
 
-  // 模拟生成内容
+  // 从 localStorage 加载历史记录
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('generation-history')
+      if (saved) {
+        try {
+          setGenerationHistory(JSON.parse(saved))
+        } catch (error) {
+          console.error('加载历史记录失败:', error)
+        }
+      }
+    }
+  }, [])
+
+  // 保存历史记录到 localStorage
+  const saveHistory = (record: GenerationRecord) => {
+    const newHistory = [record, ...generationHistory].slice(0, 50) // 只保留最近50条
+    setGenerationHistory(newHistory)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('generation-history', JSON.stringify(newHistory))
+    }
+  }
+
+  // 生成内容
   const handleGenerate = async () => {
     const values = await form.validateFields()
     setGenerating(true)
     setProgress(0)
+    setGeneratedContent(null)
 
     // 模拟生成进度
-    const interval = setInterval(() => {
+    const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 90) {
-          clearInterval(interval)
+          clearInterval(progressInterval)
           return 90
         }
-        return prev + 10
+        return prev + Math.random() * 15
       })
     }, 200)
 
-    // 模拟生成完成
-    setTimeout(() => {
-      clearInterval(interval)
-      setProgress(100)
-      setGenerating(false)
+    try {
+      let result: any
 
-      // 根据不同类型生成不同内容
-      const contents = {
-        text: '【智枢AI：让内容创作更简单】\n\n在这个信息爆炸的时代，如何高效地创作出优质内容？智枢AI为您解答！\n\n✨ AI智能写作：一键生成爆款文案\n🎨 AI绘画：秒变专业设计师\n🤖 数字人视频：解放真人出镜\n\n现在注册，免费试用30天！\n\n#AI #人工智能 #内容创作 #智枢AI',
-        image: 'https://via.placeholder.com/600x400',
-        video: 'https://via.placeholder.com/600x400?text=视频生成中...',
-        digitalHuman: 'https://via.placeholder.com/600x400?text=数字人视频生成中...',
+      // 根据不同类型调用不同的生成函数
+      if (activeTab === 'text') {
+        // 文本生成
+        const prompt = `请为"${values.topic}"生成一段${values.contentType || '短文案'}，风格要求：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+        result = await generateText(prompt, {
+          model: 'qwen-plus',
+          maxTokens: values.wordCount || 500,
+          temperature: 0.7,
+        })
+      } else if (activeTab === 'image') {
+        // 图片生成
+        const prompt = `生成一张${values.imageType}图片，主题：${values.topic}，风格：${values.style || '写实'}，色调：${values.colorScheme || '明亮'}`
+        result = await generateImage(prompt, {
+          size: '1024*1024',
+          model: 'wanx-v1',
+        })
+        // 提取图片 URL
+        result = { output: { text: result.output.results[0].url } }
+      } else if (activeTab === 'video') {
+        // 视频生成（暂时使用模拟）
+        result = { output: { text: 'https://via.placeholder.com/600x400?text=视频生成中...' } }
+      } else if (activeTab === 'digitalHuman') {
+        // 数字人视频（暂时使用模拟）
+        result = { output: { text: 'https://via.placeholder.com/600x400?text=数字人视频生成中...' } }
       }
 
-      setGeneratedContent(contents[activeTab as keyof typeof contents] || '生成内容')
-      message.success('生成成功！')
-    }, 3000)
+      clearInterval(progressInterval)
+      setProgress(100)
+
+      // 保存生成结果
+      if (result?.output?.text) {
+        setGeneratedContent(result.output.text)
+
+        // 保存到历史记录
+        saveHistory({
+          id: `gen_${Date.now()}`,
+          type: activeTab as any,
+          content: result.output.text,
+          config: values,
+          timestamp: Date.now(),
+          status: 'success',
+        })
+
+        message.success('生成成功！')
+      } else {
+        throw new Error('生成失败，未返回有效结果')
+      }
+    } catch (error) {
+      clearInterval(progressInterval)
+      console.error('生成失败:', error)
+      message.error('生成失败，请重试')
+
+      // 保存失败记录
+      saveHistory({
+        id: `gen_${Date.now()}`,
+        type: activeTab as any,
+        content: '',
+        config: values,
+        timestamp: Date.now(),
+        status: 'failed',
+      })
+    } finally {
+      setGenerating(false)
+    }
   }
 
   // 保存到素材库
   const handleSave = () => {
-    message.success('已保存到素材库')
+    if (!generatedContent) {
+      message.warning('请先生成内容')
+      return
+    }
+
+    // 保存到 localStorage
+    if (typeof window !== 'undefined') {
+      const materials = JSON.parse(localStorage.getItem('materials') || '[]')
+      materials.push({
+        id: `material_${Date.now()}`,
+        type: activeTab,
+        content: generatedContent,
+        timestamp: Date.now(),
+        status: 'unused', // 未使用
+      })
+      localStorage.setItem('materials', JSON.stringify(materials))
+      message.success('已保存到素材库')
+    }
   }
 
   // 直接发布
   const handlePublish = () => {
+    if (!generatedContent) {
+      message.warning('请先生成内容')
+      return
+    }
     message.success('已添加到发布中心')
+  }
+
+  // 复制内容
+  const handleCopy = () => {
+    if (!generatedContent) return
+    navigator.clipboard.writeText(generatedContent)
+    message.success('已复制到剪贴板')
+  }
+
+  // 下载内容
+  const handleDownload = () => {
+    if (!generatedContent) return
+
+    if (activeTab === 'text') {
+      // 下载文本
+      const blob = new Blob([generatedContent], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `content_${Date.now()}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+      message.success('已下载')
+    } else {
+      // 下载图片
+      window.open(generatedContent, '_blank')
+    }
+  }
+
+  // 从历史记录中加载
+  const handleLoadFromHistory = (record: GenerationRecord) => {
+    setGeneratedContent(record.content)
+    setHistoryVisible(false)
+    message.success('已加载历史记录')
+  }
+
+  // 删除历史记录
+  const handleDeleteHistory = (id: string) => {
+    const newHistory = generationHistory.filter((r) => r.id !== id)
+    setGenerationHistory(newHistory)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('generation-history', JSON.stringify(newHistory))
+    }
+    message.success('已删除')
   }
 
   // 文案类型选项
@@ -265,31 +422,36 @@ export default function ContentFactoryPage() {
       <Card title="生成结果" className="mt-6">
         {generating ? (
           <div className="text-center py-8">
-            <Progress percent={progress} status="active" />
+            <Progress percent={Math.round(progress)} status="active" />
             <p className="mt-4 text-gray-500">AI正在为您生成内容，请稍候...</p>
           </div>
         ) : (
           <div>
             {activeTab === 'text' ? (
               <div className="bg-gray-50 p-4 rounded">
-                <Paragraph className="whitespace-pre-wrap">{generatedContent}</Paragraph>
+                <Paragraph className="whitespace-pre-wrap mb-4">{generatedContent}</Paragraph>
               </div>
             ) : generatedContent ? (
               <div className="text-center">
-                <Image src={generatedContent} alt="Generated content" />
+                <Image src={generatedContent} alt="Generated content" style={{ maxWidth: '100%' }} />
               </div>
-            ) : null
-            }
+            ) : null}
             <Divider />
-            <Space>
+            <Space wrap>
               <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
                 保存到素材库
               </Button>
               <Button icon={<SendOutlined />} onClick={handlePublish}>
                 直接发布
               </Button>
-              <Button icon={<HistoryOutlined />}>
-                查看历史记录
+              <Button icon={<CopyOutlined />} onClick={handleCopy}>
+                复制
+              </Button>
+              <Button icon={<DownloadOutlined />} onClick={handleDownload}>
+                下载
+              </Button>
+              <Button icon={<HistoryOutlined />} onClick={() => setHistoryVisible(true)}>
+                查看历史记录 ({generationHistory.length})
               </Button>
             </Space>
           </div>
@@ -297,6 +459,72 @@ export default function ContentFactoryPage() {
       </Card>
     )
   }
+
+  // 渲染历史记录
+  const renderHistoryDrawer = () => (
+    <Drawer
+      title="生成历史记录"
+      onClose={() => setHistoryVisible(false)}
+      open={historyVisible}
+      width={600}
+    >
+      {generationHistory.length === 0 ? (
+        <Empty description="暂无历史记录" />
+      ) : (
+        <List
+          dataSource={generationHistory}
+          renderItem={(record) => (
+            <List.Item
+              actions={[
+                <Button
+                  type="link"
+                  icon={<DownloadOutlined />}
+                  onClick={() => handleLoadFromHistory(record)}
+                >
+                  使用
+                </Button>,
+                <Button
+                  type="link"
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => handleDeleteHistory(record.id)}
+                >
+                  删除
+                </Button>,
+              ]}
+            >
+              <List.Item.Meta
+                avatar={
+                  <div className="w-10 h-10 rounded bg-blue-50 flex items-center justify-center">
+                    {record.type === 'text' && <FileTextOutlined />}
+                    {record.type === 'image' && <PictureOutlined />}
+                    {record.type === 'video' && <VideoCameraOutlined />}
+                    {record.type === 'digitalHuman' && <RobotOutlined />}
+                  </div>
+                }
+                title={
+                  <Space>
+                    <span>{record.config?.topic || '未命名'}</span>
+                    <Tag color={record.status === 'success' ? 'green' : 'red'}>
+                      {record.status === 'success' ? '成功' : '失败'}
+                    </Tag>
+                  </Space>
+                }
+                description={
+                  <Space>
+                    <Text type="secondary">
+                      {new Date(record.timestamp).toLocaleString('zh-CN')}
+                    </Text>
+                    <Tag>{record.type === 'text' ? '文案' : record.type === 'image' ? '图片' : '视频'}</Tag>
+                  </Space>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      )}
+    </Drawer>
+  )
 
   return (
     <div className="p-6">
@@ -552,6 +780,9 @@ export default function ContentFactoryPage() {
         {/* 生成结果 */}
         {renderGeneratedResult()}
       </Card>
+
+      {/* 历史记录抽屉 */}
+      {renderHistoryDrawer()}
     </div>
   )
 }
