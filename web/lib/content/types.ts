@@ -21,8 +21,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
   needWordCount: boolean
   needSize: boolean
   needDuration: boolean
-  needImageInput: boolean
-  needDocInput: boolean
+  needUpload: boolean
 }> = {
   [ContentCategory.TITLE]: {
     label: '标题',
@@ -33,8 +32,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: true,
     needSize: false,
     needDuration: false,
-    needImageInput: true,
-    needDocInput: false,
+    needUpload: true,
   },
   [ContentCategory.TAGS]: {
     label: '话题/标签',
@@ -45,8 +43,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: false,
     needSize: false,
     needDuration: false,
-    needImageInput: false,
-    needDocInput: false,
+    needUpload: false,
   },
   [ContentCategory.COPYWRITING]: {
     label: '文案生成',
@@ -57,8 +54,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: true,
     needSize: false,
     needDuration: false,
-    needImageInput: true,
-    needDocInput: true,
+    needUpload: true,
   },
   [ContentCategory.IMAGE_TO_TEXT]: {
     label: '图生文',
@@ -69,8 +65,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: true,
     needSize: false,
     needDuration: false,
-    needImageInput: true,
-    needDocInput: false,
+    needUpload: true,
   },
   [ContentCategory.XIAOHONGSHU]: {
     label: '小红书图文',
@@ -81,8 +76,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: true,
     needSize: false,
     needDuration: false,
-    needImageInput: true,
-    needDocInput: true,
+    needUpload: true,
   },
   [ContentCategory.IMAGE]: {
     label: '图片',
@@ -93,8 +87,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: false,
     needSize: true,
     needDuration: false,
-    needImageInput: true,
-    needDocInput: false,
+    needUpload: true,
   },
   [ContentCategory.ECOMMERCE]: {
     label: '电商详情页',
@@ -105,8 +98,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: true,
     needSize: true,
     needDuration: false,
-    needImageInput: true,
-    needDocInput: true,
+    needUpload: true,
   },
   [ContentCategory.VIDEO]: {
     label: '短视频',
@@ -117,8 +109,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: false,
     needSize: true,
     needDuration: true,
-    needImageInput: true,
-    needDocInput: true,
+    needUpload: true,
   },
   [ContentCategory.DIGITAL_HUMAN]: {
     label: '数字人短视频',
@@ -129,16 +120,15 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needWordCount: true,
     needSize: true,
     needDuration: true,
-    needImageInput: false,
-    needDocInput: true,
+    needUpload: true,
   },
 }
 
 // 视频尺寸选项
 export const videoSizeOptions = [
-  { label: '竖屏 9:16', value: '1080x1920' },
-  { label: '横屏 16:9', value: '1920x1080' },
-  { label: '方形 1:1', value: '1080x1080' },
+  { label: '竖屏 9:16 (1080x1920)', value: '1080x1920' },
+  { label: '横屏 16:9 (1920x1080)', value: '1920x1080' },
+  { label: '方形 1:1 (1080x1080)', value: '1080x1080' },
 ]
 
 // 图片尺寸选项
@@ -147,30 +137,4 @@ export const imageSizeOptions = [
   { label: '1024x768', value: '1024x768' },
   { label: '768x1024', value: '768x1024' },
   { label: '1920x1080', value: '1920x1080' },
-]
-
-// 视频时长选项（秒）
-export const videoDurationOptions = [
-  { label: '15秒', value: 15 },
-  { label: '30秒', value: 30 },
-  { label: '60秒', value: 60 },
-  { label: '120秒', value: 120 },
-]
-
-// 字数选项
-export const wordCountOptions = [
-  { label: '50字以内', value: 50 },
-  { label: '100字以内', value: 100 },
-  { label: '300字左右', value: 300 },
-  { label: '500字左右', value: 500 },
-  { label: '1000字左右', value: 1000 },
-  { label: '2000字左右', value: 2000 },
-]
-
-// 生成数量选项
-export const generateCountOptions = [
-  { label: '1条', value: 1 },
-  { label: '3条', value: 3 },
-  { label: '5条', value: 5 },
-  { label: '10条', value: 10 },
 ]

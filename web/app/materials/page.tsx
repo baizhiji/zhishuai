@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Card,
   Row,
@@ -14,233 +14,228 @@ import {
   Tag,
   Modal,
   message,
-  Tabs,
-  Empty,
   Image,
+  Popconfirm,
+  Drawer,
 } from 'antd'
 import {
   SearchOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  CopyOutlined,
+  EyeOutlined,
   FileTextOutlined,
+  TagsOutlined,
+  FileImageOutlined,
+  HeartOutlined,
   PictureOutlined,
+  ShoppingOutlined,
   VideoCameraOutlined,
   RobotOutlined,
-  ShopOutlined,
-  EyeOutlined,
-  CheckCircleOutlined,
+  FontSizeOutlined,
 } from '@ant-design/icons'
+import { ContentCategory, contentCategoryConfig } from '@/lib/content/types'
 
-const { Title, Text } = Typography
+const { Title, Text, Paragraph } = Typography
 const { Search } = Input
 
 interface Material {
   id: string
-  type: 'text' | 'image' | 'video' | 'digital-human' | 'ecommerce'
+  category: ContentCategory
   title: string
   content: string
-  url?: string
-  thumbnail?: string
   status: 'unused' | 'used'
-  createdAt: string
-  category: string
+  timestamp: number
 }
 
-export default function MaterialLibraryPage() {
+interface MaterialLibraryPageProps {
+  onSelectMaterial?: (material: Material) => void
+  visible?: boolean
+  onClose?: () => void
+  filterCategory?: ContentCategory
+}
+
+export default function MaterialLibraryPage({
+  onSelectMaterial,
+  visible,
+  onClose,
+  filterCategory,
+}: MaterialLibraryPageProps) {
   const [searchText, setSearchText] = useState('')
-  const [filterType, setFilterType] = useState<string>('all')
+  const [filterCategoryState, setFilterCategoryState] = useState<ContentCategory | 'all'>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [activeTab, setActiveTab] = useState('all')
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [previewVisible, setPreviewVisible] = useState(false)
+  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null)
 
-  // 模拟数据
-  const [materials, setMaterials] = useState<Material[]>([
-    {
-      id: '1',
-      type: 'text',
-      title: '抖音文案 - AI智能生成',
-      content: '这是一段关于AI技术的抖音文案，通过智枢AI自动生成...',
-      status: 'unused',
-      createdAt: '2024-03-25 10:30:00',
-      category: '自媒体',
-    },
-    {
-      id: '2',
-      type: 'image',
-      title: '产品封面图',
-      content: '生成的产品宣传图片',
-      url: '/placeholder-image.jpg',
-      thumbnail: '/placeholder-image.jpg',
-      status: 'used',
-      createdAt: '2024-03-24 15:20:00',
-      category: '电商',
-    },
-    {
-      id: '3',
-      type: 'video',
-      title: '短视频 - 产品介绍',
-      content: '15秒产品介绍视频',
-      url: '/placeholder-video.mp4',
-      thumbnail: '/placeholder-video.jpg',
-      status: 'unused',
-      createdAt: '2024-03-23 09:15:00',
-      category: '自媒体',
-    },
-    {
-      id: '4',
-      type: 'digital-human',
-      title: '数字人视频 - 讲解',
-      content: 'AI数字人讲解产品功能',
-      url: '/placeholder-digital-human.mp4',
-      thumbnail: '/placeholder-digital-human.jpg',
-      status: 'unused',
-      createdAt: '2024-03-22 14:45:00',
-      category: '自媒体',
-    },
-  ])
+  // 从 localStorage 加载素材
+  useEffect(() => {
+    loadMaterials()
+  }, [])
 
-  // 筛选数据
-  const filteredMaterials = materials.filter((item) => {
-    const matchSearch = item.title.includes(searchText) || item.content.includes(searchText)
-    const matchType = filterType === 'all' || item.type === filterType
-    const matchStatus = filterStatus === 'all' || item.status === filterStatus
-    return matchSearch && matchType && matchStatus
-  })
-
-  // 类型配置
-  const typeConfig = {
-    text: {
-      icon: <FileTextOutlined className="text-blue-500 text-2xl" />,
-      color: 'blue',
-      label: '文本',
-    },
-    image: {
-      icon: <PictureOutlined className="text-green-500 text-2xl" />,
-      color: 'green',
-      label: '图片',
-    },
-    video: {
-      icon: <VideoCameraOutlined className="text-purple-500 text-2xl" />,
-      color: 'purple',
-      label: '视频',
-    },
-    'digital-human': {
-      icon: <RobotOutlined className="text-orange-500 text-2xl" />,
-      color: 'orange',
-      label: '数字人',
-    },
-    ecommerce: {
-      icon: <ShopOutlined className="text-pink-500 text-2xl" />,
-      color: 'pink',
-      label: '电商详情页',
-    },
+  const loadMaterials = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('materials')
+      if (saved) {
+        try {
+          setMaterials(JSON.parse(saved))
+        } catch (error) {
+          console.error('加载素材失败:', error)
+        }
+      }
+    }
   }
+
+  // 筛选素材
+  const filteredMaterials = materials.filter((material) => {
+    // 分类筛选
+    const categoryMatch =
+      filterCategoryState === 'all' || material.category === filterCategoryState
+
+    // 外部传入的分类筛选（如果有的话）
+    const externalCategoryMatch = !filterCategory || material.category === filterCategory
+
+    // 状态筛选
+    const statusMatch = filterStatus === 'all' || material.status === filterStatus
+
+    // 搜索筛选
+    const searchMatch =
+      !searchText ||
+      material.title.toLowerCase().includes(searchText.toLowerCase()) ||
+      material.content.toLowerCase().includes(searchText.toLowerCase())
+
+    return categoryMatch && statusMatch && searchMatch && externalCategoryMatch
+  })
 
   // 删除素材
   const handleDelete = (id: string) => {
-    Modal.confirm({
-      title: '确认删除',
-      content: '确定要删除这个素材吗？',
-      onOk: () => {
-        setMaterials(materials.filter((item) => item.id !== id))
-        message.success('删除成功')
-      },
-    })
+    const newMaterials = materials.filter((m) => m.id !== id)
+    setMaterials(newMaterials)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('materials', JSON.stringify(newMaterials))
+    }
+    message.success('已删除')
   }
 
-  // 下载素材
-  const handleDownload = (item: Material) => {
-    message.success(`正在下载：${item.title}`)
-
-    // 下载后自动标记为已使用（每个素材只能使用一次）
-    setMaterials(
-      materials.map((m) =>
-        m.id === item.id ? { ...m, status: 'used' as const } : m
-      )
-    )
+  // 复制内容
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content)
+    message.success('已复制到剪贴板')
   }
 
-  // 查看详情
-  const handleView = (item: Material) => {
-    Modal.info({
-      title: item.title,
-      content: (
-        <div>
-          <p>
-            <Text strong>类型：</Text>
-            {typeConfig[item.type].label}
-          </p>
-          <p>
-            <Text strong>分类：</Text>
-            {item.category}
-          </p>
-          <p>
-            <Text strong>状态：</Text>
-            {item.status === 'used' ? '已使用' : '未使用'}
-          </p>
-          <p>
-            <Text strong>内容：</Text>
-          </p>
-          <div className="bg-gray-50 p-3 rounded mt-2">
-            {item.type === 'text' ? (
-              <Text>{item.content}</Text>
-            ) : (
-              <Image src={item.thumbnail || item.url} alt={item.title} />
-            )}
-          </div>
-          <p className="mt-2 text-gray-500 text-sm">
-            创建时间：{item.createdAt}
-          </p>
-        </div>
-      ),
-    })
+  // 下载内容
+  const handleDownload = (material: Material) => {
+    const categoryConfig = contentCategoryConfig[material.category]
+    if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
+      window.open(material.content, '_blank')
+    } else {
+      const blob = new Blob([material.content], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${material.title}_${Date.now()}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+    message.success('已下载')
   }
 
+  // 预览素材
+  const handlePreview = (material: Material) => {
+    setPreviewMaterial(material)
+    setPreviewVisible(true)
+  }
+
+  // 选择素材
+  const handleSelect = (material: Material) => {
+    if (onSelectMaterial) {
+      onSelectMaterial(material)
+      if (onClose) {
+        onClose()
+      }
+    }
+  }
+
+  // 获取分类图标
+  const getCategoryIcon = (category: ContentCategory) => {
+    const iconMap: Record<ContentCategory, any> = {
+      [ContentCategory.TITLE]: <FontSizeOutlined />,
+      [ContentCategory.TAGS]: <TagsOutlined />,
+      [ContentCategory.COPYWRITING]: <FileTextOutlined />,
+      [ContentCategory.IMAGE_TO_TEXT]: <FileImageOutlined />,
+      [ContentCategory.XIAOHONGSHU]: <HeartOutlined />,
+      [ContentCategory.IMAGE]: <PictureOutlined />,
+      [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
+      [ContentCategory.VIDEO]: <VideoCameraOutlined />,
+      [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
+    }
+    return iconMap[category]
+  }
+
+  // 表格列定义
   const columns = [
-    {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 100,
-      render: (type: string) => (
-        <div className="flex items-center gap-2">
-          {typeConfig[type as keyof typeof typeConfig].icon}
-          <span>{typeConfig[type as keyof typeof typeConfig].label}</span>
-        </div>
-      ),
-    },
     {
       title: '标题',
       dataIndex: 'title',
       key: 'title',
-      ellipsis: true,
+      width: 200,
+      render: (text: string, record: Material) => (
+        <Space>
+          <span style={{ color: contentCategoryConfig[record.category]?.color }}>
+            {getCategoryIcon(record.category)}
+          </span>
+          <span>{text}</span>
+        </Space>
+      ),
+    },
+    {
+      title: '分类',
+      dataIndex: 'category',
+      key: 'category',
+      width: 120,
+      render: (category: ContentCategory) => (
+        <Tag color={contentCategoryConfig[category]?.color}>
+          {contentCategoryConfig[category]?.label}
+        </Tag>
+      ),
     },
     {
       title: '内容预览',
       dataIndex: 'content',
       key: 'content',
       ellipsis: true,
-      render: (content: string) => (
-        <Text type="secondary" className="text-sm">
-          {content.length > 50 ? `${content.substring(0, 50)}...` : content}
-        </Text>
-      ),
+      render: (content: string, record: Material) => {
+        const categoryConfig = contentCategoryConfig[record.category]
+        if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
+          return (
+            <Image
+              src={content}
+              alt={record.title}
+              style={{ width: 60, height: 60, objectFit: 'cover' }}
+            />
+          )
+        }
+        return <Paragraph ellipsis={{ rows: 1 }}>{content}</Paragraph>
+      },
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      width: 100,
+      width: 80,
       render: (status: string) => (
-        <Tag color={status === 'used' ? 'green' : 'default'}>
+        <Tag color={status === 'used' ? 'green' : 'blue'}>
           {status === 'used' ? '已使用' : '未使用'}
         </Tag>
       ),
     },
     {
       title: '创建时间',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 180,
+      dataIndex: 'timestamp',
+      key: 'timestamp',
+      width: 160,
+      render: (timestamp: number) =>
+        new Date(timestamp).toLocaleString('zh-CN'),
     },
     {
       title: '操作',
@@ -248,152 +243,216 @@ export default function MaterialLibraryPage() {
       width: 200,
       render: (_: any, record: Material) => (
         <Space size="small">
+          {onSelectMaterial && (
+            <Button
+              type="link"
+              size="small"
+              icon={<FileTextOutlined />}
+              onClick={() => handleSelect(record)}
+            >
+              使用
+            </Button>
+          )}
           <Button
             type="link"
+            size="small"
             icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
+            onClick={() => handlePreview(record)}
           >
-            查看
+            预览
           </Button>
           <Button
             type="link"
-            icon={<DownloadOutlined />}
-            onClick={() => handleDownload(record)}
-            disabled={record.status === 'used'}
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => handleCopy(record.content)}
           >
-            下载
+            复制
           </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
+          <Popconfirm
+            title="确定删除？"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
           >
-            删除
-          </Button>
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+            >
+              删除
+            </Button>
+          </Popconfirm>
         </Space>
       ),
     },
   ]
 
-  return (
+  // 渲染主页面
+  const renderMainPage = () => (
     <div className="p-6">
       {/* 页面头部 */}
       <div className="mb-6">
-        <Title level={2} className="mb-2">素材库</Title>
-        <Text type="secondary">
-          统一管理所有AI生成的内容（文本、图片、视频、数字人视频、电商详情页等）
-        </Text>
+        <Title level={2}>素材库</Title>
+        <Text type="secondary">管理和使用您的AI生成内容</Text>
       </div>
 
       {/* 筛选栏 */}
-      <Card className="mb-6">
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={8} md={6}>
+      <Card className="mb-4">
+        <Row gutter={16}>
+          <Col span={6}>
             <Search
-              placeholder="搜索素材"
-              value={searchText}
+              placeholder="搜索素材标题或内容"
+              allowClear
               onChange={(e) => setSearchText(e.target.value)}
-              onSearch={setSearchText}
-              enterButton={<SearchOutlined />}
+              style={{ width: '100%' }}
             />
           </Col>
-          <Col xs={12} sm={8} md={6}>
+          <Col span={4}>
             <Select
+              placeholder="选择分类"
+              value={filterCategoryState}
+              onChange={setFilterCategoryState}
               style={{ width: '100%' }}
-              value={filterType}
-              onChange={setFilterType}
-              options={[
-                { label: '全部类型', value: 'all' },
-                { label: '文本', value: 'text' },
-                { label: '图片', value: 'image' },
-                { label: '视频', value: 'video' },
-                { label: '数字人视频', value: 'digital-human' },
-                { label: '电商详情页', value: 'ecommerce' },
-              ]}
-            />
+              allowClear
+            >
+              <Select.Option value="all">全部分类</Select.Option>
+              {Object.values(ContentCategory).map((category) => (
+                <Select.Option key={category} value={category}>
+                  {contentCategoryConfig[category]?.label}
+                </Select.Option>
+              ))}
+            </Select>
           </Col>
-          <Col xs={12} sm={8} md={6}>
+          <Col span={4}>
             <Select
-              style={{ width: '100%' }}
+              placeholder="选择状态"
               value={filterStatus}
               onChange={setFilterStatus}
-              options={[
-                { label: '全部状态', value: 'all' },
-                { label: '未使用', value: 'unused' },
-                { label: '已使用', value: 'used' },
-              ]}
-            />
-          </Col>
-          <Col xs={24} sm={24} md={6}>
-            <Text type="secondary">
-              共 {filteredMaterials.length} 个素材
-            </Text>
+              style={{ width: '100%' }}
+              allowClear
+            >
+              <Select.Option value="all">全部状态</Select.Option>
+              <Select.Option value="unused">未使用</Select.Option>
+              <Select.Option value="used">已使用</Select.Option>
+            </Select>
           </Col>
         </Row>
       </Card>
 
-      {/* 统计卡片 */}
-      <Row gutter={[16, 16]} className="mb-6">
-        <Col xs={12} sm={6}>
-          <Card>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-500 mb-2">
-                {materials.filter((m) => m.type === 'text').length}
-              </div>
-              <div className="text-gray-600 text-sm">文本</div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-500 mb-2">
-                {materials.filter((m) => m.type === 'image').length}
-              </div>
-              <div className="text-gray-600 text-sm">图片</div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-500 mb-2">
-                {materials.filter((m) => m.type === 'video').length}
-              </div>
-              <div className="text-gray-600 text-sm">视频</div>
-            </div>
-          </Card>
-        </Col>
-        <Col xs={12} sm={6}>
-          <Card>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-2">
-                {materials.filter((m) => m.type === 'digital-human').length}
-              </div>
-              <div className="text-gray-600 text-sm">数字人</div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* 素材列表 */}
+      {/* 素材表格 */}
       <Card>
-        {filteredMaterials.length > 0 ? (
-          <Table
-            dataSource={filteredMaterials}
-            columns={columns}
-            rowKey="id"
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showQuickJumper: true,
-            }}
-          />
-        ) : (
-          <Empty description="暂无素材" />
-        )}
+        <Table
+          columns={columns}
+          dataSource={filteredMaterials}
+          rowKey="id"
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
+          }}
+        />
       </Card>
     </div>
+  )
+
+  // 渲染抽屉版本（用于在发布时选择素材）
+  const renderDrawer = () => (
+    <Drawer
+      title="选择素材"
+      onClose={onClose}
+      open={visible}
+      width={800}
+    >
+      {/* 筛选栏 */}
+      <div className="mb-4">
+        <Row gutter={16}>
+          <Col span={12}>
+            <Search
+              placeholder="搜索素材标题或内容"
+              allowClear
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </Col>
+          <Col span={12}>
+            <Select
+              placeholder="选择分类"
+              value={filterCategory}
+              onChange={() => {}}
+              style={{ width: '100%' }}
+              disabled
+            >
+              <Select.Option value={filterCategory}>
+                {contentCategoryConfig[filterCategory!]?.label}
+              </Select.Option>
+            </Select>
+          </Col>
+        </Row>
+      </div>
+
+      {/* 素材表格 */}
+      <Table
+        columns={columns}
+        dataSource={filteredMaterials}
+        rowKey="id"
+        pagination={{
+          pageSize: 5,
+          size: 'small',
+        }}
+      />
+    </Drawer>
+  )
+
+  // 预览模态框
+  const renderPreviewModal = () => (
+    <Modal
+      title={previewMaterial?.title}
+      open={previewVisible}
+      onCancel={() => setPreviewVisible(false)}
+      footer={[
+        <Button key="copy" icon={<CopyOutlined />} onClick={() => previewMaterial && handleCopy(previewMaterial.content)}>
+          复制
+        </Button>,
+        <Button key="download" icon={<DownloadOutlined />} onClick={() => previewMaterial && handleDownload(previewMaterial)}>
+          下载
+        </Button>,
+        <Button key="close" onClick={() => setPreviewVisible(false)}>
+          关闭
+        </Button>,
+      ]}
+      width={800}
+    >
+      {previewMaterial && (
+        <div>
+          <Space className="mb-4">
+            <Tag color={contentCategoryConfig[previewMaterial.category]?.color}>
+              {contentCategoryConfig[previewMaterial.category]?.label}
+            </Tag>
+            <Tag color={previewMaterial.status === 'used' ? 'green' : 'blue'}>
+              {previewMaterial.status === 'used' ? '已使用' : '未使用'}
+            </Tag>
+          </Space>
+          <div className="mt-4">
+            {contentCategoryConfig[previewMaterial.category]?.type === 'image' ? (
+              <Image src={previewMaterial.content} alt={previewMaterial.title} style={{ maxWidth: '100%' }} />
+            ) : contentCategoryConfig[previewMaterial.category]?.type === 'video' ? (
+              <video src={previewMaterial.content} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+            ) : (
+              <Paragraph className="whitespace-pre-wrap">{previewMaterial.content}</Paragraph>
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+
+  // 根据props决定渲染主页面还是抽屉
+  return (
+    <>
+      {visible ? renderDrawer() : renderMainPage()}
+      {renderPreviewModal()}
+    </>
   )
 }

@@ -47,8 +47,15 @@ import {
   CalendarOutlined,
   InboxOutlined,
   ReloadOutlined,
+  FileImageOutlined,
+  HeartOutlined,
+  ShoppingOutlined,
+  RobotOutlined,
+  FontSizeOutlined,
+  TagsOutlined,
 } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
+import { ContentCategory, contentCategoryConfig } from '@/lib/content/types'
 
 const { Title, Text } = Typography
 const { TextArea } = Input
@@ -73,9 +80,10 @@ interface PublishTask {
 
 interface Material {
   id: string
-  type: 'text' | 'image' | 'video'
+  type: string
   content: string
-  title: string  // 添加标题
+  title: string
+  category: string  // 添加分类字段
   timestamp: number
   status: 'unused' | 'used'
 }
@@ -95,6 +103,7 @@ export default function PublishCenterPage() {
   const [tasks, setTasks] = useState<PublishTask[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])  // 添加账号状态
+  const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all')  // 添加素材分类筛选
   const [isPublishModalVisible, setIsPublishModalVisible] = useState(false)
   const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false)
   const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)  // 添加批量发布Modal
@@ -785,12 +794,21 @@ export default function PublishCenterPage() {
             </label>
             <TextArea
               rows={6}
-              placeholder="输入发布内容"
+              placeholder="输入发布内容，或从素材库选择"
               maxLength={2000}
               showCount
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
             />
+            <Button
+              type="link"
+              size="small"
+              icon={<InboxOutlined />}
+              onClick={() => setMaterialDrawerVisible(true)}
+              style={{ marginTop: 4, padding: 0 }}
+            >
+              从素材库选择
+            </Button>
           </div>
 
           {/* 账号选择 */}
@@ -1181,6 +1199,94 @@ export default function PublishCenterPage() {
           )}
         </div>
       </Modal>
+
+      {/* 素材选择抽屉 */}
+      <Drawer
+        title="选择素材"
+        onClose={() => setIsMaterialDrawerVisible(false)}
+        open={isMaterialDrawerVisible}
+        width={800}
+      >
+        {materials.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={
+              <Space direction="vertical">
+                <Text type="secondary">暂无素材</Text>
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => window.location.href = '/media/factory'}
+                >
+                  去内容工厂生成
+                </Button>
+              </Space>
+            }
+          />
+        ) : (
+          <List
+            dataSource={materials}
+            renderItem={(material) => {
+              const categoryKey = material.category as ContentCategory
+              const categoryConfig = contentCategoryConfig[categoryKey]
+              if (!categoryConfig) return null
+
+              const iconMap: Record<ContentCategory, any> = {
+                [ContentCategory.TITLE]: <FontSizeOutlined />,
+                [ContentCategory.TAGS]: <TagsOutlined />,
+                [ContentCategory.COPYWRITING]: <FileTextOutlined />,
+                [ContentCategory.IMAGE_TO_TEXT]: <FileImageOutlined />,
+                [ContentCategory.XIAOHONGSHU]: <HeartOutlined />,
+                [ContentCategory.IMAGE]: <PictureOutlined />,
+                [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
+                [ContentCategory.VIDEO]: <VideoCameraOutlined />,
+                [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
+              }
+
+              return (
+                <List.Item
+                  actions={[
+                    <Button
+                      type="link"
+                      onClick={() => {
+                        setFormData({ ...formData, content: material.content, title: material.title })
+                        setIsMaterialDrawerVisible(false)
+                        message.success('已选择素材')
+                      }}
+                    >
+                      使用
+                    </Button>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={
+                      <div className="w-10 h-10 rounded bg-blue-50 flex items-center justify-center">
+                        {iconMap[categoryKey]}
+                      </div>
+                    }
+                    title={
+                      <Space>
+                        <span>{material.title}</span>
+                        <Tag color={categoryConfig.color}>{categoryConfig.label}</Tag>
+                      </Space>
+                    }
+                    description={
+                      <Space>
+                        <Text type="secondary">
+                          {new Date(material.timestamp).toLocaleString('zh-CN')}
+                        </Text>
+                        <Tag color={material.status === 'used' ? 'green' : 'blue'}>
+                          {material.status === 'used' ? '已使用' : '未使用'}
+                        </Tag>
+                      </Space>
+                    }
+                  />
+                </List.Item>
+              )
+            }}
+          />
+        )}
+      </Drawer>
     </div>
   )
 }

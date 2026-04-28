@@ -50,9 +50,6 @@ import {
   contentCategoryConfig,
   videoSizeOptions,
   imageSizeOptions,
-  videoDurationOptions,
-  wordCountOptions,
-  generateCountOptions,
 } from '@/lib/content/types'
 
 const { Title, Text, Paragraph } = Typography
@@ -192,6 +189,22 @@ export default function ContentFactoryPage() {
       setGeneratedList(results)
       setGeneratedContent(results[0]) // 默认显示第一条
 
+      // 自动保存到素材库
+      if (typeof window !== 'undefined') {
+        const materials = JSON.parse(localStorage.getItem('materials') || '[]')
+        results.forEach((content, index) => {
+          materials.push({
+            id: `material_${Date.now()}_${index}`,
+            category: activeCategory,
+            title: form.getFieldValue('description') || `${contentCategoryConfig[activeCategory].label}-${index + 1}`,
+            content: content,
+            timestamp: Date.now(),
+            status: 'unused',
+          })
+        })
+        localStorage.setItem('materials', JSON.stringify(materials))
+      }
+
       // 保存到历史记录
       saveHistory({
         id: `gen_${Date.now()}`,
@@ -202,7 +215,7 @@ export default function ContentFactoryPage() {
         status: 'success',
       })
 
-      message.success(`成功生成 ${count} 条${categoryConfig.label}！`)
+      message.success(`成功生成 ${count} 条${categoryConfig.label}，已自动保存到素材库！`)
     } catch (error) {
       clearInterval(progressInterval)
       console.error('生成失败:', error)
@@ -343,49 +356,51 @@ export default function ContentFactoryPage() {
           </Col>
         </Row>
 
-        {/* 图片上传 */}
-        {categoryConfig.needImageInput && (
+        {/* 文件上传（图片和文档合并） */}
+        {categoryConfig.needUpload && (
           <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="上传图片" name="images">
+            <Col span={24}>
+              <Form.Item label="上传文件" name="files">
                 <Upload
-                  listType="picture-card"
-                  maxCount={activeCategory === ContentCategory.IMAGE ? 5 : 3}
-                  beforeUpload={() => false}
-                >
-                  <div>
-                    <PlusOutlined />
-                    <div style={{ marginTop: 8 }}>上传图片</div>
-                  </div>
-                </Upload>
-              </Form.Item>
-            </Col>
-          </Row>
-        )}
-
-        {/* 文档上传 */}
-        {categoryConfig.needDocInput && (
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item label="上传文档" name="documents">
-                <Upload
+                  multiple
                   listType="text"
-                  maxCount={3}
                   beforeUpload={() => false}
                 >
-                  <Button icon={<FileOutlined />}>选择文档</Button>
+                  <Button icon={<FileOutlined />}>选择文件（支持图片、文档）</Button>
                 </Upload>
               </Form.Item>
             </Col>
           </Row>
         )}
 
-        {/* 字数选项 */}
+        {/* 字数限制 */}
         {categoryConfig.needWordCount && (
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="字数限制" name="wordCount">
-                <Select options={wordCountOptions} />
+              <Form.Item
+                label="字数限制"
+                name="wordCount"
+                rules={[
+                  { required: true, message: '请输入字数限制' },
+                  {
+                    validator: (_, value) => {
+                      if (!value || value <= 0) {
+                        return Promise.reject('字数必须大于0')
+                      }
+                      if (value > 2000) {
+                        return Promise.reject('字数不能超过2000')
+                      }
+                      return Promise.resolve()
+                    },
+                  },
+                ]}
+              >
+                <InputNumber
+                  min={1}
+                  max={2000}
+                  style={{ width: '100%' }}
+                  placeholder="请输入字数（最多2000字）"
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -409,8 +424,26 @@ export default function ContentFactoryPage() {
         {categoryConfig.needDuration && (
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item label="视频时长（秒）" name="duration">
-                <Select options={videoDurationOptions} />
+              <Form.Item
+                label="视频时长（秒）"
+                name="duration"
+                rules={[
+                  {
+                    validator: (_, value) => {
+                      if (value && value > 180) {
+                        return Promise.reject('时长不能超过180秒')
+                      }
+                      return Promise.resolve()
+                    },
+                  },
+                ]}
+              >
+                <InputNumber
+                  min={1}
+                  max={180}
+                  style={{ width: '100%' }}
+                  placeholder="请输入时长（最多180秒）"
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -447,8 +480,30 @@ export default function ContentFactoryPage() {
         {/* 生成数量 */}
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item label="生成数量" name="count">
-              <Select options={generateCountOptions} />
+            <Form.Item
+              label="生成数量"
+              name="count"
+              rules={[
+                { required: true, message: '请输入生成数量' },
+                {
+                  validator: (_, value) => {
+                    if (!value || value <= 0) {
+                      return Promise.reject('数量必须大于0')
+                    }
+                    if (value > 100) {
+                      return Promise.reject('数量不能超过100')
+                    }
+                    return Promise.resolve()
+                  },
+                },
+              ]}
+            >
+              <InputNumber
+                min={1}
+                max={100}
+                style={{ width: '100%' }}
+                placeholder="请输入生成数量（最多100条）"
+              />
             </Form.Item>
           </Col>
         </Row>
