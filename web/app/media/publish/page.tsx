@@ -15,6 +15,7 @@ import {
   Modal,
   Checkbox,
   Input,
+  InputNumber,
   Form,
   Image,
   Upload,
