@@ -1067,9 +1067,15 @@ export default function PublishCenterPage() {
                   }
                   title={
                     <Space>
-                      <Tag color={typeConfig[material.type].color}>
-                        {typeConfig[material.type].label}
-                      </Tag>
+                      {material.type === 'text' && (
+                        <Tag color="blue" icon={<FileTextOutlined />}>文本</Tag>
+                      )}
+                      {material.type === 'image' && (
+                        <Tag color="green" icon={<PictureOutlined />}>图片</Tag>
+                      )}
+                      {material.type === 'video' && (
+                        <Tag color="purple" icon={<VideoCameraOutlined />}>视频</Tag>
+                      )}
                       <Text>{material.title || '无标题'}</Text>
                     </Space>
                   }
@@ -1138,9 +1144,15 @@ export default function PublishCenterPage() {
                         }
                         title={
                           <Space>
-                            <Tag color={typeConfig[material.type].color}>
-                              {typeConfig[material.type].label}
-                            </Tag>
+                            {material.type === 'text' && (
+                              <Tag color="blue" icon={<FileTextOutlined />}>文本</Tag>
+                            )}
+                            {material.type === 'image' && (
+                              <Tag color="green" icon={<PictureOutlined />}>图片</Tag>
+                            )}
+                            {material.type === 'video' && (
+                              <Tag color="purple" icon={<VideoCameraOutlined />}>视频</Tag>
+                            )}
                             <Text>{material.title || '无标题'}</Text>
                           </Space>
                         }
@@ -1176,7 +1188,7 @@ export default function PublishCenterPage() {
                         <Avatar src={account.avatar} size="small" />
                         <Text>{account.accountName}</Text>
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          ({platformLabel[account.platform]})
+                          ({platformConfig[account.platform].label})
                         </Text>
                       </Space>
                     </Checkbox>
