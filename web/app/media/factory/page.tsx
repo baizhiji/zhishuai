@@ -39,8 +39,17 @@ import {
   DeleteOutlined,
   DownloadOutlined,
   CopyOutlined,
+  FontSizeOutlined,
+  TagsOutlined,
 } from '@ant-design/icons'
 import { generateText, generateImage } from '@/lib/ai/aliyun'
+import {
+  ContentType,
+  ContentCategory,
+  contentTypeConfig,
+  contentCategoryConfig,
+  contentTypeByCategory,
+} from '@/lib/content/types'
 
 const { Title, Text, Paragraph } = Typography
 const { TextArea } = Input
@@ -48,7 +57,7 @@ const { TextArea } = Input
 // 生成记录类型
 interface GenerationRecord {
   id: string
-  type: 'text' | 'image' | 'video' | 'digitalHuman'
+  type: ContentType
   content: string
   config: any
   timestamp: number
@@ -56,7 +65,8 @@ interface GenerationRecord {
 }
 
 export default function ContentFactoryPage() {
-  const [activeTab, setActiveTab] = useState('text')
+  const [activeCategory, setActiveCategory] = useState<ContentCategory>(ContentCategory.COPYWRITING)
+  const [selectedContentType, setSelectedContentType] = useState<ContentType>(ContentType.TEXT_SHORT)
   const [form] = Form.useForm()
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -107,17 +117,10 @@ export default function ContentFactoryPage() {
 
     try {
       let result: any
+      const typeConfig = contentTypeConfig[selectedContentType]
 
       // 根据不同类型调用不同的生成函数
-      if (activeTab === 'text') {
-        // 文本生成
-        const prompt = `请为"${values.topic}"生成一段${values.contentType || '短文案'}，风格要求：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。${values.requirements ? `额外要求：${values.requirements}` : ''}`
-        result = await generateText(prompt, {
-          model: 'qwen-plus',
-          maxTokens: values.wordCount || 500,
-          temperature: 0.7,
-        })
-      } else if (activeTab === 'image') {
+      if (selectedContentType === ContentType.IMAGE) {
         // 图片生成
         const prompt = `生成一张${values.imageType}图片，主题：${values.topic}，风格：${values.style || '写实'}，色调：${values.colorScheme || '明亮'}`
         result = await generateImage(prompt, {
@@ -126,12 +129,46 @@ export default function ContentFactoryPage() {
         })
         // 提取图片 URL
         result = { output: { text: result.output.results[0].url } }
-      } else if (activeTab === 'video') {
-        // 视频生成（暂时使用模拟）
-        result = { output: { text: 'https://via.placeholder.com/600x400?text=视频生成中...' } }
-      } else if (activeTab === 'digitalHuman') {
-        // 数字人视频（暂时使用模拟）
-        result = { output: { text: 'https://via.placeholder.com/600x400?text=数字人视频生成中...' } }
+      } else if ([ContentType.VIDEO, ContentType.DIGITAL_HUMAN].includes(selectedContentType)) {
+        // 视频和数字人生成（暂时使用模拟）
+        const videoType = selectedContentType === ContentType.DIGITAL_HUMAN ? '数字人视频' : '短视频'
+        result = { output: { text: `https://via.placeholder.com/600x400?text=${videoType}生成中...` } }
+      } else {
+        // 文本生成（包括所有文案、标题、标签）
+        let prompt = ''
+
+        // 根据不同类型生成不同的提示词
+        switch (selectedContentType) {
+          case ContentType.TEXT_IMAGE_TO_TEXT:
+            prompt = `根据以下描述生成一段文案：${values.topic}\n风格要求：${values.style || '专业'}，字数限制：${values.wordCount || 300}字。`
+            break
+          case ContentType.TEXT_LONG:
+            prompt = `为"${values.topic}"生成详细的长文案，风格：${values.style || '专业'}，字数：${values.wordCount || 1000}字以上。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+            break
+          case ContentType.TEXT_SHORT:
+            prompt = `为"${values.topic}"生成简洁的短文案，风格：${values.style || '活泼'}，字数：${values.wordCount || 100}字以内。`
+            break
+          case ContentType.TEXT_XIAOHONGSHU:
+            prompt = `为"${values.topic}"生成小红书风格的文案，包含emoji，风格：${values.style || '生活化'}，字数：${values.wordCount || 300}字左右。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+            break
+          case ContentType.TEXT_ECOMMERCE:
+            prompt = `为产品"${values.topic}"生成电商详情页文案，风格：${values.style || '专业'}，包含产品介绍、卖点、使用场景等，字数：${values.wordCount || 800}字。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+            break
+          case ContentType.TITLE:
+            prompt = `为"${values.topic}"生成5-10个吸引人的标题，风格：${values.style || '吸引眼球'}。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+            break
+          case ContentType.TAGS:
+            prompt = `为"${values.topic}"生成10-15个相关的话题标签，格式：#标签1 #标签2，风格：${values.style || '流行'}。`
+            break
+          default:
+            prompt = `为"${values.topic}"生成内容，风格：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。`
+        }
+
+        result = await generateText(prompt, {
+          model: 'qwen-plus',
+          maxTokens: values.wordCount || 500,
+          temperature: 0.7,
+        })
       }
 
       clearInterval(progressInterval)
@@ -144,14 +181,14 @@ export default function ContentFactoryPage() {
         // 保存到历史记录
         saveHistory({
           id: `gen_${Date.now()}`,
-          type: activeTab as any,
+          type: selectedContentType,
           content: result.output.text,
           config: values,
           timestamp: Date.now(),
           status: 'success',
         })
 
-        message.success('生成成功！')
+        message.success(`${typeConfig.label}生成成功！`)
       } else {
         throw new Error('生成失败，未返回有效结果')
       }
@@ -163,7 +200,7 @@ export default function ContentFactoryPage() {
       // 保存失败记录
       saveHistory({
         id: `gen_${Date.now()}`,
-        type: activeTab as any,
+        type: selectedContentType,
         content: '',
         config: values,
         timestamp: Date.now(),
@@ -186,10 +223,12 @@ export default function ContentFactoryPage() {
       const materials = JSON.parse(localStorage.getItem('materials') || '[]')
       materials.push({
         id: `material_${Date.now()}`,
-        type: activeTab,
+        type: selectedContentType,
+        title: form.getFieldValue('topic') || contentTypeConfig[selectedContentType].label,
         content: generatedContent,
+        category: contentTypeConfig[selectedContentType].category,
         timestamp: Date.now(),
-        status: 'unused', // 未使用
+        status: 'unused',
       })
       localStorage.setItem('materials', JSON.stringify(materials))
       message.success('已保存到素材库')
