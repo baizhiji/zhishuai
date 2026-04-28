@@ -1109,6 +1109,81 @@ export default function PublishCenterPage() {
         destroyOnClose={false}
       >
         <div style={{ padding: '20px' }}>
+          {/* 平台选择 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+              选择发布平台 <span style={{ color: 'red' }}>*</span>
+            </label>
+            <Select
+              placeholder="请选择发布平台"
+              style={{ width: '100%' }}
+              value={formData.platform || undefined}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  platform: value as Platform,
+                  accounts: [], // 清空已选账号
+                })
+              }}
+            >
+              {Object.values(Platform).map((platform) => (
+                <Select.Option key={platform} value={platform}>
+                  <Space>
+                    <span style={{ color: platformConfig[platform].color }}>
+                      ●
+                    </span>
+                    {platformConfig[platform].label}
+                  </Space>
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+
+          {/* 账号选择 */}
+          {formData.platform && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                选择账号 <span style={{ color: 'red' }}>*</span>
+              </label>
+              {accounts.filter(a => a.platform === formData.platform).length > 0 ? (
+                <Checkbox.Group
+                  value={formData.accounts}
+                  onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
+                >
+                  <Space direction="vertical">
+                    {accounts.filter(a => a.platform === formData.platform).map((account) => (
+                      <Checkbox key={account.id} value={account.id}>
+                        <Space>
+                          <Avatar src={account.avatar} size="small" />
+                          <Text>{account.accountName}</Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            {account.fans > 10000
+                              ? `${(account.fans / 10000).toFixed(1)}万粉丝`
+                              : `${account.fans}粉丝`
+                            }
+                          </Text>
+                        </Space>
+                      </Checkbox>
+                    ))}
+                  </Space>
+                </Checkbox.Group>
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <Space direction="vertical">
+                      <Text type="secondary">该平台暂无账号</Text>
+                      <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
+                        去添加账号
+                      </Button>
+                    </Space>
+                  }
+                />
+              )}
+            </div>
+          )}
+
+          {/* 选择素材 */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               选择素材 <span style={{ color: 'red' }}>*</span>
@@ -1254,6 +1329,7 @@ export default function PublishCenterPage() {
             )}
           </div>
 
+          {/* 发布方式 */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               发布方式
@@ -1284,17 +1360,14 @@ export default function PublishCenterPage() {
                 disabledDate={(current) => {
                   if (!current) return false
                   const minDate = dayjs().endOf('day')
-                  const maxDate = getMaxScheduledDate()
+                  const maxDate = dayjs().add(7, 'day')
                   return current < minDate || current > maxDate
                 }}
                 value={formData.scheduledTime}
                 onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
               />
               <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
-                {formData.accounts.length > 0
-                  ? `根据所选平台规则，最多可定时 ${getScheduledLimitDays()} 天`
-                  : '请先选择账号，系统将根据平台规则显示可定时范围'
-                }
+                最多可定时 7 天
               </Text>
             </div>
           )}
