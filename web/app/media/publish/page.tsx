@@ -56,6 +56,7 @@ import {
 } from '@ant-design/icons'
 import dayjs, { Dayjs } from 'dayjs'
 import { ContentCategory, contentCategoryConfig } from '@/lib/content/types'
+import { Platform, platformConfig, PlatformAccount, mockAccounts } from '@/lib/platform/config'
 
 const { Title, Text } = Typography
 const { TextArea } = Input
@@ -102,26 +103,28 @@ interface Account {
 export default function PublishCenterPage() {
   const [tasks, setTasks] = useState<PublishTask[]>([])
   const [materials, setMaterials] = useState<Material[]>([])
-  const [accounts, setAccounts] = useState<Account[]>([])  // 添加账号状态
-  const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all')  // 添加素材分类筛选
+  const [accounts, setAccounts] = useState<PlatformAccount[]>([])
+  const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all')
   const [isPublishModalVisible, setIsPublishModalVisible] = useState(false)
   const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false)
-  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)  // 添加批量发布Modal
+  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [publishing, setPublishing] = useState(false)
   const [publishProgress, setPublishProgress] = useState(0)
-  const [publishType, setPublishType] = useState<'immediate' | 'scheduled'>('immediate')
+  const [publishType, setPublishType] = useState<'immediate' | 'scheduled' | 'continuous'>('immediate')
 
   // 受控表单状态
   const [formData, setFormData] = useState({
     contentType: 'text',
     title: '',
     content: '',
-    platforms: [] as string[],
-    accounts: [] as string[],  // 添加账号选择
+    platform: '' as Platform,  // 单一平台
+    accounts: [] as string[],  // 该平台的账号
     tags: [] as string[],  // 添加标签
-    publishType: 'immediate' as 'immediate' | 'scheduled',
+    publishType: 'immediate' as 'immediate' | 'scheduled' | 'continuous',  // 添加连续发布
     scheduledTime: null as dayjs.Dayjs | null,
+    continuousDays: 1,  // 连续发布天数
+    continuousStartTime: null as dayjs.Dayjs | null,  // 连续发布开始时间
   })
 
   // 批量发布状态
@@ -164,14 +167,18 @@ export default function PublishCenterPage() {
       }
     }
 
-    // 加载账号数据
-    const savedAccounts = localStorage.getItem('matrix-accounts')
+    // 加载账号数据（使用mockAccounts作为默认数据）
+    const savedAccounts = localStorage.getItem('platform-accounts')
     if (savedAccounts) {
       try {
         setAccounts(JSON.parse(savedAccounts))
       } catch (error) {
         console.error('加载账号数据失败:', error)
+        setAccounts(mockAccounts)
       }
+    } else {
+      setAccounts(mockAccounts)
+      localStorage.setItem('platform-accounts', JSON.stringify(mockAccounts))
     }
   }, [])
 
@@ -199,44 +206,12 @@ export default function PublishCenterPage() {
   }, [])
 
   // 平台选项
-  const platformOptions = [
-    { label: '抖音', value: 'douyin' },
-    { label: '快手', value: 'kuaishou' },
-    { label: '小红书', value: 'xiaohongshu' },
-    { label: '视频号', value: 'weixin' },
-    { label: 'B站', value: 'bilibili' },
-  ]
-
-  const platformLabel: Record<string, string> = {
-    douyin: '抖音',
-    kuaishou: '快手',
-    xiaohongshu: '小红书',
-    weixin: '视频号',
-    bilibili: 'B站',
-  }
-
-  // 平台定时发布时间限制（天数）
-  const platformScheduledLimit: Record<string, number> = {
-    douyin: 7,      // 抖音：7天
-    kuaishou: 7,    // 快手：7天
-    xiaohongshu: 7, // 小红书：7天
-    weixin: 7,      // 视频号：7天
-    bilibili: 7,    // B站：7天
-  }
-
   const statusConfig = {
     pending: { text: '待发布', color: 'default', icon: null },
     scheduled: { text: '已定时', color: 'processing', icon: <ClockCircleOutlined /> },
     publishing: { text: '发布中', color: 'processing', icon: <ReloadOutlined spin /> },
     published: { text: '已发布', color: 'success', icon: <CheckCircleOutlined /> },
     failed: { text: '失败', color: 'error', icon: null },
-  }
-
-  const typeConfig = {
-    text: { label: '文本', color: 'blue', icon: <FileTextOutlined /> },
-    image: { label: '图片', color: 'green', icon: <PictureOutlined /> },
-    video: { label: '视频', color: 'purple', icon: <VideoCameraOutlined /> },
-    'digital-human': { label: '数字人', color: 'orange', icon: <AppstoreOutlined /> },
   }
 
   // 文件上传配置
@@ -256,35 +231,6 @@ export default function PublishCenterPage() {
     },
   }
 
-  // 计算定时发布时间限制
-  const getScheduledLimitDays = () => {
-    if (formData.accounts.length === 0) {
-      return 7 // 默认7天
-    }
-
-    // 获取选中账号的平台列表
-    const selectedPlatforms = formData.accounts
-      .map(accountId => {
-        const account = accounts.find(a => a.id === accountId)
-        return account?.platform
-      })
-      .filter(Boolean) as string[]
-
-    if (selectedPlatforms.length === 0) {
-      return 7 // 默认7天
-    }
-
-    // 获取所有选中平台的时间限制，取最小值
-    const limits = selectedPlatforms.map(platform => platformScheduledLimit[platform] || 7)
-    return Math.min(...limits)
-  }
-
-  // 计算最大可选日期
-  const getMaxScheduledDate = () => {
-    const limitDays = getScheduledLimitDays()
-    return dayjs().add(limitDays, 'day').endOf('day')
-  }
-
   // 打开发布模态框
   const handleOpenPublishModal = () => {
     setPublishType('immediate')
@@ -292,11 +238,13 @@ export default function PublishCenterPage() {
       contentType: 'text',
       title: '',
       content: '',
-      platforms: [],
+      platform: '' as Platform,
       accounts: [],
       tags: [],
       publishType: 'immediate',
       scheduledTime: null,
+      continuousDays: 1,
+      continuousStartTime: null,
     })
     setIsPublishModalVisible(true)
   }
@@ -332,6 +280,11 @@ export default function PublishCenterPage() {
       return
     }
 
+    if (!formData.platform) {
+      message.warning('请选择发布平台')
+      return
+    }
+
     if (formData.accounts.length === 0) {
       message.warning('请至少选择一个账号')
       return
@@ -351,7 +304,7 @@ export default function PublishCenterPage() {
           type: material.type as 'text' | 'image' | 'video',
           title: material.title || '未命名',
           content: material.content,
-          platforms: formData.platforms,
+          platforms: [formData.platform],
           accounts: formData.accounts,
           tags: formData.tags,
           status: formData.publishType === 'immediate' ? 'publishing' : 'scheduled',
@@ -389,13 +342,13 @@ export default function PublishCenterPage() {
       return
     }
 
-    if (formData.accounts.length === 0) {
-      message.warning('请至少选择一个账号')
+    if (!formData.platform) {
+      message.warning('请选择发布平台')
       return
     }
 
-    if (!formData.platforms || formData.platforms.length === 0) {
-      message.warning('请至少选择一个发布平台')
+    if (formData.accounts.length === 0) {
+      message.warning('请至少选择一个账号')
       return
     }
 
@@ -404,12 +357,49 @@ export default function PublishCenterPage() {
       return
     }
 
+    if (formData.publishType === 'continuous') {
+      if (!formData.continuousStartTime) {
+        message.warning('请选择开始发布时间')
+        return
+      }
+      if (formData.continuousDays < 1 || formData.continuousDays > platformConfig[formData.platform].maxScheduledDays) {
+        message.warning(`连续发布天数必须在1-${platformConfig[formData.platform].maxScheduledDays}之间`)
+        return
+      }
+    }
+
+    // 如果是连续多天发布，创建多个任务
+    if (formData.publishType === 'continuous') {
+      const newTasks: PublishTask[] = []
+      for (let i = 0; i < formData.continuousDays; i++) {
+        const scheduledTime = dayjs(formData.continuousStartTime).add(i, 'day')
+        const task: PublishTask = {
+          id: `task_${Date.now()}_${i}`,
+          type: formData.contentType,
+          title: formData.title,
+          content: formData.content,
+          platforms: [formData.platform],
+          accounts: formData.accounts,
+          tags: formData.tags,
+          status: 'scheduled',
+          createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+          scheduledTime: scheduledTime.format('YYYY-MM-DD HH:mm:ss'),
+        }
+        newTasks.push(task)
+      }
+      setTasks([...newTasks, ...tasks])
+      setIsPublishModalVisible(false)
+      message.success(`已创建 ${formData.continuousDays} 个发布任务，将从 ${formData.continuousStartTime?.format('YYYY-MM-DD HH:mm:ss')} 开始连续发布`)
+      return
+    }
+
+    // 单次发布
     const task: PublishTask = {
       id: `task_${Date.now()}`,
       type: formData.contentType,
       title: formData.title,
       content: formData.content,
-      platforms: formData.platforms,
+      platforms: [formData.platform],
       accounts: formData.accounts,
       tags: formData.tags,
       status: 'pending',
@@ -811,44 +801,85 @@ export default function PublishCenterPage() {
             </Button>
           </div>
 
-          {/* 账号选择 */}
+          {/* 平台选择 */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              选择账号 <span style={{ color: 'red' }}>*</span>
+              选择发布平台 <span style={{ color: 'red' }}>*</span>
             </label>
-            {accounts.length > 0 ? (
-              <Checkbox.Group
-                value={formData.accounts}
-                onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
-              >
-                <Space direction="vertical">
-                  {accounts.map((account) => (
-                    <Checkbox key={account.id} value={account.id}>
-                      <Space>
-                        <Avatar src={account.avatar} size="small" />
-                        <Text>{account.accountName}</Text>
-                        <Text type="secondary" style={{ fontSize: 12 }}>
-                          ({platformLabel[account.platform]})
-                        </Text>
-                      </Space>
-                    </Checkbox>
-                  ))}
-                </Space>
-              </Checkbox.Group>
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={
+            <Select
+              placeholder="请选择发布平台"
+              style={{ width: '100%' }}
+              value={formData.platform || undefined}
+              onChange={(value) => {
+                setFormData({
+                  ...formData,
+                  platform: value as Platform,
+                  accounts: [], // 清空已选账号
+                })
+              }}
+            >
+              {Object.values(Platform).map((platform) => (
+                <Select.Option key={platform} value={platform}>
                   <Space>
-                    <Text type="secondary">暂无账号</Text>
-                    <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
-                      去添加
-                    </Button>
+                    <span style={{ color: platformConfig[platform].color }}>
+                      ●
+                    </span>
+                    {platformConfig[platform].label}
                   </Space>
-                }
-              />
+                </Select.Option>
+              ))}
+            </Select>
+            {formData.platform && (
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
+                {platformConfig[formData.platform].label} 最多可定时 {platformConfig[formData.platform].maxScheduledDays} 天，
+                每日最多发布 {platformConfig[formData.platform].maxVideosPerDay} 条内容
+              </Text>
             )}
           </div>
+
+          {/* 账号选择 */}
+          {formData.platform && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                选择账号 <span style={{ color: 'red' }}>*</span>
+              </label>
+              {accounts.filter(a => a.platform === formData.platform).length > 0 ? (
+                <Checkbox.Group
+                  value={formData.accounts}
+                  onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
+                >
+                  <Space direction="vertical">
+                    {accounts.filter(a => a.platform === formData.platform).map((account) => (
+                      <Checkbox key={account.id} value={account.id}>
+                        <Space>
+                          <Avatar src={account.avatar} size="small" />
+                          <Text>{account.accountName}</Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            {account.fans > 10000
+                              ? `${(account.fans / 10000).toFixed(1)}万粉丝`
+                              : `${account.fans}粉丝`
+                            }
+                          </Text>
+                        </Space>
+                      </Checkbox>
+                    ))}
+                  </Space>
+                </Checkbox.Group>
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <Space direction="vertical">
+                      <Text type="secondary">该平台暂无账号</Text>
+                      <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
+                        去添加账号
+                      </Button>
+                    </Space>
+                  }
+                />
+              )}
+            </div>
+          )}
 
           {/* 标签选择 */}
           <div style={{ marginBottom: 16 }}>
@@ -908,10 +939,13 @@ export default function PublishCenterPage() {
             >
               <Radio value="immediate">立即发布</Radio>
               <Radio value="scheduled">定时发布</Radio>
+              <Radio value="continuous" disabled={!formData.platform}>
+                连续多天发布
+              </Radio>
             </Radio.Group>
           </div>
 
-          {publishType === 'scheduled' && (
+          {publishType === 'scheduled' && formData.platform && (
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
                 定时发布时间 <span style={{ color: 'red' }}>*</span>
@@ -924,18 +958,67 @@ export default function PublishCenterPage() {
                 disabledDate={(current) => {
                   if (!current) return false
                   const minDate = dayjs().endOf('day')
-                  const maxDate = getMaxScheduledDate()
+                  const maxDays = platformConfig[formData.platform].maxScheduledDays
+                  const maxDate = dayjs().add(maxDays, 'day')
                   return current < minDate || current > maxDate
                 }}
                 value={formData.scheduledTime}
                 onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
               />
-              <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
-                {formData.accounts.length > 0
-                  ? `根据所选平台规则，最多可定时 ${getScheduledLimitDays()} 天`
-                  : '请先选择账号，系统将根据平台规则显示可定时范围'
-                }
+              <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                根据{platformConfig[formData.platform].label}规则，最多可定时 {platformConfig[formData.platform].maxScheduledDays} 天
               </Text>
+            </div>
+          )}
+
+          {/* 连续多天发布 */}
+          {publishType === 'continuous' && formData.platform && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                  连续发布天数 <span style={{ color: 'red' }}>*</span>
+                </label>
+                <InputNumber
+                  min={1}
+                  max={platformConfig[formData.platform].maxScheduledDays}
+                  value={formData.continuousDays}
+                  onChange={(value) => setFormData({ ...formData, continuousDays: value || 1 })}
+                  style={{ width: '100%' }}
+                />
+                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                  根据{platformConfig[formData.platform].label}规则，最多连续发布 {platformConfig[formData.platform].maxScheduledDays} 天
+                </Text>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                  开始发布时间 <span style={{ color: 'red' }}>*</span>
+                </label>
+                <DatePicker
+                  showTime
+                  format="YYYY-MM-DD HH:mm:ss"
+                  placeholder="选择开始发布时间"
+                  style={{ width: '100%' }}
+                  disabledDate={(current) => {
+                    if (!current) return false
+                    const minDate = dayjs().endOf('day')
+                    const maxDays = platformConfig[formData.platform].maxScheduledDays
+                    const maxDate = dayjs().add(maxDays, 'day')
+                    return current < minDate || current > maxDate
+                  }}
+                  value={formData.continuousStartTime}
+                  onChange={(date) => setFormData({ ...formData, continuousStartTime: date })}
+                />
+              </div>
+
+              <div style={{ padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  💡 连续发布说明：
+                  <br />• 系统将为您自动创建 {formData.continuousDays} 个发布任务
+                  <br />• 每天自动发布到所选账号
+                  <br />• 发布时间与开始时间相同
+                </Text>
+              </div>
             </div>
           )}
         </div>
