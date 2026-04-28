@@ -8,6 +8,7 @@ export enum ContentCategory {
   IMAGE = 'image',                    // 图片
   ECOMMERCE = 'ecommerce',            // 电商详情页
   VIDEO = 'video',                    // 短视频
+  VIDEO_ANALYSIS = 'video-analysis',  // 视频解析
   DIGITAL_HUMAN = 'digital-human',    // 数字人短视频
 }
 
@@ -104,18 +105,29 @@ export const contentCategoryConfig: Record<ContentCategory, {
     label: '短视频',
     color: 'magenta',
     icon: 'VideoCameraOutlined',
-    description: '生成短视频内容',
+    description: '生成短视频内容，自动生成字幕、配音和背景音乐',
     type: 'video',
     needWordCount: false,
     needSize: true,
     needDuration: true,
     needUpload: true,
   },
+  [ContentCategory.VIDEO_ANALYSIS]: {
+    label: '视频解析',
+    color: 'purple',
+    icon: 'AnalysisOutlined',
+    description: '分析短视频链接，生成新的爆款视频',
+    type: 'video',
+    needWordCount: false,
+    needSize: true,
+    needDuration: true,
+    needUpload: false,
+  },
   [ContentCategory.DIGITAL_HUMAN]: {
     label: '数字人短视频',
     color: 'geekblue',
     icon: 'RobotOutlined',
-    description: '使用数字人生成短视频',
+    description: '使用数字人生成真人出镜视频，支持真人克隆',
     type: 'video',
     needWordCount: true,
     needSize: true,
@@ -123,6 +135,58 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needUpload: true,
   },
 }
+
+// 数字人类型
+export enum DigitalHumanType {
+  SYSTEM = 'system',           // 系统自带
+  CLONED = 'cloned',           // 克隆的
+  API = 'api',                 // API调用
+}
+
+// 数字人配置
+export interface DigitalHuman {
+  id: string
+  name: string
+  type: DigitalHumanType
+  avatar: string
+  thumbnail?: string
+  gender: 'male' | 'female'
+  ageRange: string
+  style: string
+  createdAt: number
+  status: 'active' | 'inactive'
+}
+
+// 字幕选项
+export const subtitleOptions = [
+  { label: '无字幕', value: 'none' },
+  { label: '中文字幕', value: 'chinese' },
+  { label: '英文字幕', value: 'english' },
+  { label: '中英双语', value: 'bilingual' },
+]
+
+// 配音选项
+export const voiceoverOptions = [
+  { label: '无配音', value: 'none' },
+  { label: '男声-普通话', value: 'male-mandarin' },
+  { label: '女声-普通话', value: 'female-mandarin' },
+  { label: '男声-粤语', value: 'male-cantonese' },
+  { label: '女声-粤语', value: 'female-cantonese' },
+  { label: '男声-英语', value: 'male-english' },
+  { label: '女声-英语', value: 'female-english' },
+]
+
+// 背景音乐选项
+export const bgmOptions = [
+  { label: '无背景音乐', value: 'none' },
+  { label: '欢快', value: 'happy' },
+  { label: '舒缓', value: 'relaxing' },
+  { label: '动感', value: 'dynamic' },
+  { label: '悲伤', value: 'sad' },
+  { label: '悬疑', value: 'suspense' },
+  { label: '科技', value: 'tech' },
+  { label: '古典', value: 'classical' },
+]
 
 // 视频尺寸选项
 export const videoSizeOptions = [

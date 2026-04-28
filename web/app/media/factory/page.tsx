@@ -43,6 +43,10 @@ import {
   DeleteOutlined,
   PlusOutlined,
   FileOutlined,
+  AnalysisOutlined,
+  UserOutlined,
+  AudioOutlined,
+  CustomerServiceOutlined,
 } from '@ant-design/icons'
 import { generateText, generateImage } from '@/lib/ai/aliyun'
 import {
@@ -50,6 +54,9 @@ import {
   contentCategoryConfig,
   videoSizeOptions,
   imageSizeOptions,
+  subtitleOptions,
+  voiceoverOptions,
+  bgmOptions,
 } from '@/lib/content/types'
 
 const { Title, Text, Paragraph } = Typography
@@ -138,7 +145,14 @@ export default function ContentFactoryPage() {
           result = result.output.results[0].url
         } else if (categoryConfig.type === 'video') {
           // 视频生成（暂时使用模拟）
-          result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=视频${i + 1}`
+          const extras = `（字幕:${values.subtitle || '无'}，配音:${values.voiceover || '无'}，背景音乐:${values.bgm || '无'}）`
+          if (activeCategory === ContentCategory.VIDEO_ANALYSIS) {
+            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=爆款视频${i + 1}${extras}`
+          } else if (activeCategory === ContentCategory.DIGITAL_HUMAN) {
+            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=数字人视频${i + 1}-${values.digitalHumanId}${extras}`
+          } else {
+            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=视频${i + 1}${extras}`
+          }
         } else {
           // 文本生成
           let prompt = ''
@@ -163,8 +177,11 @@ export default function ContentFactoryPage() {
             case ContentCategory.ECOMMERCE:
               prompt = `为产品"${values.description}"生成电商详情页文案，包含产品介绍、卖点、使用场景等，字数：${values.wordCount || 800}字。${values.requirements ? `额外要求：${values.requirements}` : ''}`
               break
+            case ContentCategory.VIDEO_ANALYSIS:
+              prompt = `分析视频"${values.videoUrl}"并生成爆款视频。分析维度：${values.analysisDimensions?.join('、')}，保留爆款元素：${values.viralElements?.join('、')}。生成描述：${values.description}`
+              break
             case ContentCategory.DIGITAL_HUMAN:
-              prompt = `生成数字人短视频的口播内容：${values.description}，字数：${values.wordCount || 500}字。`
+              prompt = `使用数字人生成短视频。数字人ID：${values.digitalHumanId}，口播内容：${values.description}，字数：${values.wordCount || 500}字。字幕：${values.subtitle}，配音：${values.voiceover}，背景音乐：${values.bgm}`
               break
             default:
               prompt = `为"${values.description}"生成内容，风格：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。`
@@ -316,10 +333,125 @@ export default function ContentFactoryPage() {
       [ContentCategory.IMAGE]: <PictureOutlined />,
       [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
       [ContentCategory.VIDEO]: <VideoCameraOutlined />,
+      [ContentCategory.VIDEO_ANALYSIS]: <AnalysisOutlined />,
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
     }
     return iconMap[category]
   }
+
+  // 渲染视频解析表单
+  const renderVideoAnalysisForm = () => (
+    <>
+      <Row gutter={16}>
+        <Col span={24}>
+          <Form.Item
+            label="视频链接"
+            name="videoUrl"
+            rules={[{ required: true, message: '请输入视频链接' }]}
+          >
+            <Input placeholder="输入短视频链接（抖音、快手、B站等）" />
+          </Form.Item>
+        </Col>
+      </Row>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            label="分析维度"
+            name="analysisDimensions"
+            rules={[{ required: true, message: '请选择分析维度' }]}
+          >
+            <Select mode="multiple" placeholder="选择要分析的维度">
+              <Select.Option value="content">内容分析</Select.Option>
+              <Select.Option value="music">背景音乐</Select.Option>
+              <Select.Option value="subtitle">字幕分析</Select.Option>
+              <Select.Option value="rhythm">节奏分析</Select.Option>
+              <Select.Option value="style">风格分析</Select.Option>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Form.Item
+            label="爆款元素"
+            name="viralElements"
+            rules={[{ required: true, message: '请选择爆款元素' }]}
+          >
+            <Select mode="multiple" placeholder="选择要保留的爆款元素">
+              <Select.Option value="opening">黄金3秒开头</Select.Option>
+              <Select.Option value="transition">转场效果</Select.Option>
+              <Select.Option value="music">背景音乐</Select.Option>
+              <Select.Option value="subtitle">字幕样式</Select.Option>
+              <Select.Option value="rhythm">节奏变化</Select.Option>
+            </Select>
+          </Form.Item>
+        </Col>
+      </Row>
+    </>
+  )
+
+  // 渲染数字人表单
+  const renderDigitalHumanForm = () => (
+    <>
+      <Row gutter={16}>
+        <Col span={12}>
+          <Form.Item
+            label="选择数字人"
+            name="digitalHumanId"
+            rules={[{ required: true, message: '请选择数字人' }]}
+          >
+            <Select
+              placeholder="选择数字人"
+              showSearch
+              optionFilterProp="children"
+            >
+              <Select.OptGroup label="系统自带">
+                <Select.Option value="system_male_1">商务男1</Select.Option>
+                <Select.Option value="system_female_1">商务女1</Select.Option>
+                <Select.Option value="system_male_2">活泼男1</Select.Option>
+                <Select.Option value="system_female_2">活泼女1</Select.Option>
+              </Select.OptGroup>
+              <Select.OptGroup label="我的数字人">
+                <Select.Option value="custom_1">自定义数字人1</Select.Option>
+                <Select.Option value="custom_2">自定义数字人2</Select.Option>
+              </Select.OptGroup>
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col span={12}>
+          <Button
+            type="link"
+            icon={<UserOutlined />}
+            onClick={() => window.location.href = '/media/digital-humans'}
+            style={{ marginTop: 32 }}
+          >
+            管理数字人仓库
+          </Button>
+        </Col>
+      </Row>
+    </>
+  )
+
+  // 渲染字幕配音背景音乐表单
+  const renderVideoExtras = () => (
+    <>
+      <Row gutter={16}>
+        <Col span={8}>
+          <Form.Item label="字幕" name="subtitle" initialValue="chinese">
+            <Select options={subtitleOptions} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="配音" name="voiceover" initialValue="female-mandarin">
+            <Select options={voiceoverOptions} />
+          </Form.Item>
+        </Col>
+        <Col span={8}>
+          <Form.Item label="背景音乐" name="bgm" initialValue="dynamic">
+            <Select options={bgmOptions} />
+          </Form.Item>
+        </Col>
+      </Row>
+    </>
+  )
 
   // 渲染表单
   const renderForm = () => {
@@ -342,19 +474,27 @@ export default function ContentFactoryPage() {
             <Form.Item
               label="内容描述"
               name="description"
-              rules={[{ required: true, message: '请输入内容描述' }]}
+              rules={[{ required: activeCategory !== ContentCategory.VIDEO_ANALYSIS, message: '请输入内容描述' }]}
             >
               <TextArea
                 rows={3}
                 placeholder={
                   activeCategory === ContentCategory.IMAGE_TO_TEXT
                     ? '描述图片内容或上传图片...'
+                    : activeCategory === ContentCategory.VIDEO_ANALYSIS
+                    ? '输入要生成的爆款视频描述...'
                     : '输入要生成的内容描述、产品描述或参数...'
                 }
               />
             </Form.Item>
           </Col>
         </Row>
+
+        {/* 视频解析特定表单 */}
+        {activeCategory === ContentCategory.VIDEO_ANALYSIS && renderVideoAnalysisForm()}
+
+        {/* 数字人特定表单 */}
+        {activeCategory === ContentCategory.DIGITAL_HUMAN && renderDigitalHumanForm()}
 
         {/* 文件上传（图片和文档合并） */}
         {categoryConfig.needUpload && (
@@ -448,6 +588,11 @@ export default function ContentFactoryPage() {
             </Col>
           </Row>
         )}
+
+        {/* 字幕、配音、背景音乐配置（短视频类） */}
+        {(activeCategory === ContentCategory.VIDEO ||
+          activeCategory === ContentCategory.VIDEO_ANALYSIS ||
+          activeCategory === ContentCategory.DIGITAL_HUMAN) && renderVideoExtras()}
 
         {/* 风格选项 */}
         <Row gutter={16}>
