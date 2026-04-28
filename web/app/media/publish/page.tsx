@@ -657,6 +657,7 @@ export default function PublishCenterPage() {
         return date.format('YYYY-MM-DD')
       })
     : []
+  return (
     <div className="p-6">
       <div className="mb-6">
         <Title level={2} className="mb-2">发布中心</Title>
@@ -1390,36 +1391,61 @@ export default function PublishCenterPage() {
             </Radio.Group>
           </div>
 
-          {publishType === 'scheduled' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                定时发布时间 <span style={{ color: 'red' }}>*</span>
-              </label>
-              <DatePicker
-                showTime
-                format="YYYY-MM-DD HH:mm:ss"
-                placeholder="选择发布时间"
-                style={{ width: '100%' }}
-                disabledDate={(current) => {
-                  if (!current) return false
-                  const minDate = dayjs().endOf('day')
-                  const maxDate = dayjs().add(7, 'day')
-                  return current < minDate || current > maxDate
-                }}
-                value={formData.scheduledTime}
-                onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
-              />
-              <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
-                最多可定时 7 天
-              </Text>
+          {publishType === 'scheduled' && formData.platform && (
+            <div>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                  连续发布天数 <span style={{ color: 'red' }}>*</span>
+                </label>
+                <InputNumber
+                  min={1}
+                  max={platformConfig[formData.platform].maxScheduledDays}
+                  value={batchScheduledDays}
+                  onChange={(value) => setBatchScheduledDays(value || 1)}
+                  style={{ width: '100%' }}
+                />
+                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                  根据{platformConfig[formData.platform].label}规则，最多可定时 {platformConfig[formData.platform].maxScheduledDays} 天
+                </Text>
+              </div>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                  每天发布时间 <span style={{ color: 'red' }}>*</span>
+                </label>
+                <TimePicker
+                  format="HH:mm:ss"
+                  placeholder="选择发布时间"
+                  style={{ width: '100%' }}
+                  value={batchScheduledTime}
+                  onChange={(time) => setBatchScheduledTime(time)}
+                />
+                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                  在选定的 {batchScheduledDays} 天里，每天都在这个时间发布
+                </Text>
+              </div>
+
+              {/* 显示日期列表 */}
+              {batchScheduledTime && (
+                <div style={{ padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
+                  <Text strong style={{ fontSize: 13 }}>定时发布计划：</Text>
+                  <div style={{ marginTop: 8 }}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      {scheduledDates.map((date, index) => (
+                        <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
+                          <CalendarOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                          <Text style={{ fontSize: 13 }}>{date}</Text>
+                          <Tag color="blue" size="small" style={{ marginLeft: 8 }}>
+                            {index === 0 ? '今天' : `第${index + 1}天`}
+                          </Tag>
+                        </div>
+                      ))}
+                    </Space>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      </Modal>
-
-      {/* 素材选择抽屉 */}
-      <Drawer
-        title="选择素材"
         onClose={() => setIsMaterialDrawerVisible(false)}
         open={isMaterialDrawerVisible}
         width={800}
