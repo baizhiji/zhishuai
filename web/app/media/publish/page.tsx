@@ -108,7 +108,8 @@ export default function PublishCenterPage() {
   const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all')
   const [isPublishModalVisible, setIsPublishModalVisible] = useState(false)
   const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false)
-  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)
+  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)  // 添加批量发布Modal
+  const [isBatchMaterialDrawerVisible, setIsBatchMaterialDrawerVisible] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [publishing, setPublishing] = useState(false)
   const [publishProgress, setPublishProgress] = useState(0)
@@ -131,6 +132,9 @@ export default function PublishCenterPage() {
   // 批量发布状态
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])  // 选中的素材ID列表
   const [batchPublishProgress, setBatchPublishProgress] = useState(0)  // 批量发布进度
+  // 批量发布定时状态
+  const [batchScheduledDays, setBatchScheduledDays] = useState(1)
+  const [batchScheduledTime, setBatchScheduledTime] = useState<Dayjs | null>(null)
 
   // 常用标签
   const popularTags = [
@@ -291,44 +295,73 @@ export default function PublishCenterPage() {
       return
     }
 
+    if (formData.publishType === 'scheduled' && !batchScheduledTime) {
+      message.warning('请选择发布时间')
+      return
+    }
+
     setIsBatchPublishModalVisible(false)
     setPublishing(true)
 
     // 为每个选中的素材创建发布任务
+    let totalTasks = 0
+    
     for (let i = 0; i < selectedMaterials.length; i++) {
       const materialId = selectedMaterials[i]
       const material = materials.find(m => m.id === materialId)
 
       if (material) {
-        const task: PublishTask = {
-          id: `task_${Date.now()}_${i}`,
-          type: material.type as 'text' | 'image' | 'video',
-          title: material.title || '未命名',
-          content: material.content,
-          platforms: [formData.platform],
-          accounts: formData.accounts,
-          tags: formData.tags,
-          status: formData.publishType === 'immediate' ? 'publishing' : 'scheduled',
-          createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        if (formData.publishType === 'scheduled') {
+          // 定时发布：创建N天的任务，每天一个
+          for (let day = 0; day < batchScheduledDays; day++) {
+            const scheduledTime = dayjs().add(day, 'day').hour(batchScheduledTime.hour()).minute(batchScheduledTime.minute())
+            const task: PublishTask = {
+              id: `task_${Date.now()}_${i}_${day}`,
+              type: material.type as 'text' | 'image' | 'video',
+              title: material.title || '未命名',
+              content: material.content,
+              platforms: [formData.platform],
+              accounts: formData.accounts,
+              tags: formData.tags,
+              status: 'scheduled',
+              createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+              scheduledTime: scheduledTime.format('YYYY-MM-DD HH:mm:ss'),
+            }
+            setTasks(prevTasks => [task, ...prevTasks])
+            totalTasks++
+            
+            // 模拟发布延迟
+            await new Promise(resolve => setTimeout(resolve, 200))
+          }
+        } else {
+          // 立即发布
+          const task: PublishTask = {
+            id: `task_${Date.now()}_${i}`,
+            type: material.type as 'text' | 'image' | 'video',
+            title: material.title || '未命名',
+            content: material.content,
+            platforms: [formData.platform],
+            accounts: formData.accounts,
+            tags: formData.tags,
+            status: 'publishing',
+            createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+          }
+          setTasks(prevTasks => [task, ...prevTasks])
+          totalTasks++
+
+          // 更新进度
+          setBatchPublishProgress(Math.round(((i + 1) / selectedMaterials.length) * 100))
+
+          // 模拟发布延迟
+          await new Promise(resolve => setTimeout(resolve, 500))
         }
-
-        if (formData.publishType === 'scheduled' && formData.scheduledTime) {
-          task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
-        }
-
-        setTasks(prevTasks => [task, ...prevTasks])
-
-        // 更新进度
-        setBatchPublishProgress(Math.round(((i + 1) / selectedMaterials.length) * 100))
-
-        // 模拟发布延迟
-        await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
 
     setPublishing(false)
     setBatchPublishProgress(0)
-    message.success(`成功创建 ${selectedMaterials.length} 个发布任务`)
+    message.success(`成功创建 ${totalTasks} 个发布任务`)
+  }
   }
 
   // 提交发布任务
@@ -613,7 +646,17 @@ export default function PublishCenterPage() {
     },
   ]
 
-  return (
+  // 计算定时发布的日期列表
+  const scheduledDates = formData.platform && batchScheduledDays > 0
+    ? Array.from({ length: batchScheduledDays }, (_, i) => {
+        const date = dayjs().add(i, 'day')
+        const time = batchScheduledTime
+        if (time) {
+          return date.hour(time.hour()).minute(time.minute()).format('YYYY-MM-DD HH:mm')
+        }
+        return date.format('YYYY-MM-DD')
+      })
+    : []
     <div className="p-6">
       <div className="mb-6">
         <Title level={2} className="mb-2">发布中心</Title>
