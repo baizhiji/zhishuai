@@ -523,9 +523,14 @@ export default function PublishCenterPage() {
       width: 150,
       render: (platforms: string[]) => (
         <Space size={4} wrap>
-          {platforms.map((p) => (
-            <Tag key={p}>{platformLabel[p]}</Tag>
-          ))}
+          {platforms.map((p) => {
+            const config = platformConfig[p as Platform]
+            return (
+              <Tag key={p} color={config.color}>
+                {config.label}
+              </Tag>
+            )
+          })}
         </Space>
       ),
     },
