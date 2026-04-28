@@ -115,7 +115,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
   [ContentCategory.VIDEO_ANALYSIS]: {
     label: '视频解析',
     color: 'purple',
-    icon: 'AnalysisOutlined',
+    icon: 'ApartmentOutlined',
     description: '分析短视频链接，生成新的爆款视频',
     type: 'video',
     needWordCount: false,

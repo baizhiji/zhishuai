@@ -43,10 +43,8 @@ import {
   DeleteOutlined,
   PlusOutlined,
   FileOutlined,
-  AnalysisOutlined,
+  ApartmentOutlined,
   UserOutlined,
-  AudioOutlined,
-  CustomerServiceOutlined,
 } from '@ant-design/icons'
 import { generateText, generateImage } from '@/lib/ai/aliyun'
 import {
@@ -333,7 +331,7 @@ export default function ContentFactoryPage() {
       [ContentCategory.IMAGE]: <PictureOutlined />,
       [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
       [ContentCategory.VIDEO]: <VideoCameraOutlined />,
-      [ContentCategory.VIDEO_ANALYSIS]: <AnalysisOutlined />,
+      [ContentCategory.VIDEO_ANALYSIS]: <ApartmentOutlined />,
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
     }
     return iconMap[category]
