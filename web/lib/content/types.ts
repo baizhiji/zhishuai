@@ -1,118 +1,14 @@
-// 内容类型配置
-export enum ContentType {
-  // 文案类
-  TEXT_IMAGE_TO_TEXT = 'text-image-to-text',      // 图生文
-  TEXT_LONG = 'text-long',                         // 长文案
-  TEXT_SHORT = 'text-short',                       // 短文案
-  TEXT_XIAOHONGSHU = 'text-xiaohongshu',           // 小红书文案
-  TEXT_ECOMMERCE = 'text-ecommerce',               // 电商详情页
-
-  // 标题和标签
-  TITLE = 'title',                                 // 标题
-  TAGS = 'tags',                                   // 话题标签
-
-  // 图片和视频
-  IMAGE = 'image',                                 // 图片
-  VIDEO = 'video',                                 // 短视频
-  VIDEO_IMAGE_TO_VIDEO = 'video-image-to-video',   // 图生视频
-  DIGITAL_HUMAN = 'digital-human',                 // 数字人短视频
-}
-
-// 内容分类
+// 内容分类枚举
 export enum ContentCategory {
-  COPYWRITING = 'copywriting',     // 文案
-  TITLE = 'title',                 // 标题
-  TAGS = 'tags',                   // 标签
-  IMAGE = 'image',                 // 图片
-  VIDEO = 'video',                 // 视频
-  DIGITAL_HUMAN = 'digital-human', // 数字人
-}
-
-// 内容类型配置
-export const contentTypeConfig: Record<ContentType, {
-  label: string
-  category: ContentCategory
-  color: string
-  icon: string
-  description: string
-}> = {
-  [ContentType.TEXT_IMAGE_TO_TEXT]: {
-    label: '图生文',
-    category: ContentCategory.COPYWRITING,
-    color: 'blue',
-    icon: 'FileTextOutlined',
-    description: '根据图片生成描述文案',
-  },
-  [ContentType.TEXT_LONG]: {
-    label: '长文案',
-    category: ContentCategory.COPYWRITING,
-    color: 'cyan',
-    icon: 'FileTextOutlined',
-    description: '生成详细的长篇文案',
-  },
-  [ContentType.TEXT_SHORT]: {
-    label: '短文案',
-    category: ContentCategory.COPYWRITING,
-    color: 'green',
-    icon: 'FileTextOutlined',
-    description: '生成简洁的短文案',
-  },
-  [ContentType.TEXT_XIAOHONGSHU]: {
-    label: '小红书文案',
-    category: ContentCategory.COPYWRITING,
-    color: 'red',
-    icon: 'FileTextOutlined',
-    description: '生成小红书风格的文案',
-  },
-  [ContentType.TEXT_ECOMMERCE]: {
-    label: '电商详情页',
-    category: ContentCategory.COPYWRITING,
-    color: 'orange',
-    icon: 'FileTextOutlined',
-    description: '生成电商产品详情页文案',
-  },
-  [ContentType.TITLE]: {
-    label: '标题',
-    category: ContentCategory.TITLE,
-    color: 'purple',
-    icon: 'FontSizeOutlined',
-    description: '生成吸引人的标题',
-  },
-  [ContentType.TAGS]: {
-    label: '话题标签',
-    category: ContentCategory.TAGS,
-    color: 'magenta',
-    icon: 'TagsOutlined',
-    description: '生成相关话题标签',
-  },
-  [ContentType.IMAGE]: {
-    label: '图片',
-    category: ContentCategory.IMAGE,
-    color: 'blue',
-    icon: 'PictureOutlined',
-    description: '生成AI图片',
-  },
-  [ContentType.VIDEO]: {
-    label: '短视频',
-    category: ContentCategory.VIDEO,
-    color: 'green',
-    icon: 'VideoCameraOutlined',
-    description: '生成短视频',
-  },
-  [ContentType.VIDEO_IMAGE_TO_VIDEO]: {
-    label: '图生视频',
-    category: ContentCategory.VIDEO,
-    color: 'cyan',
-    icon: 'VideoCameraOutlined',
-    description: '根据图片生成宣传视频',
-  },
-  [ContentType.DIGITAL_HUMAN]: {
-    label: '数字人短视频',
-    category: ContentCategory.DIGITAL_HUMAN,
-    color: 'purple',
-    icon: 'RobotOutlined',
-    description: '生成数字人短视频',
-  },
+  TITLE = 'title',                    // 标题
+  TAGS = 'tags',                      // 话题/标签
+  COPYWRITING = 'copywriting',        // 文案生成
+  IMAGE_TO_TEXT = 'image-to-text',    // 图生文
+  XIAOHONGSHU = 'xiaohongshu',        // 小红书图文
+  IMAGE = 'image',                    // 图片
+  ECOMMERCE = 'ecommerce',            // 电商详情页
+  VIDEO = 'video',                    // 短视频
+  DIGITAL_HUMAN = 'digital-human',    // 数字人短视频
 }
 
 // 内容分类配置
@@ -120,62 +16,161 @@ export const contentCategoryConfig: Record<ContentCategory, {
   label: string
   color: string
   icon: string
+  description: string
+  type: 'text' | 'image' | 'video'
+  needWordCount: boolean
+  needSize: boolean
+  needDuration: boolean
+  needImageInput: boolean
+  needDocInput: boolean
 }> = {
-  [ContentCategory.COPYWRITING]: {
-    label: '文案',
-    color: 'blue',
-    icon: 'FileTextOutlined',
-  },
   [ContentCategory.TITLE]: {
     label: '标题',
-    color: 'purple',
+    color: 'blue',
     icon: 'FontSizeOutlined',
+    description: '生成吸引人的标题，提升内容点击率',
+    type: 'text',
+    needWordCount: true,
+    needSize: false,
+    needDuration: false,
+    needImageInput: true,
+    needDocInput: false,
   },
   [ContentCategory.TAGS]: {
-    label: '标签',
-    color: 'magenta',
+    label: '话题/标签',
+    color: 'purple',
     icon: 'TagsOutlined',
+    description: '生成相关话题标签，增加内容曝光',
+    type: 'text',
+    needWordCount: false,
+    needSize: false,
+    needDuration: false,
+    needImageInput: false,
+    needDocInput: false,
+  },
+  [ContentCategory.COPYWRITING]: {
+    label: '文案生成',
+    color: 'cyan',
+    icon: 'FileTextOutlined',
+    description: '智能生成文案，根据字数自动判断长短',
+    type: 'text',
+    needWordCount: true,
+    needSize: false,
+    needDuration: false,
+    needImageInput: true,
+    needDocInput: true,
+  },
+  [ContentCategory.IMAGE_TO_TEXT]: {
+    label: '图生文',
+    color: 'green',
+    icon: 'FileImageOutlined',
+    description: '根据图片生成文案描述',
+    type: 'text',
+    needWordCount: true,
+    needSize: false,
+    needDuration: false,
+    needImageInput: true,
+    needDocInput: false,
+  },
+  [ContentCategory.XIAOHONGSHU]: {
+    label: '小红书图文',
+    color: 'red',
+    icon: 'HeartOutlined',
+    description: '生成小红书风格的图文内容',
+    type: 'text',
+    needWordCount: true,
+    needSize: false,
+    needDuration: false,
+    needImageInput: true,
+    needDocInput: true,
   },
   [ContentCategory.IMAGE]: {
     label: '图片',
-    color: 'blue',
+    color: 'orange',
     icon: 'PictureOutlined',
+    description: '生成高质量图片内容',
+    type: 'image',
+    needWordCount: false,
+    needSize: true,
+    needDuration: false,
+    needImageInput: true,
+    needDocInput: false,
+  },
+  [ContentCategory.ECOMMERCE]: {
+    label: '电商详情页',
+    color: 'volcano',
+    icon: 'ShoppingOutlined',
+    description: '生成电商产品详情页内容',
+    type: 'text',
+    needWordCount: true,
+    needSize: true,
+    needDuration: false,
+    needImageInput: true,
+    needDocInput: true,
   },
   [ContentCategory.VIDEO]: {
     label: '短视频',
-    color: 'green',
+    color: 'magenta',
     icon: 'VideoCameraOutlined',
+    description: '生成短视频内容',
+    type: 'video',
+    needWordCount: false,
+    needSize: true,
+    needDuration: true,
+    needImageInput: true,
+    needDocInput: true,
   },
   [ContentCategory.DIGITAL_HUMAN]: {
-    label: '数字人',
-    color: 'purple',
+    label: '数字人短视频',
+    color: 'geekblue',
     icon: 'RobotOutlined',
+    description: '使用数字人生成短视频',
+    type: 'video',
+    needWordCount: true,
+    needSize: true,
+    needDuration: true,
+    needImageInput: false,
+    needDocInput: true,
   },
 }
 
-// 按分类分组的内容类型
-export const contentTypeByCategory: Record<ContentCategory, ContentType[]> = {
-  [ContentCategory.COPYWRITING]: [
-    ContentType.TEXT_IMAGE_TO_TEXT,
-    ContentType.TEXT_LONG,
-    ContentType.TEXT_SHORT,
-    ContentType.TEXT_XIAOHONGSHU,
-    ContentType.TEXT_ECOMMERCE,
-  ],
-  [ContentCategory.TITLE]: [
-    ContentType.TITLE,
-  ],
-  [ContentCategory.TAGS]: [
-    ContentType.TAGS,
-  ],
-  [ContentCategory.IMAGE]: [
-    ContentType.IMAGE,
-  ],
-  [ContentCategory.VIDEO]: [
-    ContentType.VIDEO,
-    ContentType.VIDEO_IMAGE_TO_VIDEO,
-  ],
-  [ContentCategory.DIGITAL_HUMAN]: [
-    ContentType.DIGITAL_HUMAN,
-  ],
-}
+// 视频尺寸选项
+export const videoSizeOptions = [
+  { label: '竖屏 9:16', value: '1080x1920' },
+  { label: '横屏 16:9', value: '1920x1080' },
+  { label: '方形 1:1', value: '1080x1080' },
+]
+
+// 图片尺寸选项
+export const imageSizeOptions = [
+  { label: '1024x1024', value: '1024x1024' },
+  { label: '1024x768', value: '1024x768' },
+  { label: '768x1024', value: '768x1024' },
+  { label: '1920x1080', value: '1920x1080' },
+]
+
+// 视频时长选项（秒）
+export const videoDurationOptions = [
+  { label: '15秒', value: 15 },
+  { label: '30秒', value: 30 },
+  { label: '60秒', value: 60 },
+  { label: '120秒', value: 120 },
+]
+
+// 字数选项
+export const wordCountOptions = [
+  { label: '50字以内', value: 50 },
+  { label: '100字以内', value: 100 },
+  { label: '300字左右', value: 300 },
+  { label: '500字左右', value: 500 },
+  { label: '1000字左右', value: 1000 },
+  { label: '2000字左右', value: 2000 },
+]
+
+// 生成数量选项
+export const generateCountOptions = [
+  { label: '1条', value: 1 },
+  { label: '3条', value: 3 },
+  { label: '5条', value: 5 },
+  { label: '10条', value: 10 },
+]

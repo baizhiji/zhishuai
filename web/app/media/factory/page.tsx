@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react'
 import {
   Card,
-  Row,
-  Col,
   Typography,
   Button,
   Space,
@@ -16,7 +14,6 @@ import {
   Slider,
   InputNumber,
   message,
-  Modal,
   Tag,
   Image,
   Progress,
@@ -25,33 +22,37 @@ import {
   List,
   Drawer,
   Upload,
+  Row,
+  Col,
 } from 'antd'
 import {
+  FontSizeOutlined,
+  TagsOutlined,
   FileTextOutlined,
+  FileImageOutlined,
+  HeartOutlined,
   PictureOutlined,
+  ShoppingOutlined,
   VideoCameraOutlined,
   RobotOutlined,
-  ThunderboltOutlined,
   SendOutlined,
   SaveOutlined,
   HistoryOutlined,
-  SettingOutlined,
-  AppstoreOutlined,
-  ScissorOutlined,
-  DeleteOutlined,
   DownloadOutlined,
   CopyOutlined,
-  FontSizeOutlined,
-  TagsOutlined,
+  DeleteOutlined,
   PlusOutlined,
+  FileOutlined,
 } from '@ant-design/icons'
 import { generateText, generateImage } from '@/lib/ai/aliyun'
 import {
-  ContentType,
   ContentCategory,
-  contentTypeConfig,
   contentCategoryConfig,
-  contentTypeByCategory,
+  videoSizeOptions,
+  imageSizeOptions,
+  videoDurationOptions,
+  wordCountOptions,
+  generateCountOptions,
 } from '@/lib/content/types'
 
 const { Title, Text, Paragraph } = Typography
@@ -60,7 +61,7 @@ const { TextArea } = Input
 // 生成记录类型
 interface GenerationRecord {
   id: string
-  type: ContentType
+  category: ContentCategory
   content: string
   config: any
   timestamp: number
@@ -69,11 +70,11 @@ interface GenerationRecord {
 
 export default function ContentFactoryPage() {
   const [activeCategory, setActiveCategory] = useState<ContentCategory>(ContentCategory.COPYWRITING)
-  const [selectedContentType, setSelectedContentType] = useState<ContentType>(ContentType.TEXT_SHORT)
   const [form] = Form.useForm()
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
   const [generatedContent, setGeneratedContent] = useState<string | null>(null)
+  const [generatedList, setGeneratedList] = useState<string[]>([])
   const [historyVisible, setHistoryVisible] = useState(false)
   const [generationHistory, setGenerationHistory] = useState<GenerationRecord[]>([])
 
@@ -93,7 +94,7 @@ export default function ContentFactoryPage() {
 
   // 保存历史记录到 localStorage
   const saveHistory = (record: GenerationRecord) => {
-    const newHistory = [record, ...generationHistory].slice(0, 50) // 只保留最近50条
+    const newHistory = [record, ...generationHistory].slice(0, 50)
     setGenerationHistory(newHistory)
     if (typeof window !== 'undefined') {
       localStorage.setItem('generation-history', JSON.stringify(newHistory))
@@ -106,6 +107,10 @@ export default function ContentFactoryPage() {
     setGenerating(true)
     setProgress(0)
     setGeneratedContent(null)
+    setGeneratedList([])
+
+    const count = values.count || 1
+    const results: string[] = []
 
     // 模拟生成进度
     const progressInterval = setInterval(() => {
@@ -114,101 +119,98 @@ export default function ContentFactoryPage() {
           clearInterval(progressInterval)
           return 90
         }
-        return prev + Math.random() * 15
+        return prev + (100 / count) * 0.1
       })
-    }, 200)
+    }, 100)
 
     try {
-      let result: any
-      const typeConfig = contentTypeConfig[selectedContentType]
+      const categoryConfig = contentCategoryConfig[activeCategory]
 
-      // 根据不同类型调用不同的生成函数
-      if (selectedContentType === ContentType.IMAGE) {
-        // 图片生成
-        const prompt = `生成一张${values.imageType}图片，主题：${values.topic}，风格：${values.style || '写实'}，色调：${values.colorScheme || '明亮'}`
-        result = await generateImage(prompt, {
-          size: '1024*1024',
-          model: 'wanx-v1',
-        })
-        // 提取图片 URL
-        result = { output: { text: result.output.results[0].url } }
-      } else if ([ContentType.VIDEO, ContentType.DIGITAL_HUMAN, ContentType.VIDEO_IMAGE_TO_VIDEO].includes(selectedContentType)) {
-        // 视频和数字人生成（暂时使用模拟）
-        let videoType = '短视频'
-        if (selectedContentType === ContentType.DIGITAL_HUMAN) {
-          videoType = '数字人视频'
-        } else if (selectedContentType === ContentType.VIDEO_IMAGE_TO_VIDEO) {
-          videoType = '图生视频'
+      // 批量生成
+      for (let i = 0; i < count; i++) {
+        let result: any
+
+        if (categoryConfig.type === 'image') {
+          // 图片生成
+          const prompt = `生成一张${values.style || '写实'}风格的图片，主题：${values.description}`
+          result = await generateImage(prompt, {
+            size: values.size || '1024x1024',
+            model: 'wanx-v1',
+          })
+          // 提取图片 URL
+          result = result.output.results[0].url
+        } else if (categoryConfig.type === 'video') {
+          // 视频生成（暂时使用模拟）
+          result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=视频${i + 1}`
+        } else {
+          // 文本生成
+          let prompt = ''
+
+          // 根据不同分类生成不同的提示词
+          switch (activeCategory) {
+            case ContentCategory.TITLE:
+              prompt = `生成${count}个吸引人的标题，主题：${values.description}，风格：${values.style || '吸引眼球'}。`
+              break
+            case ContentCategory.TAGS:
+              prompt = `为"${values.description}"生成${count}个相关的话题标签，格式：#标签1 #标签2，风格：${values.style || '流行'}。`
+              break
+            case ContentCategory.COPYWRITING:
+              prompt = `为"${values.description}"生成${values.wordCount || 500}字左右的文案，风格：${values.style || '专业'}。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+              break
+            case ContentCategory.IMAGE_TO_TEXT:
+              prompt = `根据上传的图片生成${values.wordCount || 300}字左右的文案描述，风格：${values.style || '生动'}。`
+              break
+            case ContentCategory.XIAOHONGSHU:
+              prompt = `为"${values.description}"生成${values.wordCount || 300}字左右的小红书风格文案，包含emoji，风格：${values.style || '生活化'}。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+              break
+            case ContentCategory.ECOMMERCE:
+              prompt = `为产品"${values.description}"生成电商详情页文案，包含产品介绍、卖点、使用场景等，字数：${values.wordCount || 800}字。${values.requirements ? `额外要求：${values.requirements}` : ''}`
+              break
+            case ContentCategory.DIGITAL_HUMAN:
+              prompt = `生成数字人短视频的口播内容：${values.description}，字数：${values.wordCount || 500}字。`
+              break
+            default:
+              prompt = `为"${values.description}"生成内容，风格：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。`
+          }
+
+          result = await generateText(prompt, {
+            model: 'qwen-plus',
+            maxTokens: values.wordCount || 500,
+            temperature: 0.7,
+          })
+
+          result = result.output.text
         }
-        result = { output: { text: `https://via.placeholder.com/600x400?text=${videoType}生成中...` } }
-      } else {
-        // 文本生成（包括所有文案、标题、标签）
-        let prompt = ''
 
-        // 根据不同类型生成不同的提示词
-        switch (selectedContentType) {
-          case ContentType.TEXT_IMAGE_TO_TEXT:
-            prompt = `根据以下描述生成一段文案：${values.topic}\n风格要求：${values.style || '专业'}，字数限制：${values.wordCount || 300}字。`
-            break
-          case ContentType.TEXT_LONG:
-            prompt = `为"${values.topic}"生成详细的长文案，风格：${values.style || '专业'}，字数：${values.wordCount || 1000}字以上。${values.requirements ? `额外要求：${values.requirements}` : ''}`
-            break
-          case ContentType.TEXT_SHORT:
-            prompt = `为"${values.topic}"生成简洁的短文案，风格：${values.style || '活泼'}，字数：${values.wordCount || 100}字以内。`
-            break
-          case ContentType.TEXT_XIAOHONGSHU:
-            prompt = `为"${values.topic}"生成小红书风格的文案，包含emoji，风格：${values.style || '生活化'}，字数：${values.wordCount || 300}字左右。${values.requirements ? `额外要求：${values.requirements}` : ''}`
-            break
-          case ContentType.TEXT_ECOMMERCE:
-            prompt = `为产品"${values.topic}"生成电商详情页文案，风格：${values.style || '专业'}，包含产品介绍、卖点、使用场景等，字数：${values.wordCount || 800}字。${values.requirements ? `额外要求：${values.requirements}` : ''}`
-            break
-          case ContentType.TITLE:
-            prompt = `为"${values.topic}"生成5-10个吸引人的标题，风格：${values.style || '吸引眼球'}。${values.requirements ? `额外要求：${values.requirements}` : ''}`
-            break
-          case ContentType.TAGS:
-            prompt = `为"${values.topic}"生成10-15个相关的话题标签，格式：#标签1 #标签2，风格：${values.style || '流行'}。`
-            break
-          default:
-            prompt = `为"${values.topic}"生成内容，风格：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。`
-        }
-
-        result = await generateText(prompt, {
-          model: 'qwen-plus',
-          maxTokens: values.wordCount || 500,
-          temperature: 0.7,
-        })
+        results.push(result)
+        setProgress(Math.round(((i + 1) / count) * 90))
       }
 
       clearInterval(progressInterval)
       setProgress(100)
 
-      // 保存生成结果
-      if (result?.output?.text) {
-        setGeneratedContent(result.output.text)
+      setGeneratedList(results)
+      setGeneratedContent(results[0]) // 默认显示第一条
 
-        // 保存到历史记录
-        saveHistory({
-          id: `gen_${Date.now()}`,
-          type: selectedContentType,
-          content: result.output.text,
-          config: values,
-          timestamp: Date.now(),
-          status: 'success',
-        })
+      // 保存到历史记录
+      saveHistory({
+        id: `gen_${Date.now()}`,
+        category: activeCategory,
+        content: results.join('\n---\n'),
+        config: values,
+        timestamp: Date.now(),
+        status: 'success',
+      })
 
-        message.success(`${typeConfig.label}生成成功！`)
-      } else {
-        throw new Error('生成失败，未返回有效结果')
-      }
+      message.success(`成功生成 ${count} 条${categoryConfig.label}！`)
     } catch (error) {
       clearInterval(progressInterval)
       console.error('生成失败:', error)
       message.error('生成失败，请重试')
 
-      // 保存失败记录
       saveHistory({
         id: `gen_${Date.now()}`,
-        type: selectedContentType,
+        category: activeCategory,
         content: '',
         config: values,
         timestamp: Date.now(),
@@ -220,8 +222,9 @@ export default function ContentFactoryPage() {
   }
 
   // 保存到素材库
-  const handleSave = () => {
-    if (!generatedContent) {
+  const handleSave = (content?: string) => {
+    const contentToSave = content || generatedContent
+    if (!contentToSave) {
       message.warning('请先生成内容')
       return
     }
@@ -231,10 +234,9 @@ export default function ContentFactoryPage() {
       const materials = JSON.parse(localStorage.getItem('materials') || '[]')
       materials.push({
         id: `material_${Date.now()}`,
-        type: selectedContentType,
-        title: form.getFieldValue('topic') || contentTypeConfig[selectedContentType].label,
-        content: generatedContent,
-        category: contentTypeConfig[selectedContentType].category,
+        category: activeCategory,
+        title: form.getFieldValue('description') || contentCategoryConfig[activeCategory].label,
+        content: contentToSave,
         timestamp: Date.now(),
         status: 'unused',
       })
@@ -243,46 +245,39 @@ export default function ContentFactoryPage() {
     }
   }
 
-  // 直接发布
-  const handlePublish = () => {
-    if (!generatedContent) {
-      message.warning('请先生成内容')
-      return
-    }
-    message.success('已添加到发布中心')
-  }
-
   // 复制内容
-  const handleCopy = () => {
-    if (!generatedContent) return
-    navigator.clipboard.writeText(generatedContent)
+  const handleCopy = (content?: string) => {
+    const contentToCopy = content || generatedContent
+    if (!contentToCopy) return
+    navigator.clipboard.writeText(contentToCopy)
     message.success('已复制到剪贴板')
   }
 
   // 下载内容
-  const handleDownload = () => {
-    if (!generatedContent) return
+  const handleDownload = (content?: string) => {
+    const contentToDownload = content || generatedContent
+    if (!contentToDownload) return
 
-    if ([ContentType.TEXT_IMAGE_TO_TEXT, ContentType.TEXT_LONG, ContentType.TEXT_SHORT,
-         ContentType.TEXT_XIAOHONGSHU, ContentType.TEXT_ECOMMERCE, ContentType.TITLE, ContentType.TAGS].includes(selectedContentType)) {
-      // 下载文本
-      const blob = new Blob([generatedContent], { type: 'text/plain' })
+    const categoryConfig = contentCategoryConfig[activeCategory]
+
+    if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
+      window.open(contentToDownload, '_blank')
+    } else {
+      const blob = new Blob([contentToDownload], { type: 'text/plain' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `content_${Date.now()}.txt`
+      a.download = `${activeCategory}_${Date.now()}.txt`
       a.click()
       URL.revokeObjectURL(url)
       message.success('已下载')
-    } else {
-      // 下载图片或视频
-      window.open(generatedContent, '_blank')
     }
   }
 
   // 从历史记录中加载
   const handleLoadFromHistory = (record: GenerationRecord) => {
     setGeneratedContent(record.content)
+    form.setFieldsValue(record.config)
     setHistoryVisible(false)
     message.success('已加载历史记录')
   }
@@ -297,305 +292,181 @@ export default function ContentFactoryPage() {
     message.success('已删除')
   }
 
-  // 文案类型选项
-  const contentTypeOptions = [
-    { label: '长文案', value: 'long' },
-    { label: '短文案', value: 'short' },
-    { label: '标题', value: 'title' },
-    { label: '口播稿', value: 'script' },
-  ]
+  // 获取分类图标
+  const getCategoryIcon = (category: ContentCategory) => {
+    const iconMap: Record<ContentCategory, any> = {
+      [ContentCategory.TITLE]: <FontSizeOutlined />,
+      [ContentCategory.TAGS]: <TagsOutlined />,
+      [ContentCategory.COPYWRITING]: <FileTextOutlined />,
+      [ContentCategory.IMAGE_TO_TEXT]: <FileImageOutlined />,
+      [ContentCategory.XIAOHONGSHU]: <HeartOutlined />,
+      [ContentCategory.IMAGE]: <PictureOutlined />,
+      [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
+      [ContentCategory.VIDEO]: <VideoCameraOutlined />,
+      [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
+    }
+    return iconMap[category]
+  }
 
-  // 平台选择
-  const platformOptions = [
-    { label: '抖音', value: 'douyin' },
-    { label: '快手', value: 'kuaishou' },
-    { label: '小红书', value: 'xiaohongshu' },
-    { label: '视频号', value: 'weixin' },
-    { label: 'B站', value: 'bilibili' },
-  ]
+  // 渲染表单
+  const renderForm = () => {
+    const categoryConfig = contentCategoryConfig[activeCategory]
 
-  // 渲染配置表单
-  const renderConfigForm = () => {
-    switch (activeCategory) {
-      case ContentCategory.COPYWRITING:
-        return (
-          <>
-            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.TEXT_SHORT}>
-              <Select
-                options={contentTypeByCategory[ContentCategory.COPYWRITING].map(type => ({
-                  label: contentTypeConfig[type].label,
-                  value: type,
-                }))}
-                onChange={setSelectedContentType}
+    return (
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{
+          count: 1,
+          wordCount: 300,
+          size: categoryConfig.type === 'video' ? '1920x1080' : '1024x1024',
+          duration: 30,
+          style: '专业',
+        }}
+      >
+        <Row gutter={16}>
+          <Col span={24}>
+            <Form.Item
+              label="内容描述"
+              name="description"
+              rules={[{ required: true, message: '请输入内容描述' }]}
+            >
+              <TextArea
+                rows={3}
+                placeholder={
+                  activeCategory === ContentCategory.IMAGE_TO_TEXT
+                    ? '描述图片内容或上传图片...'
+                    : '输入要生成的内容描述、产品描述或参数...'
+                }
               />
             </Form.Item>
-            <Form.Item label="主题/话题" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
-              <Input placeholder="输入要生成的主题或话题..." />
-            </Form.Item>
-            <Form.Item label="风格" name="style" initialValue="专业">
+          </Col>
+        </Row>
+
+        {/* 图片上传 */}
+        {categoryConfig.needImageInput && (
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="上传图片" name="images">
+                <Upload
+                  listType="picture-card"
+                  maxCount={activeCategory === ContentCategory.IMAGE ? 5 : 3}
+                  beforeUpload={() => false}
+                >
+                  <div>
+                    <PlusOutlined />
+                    <div style={{ marginTop: 8 }}>上传图片</div>
+                  </div>
+                </Upload>
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
+
+        {/* 文档上传 */}
+        {categoryConfig.needDocInput && (
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="上传文档" name="documents">
+                <Upload
+                  listType="text"
+                  maxCount={3}
+                  beforeUpload={() => false}
+                >
+                  <Button icon={<FileOutlined />}>选择文档</Button>
+                </Upload>
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
+
+        {/* 字数选项 */}
+        {categoryConfig.needWordCount && (
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="字数限制" name="wordCount">
+                <Select options={wordCountOptions} />
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
+
+        {/* 尺寸选项 */}
+        {categoryConfig.needSize && (
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                label={categoryConfig.type === 'video' ? '视频尺寸' : '图片尺寸'}
+                name="size"
+              >
+                <Select options={categoryConfig.type === 'video' ? videoSizeOptions : imageSizeOptions} />
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
+
+        {/* 时长选项 */}
+        {categoryConfig.needDuration && (
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item label="视频时长（秒）" name="duration">
+                <Select options={videoDurationOptions} />
+              </Form.Item>
+            </Col>
+          </Row>
+        )}
+
+        {/* 风格选项 */}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="风格" name="style">
               <Select
                 options={[
                   { label: '专业', value: '专业' },
                   { label: '活泼', value: '活泼' },
-                  { label: '正式', value: '正式' },
+                  { label: '商务', value: '商务' },
                   { label: '生活化', value: '生活化' },
                   { label: '吸引眼球', value: '吸引眼球' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item label="字数限制" name="wordCount" initialValue={300}>
-              <InputNumber min={50} max={2000} style={{ width: '100%' }} />
-            </Form.Item>
-            <Form.Item label="额外要求" name="requirements">
-              <TextArea rows={3} placeholder="输入额外要求或限制条件（可选）..." />
-            </Form.Item>
-          </>
-        )
-      case ContentCategory.IMAGE:
-        return (
-          <>
-            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.IMAGE}>
-              <Select
-                options={contentTypeByCategory[ContentCategory.IMAGE].map(type => ({
-                  label: contentTypeConfig[type].label,
-                  value: type,
-                }))}
-                onChange={setSelectedContentType}
-              />
-            </Form.Item>
-            <Form.Item label="图片类型" name="imageType" initialValue="graphic">
-              <Radio.Group>
-                <Radio value="graphic">图文</Radio>
-                <Radio value="poster">海报</Radio>
-                <Radio value="product">产品图</Radio>
-              </Radio.Group>
-            </Form.Item>
-            <Form.Item label="尺寸比例" name="aspectRatio" initialValue="1:1">
-              <Select
-                options={[
-                  { label: '1:1 (正方形)', value: '1:1' },
-                  { label: '16:9 (横屏)', value: '16:9' },
-                  { label: '9:16 (竖屏)', value: '9:16' },
-                  { label: '4:3 (标准)', value: '4:3' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item label="主题描述" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
-              <TextArea rows={3} placeholder="描述您想要的图片内容..." />
-            </Form.Item>
-            <Form.Item label="风格" name="style">
-              <Select
-                options={[
-                  { label: '写实', value: '写实' },
-                  { label: '卡通', value: '卡通' },
-                  { label: '极简', value: '极简' },
-                  { label: '科技感', value: '科技感' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item label="色调" name="colorScheme">
-              <Select
-                options={[
-                  { label: '明亮', value: '明亮' },
-                  { label: '暗色', value: '暗色' },
-                  { label: '自然', value: '自然' },
-                  { label: '商务', value: '商务' },
-                ]}
-              />
-            </Form.Item>
-          </>
-        )
-      case ContentCategory.VIDEO:
-        return (
-          <>
-            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.VIDEO}>
-              <Select
-                options={contentTypeByCategory[ContentCategory.VIDEO].map(type => ({
-                  label: contentTypeConfig[type].label,
-                  value: type,
-                }))}
-                onChange={setSelectedContentType}
-              />
-            </Form.Item>
-            {/* 普通视频生成的表单 */}
-            {selectedContentType === ContentType.VIDEO && (
-              <>
-                <Form.Item label="视频类型" name="videoType" initialValue="short">
-                  <Radio.Group>
-                    <Radio value="short">短视频</Radio>
-                    <Radio value="tutorial">教程视频</Radio>
-                    <Radio value="product">产品展示</Radio>
-                  </Radio.Group>
-                </Form.Item>
-                <Form.Item label="时长" name="duration" initialValue={15}>
-                  <Select
-                    options={[
-                      { label: '15秒', value: 15 },
-                      { label: '30秒', value: 30 },
-                      { label: '60秒', value: 60 },
-                      { label: '120秒', value: 120 },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="主题描述" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
-                  <TextArea rows={3} placeholder="描述视频内容..." />
-                </Form.Item>
-                <Form.Item label="背景音乐" name="bgm">
-                  <Select
-                    options={[
-                      { label: '欢快', value: 'happy' },
-                      { label: '舒缓', value: 'relaxing' },
-                      { label: '动感', value: 'dynamic' },
-                      { label: '无音乐', value: 'none' },
-                    ]}
-                  />
-                </Form.Item>
-              </>
-            )}
-
-            {/* 图生视频的表单 */}
-            {selectedContentType === ContentType.VIDEO_IMAGE_TO_VIDEO && (
-              <>
-                <Form.Item label="宣传类型" name="videoType" initialValue="product" rules={[{ required: true, message: '请选择宣传类型' }]}>
-                  <Select
-                    options={[
-                      { label: '产品宣传', value: 'product' },
-                      { label: '项目宣传', value: 'project' },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="上传产品图片" name="images" rules={[{ required: true, message: '请上传产品图片' }]}>
-                  <Upload
-                    listType="picture-card"
-                    maxCount={1}
-                    beforeUpload={() => false}
-                  >
-                    <div>
-                      <PlusOutlined />
-                      <div style={{ marginTop: 8 }}>上传图片</div>
-                    </div>
-                  </Upload>
-                </Form.Item>
-                <Form.Item label="视频风格" name="style" initialValue="commercial">
-                  <Select
-                    options={[
-                      { label: '商业广告', value: 'commercial' },
-                      { label: '产品展示', value: 'product' },
-                      { label: '科技感', value: 'tech' },
-                      { label: '简约风格', value: 'minimal' },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="视频时长" name="duration" initialValue={30}>
-                  <Select
-                    options={[
-                      { label: '15秒', value: 15 },
-                      { label: '30秒', value: 30 },
-                      { label: '60秒', value: 60 },
-                    ]}
-                  />
-                </Form.Item>
-              </>
-            )}
-          </>
-        )
-      case ContentCategory.DIGITAL_HUMAN:
-        return (
-          <>
-            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.DIGITAL_HUMAN}>
-              <Select
-                options={contentTypeByCategory[ContentCategory.DIGITAL_HUMAN].map(type => ({
-                  label: contentTypeConfig[type].label,
-                  value: type,
-                }))}
-                onChange={setSelectedContentType}
-              />
-            </Form.Item>
-            <Form.Item label="数字人形象" name="avatar" initialValue="avatar1">
-              <Select
-                options={[
-                  { label: '商务男1', value: 'avatar1' },
-                  { label: '商务女1', value: 'avatar2' },
-                  { label: '活泼男1', value: 'avatar3' },
-                  { label: '活泼女1', value: 'avatar4' },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item label="视频类型" name="digitalType" initialValue="speaking">
-              <Radio.Group>
-                <Radio value="speaking">口播视频</Radio>
-                <Radio value="explaining">讲解视频</Radio>
-                <Radio value="dialogue">对话视频</Radio>
-              </Radio.Group>
-            </Form.Item>
-            <Form.Item label="输入内容" name="content" rules={[{ required: true, message: '请输入内容' }]}>
-              <TextArea rows={5} placeholder="输入数字人要说的话..." />
-            </Form.Item>
-            <Form.Item label="语速" name="speed" initialValue={1}>
-              <Slider min={0.5} max={2} step={0.1} marks={{ 0.5: '0.5x', 1: '1x', 2: '2x' }} />
-            </Form.Item>
-          </>
-        )
-      case ContentCategory.TITLE:
-        return (
-          <>
-            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.TITLE}>
-              <Select
-                options={contentTypeByCategory[ContentCategory.TITLE].map(type => ({
-                  label: contentTypeConfig[type].label,
-                  value: type,
-                }))}
-                onChange={setSelectedContentType}
-              />
-            </Form.Item>
-            <Form.Item label="主题/话题" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
-              <Input placeholder="输入要生成标题的主题或产品..." />
-            </Form.Item>
-            <Form.Item label="风格" name="style" initialValue="吸引眼球">
-              <Select
-                options={[
-                  { label: '吸引眼球', value: '吸引眼球' },
-                  { label: '专业', value: '专业' },
                   { label: '简洁', value: '简洁' },
                   { label: '幽默', value: '幽默' },
                 ]}
               />
             </Form.Item>
+          </Col>
+        </Row>
+
+        {/* 额外要求 */}
+        <Row gutter={16}>
+          <Col span={24}>
             <Form.Item label="额外要求" name="requirements">
-              <TextArea rows={3} placeholder="输入额外要求（可选）..." />
+              <TextArea rows={2} placeholder="输入额外要求（可选）..." />
             </Form.Item>
-          </>
-        )
-      case ContentCategory.TAGS:
-        return (
-          <>
-            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.TAGS}>
-              <Select
-                options={contentTypeByCategory[ContentCategory.TAGS].map(type => ({
-                  label: contentTypeConfig[type].label,
-                  value: type,
-                }))}
-                onChange={setSelectedContentType}
-              />
+          </Col>
+        </Row>
+
+        {/* 生成数量 */}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item label="生成数量" name="count">
+              <Select options={generateCountOptions} />
             </Form.Item>
-            <Form.Item label="主题/话题" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
-              <Input placeholder="输入要生成标签的主题..." />
-            </Form.Item>
-            <Form.Item label="风格" name="style" initialValue="流行">
-              <Select
-                options={[
-                  { label: '流行', value: '流行' },
-                  { label: '专业', value: '专业' },
-                  { label: '生活化', value: '生活化' },
-                  { label: '科技', value: '科技' },
-                ]}
-              />
-            </Form.Item>
-          </>
-        )
-      default:
-        return null
-    }
+          </Col>
+        </Row>
+
+        <Form.Item>
+          <Button
+            type="primary"
+            icon={<SendOutlined />}
+            onClick={handleGenerate}
+            loading={generating}
+            size="large"
+            block
+          >
+            {generating ? '生成中...' : '开始生成'}
+          </Button>
+        </Form.Item>
+      </Form>
+    )
   }
 
   // 渲染生成结果
@@ -604,48 +475,73 @@ export default function ContentFactoryPage() {
       return null
     }
 
-    const typeConfig = contentTypeConfig[selectedContentType]
+    const categoryConfig = contentCategoryConfig[activeCategory]
 
     return (
       <Card title="生成结果" className="mt-6">
         {generating ? (
           <div className="text-center py-8">
             <Progress percent={Math.round(progress)} status="active" />
-            <p className="mt-4 text-gray-500">AI正在为您生成{typeConfig.label}，请稍候...</p>
+            <p className="mt-4 text-gray-500">AI正在为您生成{categoryConfig.label}，请稍候...</p>
           </div>
         ) : (
           <div>
-            {typeConfig.category === ContentCategory.IMAGE ? (
-              <div className="text-center">
-                <Image src={generatedContent} alt="Generated content" style={{ maxWidth: '100%' }} />
-              </div>
-            ) : typeConfig.category === ContentCategory.VIDEO || typeConfig.category === ContentCategory.DIGITAL_HUMAN ? (
-              <div className="text-center">
-                <video src={generatedContent} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
-              </div>
+            {/* 如果有多条结果，显示列表 */}
+            {generatedList.length > 1 ? (
+              <List
+                dataSource={generatedList}
+                renderItem={(item, index) => (
+                  <List.Item
+                    key={index}
+                    actions={[
+                      <Button type="link" onClick={() => handleCopy(item)}>复制</Button>,
+                      <Button type="link" onClick={() => handleSave(item)}>保存</Button>,
+                      <Button type="link" onClick={() => handleDownload(item)}>下载</Button>,
+                    ]}
+                  >
+                    <List.Item.Meta
+                      title={<span>结果 {index + 1}</span>}
+                      description={
+                        categoryConfig.type === 'image' || categoryConfig.type === 'video' ? (
+                          <Image src={item} alt={`结果${index + 1}`} style={{ maxWidth: 200 }} />
+                        ) : (
+                          <Paragraph ellipsis={{ rows: 3 }}>{item}</Paragraph>
+                        )
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
             ) : (
-              <div className="bg-gray-50 p-4 rounded">
-                <Paragraph className="whitespace-pre-wrap mb-4">{generatedContent}</Paragraph>
+              // 单条结果
+              <div>
+                {categoryConfig.type === 'image' ? (
+                  <div className="text-center">
+                    <Image src={generatedContent} alt="Generated content" style={{ maxWidth: '100%' }} />
+                  </div>
+                ) : categoryConfig.type === 'video' ? (
+                  <div className="text-center">
+                    <video src={generatedContent} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-4 rounded">
+                    <Paragraph className="whitespace-pre-wrap mb-4">{generatedContent}</Paragraph>
+                  </div>
+                )}
+                <Divider />
+                <Space wrap>
+                  <Button type="primary" icon={<SaveOutlined />} onClick={() => handleSave()}>
+                    保存到素材库
+                  </Button>
+                  <Button icon={<CopyOutlined />} onClick={() => handleCopy()}>
+                    复制
+                  </Button>
+                  <Button icon={<DownloadOutlined />} onClick={() => handleDownload()}>
+                    下载
+                  </Button>
+                </Space>
               </div>
             )}
-            <Divider />
-            <Space wrap>
-              <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
-                保存到素材库
-              </Button>
-              <Button icon={<SendOutlined />} onClick={handlePublish}>
-                直接发布
-              </Button>
-              <Button icon={<CopyOutlined />} onClick={handleCopy}>
-                复制
-              </Button>
-              <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-                下载
-              </Button>
-              <Button icon={<HistoryOutlined />} onClick={() => setHistoryVisible(true)}>
-                查看历史记录 ({generationHistory.length})
-              </Button>
-            </Space>
           </div>
         )}
       </Card>
@@ -688,24 +584,14 @@ export default function ContentFactoryPage() {
               <List.Item.Meta
                 avatar={
                   <div className="w-10 h-10 rounded bg-blue-50 flex items-center justify-center">
-                    {record.type === ContentType.TEXT_IMAGE_TO_TEXT && <FileTextOutlined />}
-                    {record.type === ContentType.TEXT_LONG && <FileTextOutlined />}
-                    {record.type === ContentType.TEXT_SHORT && <FileTextOutlined />}
-                    {record.type === ContentType.TEXT_XIAOHONGSHU && <FileTextOutlined />}
-                    {record.type === ContentType.TEXT_ECOMMERCE && <FileTextOutlined />}
-                    {record.type === ContentType.TITLE && <FontSizeOutlined />}
-                    {record.type === ContentType.TAGS && <TagsOutlined />}
-                    {record.type === ContentType.IMAGE && <PictureOutlined />}
-                    {record.type === ContentType.VIDEO && <VideoCameraOutlined />}
-                    {record.type === ContentType.VIDEO_IMAGE_TO_VIDEO && <VideoCameraOutlined />}
-                    {record.type === ContentType.DIGITAL_HUMAN && <RobotOutlined />}
+                    {getCategoryIcon(record.category)}
                   </div>
                 }
                 title={
                   <Space>
-                    <span>{record.config?.topic || contentTypeConfig[record.type]?.label}</span>
-                    <Tag color={contentTypeConfig[record.type]?.color}>
-                      {contentTypeConfig[record.type]?.label}
+                    <span>{record.config?.description || contentCategoryConfig[record.category]?.label}</span>
+                    <Tag color={contentCategoryConfig[record.category]?.color}>
+                      {contentCategoryConfig[record.category]?.label}
                     </Tag>
                     <Tag color={record.status === 'success' ? 'green' : 'red'}>
                       {record.status === 'success' ? '成功' : '失败'}
@@ -717,7 +603,6 @@ export default function ContentFactoryPage() {
                     <Text type="secondary">
                       {new Date(record.timestamp).toLocaleString('zh-CN')}
                     </Text>
-                    <Tag>{record.type === 'text' ? '文案' : record.type === 'image' ? '图片' : '视频'}</Tag>
                   </Space>
                 }
               />
@@ -742,118 +627,38 @@ export default function ContentFactoryPage() {
       <Card>
         <Tabs
           activeKey={activeCategory}
-          onChange={(key) => {
-            const category = key as ContentCategory
-            setActiveCategory(category)
-            // 设置默认选中的内容类型
-            const types = contentTypeByCategory[category]
-            if (types.length > 0) {
-              setSelectedContentType(types[0])
-            }
-          }}
-          items={[
-            {
-              key: ContentCategory.COPYWRITING,
-              label: (
-                <Space>
-                  <FileTextOutlined />
-                  文案
-                </Space>
-              ),
-            },
-            {
-              key: ContentCategory.TITLE,
-              label: (
-                <Space>
-                  <FontSizeOutlined />
-                  标题
-                </Space>
-              ),
-            },
-            {
-              key: ContentCategory.TAGS,
-              label: (
-                <Space>
-                  <TagsOutlined />
-                  标签
-                </Space>
-              ),
-            },
-            {
-              key: ContentCategory.IMAGE,
-              label: (
-                <Space>
-                  <PictureOutlined />
-                  图片
-                </Space>
-              ),
-            },
-            {
-              key: ContentCategory.VIDEO,
-              label: (
-                <Space>
-                  <VideoCameraOutlined />
-                  短视频
-                </Space>
-              ),
-            },
-            {
-              key: ContentCategory.DIGITAL_HUMAN,
-              label: (
-                <Space>
-                  <RobotOutlined />
-                  数字人
-                </Space>
-              ),
-            },
-          ]}
+          onChange={(key) => setActiveCategory(key as ContentCategory)}
+          items={Object.values(ContentCategory).map((category) => ({
+            key: category,
+            label: (
+              <Space>
+                {getCategoryIcon(category as ContentCategory)}
+                {contentCategoryConfig[category as ContentCategory]?.label}
+              </Space>
+            ),
+          }))}
         />
 
-        {/* 配置表单 */}
-        <div className="mt-6">
-          <Card className="p-6">
-            <div className="mb-4">
-              <Title level={3}>{contentCategoryConfig[activeCategory].label}生成</Title>
-              <Paragraph type="secondary">
-                {contentTypeConfig[selectedContentType].description}
-              </Paragraph>
-            </div>
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleGenerate}
-              initialValues={{
-                contentType: selectedContentType,
-              }}
-            >
-              {renderConfigForm()}
+        <Divider />
 
-              <Form.Item>
-                <Space size="large">
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={generating}
-                    icon={<ThunderboltOutlined />}
-                    size="large"
-                  >
-                    {generating ? '生成中...' : '立即生成'}
-                  </Button>
-                  {generating && (
-                    <Progress
-                      percent={progress}
-                      status="active"
-                      style={{ width: 300 }}
-                    />
-                  )}
-                </Space>
-              </Form.Item>
-            </Form>
-          </Card>
+        {/* 当前分类说明 */}
+        <div className="mb-4">
+          <Title level={4}>{contentCategoryConfig[activeCategory].label}</Title>
+          <Text type="secondary">{contentCategoryConfig[activeCategory].description}</Text>
         </div>
 
-        {/* 生成结果展示 */}
+        {/* 表单区域 */}
+        {renderForm()}
+
+        {/* 生成结果 */}
         {renderGeneratedResult()}
+
+        {/* 历史记录按钮 */}
+        <div className="mt-6 text-center">
+          <Button icon={<HistoryOutlined />} onClick={() => setHistoryVisible(true)}>
+            查看历史记录
+          </Button>
+        </div>
       </Card>
 
       {/* 历史记录抽屉 */}
