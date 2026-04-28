@@ -24,6 +24,7 @@ import {
   Empty,
   List,
   Drawer,
+  Upload,
 } from 'antd'
 import {
   FileTextOutlined,
@@ -42,6 +43,7 @@ import {
   CopyOutlined,
   FontSizeOutlined,
   TagsOutlined,
+  PlusOutlined,
 } from '@ant-design/icons'
 import { generateText, generateImage } from '@/lib/ai/aliyun'
 import {
@@ -130,9 +132,14 @@ export default function ContentFactoryPage() {
         })
         // 提取图片 URL
         result = { output: { text: result.output.results[0].url } }
-      } else if ([ContentType.VIDEO, ContentType.DIGITAL_HUMAN].includes(selectedContentType)) {
+      } else if ([ContentType.VIDEO, ContentType.DIGITAL_HUMAN, ContentType.VIDEO_IMAGE_TO_VIDEO].includes(selectedContentType)) {
         // 视频和数字人生成（暂时使用模拟）
-        const videoType = selectedContentType === ContentType.DIGITAL_HUMAN ? '数字人视频' : '短视频'
+        let videoType = '短视频'
+        if (selectedContentType === ContentType.DIGITAL_HUMAN) {
+          videoType = '数字人视频'
+        } else if (selectedContentType === ContentType.VIDEO_IMAGE_TO_VIDEO) {
+          videoType = '图生视频'
+        }
         result = { output: { text: `https://via.placeholder.com/600x400?text=${videoType}生成中...` } }
       } else {
         // 文本生成（包括所有文案、标题、标签）
@@ -268,7 +275,7 @@ export default function ContentFactoryPage() {
       URL.revokeObjectURL(url)
       message.success('已下载')
     } else {
-      // 下载图片
+      // 下载图片或视频
       window.open(generatedContent, '_blank')
     }
   }
@@ -410,36 +417,86 @@ export default function ContentFactoryPage() {
                 onChange={setSelectedContentType}
               />
             </Form.Item>
-            <Form.Item label="视频类型" name="videoType" initialValue="short">
-              <Radio.Group>
-                <Radio value="short">短视频</Radio>
-                <Radio value="tutorial">教程视频</Radio>
-                <Radio value="product">产品展示</Radio>
-              </Radio.Group>
-            </Form.Item>
-            <Form.Item label="时长" name="duration" initialValue={15}>
-              <Select
-                options={[
-                  { label: '15秒', value: 15 },
-                  { label: '30秒', value: 30 },
-                  { label: '60秒', value: 60 },
-                  { label: '120秒', value: 120 },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item label="主题描述" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
-              <TextArea rows={3} placeholder="描述视频内容..." />
-            </Form.Item>
-            <Form.Item label="背景音乐" name="bgm">
-              <Select
-                options={[
-                  { label: '欢快', value: 'happy' },
-                  { label: '舒缓', value: 'relaxing' },
-                  { label: '动感', value: 'dynamic' },
-                  { label: '无音乐', value: 'none' },
-                ]}
-              />
-            </Form.Item>
+            {/* 普通视频生成的表单 */}
+            {selectedContentType === ContentType.VIDEO && (
+              <>
+                <Form.Item label="视频类型" name="videoType" initialValue="short">
+                  <Radio.Group>
+                    <Radio value="short">短视频</Radio>
+                    <Radio value="tutorial">教程视频</Radio>
+                    <Radio value="product">产品展示</Radio>
+                  </Radio.Group>
+                </Form.Item>
+                <Form.Item label="时长" name="duration" initialValue={15}>
+                  <Select
+                    options={[
+                      { label: '15秒', value: 15 },
+                      { label: '30秒', value: 30 },
+                      { label: '60秒', value: 60 },
+                      { label: '120秒', value: 120 },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="主题描述" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
+                  <TextArea rows={3} placeholder="描述视频内容..." />
+                </Form.Item>
+                <Form.Item label="背景音乐" name="bgm">
+                  <Select
+                    options={[
+                      { label: '欢快', value: 'happy' },
+                      { label: '舒缓', value: 'relaxing' },
+                      { label: '动感', value: 'dynamic' },
+                      { label: '无音乐', value: 'none' },
+                    ]}
+                  />
+                </Form.Item>
+              </>
+            )}
+
+            {/* 图生视频的表单 */}
+            {selectedContentType === ContentType.VIDEO_IMAGE_TO_VIDEO && (
+              <>
+                <Form.Item label="宣传类型" name="videoType" initialValue="product" rules={[{ required: true, message: '请选择宣传类型' }]}>
+                  <Select
+                    options={[
+                      { label: '产品宣传', value: 'product' },
+                      { label: '项目宣传', value: 'project' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="上传产品图片" name="images" rules={[{ required: true, message: '请上传产品图片' }]}>
+                  <Upload
+                    listType="picture-card"
+                    maxCount={1}
+                    beforeUpload={() => false}
+                  >
+                    <div>
+                      <PlusOutlined />
+                      <div style={{ marginTop: 8 }}>上传图片</div>
+                    </div>
+                  </Upload>
+                </Form.Item>
+                <Form.Item label="视频风格" name="style" initialValue="commercial">
+                  <Select
+                    options={[
+                      { label: '商业广告', value: 'commercial' },
+                      { label: '产品展示', value: 'product' },
+                      { label: '科技感', value: 'tech' },
+                      { label: '简约风格', value: 'minimal' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="视频时长" name="duration" initialValue={30}>
+                  <Select
+                    options={[
+                      { label: '15秒', value: 15 },
+                      { label: '30秒', value: 30 },
+                      { label: '60秒', value: 60 },
+                    ]}
+                  />
+                </Form.Item>
+              </>
+            )}
           </>
         )
       case ContentCategory.DIGITAL_HUMAN:
@@ -640,6 +697,7 @@ export default function ContentFactoryPage() {
                     {record.type === ContentType.TAGS && <TagsOutlined />}
                     {record.type === ContentType.IMAGE && <PictureOutlined />}
                     {record.type === ContentType.VIDEO && <VideoCameraOutlined />}
+                    {record.type === ContentType.VIDEO_IMAGE_TO_VIDEO && <VideoCameraOutlined />}
                     {record.type === ContentType.DIGITAL_HUMAN && <RobotOutlined />}
                   </div>
                 }

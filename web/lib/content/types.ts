@@ -14,6 +14,7 @@ export enum ContentType {
   // 图片和视频
   IMAGE = 'image',                                 // 图片
   VIDEO = 'video',                                 // 短视频
+  VIDEO_IMAGE_TO_VIDEO = 'video-image-to-video',   // 图生视频
   DIGITAL_HUMAN = 'digital-human',                 // 数字人短视频
 }
 
@@ -98,6 +99,13 @@ export const contentTypeConfig: Record<ContentType, {
     icon: 'VideoCameraOutlined',
     description: '生成短视频',
   },
+  [ContentType.VIDEO_IMAGE_TO_VIDEO]: {
+    label: '图生视频',
+    category: ContentCategory.VIDEO,
+    color: 'cyan',
+    icon: 'VideoCameraOutlined',
+    description: '根据图片生成宣传视频',
+  },
   [ContentType.DIGITAL_HUMAN]: {
     label: '数字人短视频',
     category: ContentCategory.DIGITAL_HUMAN,
@@ -165,6 +173,7 @@ export const contentTypeByCategory: Record<ContentCategory, ContentType[]> = {
   ],
   [ContentCategory.VIDEO]: [
     ContentType.VIDEO,
+    ContentType.VIDEO_IMAGE_TO_VIDEO,
   ],
   [ContentCategory.DIGITAL_HUMAN]: [
     ContentType.DIGITAL_HUMAN,
