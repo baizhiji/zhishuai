@@ -14,6 +14,7 @@ import {
   Form,
   Radio,
   Slider,
+  InputNumber,
   message,
   Modal,
   Tag,
@@ -255,7 +256,8 @@ export default function ContentFactoryPage() {
   const handleDownload = () => {
     if (!generatedContent) return
 
-    if (activeTab === 'text') {
+    if ([ContentType.TEXT_IMAGE_TO_TEXT, ContentType.TEXT_LONG, ContentType.TEXT_SHORT,
+         ContentType.TEXT_XIAOHONGSHU, ContentType.TEXT_ECOMMERCE, ContentType.TITLE, ContentType.TAGS].includes(selectedContentType)) {
       // 下载文本
       const blob = new Blob([generatedContent], { type: 'text/plain' })
       const url = URL.createObjectURL(blob)
@@ -307,40 +309,53 @@ export default function ContentFactoryPage() {
 
   // 渲染配置表单
   const renderConfigForm = () => {
-    switch (activeTab) {
-      case 'text':
+    switch (activeCategory) {
+      case ContentCategory.COPYWRITING:
         return (
           <>
-            <Form.Item label="文案类型" name="contentType" initialValue="short">
-              <Radio.Group options={contentTypeOptions} />
+            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.TEXT_SHORT}>
+              <Select
+                options={contentTypeByCategory[ContentCategory.COPYWRITING].map(type => ({
+                  label: contentTypeConfig[type].label,
+                  value: type,
+                }))}
+                onChange={setSelectedContentType}
+              />
             </Form.Item>
-            <Form.Item label="目标平台" name="platform" initialValue="douyin">
-              <Select options={platformOptions} />
+            <Form.Item label="主题/话题" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
+              <Input placeholder="输入要生成的主题或话题..." />
             </Form.Item>
-            <Form.Item label="主题/关键词" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
-              <Input placeholder="例如：AI产品介绍、活动推广..." />
-            </Form.Item>
-            <Form.Item label="风格要求" name="style">
+            <Form.Item label="风格" name="style" initialValue="专业">
               <Select
                 options={[
-                  { label: '专业严谨', value: 'professional' },
-                  { label: '活泼幽默', value: 'humorous' },
-                  { label: '温馨感人', value: 'emotional' },
-                  { label: '潮流时尚', value: 'trendy' },
+                  { label: '专业', value: '专业' },
+                  { label: '活泼', value: '活泼' },
+                  { label: '正式', value: '正式' },
+                  { label: '生活化', value: '生活化' },
+                  { label: '吸引眼球', value: '吸引眼球' },
                 ]}
               />
             </Form.Item>
-            <Form.Item label="字数限制" name="wordCount">
-              <Slider min={50} max={5000} marks={{ 50: '50', 500: '500', 2000: '2000', 5000: '5000' }} />
+            <Form.Item label="字数限制" name="wordCount" initialValue={300}>
+              <InputNumber min={50} max={2000} style={{ width: '100%' }} />
             </Form.Item>
             <Form.Item label="额外要求" name="requirements">
-              <TextArea rows={3} placeholder="如有特殊要求，请在此说明..." />
+              <TextArea rows={3} placeholder="输入额外要求或限制条件（可选）..." />
             </Form.Item>
           </>
         )
-      case 'image':
+      case ContentCategory.IMAGE:
         return (
           <>
+            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.IMAGE}>
+              <Select
+                options={contentTypeByCategory[ContentCategory.IMAGE].map(type => ({
+                  label: contentTypeConfig[type].label,
+                  value: type,
+                }))}
+                onChange={setSelectedContentType}
+              />
+            </Form.Item>
             <Form.Item label="图片类型" name="imageType" initialValue="graphic">
               <Radio.Group>
                 <Radio value="graphic">图文</Radio>
@@ -364,28 +379,37 @@ export default function ContentFactoryPage() {
             <Form.Item label="风格" name="style">
               <Select
                 options={[
-                  { label: '写实', value: 'realistic' },
-                  { label: '卡通', value: 'cartoon' },
-                  { label: '极简', value: 'minimalist' },
-                  { label: '科技感', value: 'tech' },
+                  { label: '写实', value: '写实' },
+                  { label: '卡通', value: '卡通' },
+                  { label: '极简', value: '极简' },
+                  { label: '科技感', value: '科技感' },
                 ]}
               />
             </Form.Item>
             <Form.Item label="色调" name="colorScheme">
               <Select
                 options={[
-                  { label: '明亮', value: 'bright' },
-                  { label: '暗色', value: 'dark' },
-                  { label: '自然', value: 'natural' },
-                  { label: '商务', value: 'business' },
+                  { label: '明亮', value: '明亮' },
+                  { label: '暗色', value: '暗色' },
+                  { label: '自然', value: '自然' },
+                  { label: '商务', value: '商务' },
                 ]}
               />
             </Form.Item>
           </>
         )
-      case 'video':
+      case ContentCategory.VIDEO:
         return (
           <>
+            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.VIDEO}>
+              <Select
+                options={contentTypeByCategory[ContentCategory.VIDEO].map(type => ({
+                  label: contentTypeConfig[type].label,
+                  value: type,
+                }))}
+                onChange={setSelectedContentType}
+              />
+            </Form.Item>
             <Form.Item label="视频类型" name="videoType" initialValue="short">
               <Radio.Group>
                 <Radio value="short">短视频</Radio>
@@ -418,9 +442,18 @@ export default function ContentFactoryPage() {
             </Form.Item>
           </>
         )
-      case 'digitalHuman':
+      case ContentCategory.DIGITAL_HUMAN:
         return (
           <>
+            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.DIGITAL_HUMAN}>
+              <Select
+                options={contentTypeByCategory[ContentCategory.DIGITAL_HUMAN].map(type => ({
+                  label: contentTypeConfig[type].label,
+                  value: type,
+                }))}
+                onChange={setSelectedContentType}
+              />
+            </Form.Item>
             <Form.Item label="数字人形象" name="avatar" initialValue="avatar1">
               <Select
                 options={[
@@ -446,6 +479,63 @@ export default function ContentFactoryPage() {
             </Form.Item>
           </>
         )
+      case ContentCategory.TITLE:
+        return (
+          <>
+            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.TITLE}>
+              <Select
+                options={contentTypeByCategory[ContentCategory.TITLE].map(type => ({
+                  label: contentTypeConfig[type].label,
+                  value: type,
+                }))}
+                onChange={setSelectedContentType}
+              />
+            </Form.Item>
+            <Form.Item label="主题/话题" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
+              <Input placeholder="输入要生成标题的主题或产品..." />
+            </Form.Item>
+            <Form.Item label="风格" name="style" initialValue="吸引眼球">
+              <Select
+                options={[
+                  { label: '吸引眼球', value: '吸引眼球' },
+                  { label: '专业', value: '专业' },
+                  { label: '简洁', value: '简洁' },
+                  { label: '幽默', value: '幽默' },
+                ]}
+              />
+            </Form.Item>
+            <Form.Item label="额外要求" name="requirements">
+              <TextArea rows={3} placeholder="输入额外要求（可选）..." />
+            </Form.Item>
+          </>
+        )
+      case ContentCategory.TAGS:
+        return (
+          <>
+            <Form.Item label="内容类型" name="contentType" initialValue={ContentType.TAGS}>
+              <Select
+                options={contentTypeByCategory[ContentCategory.TAGS].map(type => ({
+                  label: contentTypeConfig[type].label,
+                  value: type,
+                }))}
+                onChange={setSelectedContentType}
+              />
+            </Form.Item>
+            <Form.Item label="主题/话题" name="topic" rules={[{ required: true, message: '请输入主题' }]}>
+              <Input placeholder="输入要生成标签的主题..." />
+            </Form.Item>
+            <Form.Item label="风格" name="style" initialValue="流行">
+              <Select
+                options={[
+                  { label: '流行', value: '流行' },
+                  { label: '专业', value: '专业' },
+                  { label: '生活化', value: '生活化' },
+                  { label: '科技', value: '科技' },
+                ]}
+              />
+            </Form.Item>
+          </>
+        )
       default:
         return null
     }
@@ -457,24 +547,30 @@ export default function ContentFactoryPage() {
       return null
     }
 
+    const typeConfig = contentTypeConfig[selectedContentType]
+
     return (
       <Card title="生成结果" className="mt-6">
         {generating ? (
           <div className="text-center py-8">
             <Progress percent={Math.round(progress)} status="active" />
-            <p className="mt-4 text-gray-500">AI正在为您生成内容，请稍候...</p>
+            <p className="mt-4 text-gray-500">AI正在为您生成{typeConfig.label}，请稍候...</p>
           </div>
         ) : (
           <div>
-            {activeTab === 'text' ? (
-              <div className="bg-gray-50 p-4 rounded">
-                <Paragraph className="whitespace-pre-wrap mb-4">{generatedContent}</Paragraph>
-              </div>
-            ) : generatedContent ? (
+            {typeConfig.category === ContentCategory.IMAGE ? (
               <div className="text-center">
                 <Image src={generatedContent} alt="Generated content" style={{ maxWidth: '100%' }} />
               </div>
-            ) : null}
+            ) : typeConfig.category === ContentCategory.VIDEO || typeConfig.category === ContentCategory.DIGITAL_HUMAN ? (
+              <div className="text-center">
+                <video src={generatedContent} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+              </div>
+            ) : (
+              <div className="bg-gray-50 p-4 rounded">
+                <Paragraph className="whitespace-pre-wrap mb-4">{generatedContent}</Paragraph>
+              </div>
+            )}
             <Divider />
             <Space wrap>
               <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
@@ -535,15 +631,24 @@ export default function ContentFactoryPage() {
               <List.Item.Meta
                 avatar={
                   <div className="w-10 h-10 rounded bg-blue-50 flex items-center justify-center">
-                    {record.type === 'text' && <FileTextOutlined />}
-                    {record.type === 'image' && <PictureOutlined />}
-                    {record.type === 'video' && <VideoCameraOutlined />}
-                    {record.type === 'digitalHuman' && <RobotOutlined />}
+                    {record.type === ContentType.TEXT_IMAGE_TO_TEXT && <FileTextOutlined />}
+                    {record.type === ContentType.TEXT_LONG && <FileTextOutlined />}
+                    {record.type === ContentType.TEXT_SHORT && <FileTextOutlined />}
+                    {record.type === ContentType.TEXT_XIAOHONGSHU && <FileTextOutlined />}
+                    {record.type === ContentType.TEXT_ECOMMERCE && <FileTextOutlined />}
+                    {record.type === ContentType.TITLE && <FontSizeOutlined />}
+                    {record.type === ContentType.TAGS && <TagsOutlined />}
+                    {record.type === ContentType.IMAGE && <PictureOutlined />}
+                    {record.type === ContentType.VIDEO && <VideoCameraOutlined />}
+                    {record.type === ContentType.DIGITAL_HUMAN && <RobotOutlined />}
                   </div>
                 }
                 title={
                   <Space>
-                    <span>{record.config?.topic || '未命名'}</span>
+                    <span>{record.config?.topic || contentTypeConfig[record.type]?.label}</span>
+                    <Tag color={contentTypeConfig[record.type]?.color}>
+                      {contentTypeConfig[record.type]?.label}
+                    </Tag>
                     <Tag color={record.status === 'success' ? 'green' : 'red'}>
                       {record.status === 'success' ? '成功' : '失败'}
                     </Tag>
@@ -578,60 +683,68 @@ export default function ContentFactoryPage() {
       {/* 功能标签页 */}
       <Card>
         <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
+          activeKey={activeCategory}
+          onChange={(key) => {
+            const category = key as ContentCategory
+            setActiveCategory(category)
+            // 设置默认选中的内容类型
+            const types = contentTypeByCategory[category]
+            if (types.length > 0) {
+              setSelectedContentType(types[0])
+            }
+          }}
           items={[
             {
-              key: 'text',
+              key: ContentCategory.COPYWRITING,
               label: (
                 <Space>
                   <FileTextOutlined />
-                  文案生成
+                  文案
                 </Space>
               ),
             },
             {
-              key: 'image',
+              key: ContentCategory.TITLE,
+              label: (
+                <Space>
+                  <FontSizeOutlined />
+                  标题
+                </Space>
+              ),
+            },
+            {
+              key: ContentCategory.TAGS,
+              label: (
+                <Space>
+                  <TagsOutlined />
+                  标签
+                </Space>
+              ),
+            },
+            {
+              key: ContentCategory.IMAGE,
               label: (
                 <Space>
                   <PictureOutlined />
-                  AI绘画
+                  图片
                 </Space>
               ),
             },
             {
-              key: 'video',
+              key: ContentCategory.VIDEO,
               label: (
                 <Space>
                   <VideoCameraOutlined />
-                  短视频生成
+                  短视频
                 </Space>
               ),
             },
             {
-              key: 'digitalHuman',
+              key: ContentCategory.DIGITAL_HUMAN,
               label: (
                 <Space>
                   <RobotOutlined />
-                  数字人视频
-                </Space>
-              ),
-            },
-            {
-              key: 'batchGenerate',
-              label: (
-                <Space>
-                  <AppstoreOutlined />
-                  批量生成
-                </Space>
-              ),
-            },
-            {
-              key: 'batchEdit',
-              label: (
-                <Space>
-                  <ScissorOutlined />
-                  批量剪辑
+                  数字人
                 </Space>
               ),
             },
@@ -640,183 +753,48 @@ export default function ContentFactoryPage() {
 
         {/* 配置表单 */}
         <div className="mt-6">
-          {activeTab === 'batchGenerate' ? (
-            <Card className="p-6">
-              <Title level={3}>批量生成</Title>
+          <Card className="p-6">
+            <div className="mb-4">
+              <Title level={3}>{contentCategoryConfig[activeCategory].label}生成</Title>
               <Paragraph type="secondary">
-                批量生成多组内容，提高创作效率
+                {contentTypeConfig[selectedContentType].description}
               </Paragraph>
-              <Form layout="vertical">
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item label="生成数量" name="count" initialValue={5}>
-                      <Select
-                        options={[
-                          { label: '5个', value: 5 },
-                          { label: '10个', value: 10 },
-                          { label: '20个', value: 20 },
-                          { label: '50个', value: 50 },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item label="内容类型" name="type" initialValue="text">
-                      <Select
-                        options={[
-                          { label: '文案', value: 'text' },
-                          { label: '图片', value: 'image' },
-                          { label: '视频', value: 'video' },
-                        ]}
-                      />
-                    </Form.Item>
-                  </Col>
-                </Row>
-                <Form.Item label="主题/关键词" name="topics" rules={[{ required: true }]}>
-                  <Select
-                    mode="tags"
-                    placeholder="输入多个主题，每个生成一个版本"
-                  />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" size="large" icon={<ThunderboltOutlined />} block>
-                    开始批量生成
-                  </Button>
-                </Form.Item>
-              </Form>
-            </Card>
-          ) : activeTab === 'batchEdit' ? (
-            <Card className="p-6">
-              <Title level={3}>批量剪辑</Title>
-              <Paragraph type="secondary">
-                对视频素材进行批量剪辑，添加特效、字幕等
-              </Paragraph>
-              <Form layout="vertical">
-                <Form.Item label="选择素材" name="materials" rules={[{ required: true }]}>
-                  <Select
-                    mode="multiple"
-                    placeholder="从素材库选择视频"
-                    options={[
-                      { label: '短视频-产品介绍', value: '1' },
-                      { label: '数字人视频-讲解', value: '2' },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="添加字幕" name="addSubtitle" valuePropName="checked" initialValue={true}>
-                  <Select
-                    options={[
-                      { label: '自动生成', value: 'auto' },
-                      { label: '手动输入', value: 'manual' },
-                      { label: '不添加', value: 'none' },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="添加背景音乐" name="addBgm" valuePropName="checked" initialValue={true}>
-                  <Select
-                    options={[
-                      { label: '欢快', value: 'happy' },
-                      { label: '舒缓', value: 'relaxing' },
-                      { label: '动感', value: 'dynamic' },
-                      { label: '无音乐', value: 'none' },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label="视频特效" name="effects">
-                  <Select
-                    mode="multiple"
-                    options={[
-                      { label: '转场效果', value: 'transition' },
-                      { label: '滤镜', value: 'filter' },
-                      { label: '缩放', value: 'zoom' },
-                      { label: '马赛克', value: 'mosaic' },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" size="large" icon={<ScissorOutlined />} block>
-                    开始批量剪辑
-                  </Button>
-                </Form.Item>
-              </Form>
-            </Card>
-          ) : (
-            <>
-              <Form form={form} layout="vertical">
-                <Row gutter={[24, 16]}>
-                  <Col xs={24} md={12}>
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                      <Title level={4} className="mb-4">
-                        <Space>
-                          <SettingOutlined />
-                          配置参数
-                        </Space>
-                      </Title>
-                      {renderConfigForm()}
-                      <Form.Item>
-                        <Button
-                          type="primary"
-                          size="large"
-                          icon={<ThunderboltOutlined />}
-                          loading={generating}
-                          onClick={handleGenerate}
-                          block
-                        >
-                          {generating ? '生成中...' : '立即生成'}
-                        </Button>
-                      </Form.Item>
-                    </div>
-                  </Col>
+            </div>
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleGenerate}
+              initialValues={{
+                contentType: selectedContentType,
+              }}
+            >
+              {renderConfigForm()}
 
-                  <Col xs={24} md={12}>
-                    {/* 提示信息 */}
-                    <Card className="h-full">
-                      <Title level={4}>使用提示</Title>
-                      <ul className="space-y-2 text-gray-600">
-                        <li>• 输入详细的主题描述，可以获得更准确的结果</li>
-                        <li>• 生成的素材只能使用一次，使用后状态会变为"已使用"</li>
-                        <li>• 保存到素材库后可以在发布中心统一发布</li>
-                        <li>• 每次生成会消耗相应的积分</li>
-                        <li>• 数字人视频生成时间较长，请耐心等待</li>
-                      </ul>
-                      <Divider />
-                      <Title level={4}>今日剩余额度</Title>
-                      <Row gutter={16}>
-                        <Col span={12}>
-                          <div className="text-center p-4 bg-blue-50 rounded">
-                            <div className="text-2xl font-bold text-blue-600">98</div>
-                            <div className="text-sm text-gray-600">文案生成</div>
-                          </div>
-                        </Col>
-                        <Col span={12}>
-                          <div className="text-center p-4 bg-green-50 rounded">
-                            <div className="text-2xl font-bold text-green-600">45</div>
-                            <div className="text-sm text-gray-600">AI绘画</div>
-                          </div>
-                        </Col>
-                      </Row>
-                      <Row gutter={16} className="mt-4">
-                        <Col span={12}>
-                          <div className="text-center p-4 bg-purple-50 rounded">
-                            <div className="text-2xl font-bold text-purple-600">12</div>
-                            <div className="text-sm text-gray-600">短视频</div>
-                          </div>
-                        </Col>
-                        <Col span={12}>
-                          <div className="text-center p-4 bg-orange-50 rounded">
-                            <div className="text-2xl font-bold text-orange-600">8</div>
-                            <div className="text-sm text-gray-600">数字人</div>
-                          </div>
-                        </Col>
-                      </Row>
-                    </Card>
-                  </Col>
-                </Row>
-              </Form>
-            </>
-          )}
+              <Form.Item>
+                <Space size="large">
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={generating}
+                    icon={<ThunderboltOutlined />}
+                    size="large"
+                  >
+                    {generating ? '生成中...' : '立即生成'}
+                  </Button>
+                  {generating && (
+                    <Progress
+                      percent={progress}
+                      status="active"
+                      style={{ width: 300 }}
+                    />
+                  )}
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
         </div>
 
-        {/* 生成结果 */}
+        {/* 生成结果展示 */}
         {renderGeneratedResult()}
       </Card>
 
