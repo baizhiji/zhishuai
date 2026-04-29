@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Card,
   Row,
@@ -15,7 +15,6 @@ import {
   Modal,
   Checkbox,
   Input,
-  InputNumber,
   Form,
   Image,
   Upload,
@@ -30,6 +29,9 @@ import {
   Popconfirm,
   Avatar,
   Empty,
+  InputNumber,
+  TimePicker,
+  Alert,
 } from 'antd'
 import type { UploadFile, UploadProps } from 'antd'
 import {
@@ -108,8 +110,7 @@ export default function PublishCenterPage() {
   const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all')
   const [isPublishModalVisible, setIsPublishModalVisible] = useState(false)
   const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false)
-  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)  // 添加批量发布Modal
-  const [isBatchMaterialDrawerVisible, setIsBatchMaterialDrawerVisible] = useState(false)
+  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [publishing, setPublishing] = useState(false)
   const [publishProgress, setPublishProgress] = useState(0)
@@ -132,25 +133,24 @@ export default function PublishCenterPage() {
   // 批量发布状态
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])  // 选中的素材ID列表
   const [batchPublishProgress, setBatchPublishProgress] = useState(0)  // 批量发布进度
-  // 批量发布定时状态
-  const [batchScheduledDays, setBatchScheduledDays] = useState(1)
-  const [batchScheduledTime, setBatchScheduledTime] = useState<Dayjs | null>(null)
-  // 计算定时发布的日期列表
-  const scheduledDates: string[] = []
-  if (formData.platform && batchScheduledDays > 0) {
-    for (let i = 0; i < batchScheduledDays; i++) {
-      const date = dayjs().add(i, 'day')
+  const [continuousStartDate, setContinuousStartDate] = useState<Dayjs | null>(dayjs())  // 连续发布开始日期
+  const [batchScheduledTime, setBatchScheduledTime] = useState<Dayjs | null>(dayjs().hour(10).minute(0))  // 每天定时发布时间
+  const [continuousDays, setContinuousDays] = useState(1)
+
+  // 计算定时发布日期列表
+  const scheduledDates = useMemo(() => {
+    if (!continuousStartDate || continuousDays <= 0) return []
+    return Array.from({ length: continuousDays }, (_, i) => {
+      const date = continuousStartDate.add(i, 'day')
       if (batchScheduledTime) {
-        scheduledDates.push(
-          date.hour(batchScheduledTime.hour())
-            .minute(batchScheduledTime.minute())
-            .format('YYYY-MM-DD HH:mm')
-        )
-      } else {
-        scheduledDates.push(date.format('YYYY-MM-DD'))
+        return date.hour(batchScheduledTime.hour()).minute(batchScheduledTime.minute()).format('YYYY-MM-DD HH:mm')
       }
-    }
-  }
+      return date.format('YYYY-MM-DD')
+    })
+  }, [continuousStartDate, continuousDays, batchScheduledTime])
+
+  // 生成定时日期列表（用于列表展示）
+  const generateScheduledDates = () => scheduledDates
 
   // 常用标签
   const popularTags = [
@@ -311,72 +311,44 @@ export default function PublishCenterPage() {
       return
     }
 
-    if (formData.publishType === 'scheduled' && !batchScheduledTime) {
-      message.warning('请选择发布时间')
-      return
-    }
-
     setIsBatchPublishModalVisible(false)
     setPublishing(true)
 
     // 为每个选中的素材创建发布任务
-    let totalTasks = 0
-    
     for (let i = 0; i < selectedMaterials.length; i++) {
       const materialId = selectedMaterials[i]
       const material = materials.find(m => m.id === materialId)
 
       if (material) {
-        if (formData.publishType === 'scheduled') {
-          // 定时发布：创建N天的任务，每天一个
-          for (let day = 0; day < batchScheduledDays; day++) {
-            const scheduledTime = dayjs().add(day, 'day').hour(batchScheduledTime.hour()).minute(batchScheduledTime.minute())
-            const task: PublishTask = {
-              id: `task_${Date.now()}_${i}_${day}`,
-              type: material.type as 'text' | 'image' | 'video',
-              title: material.title || '未命名',
-              content: material.content,
-              platforms: [formData.platform],
-              accounts: formData.accounts,
-              tags: formData.tags,
-              status: 'scheduled',
-              createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-              scheduledTime: scheduledTime.format('YYYY-MM-DD HH:mm:ss'),
-            }
-            setTasks(prevTasks => [task, ...prevTasks])
-            totalTasks++
-            
-            // 模拟发布延迟
-            await new Promise(resolve => setTimeout(resolve, 200))
-          }
-        } else {
-          // 立即发布
-          const task: PublishTask = {
-            id: `task_${Date.now()}_${i}`,
-            type: material.type as 'text' | 'image' | 'video',
-            title: material.title || '未命名',
-            content: material.content,
-            platforms: [formData.platform],
-            accounts: formData.accounts,
-            tags: formData.tags,
-            status: 'publishing',
-            createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-          }
-          setTasks(prevTasks => [task, ...prevTasks])
-          totalTasks++
-
-          // 更新进度
-          setBatchPublishProgress(Math.round(((i + 1) / selectedMaterials.length) * 100))
-
-          // 模拟发布延迟
-          await new Promise(resolve => setTimeout(resolve, 500))
+        const task: PublishTask = {
+          id: `task_${Date.now()}_${i}`,
+          type: material.type as 'text' | 'image' | 'video',
+          title: material.title || '未命名',
+          content: material.content,
+          platforms: [formData.platform],
+          accounts: formData.accounts,
+          tags: formData.tags,
+          status: formData.publishType === 'immediate' ? 'publishing' : 'scheduled',
+          createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
         }
+
+        if (formData.publishType === 'scheduled' && formData.scheduledTime) {
+          task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
+        }
+
+        setTasks(prevTasks => [task, ...prevTasks])
+
+        // 更新进度
+        setBatchPublishProgress(Math.round(((i + 1) / selectedMaterials.length) * 100))
+
+        // 模拟发布延迟
+        await new Promise(resolve => setTimeout(resolve, 500))
       }
     }
 
     setPublishing(false)
     setBatchPublishProgress(0)
-    message.success(`成功创建 ${totalTasks} 个发布任务`)
+    message.success(`成功创建 ${selectedMaterials.length} 个发布任务`)
   }
 
   // 提交发布任务
@@ -571,14 +543,9 @@ export default function PublishCenterPage() {
       width: 150,
       render: (platforms: string[]) => (
         <Space size={4} wrap>
-          {platforms.map((p) => {
-            const config = platformConfig[p as Platform]
-            return (
-              <Tag key={p} color={config.color}>
-                {config.label}
-              </Tag>
-            )
-          })}
+          {platforms.map((p) => (
+            <Tag key={p}>{platformConfig[p]?.label || p}</Tag>
+          ))}
         </Space>
       ),
     },
@@ -1115,15 +1082,9 @@ export default function PublishCenterPage() {
                   }
                   title={
                     <Space>
-                      {material.type === 'text' && (
-                        <Tag color="blue" icon={<FileTextOutlined />}>文本</Tag>
-                      )}
-                      {material.type === 'image' && (
-                        <Tag color="green" icon={<PictureOutlined />}>图片</Tag>
-                      )}
-                      {material.type === 'video' && (
-                        <Tag color="purple" icon={<VideoCameraOutlined />}>视频</Tag>
-                      )}
+                      <Tag color={typeConfig[material.type].color}>
+                        {typeConfig[material.type].label}
+                      </Tag>
                       <Text>{material.title || '无标题'}</Text>
                     </Space>
                   }
@@ -1157,141 +1118,62 @@ export default function PublishCenterPage() {
         destroyOnClose={false}
       >
         <div style={{ padding: '20px' }}>
-          {/* 平台选择 */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              选择发布平台 <span style={{ color: 'red' }}>*</span>
-            </label>
-            <Select
-              placeholder="请选择发布平台"
-              style={{ width: '100%' }}
-              value={formData.platform || undefined}
-              onChange={(value) => {
-                setFormData({
-                  ...formData,
-                  platform: value as Platform,
-                  accounts: [], // 清空已选账号
-                })
-              }}
-            >
-              {Object.values(Platform).map((platform) => (
-                <Select.Option key={platform} value={platform}>
-                  <Space>
-                    <span style={{ color: platformConfig[platform].color }}>
-                      ●
-                    </span>
-                    {platformConfig[platform].label}
-                  </Space>
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-
-          {/* 账号选择 */}
-          {formData.platform && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                选择账号 <span style={{ color: 'red' }}>*</span>
-              </label>
-              {accounts.filter(a => a.platform === formData.platform).length > 0 ? (
-                <Checkbox.Group
-                  value={formData.accounts}
-                  onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
-                >
-                  <Space direction="vertical">
-                    {accounts.filter(a => a.platform === formData.platform).map((account) => (
-                      <Checkbox key={account.id} value={account.id}>
-                        <Space>
-                          <Avatar src={account.avatar} size="small" />
-                          <Text>{account.accountName}</Text>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {account.fans > 10000
-                              ? `${(account.fans / 10000).toFixed(1)}万粉丝`
-                              : `${account.fans}粉丝`
-                            }
-                          </Text>
-                        </Space>
-                      </Checkbox>
-                    ))}
-                  </Space>
-                </Checkbox.Group>
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={
-                    <Space direction="vertical">
-                      <Text type="secondary">该平台暂无账号</Text>
-                      <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
-                        去添加账号
-                      </Button>
-                    </Space>
-                  }
-                />
-              )}
-            </div>
-          )}
-
-          {/* 选择素材 */}
+          {/* 素材选择 - 改为点击按钮打开抽屉 */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               选择素材 <span style={{ color: 'red' }}>*</span>
             </label>
-            {materials.length === 0 ? (
-              <Empty description="暂无素材，请先到内容工厂生成" />
-            ) : (
-              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                <List
-                  dataSource={materials}
-                  renderItem={(material) => (
-                    <List.Item
-                      actions={[
-                        <Checkbox
-                          checked={selectedMaterials.includes(material.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedMaterials([...selectedMaterials, material.id])
-                            } else {
-                              setSelectedMaterials(selectedMaterials.filter(id => id !== material.id))
-                            }
-                          }}
-                        />
-                      ]}
-                    >
-                      <List.Item.Meta
-                        avatar={
-                          <div className="w-12 h-12 rounded bg-blue-50 flex items-center justify-center">
-                            {material.type === 'text' && <FileTextOutlined className="text-blue-500" />}
-                            {material.type === 'image' && <PictureOutlined className="text-green-500" />}
-                            {material.type === 'video' && <VideoCameraOutlined className="text-purple-500" />}
-                          </div>
-                        }
-                        title={
-                          <Space>
-                            {material.type === 'text' && (
-                              <Tag color="blue" icon={<FileTextOutlined />}>文本</Tag>
-                            )}
-                            {material.type === 'image' && (
-                              <Tag color="green" icon={<PictureOutlined />}>图片</Tag>
-                            )}
-                            {material.type === 'video' && (
-                              <Tag color="purple" icon={<VideoCameraOutlined />}>视频</Tag>
-                            )}
-                            <Text>{material.title || '无标题'}</Text>
-                          </Space>
-                        }
-                        description={
-                          <div>
-                            <div className="text-gray-600 text-sm">
-                              {material.content.slice(0, 80)}...
-                            </div>
-                          </div>
-                        }
-                      />
-                    </List.Item>
-                  )}
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Button
+                type="dashed"
+                icon={<InboxOutlined />}
+                onClick={() => setIsMaterialDrawerVisible(true)}
+                style={{ width: '100%', height: 60 }}
+              >
+                点击选择素材
+              </Button>
+              {selectedMaterials.length > 0 && (
+                <Alert
+                  type="info"
+                  message={`已选择 ${selectedMaterials.length} 个素材`}
+                  showIcon
                 />
-              </div>
-            )}
+              )}
+              {selectedMaterials.length > 0 && (
+                <div style={{ maxHeight: 150, overflowY: 'auto' }}>
+                  <List
+                    size="small"
+                    dataSource={materials.filter(m => selectedMaterials.includes(m.id))}
+                    renderItem={(material) => (
+                      <List.Item
+                        actions={[
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            onClick={() => setSelectedMaterials(selectedMaterials.filter(id => id !== material.id))}
+                          >
+                            移除
+                          </Button>
+                        ]}
+                      >
+                        <List.Item.Meta
+                          avatar={
+                            <div className="w-8 h-8 rounded bg-blue-50 flex items-center justify-center">
+                              {material.type === 'text' && <FileTextOutlined className="text-blue-500" />}
+                              {material.type === 'image' && <PictureOutlined className="text-green-500" />}
+                              {material.type === 'video' && <VideoCameraOutlined className="text-purple-500" />}
+                            </div>
+                          }
+                          title={<Text>{material.title || '无标题'}</Text>}
+                          description={<Tag color={typeConfig[material.type].color}>{typeConfig[material.type].label}</Tag>}
+                        />
+                      </List.Item>
+                    )}
+                  />
+                </div>
+              )}
+            </Space>
           </div>
 
           {/* 账号选择 */}
@@ -1311,7 +1193,7 @@ export default function PublishCenterPage() {
                         <Avatar src={account.avatar} size="small" />
                         <Text>{account.accountName}</Text>
                         <Text type="secondary" style={{ fontSize: 12 }}>
-                          ({platformConfig[account.platform].label})
+                          ({platformConfig[account.platform]?.label || account.platform})
                         </Text>
                       </Space>
                     </Checkbox>
@@ -1377,7 +1259,6 @@ export default function PublishCenterPage() {
             )}
           </div>
 
-          {/* 发布方式 */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               发布方式
@@ -1395,61 +1276,95 @@ export default function PublishCenterPage() {
             </Radio.Group>
           </div>
 
-          {publishType === 'scheduled' && formData.platform && (
-            <div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                  连续发布天数 <span style={{ color: 'red' }}>*</span>
-                </label>
-                <InputNumber
-                  min={1}
-                  max={platformConfig[formData.platform].maxScheduledDays}
-                  value={batchScheduledDays}
-                  onChange={(value) => setBatchScheduledDays(value || 1)}
-                  style={{ width: '100%' }}
-                />
-                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
-                  根据{platformConfig[formData.platform].label}规则，最多可定时 {platformConfig[formData.platform].maxScheduledDays} 天
-                </Text>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-                  每天发布时间 <span style={{ color: 'red' }}>*</span>
-                </label>
-                <TimePicker
-                  format="HH:mm:ss"
-                  placeholder="选择发布时间"
-                  style={{ width: '100%' }}
-                  value={batchScheduledTime}
-                  onChange={(time) => setBatchScheduledTime(time)}
-                />
-                <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
-                  在选定的 {batchScheduledDays} 天里，每天都在这个时间发布
-                </Text>
-              </div>
-
-              {/* 显示日期列表 */}
-              {batchScheduledTime && (
-                <div style={{ padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4 }}>
-                  <Text strong style={{ fontSize: 13 }}>定时发布计划：</Text>
-                  <div style={{ marginTop: 8 }}>
-                    <Space direction="vertical" style={{ width: '100%' }}>
-                      {scheduledDates.map((date, index) => (
-                        <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
-                          <CalendarOutlined style={{ marginRight: 8, color: '#1890ff' }} />
-                          <Text style={{ fontSize: 13 }}>{date}</Text>
-                          <Tag color="blue" size="small" style={{ marginLeft: 8 }}>
-                            {index === 0 ? '今天' : `第${index + 1}天`}
-                          </Tag>
-                        </div>
-                      ))}
-                    </Space>
+          {/* 定时发布 - 日期时间分开选择 */}
+          {publishType === 'scheduled' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
+                定时发布设置 <span style={{ color: 'red' }}>*</span>
+              </label>
+              <Card size="small" style={{ backgroundColor: '#fafafa' }}>
+                {/* 第一行：连续天数 + 每天发布时间 */}
+                <Row gutter={16}>
+                  <Col span={8}>
+                    <Form.Item label="连续发布天数" style={{ marginBottom: 8 }}>
+                      <InputNumber
+                        min={1}
+                        max={30}
+                        value={continuousDays}
+                        onChange={(value) => setContinuousDays(value || 1)}
+                        style={{ width: '100%' }}
+                        addonAfter="天"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col span={16}>
+                    <Form.Item label="每天发布时间" style={{ marginBottom: 8 }}>
+                      <TimePicker
+                        format="HH:mm"
+                        placeholder="选择时间"
+                        style={{ width: '100%' }}
+                        value={batchScheduledTime}
+                        onChange={(time) => setBatchScheduledTime(time)}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                
+                {/* 第二行：开始日期 */}
+                <Form.Item label="开始日期" style={{ marginBottom: 8 }}>
+                  <DatePicker
+                    format="YYYY-MM-DD"
+                    placeholder="选择开始日期"
+                    style={{ width: '100%' }}
+                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                    value={continuousStartDate}
+                    onChange={(date) => setContinuousStartDate(date)}
+                  />
+                </Form.Item>
+                
+                {/* 第三行：定时发布日期列表预览 */}
+                {continuousDays > 0 && continuousStartDate && batchScheduledTime && (
+                  <div style={{ marginTop: 12 }}>
+                    <Alert
+                      type="info"
+                      message={`将在 ${continuousDays} 天内完成发布，每天 ${batchScheduledTime.format('HH:mm')} 准时发布`}
+                      showIcon
+                      style={{ marginBottom: 8 }}
+                    />
+                    <Text type="secondary" style={{ fontSize: 12 }}>发布日程：</Text>
+                    <div style={{ maxHeight: 120, overflowY: 'auto', marginTop: 4 }}>
+                      <List
+                        size="small"
+                        dataSource={generateScheduledDates()}
+                        renderItem={(dateStr, index) => (
+                          <List.Item style={{ padding: '4px 0' }}>
+                            <Space>
+                              <Tag color="blue">{index + 1}</Tag>
+                              <Text>{dateStr}</Text>
+                            </Space>
+                          </List.Item>
+                        )}
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+                
+                {/* 提示信息 */}
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {formData.accounts.length > 0
+                    ? `根据所选平台规则，最多可定时 ${getScheduledLimitDays()} 天`
+                    : '请先选择账号，系统将根据平台规则显示可定时范围'
+                  }
+                </Text>
+              </Card>
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* 素材选择抽屉 */}
+      <Drawer
+        title="选择素材"
         onClose={() => setIsMaterialDrawerVisible(false)}
         open={isMaterialDrawerVisible}
         width={800}
