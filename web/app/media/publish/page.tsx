@@ -152,6 +152,12 @@ export default function PublishCenterPage() {
   // 生成定时日期列表（用于列表展示）
   const generateScheduledDates = () => scheduledDates
 
+  // 获取定时发布限制天数
+  const getScheduledLimitDays = () => {
+    if (!formData.platform) return 30
+    return platformConfig[formData.platform]?.maxScheduledDays || 30
+  }
+
   // 常用标签
   const popularTags = [
     'AI人工智能',
