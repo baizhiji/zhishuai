@@ -647,16 +647,21 @@ export default function PublishCenterPage() {
   ]
 
   // 计算定时发布的日期列表
-  const scheduledDates = formData.platform && batchScheduledDays > 0
-    ? Array.from({ length: batchScheduledDays }, (_, i) => {
-        const date = dayjs().add(i, 'day')
-        const time = batchScheduledTime
-        if (time) {
-          return date.hour(time.hour()).minute(time.minute()).format('YYYY-MM-DD HH:mm')
-        }
-        return date.format('YYYY-MM-DD')
-      })
-    : []
+  const scheduledDates: string[] = []
+  if (formData.platform && batchScheduledDays > 0) {
+    for (let i = 0; i < batchScheduledDays; i++) {
+      const date = dayjs().add(i, 'day')
+      if (batchScheduledTime) {
+        scheduledDates.push(
+          date.hour(batchScheduledTime.hour())
+            .minute(batchScheduledTime.minute())
+            .format('YYYY-MM-DD HH:mm')
+        )
+      } else {
+        scheduledDates.push(date.format('YYYY-MM-DD'))
+      }
+    }
+  }
   return (
     <div className="p-6">
       <div className="mb-6">
