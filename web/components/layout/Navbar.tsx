@@ -51,7 +51,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
       return [
         {
           key: 'dashboard',
-          label: '工作台',
+          label: '数据大盘',
           icon: <PieChartOutlined />,
           path: '/',
         },
