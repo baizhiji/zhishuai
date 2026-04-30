@@ -41,7 +41,6 @@ interface Customer {
   name: string
   phone: string
   status: 'active' | 'frozen'
-  package: 'basic' | 'pro' | 'enterprise'
   features: {
     media: boolean
     recruitment: boolean
@@ -74,7 +73,6 @@ const mockCustomers: Customer[] = [
     name: '张三',
     phone: '138****1001',
     status: 'active',
-    package: 'pro',
     features: { media: true, recruitment: true, acquisition: false, sharing: true, referral: false },
     createdAt: '2024-02-15',
     expireAt: '2025-02-15',
@@ -87,7 +85,6 @@ const mockCustomers: Customer[] = [
     name: '李四',
     phone: '139****2002',
     status: 'frozen',
-    package: 'basic',
     features: { media: true, recruitment: false, acquisition: false, sharing: false, referral: false },
     createdAt: '2024-03-20',
     expireAt: '2024-06-20',
@@ -100,7 +97,6 @@ const mockCustomers: Customer[] = [
     name: '王五',
     phone: '137****3003',
     status: 'active',
-    package: 'pro',
     features: { media: true, recruitment: false, acquisition: true, sharing: true, referral: true },
     createdAt: '2024-04-10',
     expireAt: '2025-04-10',
@@ -113,7 +109,6 @@ const mockCustomers: Customer[] = [
     name: '赵六',
     phone: '136****4004',
     status: 'active',
-    package: 'enterprise',
     features: { media: true, recruitment: true, acquisition: true, sharing: true, referral: true },
     createdAt: '2024-05-05',
     expireAt: '2025-05-05',
@@ -196,7 +191,6 @@ export default function AgentCustomersPage() {
   const handleOpenCreateModal = () => {
     createForm.resetFields()
     createForm.setFieldsValue({
-      package: 'basic',
       status: 'active',
       expireMonths: 12,
     })
@@ -213,7 +207,6 @@ export default function AgentCustomersPage() {
         name: values.name,
         phone: values.phone,
         status: values.status,
-        package: values.package,
         features: {
           media: true,
           recruitment: false,

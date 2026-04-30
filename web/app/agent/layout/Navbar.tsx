@@ -28,16 +28,10 @@ const AgentNavbar: React.FC = () => {
       path: '/agent/analytics',
     },
     {
-      key: 'agents',
-      icon: <GlobalOutlined />,
-      label: '代理商',
-      path: '/agent/agents',
-    },
-    {
-      key: 'customers',
+      key: 'tenants',
       icon: <TeamOutlined />,
       label: '终端客户',
-      path: '/agent/customers',
+      path: '/agent/tenants',
     },
     {
       key: 'referrals',
