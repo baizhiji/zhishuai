@@ -40,12 +40,7 @@ const AdminNavbar: React.FC = () => {
       label: '代理商管理',
       path: '/admin/agents',
     },
-    {
-      key: 'features',
-      icon: <SettingOutlined />,
-      label: '功能开关',
-      path: '/admin/features',
-    },
+
     {
       key: 'branding',
       icon: <BgColorsOutlined />,
