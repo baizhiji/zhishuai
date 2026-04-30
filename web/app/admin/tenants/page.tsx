@@ -249,17 +249,6 @@ export default function AdminCustomersPage() {
       ),
     },
     {
-      title: '套餐',
-      dataIndex: 'package',
-      key: 'package',
-      width: 100,
-      render: (pkg: string) => {
-        const colors: Record<string, string> = { basic: 'default', pro: 'blue', enterprise: 'purple' }
-        const names: Record<string, string> = { basic: '基础版', pro: '专业版', enterprise: '企业版' }
-        return <Tag color={colors[pkg]}>{names[pkg]}</Tag>
-      },
-    },
-    {
       title: '功能权限',
       key: 'features',
       width: 200,
@@ -403,15 +392,12 @@ export default function AdminCustomersPage() {
           <Form.Item name="phone" label="手机号" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name="package" label="套餐" rules={[{ required: true }]}>
-            <Select>
-              <Option value="basic">基础版</Option>
-              <Option value="pro">专业版</Option>
-              <Option value="enterprise">企业版</Option>
+          <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true }]}>
+            <Select placeholder="选择有效时间">
+              {expireOptions.map(opt => (
+                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+              ))}
             </Select>
-          </Form.Item>
-          <Form.Item name="expireAt" label="到期时间" rules={[{ required: true }]}>
-            <Input />
           </Form.Item>
         </Form>
       </Modal>
@@ -497,18 +483,6 @@ export default function AdminCustomersPage() {
             rules={[{ required: true, message: '请输入手机号码' }]}
           >
             <Input placeholder="请输入手机号码" />
-          </Form.Item>
-
-          <Form.Item
-            name="package"
-            label="套餐版本"
-            rules={[{ required: true, message: '请选择套餐版本' }]}
-          >
-            <Select placeholder="请选择套餐">
-              <Option value="basic">基础版</Option>
-              <Option value="pro">专业版</Option>
-              <Option value="enterprise">企业版</Option>
-            </Select>
           </Form.Item>
 
           <Form.Item
