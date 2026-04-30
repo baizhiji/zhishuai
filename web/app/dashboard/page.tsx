@@ -88,6 +88,22 @@ export default function DashboardPage() {
     hires: 89,
   };
 
+  // 智能获客数据
+  const acquisitionStats = {
+    potentialCustomers: 3456,
+    sentMessages: 12345,
+    scannedCodes: 5678,
+    conversions: 1234,
+  };
+
+  // 推荐分享数据
+  const shareStats = {
+    totalReferrals: 156,
+    activeUsers: 128,
+    conversions: 89,
+    scanRate: 82,
+  };
+
   return (
     <div style={{ padding: '24px', background: '#f5f5f5', minHeight: '100vh' }}>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -172,8 +188,8 @@ export default function DashboardPage() {
       </Row>
 
       {/* 招聘数据与最新发布 */}
-      <Row gutter={16}>
-        <Col span={8}>
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
           <Card title="招聘数据" bordered={false} hoverable>
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -202,7 +218,65 @@ export default function DashboardPage() {
             </Space>
           </Card>
         </Col>
-        <Col span={16}>
+        <Col span={6}>
+          <Card title="智能获客" bordered={false} hoverable>
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>发现潜客</Text>
+                <Text strong style={{ color: '#13c2c2' }}>{acquisitionStats.potentialCustomers}</Text>
+              </div>
+              <Progress percent={Math.round((acquisitionStats.potentialCustomers / 5000) * 100)} strokeColor="#13c2c2" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>发送消息</Text>
+                <Text strong style={{ color: '#1890ff' }}>{acquisitionStats.sentMessages}</Text>
+              </div>
+              <Progress percent={Math.round((acquisitionStats.sentMessages / 20000) * 100)} strokeColor="#1890ff" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>扫码次数</Text>
+                <Text strong style={{ color: '#52c41a' }}>{acquisitionStats.scannedCodes}</Text>
+              </div>
+              <Progress percent={Math.round((acquisitionStats.scannedCodes / 8000) * 100)} strokeColor="#52c41a" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>成功转化</Text>
+                <Text strong style={{ color: '#fa8c16' }}>{acquisitionStats.conversions}</Text>
+              </div>
+              <Progress percent={Math.round((acquisitionStats.conversions / 2000) * 100)} strokeColor="#fa8c16" />
+            </Space>
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card title="推荐分享" bordered={false} hoverable>
+            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>总推荐数</Text>
+                <Text strong style={{ color: '#722ed1' }}>{shareStats.totalReferrals}</Text>
+              </div>
+              <Progress percent={Math.round((shareStats.totalReferrals / 200) * 100)} strokeColor="#722ed1" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>活跃用户</Text>
+                <Text strong style={{ color: '#52c41a' }}>{shareStats.activeUsers}</Text>
+              </div>
+              <Progress percent={Math.round((shareStats.activeUsers / 200) * 100)} strokeColor="#52c41a" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>成功转化</Text>
+                <Text strong style={{ color: '#1890ff' }}>{shareStats.conversions}</Text>
+              </div>
+              <Progress percent={Math.round((shareStats.conversions / 100) * 100)} strokeColor="#1890ff" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>扫码率</Text>
+                <Text strong style={{ color: '#fa8c16' }}>{shareStats.scanRate}%</Text>
+              </div>
+              <Progress percent={shareStats.scanRate} strokeColor="#fa8c16" />
+            </Space>
+          </Card>
+        </Col>
+        <Col span={6}>
           <Card title="最新发布" bordered={false} hoverable>
             <Table
               columns={publishColumns}
