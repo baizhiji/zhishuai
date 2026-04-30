@@ -1,415 +1,418 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, Row, Col, Typography, Statistic, Progress, Table, Tag, Space, List, Avatar } from 'antd'
+import { Card, Row, Col, Typography, Statistic, Table, Tag, Space, Progress } from 'antd'
+import {
+  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  Area, AreaChart, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis
+} from 'recharts'
 import {
   VideoCameraOutlined,
   TeamOutlined,
   UserAddOutlined,
   ShareAltOutlined,
-  RiseOutlined,
+  ArrowUpOutlined,
   EyeOutlined,
   LikeOutlined,
   MessageOutlined,
-  StarOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  CloseCircleOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
+  RiseOutlined,
 } from '@ant-design/icons'
-import dayjs from 'dayjs'
 
 const { Title, Text } = Typography
 
-// 模拟统计数据
-const mockStats = {
-  media: {
-    totalPublished: 1256,
-    todayPublished: 23,
-    totalViews: 895420,
-    totalLikes: 45230,
-    totalComments: 8920,
-    totalShares: 3420,
-    followers: 12580,
-    growth: 12.5,
-  },
-  recruitment: {
-    totalJobs: 45,
-    activeJobs: 12,
-    totalApplications: 892,
-    newApplications: 23,
-    interviews: 18,
-    hired: 5,
-    successRate: 28,
-  },
-  acquisition: {
-    totalLeads: 3456,
-    todayLeads: 89,
-    sentMessages: 12340,
-    replies: 2890,
-    scans: 1234,
-    conversions: 456,
-    replyRate: 23.4,
-  },
-  share: {
-    totalCodes: 156,
-    totalScans: 4523,
-    activeUsers: 892,
-    newUsers: 45,
-    growth: 8.7,
-  },
-}
+// 颜色配置
+const COLORS = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2', '#eb2f96']
 
-// 模拟发布记录
+// 模拟数据
+const weeklyData = [
+  { name: '周一', 发布: 12, 播放: 8500, 获客: 45, 招聘: 8 },
+  { name: '周二', 发布: 18, 播放: 12000, 获客: 62, 招聘: 12 },
+  { name: '周三', 发布: 15, 播放: 9800, 获客: 55, 招聘: 10 },
+  { name: '周四', 发布: 22, 播放: 15000, 获客: 78, 招聘: 15 },
+  { name: '周五', 发布: 20, 播放: 13500, 获客: 68, 招聘: 14 },
+  { name: '周六', 发布: 25, 播放: 18000, 获客: 85, 招聘: 18 },
+  { name: '周日', 发布: 23, 播放: 16500, 获客: 72, 招聘: 16 },
+]
+
+// 平台分布
+const platformData = [
+  { name: '抖音', value: 35, color: '#fe2c55' },
+  { name: '快手', value: 25, color: '#ff4906' },
+  { name: '小红书', value: 22, color: '#ff2442' },
+  { name: '视频号', value: 12, color: '#07c160' },
+  { name: '其他', value: 6, color: '#8c8c8c' },
+]
+
+// 招聘来源分布
+const recruitmentSourceData = [
+  { name: 'BOSS直聘', value: 42 },
+  { name: '前程无忧', value: 28 },
+  { name: '智联招聘', value: 18 },
+  { name: '其他', value: 12 },
+]
+
+// 获客渠道分布
+const acquisitionChannelData = [
+  { name: '抖音', value: 35 },
+  { name: '快手', value: 28 },
+  { name: '小红书', value: 22 },
+  { name: 'B站', value: 15 },
+]
+
+// 内容类型分布
+const contentTypeData = [
+  { name: '短视频', value: 45 },
+  { name: '图文', value: 30 },
+  { name: '数字人', value: 15 },
+  { name: '其他', value: 10 },
+]
+
+// 招聘进度分布
+const interviewStatusData = [
+  { name: '待面试', value: 25, color: '#1890ff' },
+  { name: '面试中', value: 35, color: '#faad14' },
+  { name: '待入职', value: 15, color: '#52c41a' },
+  { name: '已入职', value: 15, color: '#722ed1' },
+  { name: '已拒绝', value: 10, color: '#f5222d' },
+]
+
+// KPI 目标完成度
+const kpiData = [
+  { name: '发布量', target: 150, actual: 135, rate: 90 },
+  { name: '获客数', target: 500, actual: 405, rate: 81 },
+  { name: '招聘完成', target: 20, actual: 18, rate: 90 },
+  { name: '互动量', target: 10000, actual: 8500, rate: 85 },
+]
+
+// 近期发布记录
 const recentPublishes = [
-  { id: 1, title: 'AI如何改变我们的工作方式', platform: '抖音', views: 12500, likes: 890, time: '2小时前' },
-  { id: 2, title: '短视频剪辑技巧分享', platform: '快手', views: 8900, likes: 560, time: '4小时前' },
-  { id: 3, title: '智能营销解决方案', platform: '小红书', views: 5600, likes: 420, time: '6小时前' },
-  { id: 4, title: '企业数字化转型指南', platform: '视频号', views: 3200, likes: 280, time: '8小时前' },
+  { id: 1, title: 'AI如何改变工作方式', platform: '抖音', views: 12500, likes: 890, status: '已发布' },
+  { id: 2, title: '短视频剪辑技巧', platform: '快手', views: 8900, likes: 560, status: '已发布' },
+  { id: 3, title: '智能营销解决方案', platform: '小红书', views: 5600, likes: 420, status: '已发布' },
+  { id: 4, title: '企业数字化转型', platform: '视频号', views: 3200, likes: 280, status: '已发布' },
 ]
 
-// 模拟获客记录
-const recentLeads = [
-  { id: 1, name: '张经理', industry: '教育培训', interest: '高', time: '10分钟前' },
-  { id: 2, name: '李总监', industry: '电商运营', interest: '中', time: '30分钟前' },
-  { id: 3, name: '王老板', industry: '实体零售', interest: '高', time: '1小时前' },
-  { id: 4, name: '赵女士', industry: '咨询服务', interest: '低', time: '2小时前' },
-]
-
-// 模拟面试安排
-const upcomingInterviews = [
-  { id: 1, candidate: '陈小明', position: '产品经理', time: '14:00', status: '待面试' },
-  { id: 2, candidate: '林大力', position: '运营主管', time: '15:30', status: '待面试' },
-  { id: 3, candidate: '周小华', position: '市场专员', time: '16:00', status: '待面试' },
-]
+// 核心统计数据
+const statsData = {
+  media: { total: 1256, today: 23, growth: 12.5 },
+  recruitment: { jobs: 45, resumes: 892, interviews: 18 },
+  acquisition: { leads: 3456, sent: 12340, replyRate: 23.4 },
+  share: { codes: 156, scans: 4523, users: 892 },
+}
 
 export default function DataDashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // 模拟加载数据
-    const timer = setTimeout(() => setLoading(false), 500)
+    const timer = setTimeout(() => setLoading(false), 800)
     return () => clearTimeout(timer)
   }, [])
 
+  // 自定义 Tooltip
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 rounded-lg shadow-lg border">
+          <p className="font-semibold mb-1">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.name}: {entry.value.toLocaleString()}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
   const publishColumns = [
-    { title: '内容标题', dataIndex: 'title', key: 'title', ellipsis: true },
-    { title: '平台', dataIndex: 'platform', key: 'platform', width: 80,
-      render: (platform: string) => (
-        <Tag color={
-          platform === '抖音' ? 'magenta' :
-          platform === '快手' ? 'orange' :
-          platform === '小红书' ? 'red' : 'blue'
-        }>{platform}</Tag>
-      )
+    { title: '标题', dataIndex: 'title', key: 'title', ellipsis: true },
+    { title: '平台', dataIndex: 'platform', key: 'platform', width: 90,
+      render: (platform: string) => {
+        const colorMap: Record<string, string> = { '抖音': 'magenta', '快手': 'orange', '小红书': 'red', '视频号': 'green' }
+        return <Tag color={colorMap[platform] || 'default'}>{platform}</Tag>
+      }
     },
-    { title: '播放', dataIndex: 'views', key: 'views', width: 80,
-      render: (v: number) => <Space><EyeOutlined />{v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}</Space>
+    { title: '播放', dataIndex: 'views', key: 'views', width: 90,
+      render: (v: number) => <Text>{v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}</Text>
     },
-    { title: '点赞', dataIndex: 'likes', key: 'likes', width: 80,
-      render: (v: number) => <Space><LikeOutlined />{v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}</Space>
-    },
-    { title: '时间', dataIndex: 'time', key: 'time', width: 80 },
-  ]
-
-  const leadsColumns = [
-    { title: '姓名', dataIndex: 'name', key: 'name' },
-    { title: '行业', dataIndex: 'industry', key: 'industry' },
-    { title: '意向度', dataIndex: 'interest', key: 'interest', width: 80,
-      render: (interest: string) => (
-        <Tag color={interest === '高' ? 'green' : interest === '中' ? 'orange' : 'default'}>{interest}</Tag>
-      )
-    },
-    { title: '时间', dataIndex: 'time', key: 'time', width: 100 },
-  ]
-
-  const interviewColumns = [
-    { title: '候选人', dataIndex: 'candidate', key: 'candidate' },
-    { title: '岗位', dataIndex: 'position', key: 'position' },
-    { title: '时间', dataIndex: 'time', key: 'time', width: 80 },
     { title: '状态', dataIndex: 'status', key: 'status', width: 80,
-      render: () => <Tag color="blue">待面试</Tag>
+      render: () => <Tag color="success">已发布</Tag>
     },
   ]
+
+  // 饼图中心文字
+  const renderCenterText = (value: number, label: string) => (
+    <text>
+      <tspan x="50%" y="45%" textAnchor="middle" className="text-2xl font-bold fill-gray-800">
+        {value.toLocaleString()}
+      </tspan>
+      <tspan x="50%" y="60%" textAnchor="middle" className="text-sm fill-gray-500">
+        {label}
+      </tspan>
+    </text>
+  )
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      {/* 页面标题 */}
       <div className="mb-6">
-        <Title level={2} className="mb-2">数据大盘</Title>
-        <Text type="secondary">实时监控各模块核心业务数据</Text>
+        <Title level={2} className="mb-1">数据大盘</Title>
+        <Text type="secondary">实时监控业务数据，掌握运营状况</Text>
       </div>
 
-      {/* 自媒体运营统计 */}
-      <Card className="mb-4" title={
-        <Space>
-          <VideoCameraOutlined className="text-blue-500" />
-          <span>自媒体运营</span>
-        </Space>
-      }>
-        <Row gutter={16}>
-          <Col xs={12} sm={8} md={6}>
+      {/* 核心指标卡片 */}
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
             <Statistic
-              title="总发布量"
-              value={mockStats.media.totalPublished}
+              title={<span className="text-white/80">今日发布</span>}
+              value={statsData.media.today}
               prefix={<VideoCameraOutlined />}
+              suffix={<ArrowUpOutlined className="text-green-300" />}
+              valueStyle={{ color: '#fff' }}
               loading={loading}
             />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
+            <div className="mt-2 text-white/70 text-sm">
+              较昨日 +{statsData.media.growth}%
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
             <Statistic
-              title="今日发布"
-              value={mockStats.media.todayPublished}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<ArrowUpOutlined />}
+              title={<span className="text-white/80">新增简历</span>}
+              value={statsData.recruitment.resumes}
+              prefix={<TeamOutlined />}
+              valueStyle={{ color: '#fff' }}
               loading={loading}
             />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
+            <div className="mt-2 text-white/70 text-sm">
+              待处理 {statsData.recruitment.interviews} 场面试
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
             <Statistic
-              title="总播放量"
-              value={mockStats.media.totalViews}
-              suffix="次"
+              title={<span className="text-white/80">新增潜客</span>}
+              value={statsData.acquisition.leads}
+              prefix={<UserAddOutlined />}
+              valueStyle={{ color: '#fff' }}
               loading={loading}
             />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
+            <div className="mt-2 text-white/70 text-sm">
+              回复率 {statsData.acquisition.replyRate}%
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
             <Statistic
-              title="总获赞"
-              value={mockStats.media.totalLikes}
+              title={<span className="text-white/80">扫码次数</span>}
+              value={statsData.share.scans}
+              prefix={<ShareAltOutlined />}
+              valueStyle={{ color: '#fff' }}
               loading={loading}
             />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="总评论"
-              value={mockStats.media.totalComments}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="总分享"
-              value={mockStats.media.totalShares}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="粉丝数"
-              value={mockStats.media.followers}
-              suffix="↑"
-              valueStyle={{ color: '#cf1322' }}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="粉丝增长"
-              value={mockStats.media.growth}
-              suffix="%"
-              prefix={<ArrowUpOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-              loading={loading}
-            />
-          </Col>
-        </Row>
-      </Card>
+            <div className="mt-2 text-white/70 text-sm">
+              活跃用户 {statsData.share.users}
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* 招聘助手统计 */}
-      <Card className="mb-4" title={
-        <Space>
-          <TeamOutlined className="text-purple-500" />
-          <span>招聘助手</span>
-        </Space>
-      }>
-        <Row gutter={16}>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="总职位数"
-              value={mockStats.recruitment.totalJobs}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="在招职位"
-              value={mockStats.recruitment.activeJobs}
-              valueStyle={{ color: '#1890ff' }}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="简历总数"
-              value={mockStats.recruitment.totalApplications}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="新增简历"
-              value={mockStats.recruitment.newApplications}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<ArrowUpOutlined />}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="安排面试"
-              value={mockStats.recruitment.interviews}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="已入职"
-              value={mockStats.recruitment.hired}
-              valueStyle={{ color: '#52c41a' }}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <div className="ant-statistic-title">招聘成功率</div>
-            <Progress
-              percent={mockStats.recruitment.successRate}
-              status="active"
-              strokeColor="#52c41a"
-            />
-          </Col>
-        </Row>
-      </Card>
+      {/* 趋势图表 */}
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} lg={16}>
+          <Card title="本周数据趋势" className="h-full">
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={weeklyData}>
+                <defs>
+                  <linearGradient id="colorPublish" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#1890ff" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#1890ff" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#52c41a" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#52c41a" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#faad14" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#faad14" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Area yAxisId="left" type="monotone" dataKey="发布" stroke="#1890ff" fillOpacity={1} fill="url(#colorPublish)" />
+                <Area yAxisId="right" type="monotone" dataKey="播放" stroke="#52c41a" fillOpacity={1} fill="url(#colorViews)" />
+                <Area yAxisId="right" type="monotone" dataKey="获客" stroke="#faad14" fillOpacity={1} fill="url(#colorLeads)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="KPI 完成度" className="h-full">
+            <div className="space-y-4">
+              {kpiData.map((item, index) => (
+                <div key={index}>
+                  <div className="flex justify-between mb-1">
+                    <Text>{item.name}</Text>
+                    <Text type="secondary">{item.actual} / {item.target}</Text>
+                  </div>
+                  <Progress
+                    percent={item.rate}
+                    strokeColor={item.rate >= 90 ? '#52c41a' : item.rate >= 70 ? '#faad14' : '#f5222d'}
+                    showInfo={false}
+                    size="small"
+                  />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* 智能获客统计 */}
-      <Card className="mb-4" title={
-        <Space>
-          <UserAddOutlined className="text-orange-500" />
-          <span>智能获客</span>
-        </Space>
-      }>
-        <Row gutter={16}>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="潜客总数"
-              value={mockStats.acquisition.totalLeads}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="今日新增"
-              value={mockStats.acquisition.todayLeads}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<ArrowUpOutlined />}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="发送消息"
-              value={mockStats.acquisition.sentMessages}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="收到回复"
-              value={mockStats.acquisition.replies}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="扫码数"
-              value={mockStats.acquisition.scans}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="转化数"
-              value={mockStats.acquisition.conversions}
-              valueStyle={{ color: '#52c41a' }}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="回复率"
-              value={mockStats.acquisition.replyRate}
-              suffix="%"
-              loading={loading}
-            />
-          </Col>
-        </Row>
-      </Card>
+      {/* 分布图表 */}
+      <Row gutter={[16, 16]} className="mb-6">
+        <Col xs={24} sm={12} lg={6}>
+          <Card title="平台分布">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={platformData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {platformData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${value}%`} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-2">
+              {platformData.map((item, index) => (
+                <div key={index} className="flex items-center justify-between text-sm mb-1">
+                  <Space>
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                    <Text>{item.name}</Text>
+                  </Space>
+                  <Text strong>{item.value}%</Text>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card title="内容类型">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={contentTypeData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {contentTypeData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${value}%`} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-2">
+              {contentTypeData.map((item, index) => (
+                <div key={index} className="flex items-center justify-between text-sm mb-1">
+                  <Space>
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                    <Text>{item.name}</Text>
+                  </Space>
+                  <Text strong>{item.value}%</Text>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card title="招聘进度">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={interviewStatusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {interviewStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${value}%`} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="mt-2">
+              {interviewStatusData.map((item, index) => (
+                <div key={index} className="flex items-center justify-between text-sm mb-1">
+                  <Space>
+                    <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
+                    <Text>{item.name}</Text>
+                  </Space>
+                  <Text strong>{item.value}%</Text>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card title="获客渠道">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={acquisitionChannelData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={60} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#faad14" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* 推荐分享统计 */}
-      <Card className="mb-4" title={
-        <Space>
-          <ShareAltOutlined className="text-green-500" />
-          <span>推荐分享</span>
-        </Space>
-      }>
-        <Row gutter={16}>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="生成码数"
-              value={mockStats.share.totalCodes}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="扫码次数"
-              value={mockStats.share.totalScans}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="活跃用户"
-              value={mockStats.share.activeUsers}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="新增用户"
-              value={mockStats.share.newUsers}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<ArrowUpOutlined />}
-              loading={loading}
-            />
-          </Col>
-          <Col xs={12} sm={8} md={6}>
-            <Statistic
-              title="增长趋势"
-              value={mockStats.share.growth}
-              suffix="%"
-              prefix={<ArrowUpOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-              loading={loading}
-            />
-          </Col>
-        </Row>
-      </Card>
-
-      {/* 实时动态 */}
-      <Row gutter={16}>
-        {/* 最新发布 */}
+      {/* 发布对比柱状图 & 最新发布 */}
+      <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
-          <Card
-            title={
-              <Space>
-                <CheckCircleOutlined className="text-green-500" />
-                <span>最新发布</span>
-              </Space>
-            }
-            extra={<a href="/media/publish">查看更多</a>}
-            className="mb-4"
-          >
+          <Card title="各平台发布对比">
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Bar dataKey="发布" fill="#1890ff" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="招聘" fill="#722ed1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="最新发布记录" extra={<a href="/media/publish">查看更多</a>}>
             <Table
               dataSource={recentPublishes}
               columns={publishColumns}
@@ -418,92 +421,6 @@ export default function DataDashboardPage() {
               size="small"
               loading={loading}
             />
-          </Card>
-        </Col>
-
-        {/* 获客动态 */}
-        <Col xs={24} lg={12}>
-          <Card
-            title={
-              <Space>
-                <UserAddOutlined className="text-orange-500" />
-                <span>获客动态</span>
-              </Space>
-            }
-            extra={<a href="/acquisition">查看更多</a>}
-            className="mb-4"
-          >
-            <Table
-              dataSource={recentLeads}
-              columns={leadsColumns}
-              rowKey="id"
-              pagination={false}
-              size="small"
-              loading={loading}
-            />
-          </Card>
-        </Col>
-
-        {/* 面试安排 */}
-        <Col xs={24} lg={12}>
-          <Card
-            title={
-              <Space>
-                <ClockCircleOutlined className="text-blue-500" />
-                <span>面试安排</span>
-              </Space>
-            }
-            extra={<a href="/recruitment/interview">查看更多</a>}
-            className="mb-4"
-          >
-            <Table
-              dataSource={upcomingInterviews}
-              columns={interviewColumns}
-              rowKey="id"
-              pagination={false}
-              size="small"
-              loading={loading}
-            />
-          </Card>
-        </Col>
-
-        {/* 快捷操作 */}
-        <Col xs={24} lg={12}>
-          <Card title="快捷操作">
-            <Row gutter={8}>
-              <Col span={12}>
-                <Card size="small" className="bg-blue-50 hover:bg-blue-100 cursor-pointer">
-                  <Space>
-                    <VideoCameraOutlined className="text-xl text-blue-500" />
-                    <Text>新建发布任务</Text>
-                  </Space>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card size="small" className="bg-purple-50 hover:bg-purple-100 cursor-pointer">
-                  <Space>
-                    <TeamOutlined className="text-xl text-purple-500" />
-                    <Text>发布新职位</Text>
-                  </Space>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card size="small" className="bg-orange-50 hover:bg-orange-100 cursor-pointer mt-2">
-                  <Space>
-                    <UserAddOutlined className="text-xl text-orange-500" />
-                    <Text>创建获客任务</Text>
-                  </Space>
-                </Card>
-              </Col>
-              <Col span={12}>
-                <Card size="small" className="bg-green-50 hover:bg-green-100 cursor-pointer mt-2">
-                  <Space>
-                    <ShareAltOutlined className="text-xl text-green-500" />
-                    <Text>生成推广码</Text>
-                  </Space>
-                </Card>
-              </Col>
-            </Row>
           </Card>
         </Col>
       </Row>
