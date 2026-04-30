@@ -108,7 +108,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '账号与配置',
           icon: <SettingOutlined />,
           children: [
-            { key: 'account-staff', label: '员工管理', icon: <TeamOutlined />, path: '/account/staff' },
+
             { key: 'account-api', label: 'API服务商配置', icon: <ApiOutlined />, path: '/account/api' },
             { key: 'account-knowledge', label: '知识库管理', icon: <ThunderboltOutlined />, path: '/account/knowledge' },
             { key: 'account-log', label: '操作日志', icon: <PieChartOutlined />, path: '/account/log' },
@@ -141,14 +141,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
             { key: 'crm-placeholder', label: '即将上线', icon: <TeamOutlined />, path: '/crm' },
           ],
         },
-        {
-          key: 'hr',
-          label: '员工管理',
-          icon: <TeamOutlined />,
-          children: [
-            { key: 'hr-placeholder', label: '即将上线', icon: <TeamOutlined />, path: '/hr' },
-          ],
-        },
+
         {
           key: 'marketing',
           label: '营销功能',
