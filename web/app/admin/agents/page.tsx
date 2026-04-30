@@ -15,6 +15,7 @@ import {
   Form,
   InputNumber,
   Select,
+  Cascader,
   message,
   Popconfirm,
   Descriptions
@@ -23,7 +24,6 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  SearchOutlined,
   UserOutlined,
   GlobalOutlined,
   AreaChartOutlined
@@ -38,7 +38,8 @@ interface Agent {
   key: string
   id: string
   name: string
-  region: string
+  province: string
+  city: string
   phone: string
   email: string
   customerCount: number
@@ -48,15 +49,61 @@ interface Agent {
   createTime: string
 }
 
+// 省市数据
+const regionData: Record<string, string[]> = {
+  '上海市': ['黄浦区', '徐汇区', '长宁区', '静安区', '普陀区', '虹口区', '杨浦区', '浦东新区', '闵行区', '宝山区', '嘉定区', '松江区', '青浦区', '奉贤区', '金山区', '崇明区'],
+  '北京市': ['东城区', '西城区', '朝阳区', '丰台区', '石景山区', '海淀区', '门头沟区', '房山区', '通州区', '顺义区', '昌平区', '大兴区', '怀柔区', '平谷区', '密云区', '延庆区'],
+  '广东省': ['广州市', '深圳市', '珠海市', '东莞市', '佛山市', '中山市', '惠州市', '汕头市', '江门市', '湛江市', '肇庆市', '梅州市', '汕尾市', '河源市', '阳江市', '清远市', '韶关市', '揭阳市', '潮州市', '云浮市'],
+  '浙江省': ['杭州市', '宁波市', '温州市', '嘉兴市', '湖州市', '绍兴市', '金华市', '衢州市', '舟山市', '台州市', '丽水市'],
+  '江苏省': ['南京市', '苏州市', '无锡市', '常州市', '南通市', '徐州市', '连云港市', '淮安市', '盐城市', '扬州市', '镇江市', '泰州市', '宿迁市'],
+  '山东省': ['济南市', '青岛市', '烟台市', '威海市', '潍坊市', '淄博市', '临沂市', '济宁市', '泰安市', '德州市', '聊城市', '滨州市', '菏泽市', '枣庄市', '日照市', '东营市'],
+  '四川省': ['成都市', '绵阳市', '德阳市', '宜宾市', '泸州市', '南充市', '达州市', '乐山市', '自贡市', '遂宁市', '内江市', '资阳市', '眉山市', '雅安市', '广安市', '广元市', '巴中市', '攀枝花市', '凉山州', '甘孜州'],
+  '湖北省': ['武汉市', '宜昌市', '襄阳市', '荆州市', '黄冈市', '孝感市', '荆门市', '鄂州市', '随州市', '咸宁市', '黄石市', '恩施州', '十堰市', '天门市', '仙桃市', '潜江市'],
+  '湖南省': ['长沙市', '株洲市', '湘潭市', '衡阳市', '岳阳市', '邵阳市', '常德市', '张家界市', '益阳市', '郴州市', '永州市', '怀化市', '娄底市', '湘西州'],
+  '河南省': ['郑州市', '洛阳市', '开封市', '南阳市', '新乡市', '安阳市', '焦作市', '许昌市', '平顶山市', '商丘市', '周口市', '信阳市', '驻马店市', '濮阳市', '三门峡市', '漯河市', '济源市'],
+  '河北省': ['石家庄市', '唐山市', '秦皇岛市', '邯郸市', '邢台市', '保定市', '张家口市', '承德市', '沧州市', '廊坊市', '衡水市'],
+  '福建省': ['福州市', '厦门市', '泉州市', '漳州市', '莆田市', '宁德市', '三明市', '南平市', '龙岩市'],
+  '安徽省': ['合肥市', '芜湖市', '蚌埠市', '淮南市', '马鞍山市', '淮北市', '铜陵市', '安庆市', '黄山市', '阜阳市', '宿州市', '滁州市', '六安市', '宣城市', '池州市', '亳州市'],
+  '江西省': ['南昌市', '景德镇市', '九江市', '赣州市', '吉安市', '宜春市', '抚州市', '上饶市', '新余市', '萍乡市', '鹰潭市'],
+  '辽宁省': ['沈阳市', '大连市', '鞍山市', '抚顺市', '本溪市', '丹东市', '锦州市', '营口市', '阜新市', '辽阳市', '盘锦市', '铁岭市', '朝阳市', '葫芦岛市'],
+  '吉林省': ['长春市', '吉林市', '四平市', '辽源市', '通化市', '白山市', '松原市', '白城市', '延边州'],
+  '黑龙江省': ['哈尔滨市', '齐齐哈尔市', '牡丹江市', '佳木斯市', '大庆市', '伊春市', '鸡西市', '鹤岗市', '双鸭山市', '七台河市', '绥化市', '黑河市', '大兴安岭地区'],
+  '陕西省': ['西安市', '宝鸡市', '咸阳市', '铜川市', '渭南市', '延安市', '榆林市', '汉中市', '安康市', '商洛市'],
+  '云南省': ['昆明市', '曲靖市', '玉溪市', '保山市', '昭通市', '丽江市', '普洱市', '临沧市', '楚雄州', '红河州', '文山州', '西双版纳州', '大理州', '德宏州', '怒江州', '迪庆州'],
+  '贵州省': ['贵阳市', '遵义市', '六盘水市', '安顺市', '毕节市', '铜仁市', '黔东南州', '黔南州', '黔西南州'],
+  '广西': ['南宁市', '柳州市', '桂林市', '梧州市', '北海市', '防城港市', '钦州市', '贵港市', '玉林市', '百色市', '贺州市', '河池市', '来宾市', '崇左市'],
+  '海南省': ['海口市', '三亚市', '三沙市', '儋州市'],
+  '内蒙古': ['呼和浩特市', '包头市', '乌海市', '赤峰市', '通辽市', '鄂尔多斯市', '呼伦贝尔市', '巴彦淖尔市', '乌兰察布市', '兴安盟', '锡林郭勒盟', '阿拉善盟'],
+  '山西省': ['太原市', '大同市', '阳泉市', '长治市', '晋城市', '朔州市', '晋中市', '运城市', '忻州市', '临汾市', '吕梁市'],
+  '甘肃省': ['兰州市', '嘉峪关市', '金昌市', '白银市', '天水市', '武威市', '张掖市', '平凉市', '酒泉市', '庆阳市', '定西市', '陇南市', '临夏州', '甘南州'],
+  '青海省': ['西宁市', '海东市', '海北州', '黄南州', '海南州', '果洛州', '玉树州', '海西州'],
+  '宁夏': ['银川市', '石嘴山市', '吴忠市', '固原市', '中卫市'],
+  '新疆': ['乌鲁木齐市', '克拉玛依市', '吐鲁番市', '哈密市', '阿克苏地区', '喀什地区', '和田地区', '伊犁州', '塔城地区', '阿勒泰地区', '博尔塔拉州', '巴音郭楞州', '昌吉州', '克孜勒苏州'],
+  '西藏': ['拉萨市', '日喀则市', '昌都市', '林芝市', '山南市', '那曲市', '阿里地区'],
+  '天津市': ['和平区', '河东区', '河西区', '南开区', '河北区', '红桥区', '东丽区', '西青区', '津南区', '北辰区', '武清区', '宝坻区', '滨海新区', '宁河区', '静海区', '蓟州区'],
+  '重庆市': ['万州区', '渝中区', '江北区', '沙坪坝区', '九龙坡区', '南岸区', '北碚区', '渝北区', '巴南区', '涪陵区', '长寿区', '璧山区', '合川区', '永川区', '南川区', '大足区', '綦江区', '黔江区', '铜梁区', '潼南区', '荣昌区', '开州区', '梁平区', '武隆区']
+}
+
+// 构建级联选择数据
+const cascaderOptions = Object.entries(regionData).map(([province, cities]) => ({
+  value: province,
+  label: province,
+  children: cities.map(city => ({
+    value: city,
+    label: city
+  }))
+}))
+
 // Mock 数据
 const mockAgents: Agent[] = [
   {
     key: '1',
     id: 'A001',
-    name: '华东代理商',
-    region: '华东地区',
+    name: '上海代理商',
+    province: '上海市',
+    city: '浦东新区',
     phone: '138****1001',
-    email: 'huadong@example.com',
+    email: 'shanghai@example.com',
     customerCount: 456,
     commission: 15,
     status: 'active',
@@ -66,10 +113,11 @@ const mockAgents: Agent[] = [
   {
     key: '2',
     id: 'A002',
-    name: '华南代理商',
-    region: '华南地区',
+    name: '广州代理商',
+    province: '广东省',
+    city: '广州市',
     phone: '139****2002',
-    email: 'huanan@example.com',
+    email: 'guangzhou@example.com',
     customerCount: 389,
     commission: 12,
     status: 'active',
@@ -79,10 +127,11 @@ const mockAgents: Agent[] = [
   {
     key: '3',
     id: 'A003',
-    name: '西南代理商',
-    region: '西南地区',
+    name: '成都代理商',
+    province: '四川省',
+    city: '成都市',
     phone: '137****3003',
-    email: 'xinan@example.com',
+    email: 'chengdu@example.com',
     customerCount: 215,
     commission: 10,
     status: 'active',
@@ -92,10 +141,11 @@ const mockAgents: Agent[] = [
   {
     key: '4',
     id: 'A004',
-    name: '华北代理商',
-    region: '华北地区',
+    name: '北京代理商',
+    province: '北京市',
+    city: '朝阳区',
     phone: '136****4004',
-    email: 'huabei@example.com',
+    email: 'beijing@example.com',
     customerCount: 178,
     commission: 12,
     status: 'frozen',
@@ -105,10 +155,11 @@ const mockAgents: Agent[] = [
   {
     key: '5',
     id: 'A005',
-    name: '西北代理商',
-    region: '西北地区',
+    name: '深圳代理商',
+    province: '广东省',
+    city: '深圳市',
     phone: '135****5005',
-    email: 'xibei@example.com',
+    email: 'shenzhen@example.com',
     customerCount: 98,
     commission: 15,
     status: 'active',
@@ -137,7 +188,10 @@ export default function AgentManagement() {
   const handleEdit = (agent?: Agent) => {
     if (agent) {
       setSelectedAgent(agent)
-      form.setFieldsValue(agent)
+      form.setFieldsValue({
+        ...agent,
+        region: [agent.province, agent.city]
+      })
     } else {
       setSelectedAgent(null)
       form.resetFields()
@@ -148,16 +202,21 @@ export default function AgentManagement() {
   // 保存
   const handleSave = () => {
     form.validateFields().then(values => {
+      const { region, ...rest } = values
+      const [province, city] = region || []
+      
       if (selectedAgent) {
         setAgents(prev => prev.map(a => 
-          a.key === selectedAgent.key ? { ...a, ...values } : a
+          a.key === selectedAgent.key ? { ...a, ...rest, province, city } : a
         ))
         message.success('保存成功')
       } else {
         const newAgent: Agent = {
-          ...values,
+          ...rest,
+          province,
+          city,
           key: `A${Date.now()}`,
-          id: `A${agents.length + 1}`.padStart(4, '0'),
+          id: `A${(agents.length + 1).toString().padStart(4, '0')}`,
           createTime: new Date().toISOString().split('T')[0]
         }
         setAgents(prev => [...prev, newAgent])
@@ -193,6 +252,13 @@ export default function AgentManagement() {
     </Space>
   )
 
+  // 渲染区域列
+  const renderRegion = (record: Agent) => (
+    <Tag icon={<AreaChartOutlined />} color="blue">
+      {record.province} · {record.city}
+    </Tag>
+  )
+
   const columns: ColumnsType<Agent> = [
     {
       title: '代理商',
@@ -209,9 +275,8 @@ export default function AgentManagement() {
     },
     {
       title: '负责区域',
-      dataIndex: 'region',
       key: 'region',
-      render: (region: string) => <Tag icon={<AreaChartOutlined />}>{region}</Tag>
+      render: (_, record) => renderRegion(record)
     },
     {
       title: '联系方式',
@@ -369,39 +434,36 @@ export default function AgentManagement() {
         <Form form={form} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="name" label="代理商名称" rules={[{ required: true }]}>
-                <Input placeholder="如：华东代理商" />
+              <Form.Item name="name" label="代理商名称" rules={[{ required: true, message: '请输入代理商名称' }]}>
+                <Input placeholder="如：上海代理商" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="region" label="负责区域" rules={[{ required: true }]}>
-                <Select placeholder="选择区域">
-                  <Option value="华东地区">华东地区</Option>
-                  <Option value="华南地区">华南地区</Option>
-                  <Option value="华北地区">华北地区</Option>
-                  <Option value="西南地区">西南地区</Option>
-                  <Option value="西北地区">西北地区</Option>
-                  <Option value="东北地区">东北地区</Option>
-                </Select>
+              <Form.Item name="region" label="负责区域（省/市）" rules={[{ required: true, message: '请选择负责区域' }]}>
+                <Cascader 
+                  options={cascaderOptions} 
+                  placeholder="选择省/市" 
+                  changeOnSelect
+                />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="phone" label="联系电话" rules={[{ required: true }]}>
-                <Input />
+              <Form.Item name="phone" label="联系电话" rules={[{ required: true, message: '请输入联系电话' }]}>
+                <Input placeholder="请输入手机号码" />
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="email" label="邮箱" rules={[{ type: 'email' }]}>
-                <Input />
+              <Form.Item name="email" label="邮箱" rules={[{ type: 'email', message: '请输入正确的邮箱' }]}>
+                <Input placeholder="请输入邮箱" />
               </Form.Item>
             </Col>
           </Row>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="commission" label="分成比例(%)" rules={[{ required: true }]}>
-                <InputNumber min={0} max={100} style={{ width: '100%' }} />
+              <Form.Item name="commission" label="分成比例(%)" rules={[{ required: true, message: '请输入分成比例' }]}>
+                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="0-100" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -437,7 +499,7 @@ export default function AgentManagement() {
           <Descriptions bordered column={2}>
             <Descriptions.Item label="代理商ID">{selectedAgent.id}</Descriptions.Item>
             <Descriptions.Item label="代理商名称">{selectedAgent.name}</Descriptions.Item>
-            <Descriptions.Item label="负责区域">{selectedAgent.region}</Descriptions.Item>
+            <Descriptions.Item label="负责区域">{selectedAgent.province} · {selectedAgent.city}</Descriptions.Item>
             <Descriptions.Item label="联系电话">{selectedAgent.phone}</Descriptions.Item>
             <Descriptions.Item label="邮箱">{selectedAgent.email}</Descriptions.Item>
             <Descriptions.Item label="分成比例">{selectedAgent.commission}%</Descriptions.Item>

@@ -6,7 +6,7 @@ import {
   UserOutlined,
   BankOutlined,
   RiseOutlined,
-  ArrowUpOutOutlined,
+  ArrowUpOutlined,
   DollarOutlined,
   TeamOutlined,
   ApartmentOutlined,
@@ -98,7 +98,7 @@ export default function AdminAnalyticsPage() {
               title="代理商总数"
               value={35}
               prefix={<ApartmentOutlined />}
-              suffix={<Text type="success"><ArrowUpOutOutlined /> 3</Text>}
+              suffix={<Text type="success"><ArrowUpOutlined /> 3</Text>}
             />
           </Card>
         </Col>
@@ -108,7 +108,7 @@ export default function AdminAnalyticsPage() {
               title="终端客户总数"
               value={1289}
               prefix={<TeamOutlined />}
-              suffix={<Text type="success"><ArrowUpOutOutlined /> 23</Text>}
+              suffix={<Text type="success"><ArrowUpOutlined /> 23</Text>}
             />
           </Card>
         </Col>
@@ -119,7 +119,7 @@ export default function AdminAnalyticsPage() {
               value={3120000}
               prefix={<DollarOutlined />}
               formatter={(value) => `¥${Number(value).toLocaleString()}`}
-              suffix={<Text type="success"><ArrowUpOutOutlined /> 18%</Text>}
+              suffix={<Text type="success"><ArrowUpOutlined /> 18%</Text>}
             />
           </Card>
         </Col>
@@ -130,7 +130,7 @@ export default function AdminAnalyticsPage() {
               value={956}
               prefix={<UserOutlined />}
               valueStyle={{ color: '#1890ff' }}
-              suffix={<Text type="success"><ArrowUpOutOutlined /> 12%</Text>}
+              suffix={<Text type="success"><ArrowUpOutlined /> 12%</Text>}
             />
           </Card>
         </Col>

@@ -19,6 +19,8 @@ import {
   Popconfirm,
   Typography,
   Badge,
+  DatePicker,
+  Switch,
 } from 'antd'
 import {
   SearchOutlined,
@@ -28,16 +30,15 @@ import {
   EditOutlined,
   DeleteOutlined,
   TeamOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ExclamationCircleOutlined,
-  SettingOutlined,
+  PlusOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
+import dayjs from 'dayjs'
 
 const { Title, Text } = Typography
 const { Search } = Input
 const { Option } = Select
+const { RangePicker } = DatePicker
 
 interface Tenant {
   id: string
@@ -133,8 +134,10 @@ export default function AdminTenantsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [editVisible, setEditVisible] = useState(false)
+  const [createVisible, setCreateVisible] = useState(false)
   const [editTenant, setEditTenant] = useState<Tenant | null>(null)
   const [form] = Form.useForm()
+  const [createForm] = Form.useForm()
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t) => {
@@ -170,6 +173,46 @@ export default function AdminTenantsPage() {
   const handleDelete = (tenant: Tenant) => {
     setTenants((prev) => prev.filter((t) => t.id !== tenant.id))
     message.success(`${tenant.name} 已删除`)
+  }
+
+  // 开通终端用户
+  const handleOpenCreateModal = () => {
+    createForm.resetFields()
+    createForm.setFieldsValue({
+      type: 'customer',
+      package: 'basic',
+      status: 'active',
+      features: { media: true, recruitment: false, acquisition: false, sharing: false, referral: false },
+      expireAt: dayjs().add(1, 'year'),
+    })
+    setCreateVisible(true)
+  }
+
+  const handleCreate = () => {
+    createForm.validateFields().then((values) => {
+      const newTenant: Tenant = {
+        id: Date.now().toString(),
+        name: values.name,
+        type: values.type,
+        status: values.status,
+        package: values.package,
+        features: values.features || {
+          media: false,
+          recruitment: false,
+          acquisition: false,
+          sharing: false,
+          referral: false,
+        },
+        createdAt: dayjs().format('YYYY-MM-DD'),
+        expireAt: values.expireAt ? values.expireAt.format('YYYY-MM-DD') : dayjs().add(1, 'year').format('YYYY-MM-DD'),
+        users: 0,
+        published: 0,
+        acquired: 0,
+      }
+      setTenants((prev) => [newTenant, ...prev])
+      message.success(`已成功开通终端用户：${values.name}`)
+      setCreateVisible(false)
+    })
   }
 
   const columns: ColumnsType<Tenant> = [
@@ -285,9 +328,14 @@ export default function AdminTenantsPage() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <Title level={2} className="mb-2">租户管理</Title>
-        <Text type="secondary">查看所有代理商和客户列表，强制开关功能、调整套餐、冻结/解冻</Text>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <Title level={2} className="mb-2">租户管理</Title>
+          <Text type="secondary">查看所有代理商和客户列表，强制开关功能、调整套餐、冻结/解冻</Text>
+        </div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>
+          开通终端用户
+        </Button>
       </div>
 
       <Row gutter={16} className="mb-6">
@@ -352,6 +400,81 @@ export default function AdminTenantsPage() {
           </Form.Item>
           <Form.Item name="expireAt" label="到期时间" rules={[{ required: true }]}>
             <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="开通终端用户"
+        open={createVisible}
+        onOk={handleCreate}
+        onCancel={() => setCreateVisible(false)}
+        okText="确认开通"
+        cancelText="取消"
+        width={600}
+      >
+        <Form form={createForm} layout="vertical" initialValues={{ status: 'active' }}>
+          <Form.Item
+            name="name"
+            label="企业名称"
+            rules={[{ required: true, message: '请输入企业名称' }]}
+          >
+            <Input placeholder="请输入企业全称" />
+          </Form.Item>
+
+          <Form.Item
+            name="package"
+            label="套餐版本"
+            rules={[{ required: true, message: '请选择套餐版本' }]}
+          >
+            <Select placeholder="请选择套餐">
+              <Option value="basic">基础版</Option>
+              <Option value="pro">专业版</Option>
+              <Option value="enterprise">企业版</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="expireAt"
+            label="到期时间"
+            rules={[{ required: true, message: '请选择到期时间' }]}
+          >
+            <DatePicker style={{ width: '100%' }} placeholder="选择到期时间" />
+          </Form.Item>
+
+          <Form.Item
+            name="features"
+            label="开通功能"
+          >
+            <Space direction="vertical">
+              <Space>
+                <Form.Item name={['features', 'media']} valuePropName="checked" noStyle>
+                  <Switch checkedChildren="自媒体" unCheckedChildren="自媒体" />
+                </Form.Item>
+                <Form.Item name={['features', 'recruitment']} valuePropName="checked" noStyle>
+                  <Switch checkedChildren="招聘" unCheckedChildren="招聘" />
+                </Form.Item>
+                <Form.Item name={['features', 'acquisition']} valuePropName="checked" noStyle>
+                  <Switch checkedChildren="获客" unCheckedChildren="获客" />
+                </Form.Item>
+              </Space>
+              <Space>
+                <Form.Item name={['features', 'sharing']} valuePropName="checked" noStyle>
+                  <Switch checkedChildren="分享" unCheckedChildren="分享" />
+                </Form.Item>
+                <Form.Item name={['features', 'referral']} valuePropName="checked" noStyle>
+                  <Switch checkedChildren="转介" unCheckedChildren="转介" />
+                </Form.Item>
+              </Space>
+            </Space>
+          </Form.Item>
+
+          <Form.Item name="status" label="初始状态" valuePropName="checked">
+            <Space>
+              <Form.Item name="status" valuePropName="checked" noStyle>
+                <Switch checkedChildren="正常" unCheckedChildren="冻结" />
+              </Form.Item>
+            </Space>
           </Form.Item>
         </Form>
       </Modal>
