@@ -3,6 +3,9 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
 
+  // Transpile @ant-design/charts
+  transpilePackages: ['@ant-design/charts'],
+
   // 图片优化配置
   images: {
     domains: ['code.coze.cn', 'api.dicebear.com', 'via.placeholder.com'],
