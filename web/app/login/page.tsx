@@ -24,7 +24,7 @@ export default function LoginPageSimple() {
   const getHomePath = (role: string) => {
     switch (role) {
       case 'admin': return '/admin/tenants';
-      case 'agent': return '/agent/clients';
+      case 'agent': return '/agent/tenants';
       default: return '/dashboard';
     }
   };
