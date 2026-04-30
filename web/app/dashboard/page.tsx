@@ -1,12 +1,24 @@
 'use client';
 
-import { Card, Row, Col, Table, Tag, Progress, Statistic, Typography, Space, DatePicker } from 'antd';
+import { Card, Row, Col, Table, Tag, Progress, Statistic, Typography, Space, DatePicker, Spin } from 'antd';
 import { 
   UserOutlined, VideoCameraOutlined, FileTextOutlined, 
-  LikeOutlined, StarOutlined, DownloadOutlined, RiseOutlined
+  LikeOutlined, StarOutlined, RiseOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+// 动态导入图表组件，禁用SSR
+const LineChartComponent = dynamic(() => import('./components/LineChart'), { 
+  ssr: false,
+  loading: () => <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin /></div>
+});
+
+const PieChartComponent = dynamic(() => import('./components/PieChart'), { 
+  ssr: false,
+  loading: () => <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Spin /></div>
+});
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -16,6 +28,11 @@ export default function DashboardPage() {
     dayjs().subtract(30, 'day'),
     dayjs()
   ]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 模拟统计数据
   const stats = {
@@ -30,10 +47,21 @@ export default function DashboardPage() {
 
   // 平台账号分布
   const platformData = [
-    { platform: '抖音', count: 4567, color: '#FE2C55' },
-    { platform: '小红书', count: 3456, color: '#FF2442' },
-    { platform: '快手', count: 2890, color: '#FF4906' },
-    { platform: '视频号', count: 1671, color: '#07C160' },
+    { name: '抖音', value: 4567, color: '#FE2C55' },
+    { name: '小红书', value: 3456, color: '#FF2442' },
+    { name: '快手', value: 2890, color: '#FF4906' },
+    { name: '视频号', value: 1671, color: '#07C160' },
+  ];
+
+  // 活跃趋势数据
+  const trendData = [
+    { day: '周一', users: 1200 },
+    { day: '周二', users: 1398 },
+    { day: '周三', users: 1350 },
+    { day: '周四', users: 1420 },
+    { day: '周五', users: 1567 },
+    { day: '周六', users: 1280 },
+    { day: '周日', users: 1100 },
   ];
 
   // 最新发布记录
@@ -66,14 +94,18 @@ export default function DashboardPage() {
         <Title level={3} style={{ margin: 0 }}>数据大盘</Title>
         <RangePicker 
           value={dateRange} 
-          onChange={(dates) => dates && setDateRange([dates[0], dates[1]])}
+          onChange={(dates) => {
+            if (dates && dates[0] && dates[1]) {
+              setDateRange([dates[0], dates[1]]);
+            }
+          }}
         />
       </div>
 
       {/* 核心指标 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card bordered={false} hoverable>
             <Statistic
               title="总用户数"
               value={stats.totalUsers}
@@ -83,7 +115,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card bordered={false} hoverable>
             <Statistic
               title="活跃用户"
               value={stats.activeUsers}
@@ -94,7 +126,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card bordered={false} hoverable>
             <Statistic
               title="总发布量"
               value={stats.totalVideos + stats.totalArticles}
@@ -104,7 +136,7 @@ export default function DashboardPage() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card bordered={false}>
+          <Card bordered={false} hoverable>
             <Statistic
               title="互动量"
               value={stats.totalLikes}
@@ -118,75 +150,62 @@ export default function DashboardPage() {
       {/* 平台分布与趋势 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
-          <Card title="平台账号分布" bordered={false}>
-            <Space direction="vertical" style={{ width: '100%' }} size="large">
-              {platformData.map((item) => (
-                <div key={item.platform}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text>{item.platform}</Text>
-                    <Text strong>{item.count} 个</Text>
-                  </div>
-                  <Progress 
-                    percent={Math.round((item.count / Math.max(...platformData.map(d => d.count))) * 100)} 
-                    strokeColor={item.color}
-                    showInfo={false}
-                  />
-                </div>
-              ))}
-            </Space>
+          <Card title="平台账号分布" bordered={false} hoverable>
+            {mounted && <PieChartComponent data={platformData} />}
+            {!mounted && (
+              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Spin />
+              </div>
+            )}
           </Card>
         </Col>
         <Col span={12}>
-          <Card title="用户活跃趋势" bordered={false}>
-            <Statistic
-              title="近7日活跃用户"
-              value={1567}
-              prefix={<RiseOutlined style={{ color: '#52c41a' }} />}
-              suffix="人"
-              valueStyle={{ color: '#52c41a' }}
-            />
-            <div style={{ marginTop: 16 }}>
-              <Text type="secondary">较上周</Text>
-              <Text style={{ color: '#52c41a', marginLeft: 8 }}>+12.5%</Text>
-            </div>
-            <Progress 
-              percent={78} 
-              strokeColor="#52c41a"
-              style={{ marginTop: 16 }}
-            />
-            <Text type="secondary">活跃率 78%</Text>
+          <Card title="用户活跃趋势" bordered={false} hoverable>
+            {mounted && <LineChartComponent data={trendData} />}
+            {!mounted && (
+              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Spin />
+              </div>
+            )}
           </Card>
         </Col>
       </Row>
 
-      {/* 招聘数据与发布记录 */}
+      {/* 招聘数据与最新发布 */}
       <Row gutter={16}>
         <Col span={8}>
-          <Card title="招聘数据" bordered={false}>
+          <Card title="招聘数据" bordered={false} hoverable>
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <div>
-                <Text type="secondary">在招职位</Text>
-                <div><Text strong style={{ fontSize: 24 }}>{recruitStats.positions}</Text></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>发布职位</Text>
+                <Text strong style={{ color: '#1890ff' }}>{recruitStats.positions}</Text>
               </div>
-              <div>
-                <Text type="secondary">收到简历</Text>
-                <div><Text strong style={{ fontSize: 24 }}>{recruitStats.resumes}</Text></div>
+              <Progress percent={Math.round((recruitStats.positions / 300) * 100)} strokeColor="#1890ff" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>收到简历</Text>
+                <Text strong style={{ color: '#52c41a' }}>{recruitStats.resumes}</Text>
               </div>
-              <div>
-                <Text type="secondary">面试安排</Text>
-                <div><Text strong style={{ fontSize: 24 }}>{recruitStats.interviews}</Text></div>
+              <Progress percent={Math.round((recruitStats.resumes / 2000) * 100)} strokeColor="#52c41a" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>安排面试</Text>
+                <Text strong style={{ color: '#fa8c16' }}>{recruitStats.interviews}</Text>
               </div>
-              <div>
-                <Text type="secondary">成功入职</Text>
-                <div><Text strong style={{ fontSize: 24, color: '#52c41a' }}>{recruitStats.hires}</Text></div>
+              <Progress percent={Math.round((recruitStats.interviews / 600) * 100)} strokeColor="#fa8c16" />
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Text>成功入职</Text>
+                <Text strong style={{ color: '#722ed1' }}>{recruitStats.hires}</Text>
               </div>
+              <Progress percent={Math.round((recruitStats.hires / 100) * 100)} strokeColor="#722ed1" />
             </Space>
           </Card>
         </Col>
         <Col span={16}>
-          <Card title="最新发布" bordered={false}>
-            <Table 
-              columns={publishColumns} 
+          <Card title="最新发布" bordered={false} hoverable>
+            <Table
+              columns={publishColumns}
               dataSource={publishData}
               pagination={false}
               size="small"
