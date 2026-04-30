@@ -156,14 +156,14 @@ function getNavigationItems(role: Role): NavigationItem[] {
     case 'agent':
       return [
         {
-          key: 'agent-customers',
-          label: '终端客户',
+          key: 'agent-tenants',
+          label: '租户管理',
           icon: <TeamOutlined />,
-          path: '/agent/customers',
+          path: '/agent/tenants',
         },
         {
           key: 'agent-agents',
-          label: '代理商',
+          label: '代理商管理',
           icon: <TeamOutlined />,
           path: '/agent/agents',
         },
@@ -186,14 +186,14 @@ function getNavigationItems(role: Role): NavigationItem[] {
     case 'admin':
       return [
         {
-          key: 'admin-customers',
-          label: '终端客户',
+          key: 'admin-tenants',
+          label: '租户管理',
           icon: <TeamOutlined />,
-          path: '/admin/customers',
+          path: '/admin/tenants',
         },
         {
           key: 'admin-agents',
-          label: '代理商',
+          label: '代理商管理',
           icon: <TeamOutlined />,
           path: '/admin/agents',
         },
