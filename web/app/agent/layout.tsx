@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Layout } from 'antd';
-import AgentNavbar from './Navbar';
+import AgentNavbar from './layout/Navbar';
 
 const { Content } = Layout;
 
