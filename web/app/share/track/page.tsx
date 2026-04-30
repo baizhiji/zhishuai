@@ -30,7 +30,7 @@ export default function ShareTrackPage() {
       </div>
 
       <Row gutter={[16, 16]} className="mb-6">
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-500 mb-2">156</div>
@@ -38,7 +38,7 @@ export default function ShareTrackPage() {
             </div>
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <div className="text-center">
               <div className="text-3xl font-bold text-green-500 mb-2">128</div>
@@ -46,19 +46,11 @@ export default function ShareTrackPage() {
             </div>
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <div className="text-center">
               <div className="text-3xl font-bold text-purple-500 mb-2">82%</div>
               <div className="text-gray-600 text-sm">转化率</div>
-            </div>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-500 mb-2">¥12,800</div>
-              <div className="text-gray-600 text-sm">累计佣金</div>
             </div>
           </Card>
         </Col>
