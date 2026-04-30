@@ -1,136 +1,115 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, Row, Col, Statistic, Table, Tag, Button, Space, Select, DatePicker, Progress, Typography } from 'antd'
-import { 
-  UserAddOutlined, 
-  SendOutlined, 
+import { Card, Row, Col, Table, Tag, Select, DatePicker, Space, Typography, Progress, Button } from 'antd'
+import {
+  UserAddOutlined,
   MessageOutlined,
-  ScanOutlined,
-  RiseOutlined,
-  TeamOutlined,
-  GlobalOutlined,
-  WhatsAppOutlined
+  QrcodeOutlined,
+  CheckCircleOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
 } from '@ant-design/icons'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 
 const { Title, Text } = Typography
 
 export default function AcquisitionBoardPage() {
   const [timeRange, setTimeRange] = useState<string>('7d')
+  const [platform, setPlatform] = useState<string>('all')
 
-  // 统计数据
+  // 核心指标
   const stats = {
-    totalCustomers: 15680,
-    newCustomers: 1234,
-    sentMessages: 45678,
-    replies: 8923,
-    scans: 4567,
-    conversions: 1234,
-    replyRate: 19.5,
-    scanRate: 51.2,
-    conversionRate: 27.6,
+    discover: 1256,
+    discoverChange: 15.8,
+    sent: 45892,
+    sentChange: 12.3,
+    scanned: 8934,
+    scannedChange: 8.5,
+    converted: 1523,
+    convertedChange: 18.2,
   }
 
   // 趋势数据
   const trendData = [
-    { date: '周一', 潜客: 456, 发送: 6234, 回复: 1234, 扫码: 623 },
-    { date: '周二', 潜客: 523, 发送: 7123, 回复: 1456, 扫码: 734 },
-    { date: '周三', 潜客: 489, 发送: 6890, 回复: 1345, 扫码: 689 },
-    { date: '周四', 潜客: 567, 发送: 7890, 回复: 1567, 扫码: 789 },
-    { date: '周五', 潜客: 612, 发送: 8234, 回复: 1678, 扫码: 834 },
-    { date: '周六', 潜客: 345, 发送: 4567, 回复: 890, 扫码: 445 },
-    { date: '周日', 潜客: 298, 发送: 3890, 回复: 756, 扫码: 389 },
+    { date: '周一', 发送: 6543, 扫码: 1234, 转化: 218 },
+    { date: '周二', 发送: 7234, 扫码: 1456, 转化: 256 },
+    { date: '周三', 发送: 6890, 扫码: 1321, 转化: 234 },
+    { date: '周四', 发送: 7567, 扫码: 1567, 转化: 278 },
+    { date: '周五', 发送: 8123, 扫码: 1678, 转化: 298 },
+    { date: '周六', 发送: 4234, 扫码: 876, 转化: 156 },
+    { date: '周日', 发送: 3890, 扫码: 756, 转化: 134 },
   ]
 
-  // 平台分布
-  const platformData = [
-    { name: '抖音', value: 35, color: '#ff4d4f' },
-    { name: '快手', value: 25, color: '#722ed1' },
-    { name: '小红书', value: 20, color: '#eb2f96' },
-    { name: 'B站', value: 12, color: '#fa8c16' },
-    { name: '其他', value: 8, color: '#8c8c8c' },
+  // 漏斗数据
+  const funnelData = [
+    { stage: '发送消息', count: 45892, rate: 100 },
+    { stage: '查看消息', count: 28934, rate: 63 },
+    { stage: '扫码次数', count: 8934, rate: 19 },
+    { stage: '成功转化', count: 1523, rate: 3.3 },
   ]
 
-  // 获客渠道
+  // 渠道分布
   const channelData = [
-    { channel: '评论区采集', count: 4567, rate: 29.1 },
-    { channel: '直播间采集', count: 3890, rate: 24.8 },
-    { channel: '关键词搜索', count: 3124, rate: 19.9 },
-    { channel: '话题采集', count: 2345, rate: 15.0 },
-    { channel: '碰一碰采集', count: 1567, rate: 10.0 },
+    { channel: '抖音', count: 1856, rate: 12.2 },
+    { channel: '微信', count: 4567, rate: 30.0 },
+    { channel: '短信', count: 8934, rate: 58.7 },
+    { channel: '其他', count: 1234, rate: 8.1 },
   ]
 
-  // 潜客详情数据
-  const customerData = [
-    { id: 1, name: '张明', platform: '抖音', industry: '教育培训', intention: 95, status: 'converted', followUp: '已扫码' },
-    { id: 2, name: '李华', platform: '快手', industry: '电商运营', intention: 88, status: 'following', followUp: '待联系' },
-    { id: 3, name: '王芳', platform: '小红书', industry: '美妆护肤', intention: 82, status: 'following', followUp: '已回复' },
-    { id: 4, name: '刘强', platform: 'B站', industry: '科技数码', intention: 76, status: 'pending', followUp: '待发送' },
-    { id: 5, name: '陈静', platform: '抖音', industry: '餐饮美食', intention: 92, status: 'converted', followUp: '已转化' },
+  // 发送记录
+  const recordColumns = [
+    { title: '任务名称', dataIndex: 'name', key: 'name', width: 200 },
+    { title: '渠道', dataIndex: 'channel', key: 'channel', width: 100, render: (channel: string) => <Tag color="blue">{channel}</Tag> },
+    { title: '发送量', dataIndex: 'sent', key: 'sent', width: 100 },
+    { title: '扫码数', dataIndex: 'scanned', key: 'scanned', width: 100 },
+    { title: '转化数', dataIndex: 'converted', key: 'converted', width: 100 },
+    { 
+      title: '扫码率', 
+      dataIndex: 'scanRate', 
+      key: 'scanRate', 
+      width: 100,
+      render: (rate: number) => <Text type="success">{rate}%</Text>
+    },
+    { 
+      title: '转化率', 
+      dataIndex: 'convertRate', 
+      key: 'convertRate', 
+      width: 100,
+      render: (rate: number) => <Text type="warning">{rate}%</Text>
+    },
+    { title: '时间', dataIndex: 'time', key: 'time', width: 150 },
   ]
 
-  const columns = [
-    { title: '潜客', dataIndex: 'name', key: 'name', width: 100 },
-    { 
-      title: '平台', 
-      dataIndex: 'platform', 
-      key: 'platform',
-      width: 100,
-      render: (platform: string) => {
-        const color = platform === '抖音' ? '#ff4d4f' : platform === '快手' ? '#722ed1' : platform === '小红书' ? '#eb2f96' : '#fa8c16'
-        return <Tag color={color}>{platform}</Tag>
-      }
-    },
-    { title: '行业', dataIndex: 'industry', key: 'industry', width: 120 },
-    { 
-      title: '意向度', 
-      dataIndex: 'intention', 
-      key: 'intention',
-      width: 120,
-      render: (intention: number) => (
-        <Progress 
-          percent={intention} 
-          size="small" 
-          strokeColor={intention >= 90 ? '#52c41a' : intention >= 80 ? '#1890ff' : '#faad14'}
-        />
-      )
-    },
-    { 
-      title: '状态', 
-      dataIndex: 'status', 
-      key: 'status',
-      width: 100,
-      render: (status: string) => {
-        const config: Record<string, { color: string; text: string }> = {
-          converted: { color: 'success', text: '已转化' },
-          following: { color: 'processing', text: '跟进中' },
-          pending: { color: 'warning', text: '待处理' },
-        }
-        return <Tag color={config[status]?.color || 'default'}>{config[status]?.text || status}</Tag>
-      }
-    },
-    { title: '跟进情况', dataIndex: 'followUp', key: 'followUp', width: 100 },
-    {
-      title: '操作',
-      key: 'action',
-      width: 120,
-      render: () => (
-        <Space>
-          <Button type="link" size="small">详情</Button>
-          <Button type="link" size="small">跟进</Button>
-        </Space>
-      )
-    },
+  const recordData = [
+    { key: '1', name: '新品推广活动', channel: '抖音', sent: 1234, scanned: 456, converted: 78, scanRate: 37.0, convertRate: 6.3, time: '2024-03-25 10:30' },
+    { key: '2', name: '限时优惠引流', channel: '微信', sent: 2345, scanned: 876, converted: 156, scanRate: 37.4, convertRate: 6.7, time: '2024-03-25 09:15' },
+    { key: '3', name: '会员招募短信', channel: '短信', sent: 5678, scanned: 1234, converted: 234, scanRate: 21.7, convertRate: 4.1, time: '2024-03-24 14:20' },
+    { key: '4', name: '新品预约通知', channel: '抖音', sent: 987, scanned: 345, converted: 56, scanRate: 35.0, convertRate: 5.7, time: '2024-03-24 11:45' },
+    { key: '5', name: '活动邀请函', channel: '微信', sent: 1567, scanned: 567, converted: 89, scanRate: 36.2, convertRate: 5.7, time: '2024-03-23 16:30' },
   ]
 
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={2} style={{ margin: 0 }}>获客看板</Title>
+        <div>
+          <Title level={2} style={{ margin: 0 }}>获客看板</Title>
+          <Text type="secondary">智能获客数据统计与分析</Text>
+        </div>
         <Space>
-          <Select 
-            value={timeRange} 
+          <Select
+            value={platform}
+            onChange={setPlatform}
+            style={{ width: 120 }}
+            options={[
+              { value: 'all', label: '全部渠道' },
+              { value: 'douyin', label: '抖音' },
+              { value: 'wechat', label: '微信' },
+              { value: 'sms', label: '短信' },
+            ]}
+          />
+          <Select
+            value={timeRange}
             onChange={setTimeRange}
             style={{ width: 120 }}
             options={[
@@ -147,194 +126,126 @@ export default function AcquisitionBoardPage() {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card bordered={false}>
-            <Statistic
-              title="潜客总数"
-              value={stats.totalCustomers}
-              suffix={
-                <span style={{ fontSize: 14, color: '#52c41a' }}>
-                  +{stats.newCustomers} 新
-                </span>
-              }
-              prefix={<UserAddOutlined style={{ color: '#52c41a' }} />}
-              valueStyle={{ color: '#52c41a' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#e6f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UserAddOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>发现潜客</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#1890ff' }}>{stats.discover.toLocaleString()}</div>
+                <Text type={stats.discoverChange > 0 ? 'success' : 'danger'} style={{ fontSize: 12 }}>
+                  {stats.discoverChange > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(stats.discoverChange)}%
+                </Text>
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={6}>
           <Card bordered={false}>
-            <Statistic
-              title="发送消息"
-              value={stats.sentMessages}
-              prefix={<SendOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>发送消息</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#52c41a' }}>{stats.sent.toLocaleString()}</div>
+                <Text type={stats.sentChange > 0 ? 'success' : 'danger'} style={{ fontSize: 12 }}>
+                  {stats.sentChange > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(stats.sentChange)}%
+                </Text>
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={6}>
           <Card bordered={false}>
-            <Statistic
-              title="收到回复"
-              value={stats.replies}
-              suffix={
-                <span style={{ fontSize: 14, color: '#722ed1' }}>
-                  回复率 {stats.replyRate}%
-                </span>
-              }
-              prefix={<MessageOutlined style={{ color: '#722ed1' }} />}
-              valueStyle={{ color: '#722ed14' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#fff7e6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <QrcodeOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>扫码次数</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#fa8c16' }}>{stats.scanned.toLocaleString()}</div>
+                <Text type={stats.scannedChange > 0 ? 'success' : 'danger'} style={{ fontSize: 12 }}>
+                  {stats.scannedChange > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(stats.scannedChange)}%
+                </Text>
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={6}>
           <Card bordered={false}>
-            <Statistic
-              title="扫码转化"
-              value={stats.conversions}
-              suffix={
-                <span style={{ fontSize: 14, color: '#fa8c16' }}>
-                  转化率 {stats.conversionRate}%
-                </span>
-              }
-              prefix={<ScanOutlined style={{ color: '#fa8c16' }} />}
-              valueStyle={{ color: '#fa8c16' }}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f9f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircleOutlined style={{ fontSize: 24, color: '#722ed1' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>成功转化</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#722ed1' }}>{stats.converted.toLocaleString()}</div>
+                <Text type={stats.convertedChange > 0 ? 'success' : 'danger'} style={{ fontSize: 12 }}>
+                  {stats.convertedChange > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(stats.convertedChange)}%
+                </Text>
+              </div>
+            </div>
           </Card>
         </Col>
       </Row>
 
       {/* 图表区域 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={16}>
-          <Card 
-            title={<><RiseOutlined /> 获客趋势</>}
-            bordered={false}
-          >
+        <Col span={12}>
+          <Card bordered={false} title="转化趋势">
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="潜客" stroke="#52c41a" strokeWidth={2} dot={{ fill: '#52c41a' }} />
-                <Line type="monotone" dataKey="发送" stroke="#1890ff" strokeWidth={2} dot={{ fill: '#1890ff' }} />
-                <Line type="monotone" dataKey="回复" stroke="#722ed1" strokeWidth={2} dot={{ fill: '#722ed1' }} />
-                <Line type="monotone" dataKey="扫码" stroke="#fa8c16" strokeWidth={2} dot={{ fill: '#fa8c16' }} />
+                <Line type="monotone" dataKey="发送" stroke="#1890ff" strokeWidth={2} />
+                <Line type="monotone" dataKey="扫码" stroke="#fa8c16" strokeWidth={2} />
+                <Line type="monotone" dataKey="转化" stroke="#722ed1" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </Card>
         </Col>
-        <Col span={8}>
-          <Card 
-            title={<><GlobalOutlined /> 平台分布</>}
-            bordered={false}
-          >
+        <Col span={12}>
+          <Card bordered={false} title="渠道分布">
             <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={platformData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {platformData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
+              <BarChart data={channelData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="channel" />
+                <YAxis />
                 <Tooltip />
-              </PieChart>
+                <Bar dataKey="count" fill="#722ed1" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </Card>
         </Col>
       </Row>
 
-      {/* 转化漏斗和潜客详情 */}
-      <Row gutter={16}>
-        <Col span={8}>
-          <Card 
-            title={<><TeamOutlined /> 获客渠道</>}
-            bordered={false}
-          >
-            <div style={{ padding: '20px 0' }}>
-              {channelData.map((item, index) => (
-                <div key={index} style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <Text>{item.channel}</Text>
-                    <Text strong>{item.count}</Text>
-                  </div>
-                  <Progress 
-                    percent={item.rate} 
-                    showInfo={false}
-                    strokeColor={['#1890ff', '#52c41a', '#722ed1', '#fa8c16', '#eb2f96'][index]}
-                  />
-                </div>
-              ))}
-            </div>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card 
-            title={<><SendOutlined /> 转化漏斗</>}
-            bordered={false}
-          >
-            <div style={{ padding: '20px 0' }}>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text>发现的潜客</Text>
-                  <Text strong>15,680</Text>
-                </div>
-                <Progress percent={100} showInfo={false} strokeColor="#1890ff" />
+      {/* 转化漏斗 */}
+      <Card bordered={false} title="转化漏斗" style={{ marginBottom: 24 }}>
+        <Row gutter={16}>
+          {funnelData.map((item, index) => (
+            <Col span={6} key={index}>
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <div style={{ fontSize: 28, fontWeight: 600, color: '#1890ff' }}>{item.count.toLocaleString()}</div>
+                <div style={{ color: '#666', marginBottom: 8 }}>{item.stage}</div>
+                <Progress percent={item.rate} strokeColor="#1890ff" showInfo={false} />
+                <Text type="secondary">{item.rate}%</Text>
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text>发送消息</Text>
-                  <Text strong>45,678 (79.2%)</Text>
-                </div>
-                <Progress percent={79.2} showInfo={false} strokeColor="#52c41a" />
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text>收到回复</Text>
-                  <Text strong>8,923 (19.5%)</Text>
-                </div>
-                <Progress percent={19.5} showInfo={false} strokeColor="#faad14" />
-              </div>
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text>扫码添加</Text>
-                  <Text strong>4,567 (51.2%)</Text>
-                </div>
-                <Progress percent={51.2} showInfo={false} strokeColor="#722ed1" />
-              </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text strong>成功转化</Text>
-                  <Text strong style={{ color: '#52c41a' }}>1,234 (27.0%)</Text>
-                </div>
-                <Progress percent={27} showInfo={false} strokeColor="#52c41a" />
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card 
-            title={<><WhatsAppOutlined /> 最新潜客</>}
-            bordered={false}
-            extra={<Button type="link">查看全部</Button>}
-          >
-            <Table 
-              columns={columns} 
-              dataSource={customerData} 
-              rowKey="id" 
-              pagination={false}
-              size="small"
-            />
-          </Card>
-        </Col>
-      </Row>
+            </Col>
+          ))}
+        </Row>
+      </Card>
+
+      {/* 发送记录 */}
+      <Card bordered={false} title="发送记录">
+        <Table
+          dataSource={recordData}
+          columns={recordColumns}
+          pagination={{ pageSize: 5 }}
+        />
+      </Card>
     </div>
   )
 }

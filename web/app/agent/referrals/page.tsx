@@ -1,247 +1,165 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
+import { Card, Row, Col, Table, Tag, Select, DatePicker, Space, Typography, Progress } from 'antd'
 import {
-  Card,
-  Row,
-  Col,
-  Statistic,
-  Typography,
-  Table,
-  Tag,
-  Space,
-  Select,
-  Progress
-} from 'antd'
-import {
-  UserOutlined,
-  TrophyOutlined,
+  UserAddOutlined,
+  TeamOutlined,
+  CheckCircleOutlined,
   RiseOutlined,
-  ArrowUpOutlined
 } from '@ant-design/icons'
-import type { ColumnsType } from 'antd/es/table'
-import dynamic from 'next/dynamic'
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 const { Title, Text } = Typography
-const { Option } = Select
 
-// Mock 数据
-interface ReferralItem {
-  key: string
-  rank: number
-  customer: string
-  company: string
-  referCount: number
-  activeCount: number
-  month: string
-}
+export default function ReferralsPage() {
+  const [timeRange, setTimeRange] = useState<string>('7d')
 
-const mockReferrals: ReferralItem[] = [
-  { key: '1', rank: 1, customer: '陈总', company: '广州某信息科技', referCount: 35, activeCount: 28, month: '2025-04' },
-  { key: '2', rank: 2, customer: '李总监', company: '杭州某网络公司', referCount: 28, activeCount: 22, month: '2025-04' },
-  { key: '3', rank: 3, customer: '张经理', company: '上海某科技有限公司', referCount: 12, activeCount: 10, month: '2025-04' },
-  { key: '4', rank: 4, customer: '刘经理', company: '深圳某电商公司', referCount: 8, activeCount: 6, month: '2025-04' },
-  { key: '5', rank: 5, customer: '王主管', company: '北京某文化传媒', referCount: 5, activeCount: 4, month: '2025-04' }
-]
-
-// Mock 月度趋势
-const mockTrendData = {
-  months: ['2025-01', '2025-02', '2025-03', '2025-04'],
-  referCount: [25, 32, 45, 88],
-  activeCount: [18, 24, 36, 70]
-}
-
-export default function ReferralDashboard() {
-  const [timeRange, setTimeRange] = useState<string>('30d')
-
-  // 统计数据
+  // 核心指标
   const stats = {
-    totalRefer: 88,
-    totalActive: 70,
-    activeRate: 79.5,
-    thisMonth: 28,
-    lastMonth: 20,
-    growth: 40
+    totalReferrals: 156,
+    activeUsers: 128,
+    conversions: 128,
+    conversionRate: 82,
   }
 
-  // 图表配置
-  const trendOption = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: ['推荐人数', '活跃用户']
-    },
-    xAxis: {
-      type: 'category',
-      data: mockTrendData.months
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        name: '推荐人数',
-        type: 'bar',
-        data: mockTrendData.referCount,
-        itemStyle: { color: '#1890ff' }
-      },
-      {
-        name: '活跃用户',
-        type: 'bar',
-        data: mockTrendData.activeCount,
-        itemStyle: { color: '#52c41a' }
-      }
-    ]
-  }
+  // 趋势数据
+  const trendData = [
+    { date: '周一', 推荐: 23, 活跃用户: 18, 转化: 15 },
+    { date: '周二', 推荐: 25, 活跃用户: 20, 转化: 17 },
+    { date: '周三', 推荐: 21, 活跃用户: 17, 转化: 14 },
+    { date: '周四', 推荐: 28, 活跃用户: 23, 转化: 19 },
+    { date: '周五', 推荐: 32, 活跃用户: 26, 转化: 22 },
+    { date: '周六', 推荐: 15, 活跃用户: 12, 转化: 10 },
+    { date: '周日', 推荐: 12, 活跃用户: 10, 转化: 8 },
+  ]
 
-  const columns: ColumnsType<ReferralItem> = [
-    {
-      title: '排名',
-      dataIndex: 'rank',
-      key: 'rank',
-      render: (rank: number) => {
-        return rank <= 3 ? (
-          <Tag color={rank === 1 ? 'gold' : rank === 2 ? 'default' : 'orange'}>
-            {rank}
-          </Tag>
-        ) : (
-          <Tag>{rank}</Tag>
-        )
-      }
-    },
-    {
-      title: '客户',
-      key: 'customer',
-      render: (_, record) => (
-        <Space>
-          <UserOutlined style={{ color: '#1890ff' }} />
-          <div>
-            <div style={{ fontWeight: 500 }}>{record.customer}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.company}</Text>
-          </div>
-        </Space>
+  // 推荐记录
+  const recordColumns = [
+    { title: '推荐人', dataIndex: 'referrer', key: 'referrer', width: 120 },
+    { title: '推荐时间', dataIndex: 'time', key: 'time', width: 180 },
+    { title: '被推荐人', dataIndex: 'referred', key: 'referred', width: 120 },
+    { title: '状态', dataIndex: 'status', key: 'status', width: 100,
+      render: (status: string) => (
+        <Tag color={status === '成功' ? 'success' : status === '待激活' ? 'warning' : 'default'}>
+          {status}
+        </Tag>
       )
     },
-    {
-      title: '推荐人数',
-      dataIndex: 'referCount',
-      key: 'referCount',
-      sorter: (a, b) => a.referCount - b.referCount,
-      render: (count: number) => (
-        <Text strong style={{ color: '#1890ff' }}>{count}</Text>
-      )
-    },
-    {
-      title: '活跃用户',
-      dataIndex: 'activeCount',
-      key: 'activeCount',
-      render: (count: number, record) => (
-        <div>
-          <Text>{count}</Text>
-          <Progress 
-            percent={Math.round(count / record.referCount * 100)} 
-            size="small" 
-            showInfo={false}
-            strokeColor="#52c41a"
-          />
-        </div>
-      )
-    },
-    {
-      title: '活跃率',
-      key: 'activeRate',
-      render: (_, record) => {
-        const rate = Math.round(record.activeCount / record.referCount * 100)
-        return <Tag color={rate >= 80 ? 'success' : rate >= 60 ? 'processing' : 'warning'}>{rate}%</Tag>
-      }
-    }
+    { title: '注册时间', dataIndex: 'registerTime', key: 'registerTime', width: 180 },
+  ]
+
+  const recordData = [
+    { key: '1', referrer: '张三', time: '2024-03-25 14:30', referred: '李四', status: '成功', registerTime: '2024-03-25 15:00' },
+    { key: '2', referrer: '张三', time: '2024-03-24 11:20', referred: '王五', status: '成功', registerTime: '2024-03-24 12:00' },
+    { key: '3', referrer: '李四', time: '2024-03-23 09:15', referred: '赵六', status: '待激活', registerTime: '-' },
+    { key: '4', referrer: '王五', time: '2024-03-22 16:45', referred: '钱七', status: '成功', registerTime: '2024-03-22 17:30' },
+    { key: '5', referrer: '李四', time: '2024-03-21 10:00', referred: '孙八', status: '成功', registerTime: '2024-03-21 11:00' },
   ]
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <Title level={2} className="mb-2">推荐数据看板</Title>
-        <Text type="secondary">查看名下所有客户的推荐总人数、活跃用户数统计</Text>
+    <div style={{ padding: 24 }}>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <Title level={2} style={{ margin: 0 }}>推荐数据</Title>
+          <Text type="secondary">推荐分享数据统计与分析</Text>
+        </div>
+        <Space>
+          <Select
+            value={timeRange}
+            onChange={setTimeRange}
+            style={{ width: 120 }}
+            options={[
+              { value: '7d', label: '近7天' },
+              { value: '30d', label: '近30天' },
+              { value: '90d', label: '近3个月' },
+            ]}
+          />
+          <DatePicker.RangePicker />
+        </Space>
       </div>
 
-      {/* 统计卡片 */}
-      <Row gutter={16} className="mb-4">
+      {/* 核心指标卡片 */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card>
-            <Statistic 
-              title="推荐总人数" 
-              value={stats.totalRefer} 
-              prefix={<UserOutlined />}
-              suffix={<span style={{ fontSize: 14, color: '#52c41a' }}>人</span>}
-            />
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#e6f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <UserAddOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>总推荐数</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#1890ff' }}>{stats.totalReferrals}</div>
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic 
-              title="活跃用户数" 
-              value={stats.totalActive} 
-              prefix={<TrophyOutlined />}
-              suffix={<span style={{ fontSize: 14, color: '#52c41a' }}>人</span>}
-              valueStyle={{ color: '#52c41a' }}
-            />
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <TeamOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>活跃用户</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#52c41a' }}>{stats.activeUsers}</div>
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic 
-              title="本月新增" 
-              value={stats.thisMonth} 
-              prefix={<RiseOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-              suffix={
-                <span style={{ fontSize: 14 }}>
-                  <ArrowUpOutlined style={{ color: '#52c41a' }} /> {stats.growth}%
-                </span>
-              }
-            />
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#fff7e6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CheckCircleOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>成功转化</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#fa8c16' }}>{stats.conversions}</div>
+              </div>
+            </div>
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
-            <Statistic 
-              title="活跃率" 
-              value={stats.activeRate} 
-              suffix={<span style={{ fontSize: 14, color: '#52c41a' }}>%</span>}
-              valueStyle={{ color: '#52c41a' }}
-            />
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f9f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <RiseOutlined style={{ fontSize: 24, color: '#722ed1' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>转化率</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#722ed1' }}>{stats.conversionRate}%</div>
+              </div>
+            </div>
           </Card>
         </Col>
       </Row>
 
-      {/* 图表 */}
-      <Row gutter={16} className="mb-4">
+      {/* 趋势图表 */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={24}>
-          <Card 
-            title="推荐趋势" 
-            extra={
-              <Select value={timeRange} onChange={setTimeRange} style={{ width: 120 }}>
-                <Option value="7d">近7天</Option>
-                <Option value="30d">近30天</Option>
-                <Option value="90d">近90天</Option>
-              </Select>
-            }
-          >
-            <ReactECharts option={trendOption} style={{ height: 300 }} />
+          <Card bordered={false} title="推荐趋势">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="推荐" stroke="#1890ff" strokeWidth={2} />
+                <Line type="monotone" dataKey="活跃用户" stroke="#52c41a" strokeWidth={2} />
+                <Line type="monotone" dataKey="转化" stroke="#fa8c16" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
           </Card>
         </Col>
       </Row>
 
-      {/* 排行榜 */}
-      <Card title="客户推荐排行榜">
+      {/* 推荐记录 */}
+      <Card bordered={false} title="推荐记录">
         <Table
-          rowKey="key"
-          columns={columns}
-          dataSource={mockReferrals}
-          pagination={false}
+          dataSource={recordData}
+          columns={recordColumns}
+          pagination={{ pageSize: 10 }}
         />
       </Card>
     </div>

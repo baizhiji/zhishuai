@@ -1,321 +1,164 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
+import { Card, Row, Col, Table, Tag, Select, DatePicker, Space, Typography, Progress } from 'antd'
 import {
-  Card,
-  Row,
-  Col,
-  Statistic,
-  Typography,
-  Table,
-  Tag,
-  Space,
-  Select,
-  DatePicker,
-  Button,
-  Progress
-} from 'antd'
-import {
-  UploadOutlined,
+  VideoCameraOutlined,
+  FileTextOutlined,
   MessageOutlined,
-  TeamOutlined,
-  ShoppingOutlined,
-  DownloadOutlined,
-  ReloadOutlined,
-  LineChartOutlined
+  CustomerServiceOutlined,
 } from '@ant-design/icons'
-import type { ColumnsType } from 'antd/es/table'
-import dynamic from 'next/dynamic'
-
-const ReactECharts = dynamic(() => import('echarts-for-react'), { ssr: false })
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 const { Title, Text } = Typography
-const { RangePicker } = DatePicker
-const { Option } = Select
 
-// Mock 数据
-interface UsageRecord {
-  key: string
-  customer: string
-  company: string
-  apiCalls: number
-  publishCount: number
-  resumeCount: number
-  prospectCount: number
-  messageCount: number
-  orderValue: number
-  lastActive: string
-}
+export default function UsageReportPage() {
+  const [timeRange, setTimeRange] = useState<string>('7d')
 
-const mockUsageData: UsageRecord[] = [
-  { key: '1', customer: '陈总', company: '广州某信息科技', apiCalls: 12580, publishCount: 456, resumeCount: 89, prospectCount: 234, messageCount: 1890, orderValue: 12500, lastActive: '2025-04-29' },
-  { key: '2', customer: '李总监', company: '杭州某网络公司', apiCalls: 9870, publishCount: 328, resumeCount: 67, prospectCount: 198, messageCount: 1456, orderValue: 9800, lastActive: '2025-04-29' },
-  { key: '3', customer: '张经理', company: '上海某科技有限公司', apiCalls: 6540, publishCount: 234, resumeCount: 45, prospectCount: 123, messageCount: 890, orderValue: 6500, lastActive: '2025-04-28' },
-  { key: '4', customer: '刘经理', company: '深圳某电商公司', apiCalls: 4320, publishCount: 189, resumeCount: 34, prospectCount: 98, messageCount: 567, orderValue: 4300, lastActive: '2025-04-27' },
-  { key: '5', customer: '王主管', company: '北京某文化传媒', apiCalls: 2890, publishCount: 145, resumeCount: 23, prospectCount: 67, messageCount: 345, orderValue: 2900, lastActive: '2025-04-26' }
-]
-
-// Mock 趋势数据
-const mockTrendData = {
-  months: ['2025-01', '2025-02', '2025-03', '2025-04'],
-  apiCalls: [28000, 32000, 38000, 45000],
-  publish: [980, 1200, 1350, 1680],
-  resumes: [180, 230, 290, 350],
-  prospects: [450, 580, 720, 890],
-  messages: [3200, 4100, 5200, 6500]
-}
-
-export default function UsageReport() {
-  const [timeRange, setTimeRange] = useState<string>('30d')
-  const [moduleFilter, setModuleFilter] = useState<string>('all')
-
-  // 统计数据
+  // 核心指标
   const stats = {
-    totalApiCalls: 45000,
-    totalPublish: 1680,
-    totalResumes: 350,
-    totalProspects: 890,
-    totalMessages: 6500,
-    totalOrders: 36500
+    contentGeneration: 1258,
+    articleWriting: 856,
+    smartReply: 2340,
+    customerService: 890,
   }
 
-  // 趋势图配置
-  const trendOption = {
-    tooltip: {
-      trigger: 'axis'
-    },
-    legend: {
-      data: ['API调用', '发布量', '简历数', '潜客数']
-    },
-    xAxis: {
-      type: 'category',
-      data: mockTrendData.months
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        name: 'API调用',
-        type: 'line',
-        data: mockTrendData.apiCalls,
-        smooth: true,
-        itemStyle: { color: '#1890ff' }
-      },
-      {
-        name: '发布量',
-        type: 'line',
-        data: mockTrendData.publish,
-        smooth: true,
-        itemStyle: { color: '#52c41a' }
-      },
-      {
-        name: '简历数',
-        type: 'line',
-        data: mockTrendData.resumes,
-        smooth: true,
-        itemStyle: { color: '#722ed1' }
-      },
-      {
-        name: '潜客数',
-        type: 'line',
-        data: mockTrendData.prospects,
-        smooth: true,
-        itemStyle: { color: '#fa8c16' }
-      }
-    ]
-  }
+  // 趋势数据
+  const trendData = [
+    { date: '周一', 内容生成: 180, 文章写作: 120, 智能回复: 320, 客服: 130 },
+    { date: '周二', 内容生成: 195, 文章写作: 135, 智能回复: 350, 客服: 145 },
+    { date: '周三', 内容生成: 175, 文章写作: 118, 智能回复: 310, 客服: 120 },
+    { date: '周四', 内容生成: 210, 文章写作: 145, 智能回复: 380, 客服: 155 },
+    { date: '周五', 内容生成: 225, 文章写作: 158, 智能回复: 420, 客服: 165 },
+    { date: '周六', 内容生成: 145, 文章写作: 98, 智能回复: 280, 客服: 90 },
+    { date: '周日', 内容生成: 128, 文章写作: 82, 智能回复: 280, 客服: 85 },
+  ]
 
-  const columns: ColumnsType<UsageRecord> = [
-    {
-      title: '客户',
-      key: 'customer',
-      render: (_, record) => (
-        <Space>
-          <TeamOutlined style={{ color: '#1890ff' }} />
-          <div>
-            <div style={{ fontWeight: 500 }}>{record.customer}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.company}</Text>
-          </div>
-        </Space>
+  // 使用记录
+  const recordColumns = [
+    { title: '用户', dataIndex: 'user', key: 'user', width: 120 },
+    { title: '功能', dataIndex: 'feature', key: 'feature', width: 120,
+      render: (feature: string) => (
+        <Tag color="blue">{feature}</Tag>
       )
     },
-    {
-      title: 'API调用',
-      dataIndex: 'apiCalls',
-      key: 'apiCalls',
-      sorter: (a, b) => a.apiCalls - b.apiCalls,
-      render: (calls: number) => (
-        <Tag color="blue">{calls.toLocaleString()}</Tag>
-      )
-    },
-    {
-      title: '发布量',
-      dataIndex: 'publishCount',
-      key: 'publishCount',
-      sorter: (a, b) => a.publishCount - b.publishCount,
-      render: (count: number) => (
-        <Tag color="green">{count}</Tag>
-      )
-    },
-    {
-      title: '简历处理',
-      dataIndex: 'resumeCount',
-      key: 'resumeCount',
-      sorter: (a, b) => a.resumeCount - b.resumeCount,
-      render: (count: number) => (
-        <Tag color="purple">{count}</Tag>
-      )
-    },
-    {
-      title: '潜客发现',
-      dataIndex: 'prospectCount',
-      key: 'prospectCount',
-      sorter: (a, b) => a.prospectCount - b.prospectCount,
-      render: (count: number) => (
-        <Tag color="orange">{count}</Tag>
-      )
-    },
-    {
-      title: '消息发送',
-      dataIndex: 'messageCount',
-      key: 'messageCount',
-      sorter: (a, b) => a.messageCount - b.messageCount,
-      render: (count: number) => (
-        <Tag color="cyan">{count}</Tag>
-      )
-    },
-    {
-      title: '客户价值',
-      dataIndex: 'orderValue',
-      key: 'orderValue',
-      sorter: (a, b) => a.orderValue - b.orderValue,
-      render: (value: number) => (
-        <Text strong style={{ color: '#faad14' }}>¥{value.toLocaleString()}</Text>
-      )
-    },
-    {
-      title: '最后活跃',
-      dataIndex: 'lastActive',
-      key: 'lastActive',
-      render: (date: string) => (
-        <Text type="secondary">{date}</Text>
-      )
-    }
+    { title: '调用次数', dataIndex: 'count', key: 'count', width: 100 },
+    { title: '消耗积分', dataIndex: 'points', key: 'points', width: 100 },
+    { title: '时间', dataIndex: 'time', key: 'time', width: 180 },
+  ]
+
+  const recordData = [
+    { key: '1', user: '张三', feature: '内容生成', count: 25, points: 500, time: '2024-03-25 14:30' },
+    { key: '2', user: '李四', feature: '智能回复', count: 45, points: 225, time: '2024-03-25 13:20' },
+    { key: '3', user: '王五', feature: '文章写作', count: 18, points: 360, time: '2024-03-25 11:15' },
+    { key: '4', user: '赵六', feature: '客服', count: 32, points: 160, time: '2024-03-25 10:00' },
+    { key: '5', user: '钱七', feature: '内容生成', count: 38, points: 760, time: '2024-03-25 09:30' },
   ]
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <Title level={2} className="mb-2">使用数据报表</Title>
-        <Text type="secondary">查看名下客户的功能调用量，可导出用于客户活跃度分析</Text>
+    <div style={{ padding: 24 }}>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <Title level={2} style={{ margin: 0 }}>使用报表</Title>
+          <Text type="secondary">功能使用数据统计与分析</Text>
+        </div>
+        <Space>
+          <Select
+            value={timeRange}
+            onChange={setTimeRange}
+            style={{ width: 120 }}
+            options={[
+              { value: '7d', label: '近7天' },
+              { value: '30d', label: '近30天' },
+              { value: '90d', label: '近3个月' },
+            ]}
+          />
+          <DatePicker.RangePicker />
+        </Space>
       </div>
 
-      {/* 统计卡片 */}
-      <Row gutter={16} className="mb-4">
-        <Col span={4}>
-          <Card>
-            <Statistic 
-              title="API调用" 
-              value={stats.totalApiCalls} 
-              prefix={<LineChartOutlined />}
-              valueStyle={{ color: '#1890ff' }}
-            />
+      {/* 核心指标卡片 */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#e6f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <VideoCameraOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>内容生成</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#1890ff' }}>{stats.contentGeneration}</div>
+              </div>
+            </div>
           </Card>
         </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic 
-              title="发布量" 
-              value={stats.totalPublish} 
-              prefix={<UploadOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
+        <Col span={6}>
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FileTextOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>文章写作</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#52c41a' }}>{stats.articleWriting}</div>
+              </div>
+            </div>
           </Card>
         </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic 
-              title="简历处理" 
-              value={stats.totalResumes} 
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#722ed1' }}
-            />
+        <Col span={6}>
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#fff7e6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MessageOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>智能回复</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#fa8c16' }}>{stats.smartReply}</div>
+              </div>
+            </div>
           </Card>
         </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic 
-              title="潜客发现" 
-              value={stats.totalProspects} 
-              prefix={<ShoppingOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
-            />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic 
-              title="消息发送" 
-              value={stats.totalMessages} 
-              prefix={<MessageOutlined />}
-              valueStyle={{ color: '#13c2c2' }}
-            />
-          </Card>
-        </Col>
-        <Col span={4}>
-          <Card>
-            <Statistic 
-              title="客户价值" 
-              value={stats.totalOrders} 
-              prefix={<DownloadOutlined />}
-              valueStyle={{ color: '#faad14' }}
-              suffix="元"
-            />
+        <Col span={6}>
+          <Card bordered={false}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 8, background: '#f9f0ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <CustomerServiceOutlined style={{ fontSize: 24, color: '#722ed1' }} />
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 12 }}>客服</Text>
+                <div style={{ fontSize: 24, fontWeight: 600, color: '#722ed1' }}>{stats.customerService}</div>
+              </div>
+            </div>
           </Card>
         </Col>
       </Row>
 
-      {/* 趋势图 */}
-      <Card className="mb-4" 
-        extra={
-          <Space>
-            <Select value={timeRange} onChange={setTimeRange} style={{ width: 120 }}>
-              <Option value="7d">近7天</Option>
-              <Option value="30d">近30天</Option>
-              <Option value="90d">近90天</Option>
-            </Select>
-            <Button icon={<DownloadOutlined />}>导出报表</Button>
-          </Space>
-        }
-      >
-        <ReactECharts option={trendOption} style={{ height: 300 }} />
-      </Card>
+      {/* 趋势图表 */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={24}>
+          <Card bordered={false} title="使用趋势">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="内容生成" stroke="#1890ff" strokeWidth={2} />
+                <Line type="monotone" dataKey="文章写作" stroke="#52c41a" strokeWidth={2} />
+                <Line type="monotone" dataKey="智能回复" stroke="#fa8c16" strokeWidth={2} />
+                <Line type="monotone" dataKey="客服" stroke="#722ed1" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* 客户使用明细 */}
-      <Card 
-        title="客户使用明细"
-        extra={
-          <Space>
-            <Select value={moduleFilter} onChange={setModuleFilter} style={{ width: 120 }}>
-              <Option value="all">全部模块</Option>
-              <Option value="media">自媒体</Option>
-              <Option value="recruitment">招聘</Option>
-              <Option value="acquisition">获客</Option>
-            </Select>
-            <Button icon={<ReloadOutlined />}>刷新</Button>
-          </Space>
-        }
-      >
+      {/* 使用记录 */}
+      <Card bordered={false} title="使用记录">
         <Table
-          rowKey="key"
-          columns={columns}
-          dataSource={mockUsageData}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条`
-          }}
+          dataSource={recordData}
+          columns={recordColumns}
+          pagination={{ pageSize: 10 }}
         />
       </Card>
     </div>
