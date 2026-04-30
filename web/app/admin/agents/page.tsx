@@ -49,7 +49,6 @@ interface Agent {
   province: string
   city: string
   customerCount: number
-  commission: number
   status: 'active' | 'frozen'
   features: string[]
   createTime: string
@@ -131,7 +130,6 @@ const mockAgents: Agent[] = [
     province: '上海市',
     city: '浦东新区',
     customerCount: 456,
-    commission: 15,
     status: 'active',
     features: ['media', 'recruitment', 'acquisition', 'referral', 'share'],
     createTime: '2024-06-01',
@@ -145,7 +143,6 @@ const mockAgents: Agent[] = [
     province: '广东省',
     city: '广州市',
     customerCount: 389,
-    commission: 12,
     status: 'active',
     features: ['media', 'recruitment', 'referral', 'share'],
     createTime: '2024-07-15',
@@ -159,7 +156,6 @@ const mockAgents: Agent[] = [
     province: '四川省',
     city: '成都市',
     customerCount: 215,
-    commission: 10,
     status: 'active',
     features: ['media', 'recruitment'],
     createTime: '2024-09-01',
@@ -173,7 +169,6 @@ const mockAgents: Agent[] = [
     province: '北京市',
     city: '朝阳区',
     customerCount: 178,
-    commission: 12,
     status: 'frozen',
     features: ['media', 'recruitment', 'acquisition'],
     createTime: '2024-10-20',
@@ -283,7 +278,6 @@ export default function AdminAgentsPage() {
     createForm.resetFields()
     createForm.setFieldsValue({
       status: 'active',
-      commission: 10,
       expireMonths: 12,
     })
     setCreateVisible(true)
@@ -344,14 +338,7 @@ export default function AdminAgentsPage() {
       key: 'features',
       render: (features: string[]) => getFeatureTags(features)
     },
-    {
-      title: '分成比例',
-      dataIndex: 'commission',
-      key: 'commission',
-      render: (commission: number) => (
-        <Text strong style={{ color: '#faad14' }}>{commission}%</Text>
-      )
-    },
+
     {
       title: '到期时间',
       dataIndex: 'expireAt',
@@ -430,7 +417,7 @@ export default function AdminAgentsPage() {
       <div className="mb-6 flex justify-between items-center">
         <div>
           <Title level={2} className="mb-2">代理商管理</Title>
-          <Text type="secondary">创建/冻结区域代理账号，设置代理分成比例、可售卖功能范围</Text>
+          <Text type="secondary">创建/冻结区域代理账号，设置可售卖功能范围</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
           开通代理商
@@ -520,26 +507,11 @@ export default function AdminAgentsPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="commission" label="分成比例(%)" rules={[{ required: true, message: '请输入分成比例' }]}>
-                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="0-100" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
               <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true, message: '请选择有效时间' }]}>
                 <Select placeholder="选择有效时间">
                   {expireOptions.map(opt => (
                     <Option key={opt.value} value={opt.value}>{opt.label}</Option>
                   ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="status" label="初始状态">
-                <Select>
-                  <Option value="active">正常</Option>
-                  <Option value="frozen">冻结</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -585,17 +557,12 @@ export default function AdminAgentsPage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="commission" label="分成比例(%)" rules={[{ required: true, message: '请输入分成比例' }]}>
-                <InputNumber min={0} max={100} style={{ width: '100%' }} placeholder="0-100" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
               <Form.Item name="expireAt" label="到期时间" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
             </Col>
+          </Row>
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="status" label="状态">
                 <Select>
@@ -624,7 +591,6 @@ export default function AdminAgentsPage() {
             <Descriptions.Item label="代理商名称">{selectedAgent.name}</Descriptions.Item>
             <Descriptions.Item label="手机号码">{selectedAgent.phone}</Descriptions.Item>
             <Descriptions.Item label="负责区域">{selectedAgent.province} · {selectedAgent.city}</Descriptions.Item>
-            <Descriptions.Item label="分成比例">{selectedAgent.commission}%</Descriptions.Item>
             <Descriptions.Item label="客户数量">{selectedAgent.customerCount}</Descriptions.Item>
             <Descriptions.Item label="到期时间">{selectedAgent.expireAt}</Descriptions.Item>
             <Descriptions.Item label="状态">

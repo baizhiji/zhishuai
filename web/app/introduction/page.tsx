@@ -1,16 +1,16 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Card, Row, Col, Button, Typography, Breadcrumb, Table, Tag } from 'antd'
-import { ArrowLeftOutlined, TeamOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons'
+import { Card, Breadcrumb, Button, Typography, Table, Tag } from 'antd'
+import { ArrowLeftOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons'
 import { useReferral } from '@/lib/hooks/useReferral'
 
 const { Title, Text } = Typography
 
 const mockReferrals = [
-  { id: '1', referredUser: '用户A', status: 'registered', commission: 100, date: '2024-03-15' },
-  { id: '2', referredUser: '用户B', status: 'active', commission: 200, date: '2024-03-14' },
-  { id: '3', referredUser: '用户C', status: 'pending', commission: 0, date: '2024-03-13' },
+  { id: '1', referredUser: '用户A', status: 'registered', date: '2024-03-15' },
+  { id: '2', referredUser: '用户B', status: 'active', date: '2024-03-14' },
+  { id: '3', referredUser: '用户C', status: 'pending', date: '2024-03-13' },
 ]
 
 export default function IntroductionPage() {
@@ -33,7 +33,6 @@ export default function IntroductionPage() {
         return <Tag color={color} icon={icon}>{text}</Tag>
       },
     },
-    { title: '佣金', dataIndex: 'commission', key: 'commission', render: (v: number) => `¥${v}` },
     { title: '推荐时间', dataIndex: 'date', key: 'date' },
   ]
 
