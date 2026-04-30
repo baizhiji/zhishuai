@@ -7,7 +7,7 @@ import { PlusOutlined, SendOutlined, DeleteOutlined, EditOutlined, PauseCircleOu
 const { Title, Text, Paragraph } = Typography
 const { TextArea } = Input
 
-interface引流Task {
+interface Task {
   id: string
   name: string
   targetCount: number
@@ -40,7 +40,7 @@ interface SendRecord {
 }
 
 export default function TaskPage() {
-  const [tasks, setTasks] = useState<引流Task[]>([
+  const [tasks, setTasks] = useState<Task[]>([
     {
       id: '1',
       name: '企业服务精准获客',
@@ -132,7 +132,7 @@ export default function TaskPage() {
   ])
 
   const [modalVisible, setModalVisible] = useState(false)
-  const [editingTask, setEditingTask] = useState<引流Task | null>(null)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [taskType, setTaskType] = useState<'create' | 'edit'>('create')
   const [form] = Form.useForm()
 
@@ -178,7 +178,7 @@ export default function TaskPage() {
       title: '任务名称',
       dataIndex: 'name',
       key: 'name',
-      render: (name: string, record: 引流Task) => (
+      render: (name: string, record: Task) => (
         <div>
           <div className="font-medium flex items-center gap-2">
             {name}
@@ -195,7 +195,7 @@ export default function TaskPage() {
       title: '发送进度',
       key: 'progress',
       width: 180,
-      render: (_: any, record: 引流Task) => (
+      render: (_: any, record: Task) => (
         <div>
           {record.status === 'draft' ? (
             <Text type="secondary">未开始</Text>
@@ -215,7 +215,7 @@ export default function TaskPage() {
       title: '数据统计',
       key: 'stats',
       width: 280,
-      render: (_: any, record: 引流Task) => (
+      render: (_: any, record: Task) => (
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="text-center">
             <div className="text-gray-400">发送</div>
@@ -236,7 +236,7 @@ export default function TaskPage() {
       title: '转化漏斗',
       key: 'funnel',
       width: 200,
-      render: (_: any, record: 引流Task) => (
+      render: (_: any, record: Task) => (
         <div>
           <div className="flex items-center gap-2 text-xs">
             <span>回复率</span>
@@ -255,7 +255,7 @@ export default function TaskPage() {
       title: '时间设置',
       key: 'time',
       width: 120,
-      render: (_: any, record: 引流Task) => (
+      render: (_: any, record: Task) => (
         <div className="text-xs text-gray-500">
           {record.startTime && <div>开始：{record.startTime}</div>}
           {record.endTime && <div>结束：{record.endTime}</div>}
@@ -267,7 +267,7 @@ export default function TaskPage() {
       title: '操作',
       key: 'action',
       width: 160,
-      render: (_: any, record: 引流Task) => (
+      render: (_: any, record: Task) => (
         <Space size="small">
           {record.status === 'draft' ? (
             <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => {
