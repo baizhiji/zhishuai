@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
   Card,
   Row,
@@ -13,14 +13,15 @@ import {
   Input,
   Modal,
   Form,
-  InputNumber,
   Select,
   Cascader,
   message,
   Popconfirm,
   Descriptions,
-  Switch,
   Statistic,
+  Spin,
+  Empty,
+  Badge,
 } from 'antd'
 import {
   PlusOutlined,
@@ -177,7 +178,9 @@ const mockAgents: Agent[] = [
 ]
 
 export default function AdminAgentsPage() {
-  const [agents, setAgents] = useState<Agent[]>(mockAgents)
+  const [loading, setLoading] = useState(true)
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [searchText, setSearchText] = useState('')
   const [editVisible, setEditVisible] = useState(false)
   const [detailVisible, setDetailVisible] = useState(false)
   const [featureVisible, setFeatureVisible] = useState(false)
@@ -186,6 +189,25 @@ export default function AdminAgentsPage() {
   const [form] = Form.useForm()
   const [createForm] = Form.useForm()
   const [featureForm] = Form.useForm()
+
+  // 模拟加载数据
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAgents(mockAgents)
+      setLoading(false)
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // 搜索过滤
+  const filteredAgents = useMemo(() => {
+    return agents.filter(a => 
+      !searchText || 
+      a.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      a.phone.includes(searchText) ||
+      a.province.includes(searchText)
+    )
+  }, [agents, searchText])
 
   // 新增/编辑
   const handleEdit = (agent?: Agent) => {
@@ -413,10 +435,11 @@ export default function AdminAgentsPage() {
   }, [agents])
 
   return (
-    <div className="p-6">
-      <div className="mb-6 flex justify-between items-center">
+    <div style={{ padding: 24 }}>
+      {/* 页面标题 */}
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Title level={2} className="mb-2">代理商管理</Title>
+          <Title level={3} style={{ margin: 0 }}>代理商管理</Title>
           <Text type="secondary">创建/冻结区域代理账号，设置可售卖功能范围</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreate}>
@@ -425,31 +448,78 @@ export default function AdminAgentsPage() {
       </div>
 
       {/* 统计卡片 */}
-      <Row gutter={16} className="mb-6">
+      <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
-          <Card>
-            <Statistic title="代理商总数" value={stats.total} prefix={<TeamOutlined />} />
+          <Card loading={loading}>
+            <Statistic 
+              title="代理商总数" 
+              value={stats.total} 
+              prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
+              valueStyle={{ color: '#1890ff' }}
+            />
           </Card>
         </Col>
         <Col span={8}>
-          <Card>
-            <Statistic title="正常" value={stats.active} valueStyle={{ color: '#52c41a' }} />
+          <Card loading={loading}>
+            <Statistic 
+              title="正常" 
+              value={stats.active} 
+              valueStyle={{ color: '#52c41a' }}
+              suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>个</span>}
+            />
           </Card>
         </Col>
         <Col span={8}>
-          <Card>
-            <Statistic title="客户总数" value={stats.totalCustomers} valueStyle={{ color: '#1890ff' }} />
+          <Card loading={loading}>
+            <Statistic 
+              title="客户总数" 
+              value={stats.totalCustomers} 
+              prefix={<GlobalOutlined style={{ color: '#722ed1' }} />}
+              valueStyle={{ color: '#722ed1' }}
+            />
           </Card>
         </Col>
       </Row>
 
+      {/* 数据表格 */}
       <Card>
-        <Table
-          rowKey="key"
-          columns={columns}
-          dataSource={agents}
-          pagination={false}
-        />
+        <div style={{ marginBottom: 16 }}>
+          <Input.Search 
+            placeholder="搜索代理商名称/手机号/区域" 
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 280 }}
+            allowClear
+          />
+        </div>
+
+        <Spin spinning={loading}>
+          <Table
+            rowKey="key"
+            columns={columns}
+            dataSource={filteredAgents}
+            pagination={{ 
+              pageSize: 10,
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条记录`,
+            }}
+            locale={{
+              emptyText: (
+                <Empty 
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={
+                    <span>
+                      {searchText ? '未找到匹配的代理商' : '暂无代理商数据'}
+                    </span>
+                  }
+                >
+                  {!searchText && (
+                    <Button type="primary" onClick={handleOpenCreate}>开通第一个代理商</Button>
+                  )}
+                </Empty>
+              )
+            }}
+          />
+        </Spin>
       </Card>
 
       {/* 开通代理商 */}
