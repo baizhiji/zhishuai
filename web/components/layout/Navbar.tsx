@@ -156,58 +156,70 @@ function getNavigationItems(role: Role): NavigationItem[] {
     case 'agent':
       return [
         {
-          key: 'customers',
+          key: 'agent-clients',
           label: '客户管理',
           icon: <TeamOutlined />,
           children: [
-            { key: 'customer-list', label: '客户列表', icon: <TeamOutlined />, path: '/agent/customers' },
-            { key: 'customer-feature', label: '功能开关管理', icon: <SettingOutlined />, path: '/agent/features' },
+            { key: 'agent-clients-list', label: '客户列表', icon: <TeamOutlined />, path: '/agent/clients' },
+            { key: 'agent-clients-features', label: '功能开关管理', icon: <SettingOutlined />, path: '/agent/features' },
           ],
         },
         {
-          key: 'data',
+          key: 'agent-data',
           label: '数据看板',
           icon: <PieChartOutlined />,
           children: [
-            { key: 'referral-data', label: '推荐数据', icon: <ShareAltOutlined />, path: '/agent/referral' },
-            { key: 'usage-data', label: '使用数据', icon: <PieChartOutlined />, path: '/agent/usage' },
+            { key: 'agent-referrals', label: '推荐数据', icon: <ShareAltOutlined />, path: '/agent/referrals' },
+            { key: 'agent-usage', label: '使用数据', icon: <PieChartOutlined />, path: '/agent/usage' },
           ],
+        },
+        {
+          key: 'agent-tickets',
+          label: '工单处理',
+          icon: <ThunderboltOutlined />,
+          path: '/agent/tickets',
         },
       ]
     case 'admin':
       return [
         {
-          key: 'tenants',
+          key: 'admin-tenants',
           label: '租户管理',
           icon: <TeamOutlined />,
           children: [
-            { key: 'tenant-list', label: '租户列表', icon: <TeamOutlined />, path: '/admin/tenants' },
-            { key: 'tenant-agents', label: '代理商管理', icon: <TeamOutlined />, path: '/admin/agents' },
+            { key: 'admin-tenants-list', label: '租户列表', icon: <TeamOutlined />, path: '/admin/tenants' },
+            { key: 'admin-agents-list', label: '代理商管理', icon: <TeamOutlined />, path: '/admin/agents' },
           ],
         },
         {
-          key: 'features',
+          key: 'admin-features',
           label: '功能开关总控',
           icon: <SettingOutlined />,
           path: '/admin/features',
         },
         {
-          key: 'branding',
+          key: 'admin-branding',
           label: '贴牌配置',
           icon: <PictureOutlined />,
           path: '/admin/branding',
         },
         {
-          key: 'data',
+          key: 'admin-analytics',
           label: '数据大盘',
           icon: <PieChartOutlined />,
-          path: '/admin/data',
+          path: '/admin/analytics',
         },
         {
-          key: 'system',
+          key: 'admin-config',
           label: '系统配置',
           icon: <SettingOutlined />,
-          path: '/admin/system',
+          path: '/admin/config',
+        },
+        {
+          key: 'admin-logs',
+          label: '操作日志',
+          icon: <FileTextOutlined />,
+          path: '/admin/logs',
         },
       ]
     default:
