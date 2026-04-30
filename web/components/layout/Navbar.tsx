@@ -156,13 +156,16 @@ function getNavigationItems(role: Role): NavigationItem[] {
     case 'agent':
       return [
         {
-          key: 'agent-clients',
-          label: '客户管理',
+          key: 'agent-customers',
+          label: '终端客户',
           icon: <TeamOutlined />,
-          children: [
-            { key: 'agent-clients-list', label: '客户列表', icon: <TeamOutlined />, path: '/agent/clients' },
-            { key: 'agent-clients-features', label: '功能开关管理', icon: <SettingOutlined />, path: '/agent/features' },
-          ],
+          path: '/agent/customers',
+        },
+        {
+          key: 'agent-agents',
+          label: '代理商',
+          icon: <TeamOutlined />,
+          path: '/agent/agents',
         },
         {
           key: 'agent-data',
@@ -183,23 +186,20 @@ function getNavigationItems(role: Role): NavigationItem[] {
     case 'admin':
       return [
         {
-          key: 'admin-tenants',
-          label: '租户管理',
+          key: 'admin-customers',
+          label: '终端客户',
           icon: <TeamOutlined />,
-          children: [
-            { key: 'admin-tenants-list', label: '租户列表', icon: <TeamOutlined />, path: '/admin/tenants' },
-            { key: 'admin-agents-list', label: '代理商管理', icon: <TeamOutlined />, path: '/admin/agents' },
-          ],
+          path: '/admin/customers',
         },
         {
-          key: 'admin-features',
-          label: '功能开关总控',
-          icon: <SettingOutlined />,
-          path: '/admin/features',
+          key: 'admin-agents',
+          label: '代理商',
+          icon: <TeamOutlined />,
+          path: '/admin/agents',
         },
         {
           key: 'admin-branding',
-          label: '贴牌配置',
+          label: '贴牌商',
           icon: <PictureOutlined />,
           path: '/admin/branding',
         },

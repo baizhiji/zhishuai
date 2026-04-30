@@ -37,13 +37,11 @@ import dayjs from 'dayjs'
 const { Title, Text } = Typography
 const { Search } = Input
 const { Option } = Select
-const { RangePicker } = DatePicker
 
-interface Tenant {
+interface Customer {
   id: string
   name: string
   phone: string
-  type: 'agent' | 'customer'
   status: 'active' | 'frozen'
   package: 'basic' | 'pro' | 'enterprise'
   features: {
@@ -60,26 +58,23 @@ interface Tenant {
   acquired: number
 }
 
-const mockTenants: Tenant[] = [
-  {
-    id: '1',
-    name: '张经理',
-    phone: '138****1001',
-    type: 'agent',
-    status: 'active',
-    package: 'enterprise',
-    features: { media: true, recruitment: true, acquisition: true, sharing: true, referral: true },
-    createdAt: '2024-01-01',
-    expireAt: '2025-01-01',
-    users: 50,
-    published: 1250,
-    acquired: 380,
-  },
+// 到期时间选项
+const expireOptions = [
+  { value: 1, label: '1个月' },
+  { value: 3, label: '3个月' },
+  { value: 6, label: '6个月' },
+  { value: 12, label: '1年' },
+  { value: 24, label: '2年' },
+  { value: 36, label: '3年' },
+  { value: -1, label: '永久' },
+]
+
+// Mock 数据
+const mockCustomers: Customer[] = [
   {
     id: '2',
     name: '李总',
     phone: '139****2002',
-    type: 'customer',
     status: 'active',
     package: 'pro',
     features: { media: true, recruitment: true, acquisition: false, sharing: true, referral: false },
@@ -93,7 +88,6 @@ const mockTenants: Tenant[] = [
     id: '3',
     name: '王老板',
     phone: '137****3003',
-    type: 'customer',
     status: 'frozen',
     package: 'basic',
     features: { media: true, recruitment: false, acquisition: false, sharing: false, referral: false },
@@ -104,24 +98,9 @@ const mockTenants: Tenant[] = [
     acquired: 0,
   },
   {
-    id: '4',
-    name: '赵经理',
-    phone: '136****4004',
-    type: 'agent',
-    status: 'active',
-    package: 'enterprise',
-    features: { media: true, recruitment: true, acquisition: true, sharing: true, referral: true },
-    createdAt: '2024-01-15',
-    expireAt: '2025-01-15',
-    users: 35,
-    published: 890,
-    acquired: 420,
-  },
-  {
     id: '5',
     name: '刘总',
     phone: '135****5005',
-    type: 'customer',
     status: 'active',
     package: 'pro',
     features: { media: true, recruitment: false, acquisition: true, sharing: true, referral: true },
@@ -133,62 +112,60 @@ const mockTenants: Tenant[] = [
   },
 ]
 
-export default function AdminTenantsPage() {
-  const [tenants, setTenants] = useState<Tenant[]>(mockTenants)
+export default function AdminCustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>(mockCustomers)
   const [searchText, setSearchText] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
   const [editVisible, setEditVisible] = useState(false)
   const [featureVisible, setFeatureVisible] = useState(false)
   const [createVisible, setCreateVisible] = useState(false)
-  const [editTenant, setEditTenant] = useState<Tenant | null>(null)
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
   const [form] = Form.useForm()
   const [createForm] = Form.useForm()
   const [featureForm] = Form.useForm()
 
-  const filteredTenants = useMemo(() => {
-    return tenants.filter((t) => {
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((c) => {
       const matchSearch =
-        !searchText || t.name.toLowerCase().includes(searchText.toLowerCase()) || t.phone.includes(searchText)
-      const matchStatus = statusFilter === 'all' || t.status === statusFilter
-      const matchType = typeFilter === 'all' || t.type === typeFilter
-      return matchSearch && matchStatus && matchType
+        !searchText || c.name.toLowerCase().includes(searchText.toLowerCase()) || c.phone.includes(searchText)
+      const matchStatus = statusFilter === 'all' || c.status === statusFilter
+      return matchSearch && matchStatus
     })
-  }, [tenants, searchText, statusFilter, typeFilter])
+  }, [customers, searchText, statusFilter])
 
-  const handleToggleStatus = (tenant: Tenant) => {
-    setTenants((prev) =>
-      prev.map((t) => (t.id === tenant.id ? { ...t, status: t.status === 'active' ? 'frozen' : 'active' } : t))
+  const handleToggleStatus = (customer: Customer) => {
+    setCustomers((prev) =>
+      prev.map((c) => (c.id === customer.id ? { ...c, status: c.status === 'active' ? 'frozen' : 'active' } : c))
     )
-    message.success(`${tenant.name} 已${tenant.status === 'active' ? '冻结' : '解冻'}`)
+    message.success(`${customer.name} 已${customer.status === 'active' ? '冻结' : '解冻'}`)
   }
 
-  const handleEdit = (tenant: Tenant) => {
-    setEditTenant(tenant)
-    form.setFieldsValue(tenant)
+  const handleEdit = (customer: Customer) => {
+    setEditCustomer(customer)
+    form.setFieldsValue(customer)
     setEditVisible(true)
   }
 
   const handleSave = () => {
     form.validateFields().then((values) => {
-      setTenants((prev) => prev.map((t) => (t.id === editTenant?.id ? { ...t, ...values } : t)))
+      setCustomers((prev) => prev.map((c) => (c.id === editCustomer?.id ? { ...c, ...values } : c)))
       message.success('信息已更新')
       setEditVisible(false)
     })
   }
 
-  const handleDelete = (tenant: Tenant) => {
-    setTenants((prev) => prev.filter((t) => t.id !== tenant.id))
-    message.success(`${tenant.name} 已删除`)
+  const handleDelete = (customer: Customer) => {
+    setCustomers((prev) => prev.filter((c) => c.id !== customer.id))
+    message.success(`${customer.name} 已删除`)
   }
 
   // 打开功能设置
-  const handleOpenFeatures = (tenant: Tenant) => {
-    setEditTenant(tenant)
+  const handleOpenFeatures = (customer: Customer) => {
+    setEditCustomer(customer)
     featureForm.setFieldsValue({
-      name: tenant.name,
-      phone: tenant.phone,
-      features: tenant.features
+      name: customer.name,
+      phone: customer.phone,
+      features: customer.features
     })
     setFeatureVisible(true)
   }
@@ -196,68 +173,66 @@ export default function AdminTenantsPage() {
   // 保存功能设置
   const handleSaveFeatures = () => {
     featureForm.validateFields().then((values) => {
-      setTenants((prev) => 
-        prev.map((t) => t.id === editTenant?.id ? { ...t, features: values.features } : t)
+      setCustomers((prev) => 
+        prev.map((c) => c.id === editCustomer?.id ? { ...c, features: values.features } : c)
       )
       message.success('功能权限已更新')
       setFeatureVisible(false)
     })
   }
 
-  // 开通终端用户
+  // 开通终端客户
   const handleOpenCreateModal = () => {
     createForm.resetFields()
     createForm.setFieldsValue({
-      type: 'customer',
       package: 'basic',
       status: 'active',
-      expireAt: dayjs().add(1, 'year'),
+      expireMonths: 12,
     })
     setCreateVisible(true)
   }
 
   const handleCreate = () => {
     createForm.validateFields().then((values) => {
-      const newTenant: Tenant = {
+      const expireValue = values.expireMonths
+      const expireAt = expireValue === -1 ? '2099-12-31' : dayjs().add(expireValue, 'month').format('YYYY-MM-DD')
+      
+      const newCustomer: Customer = {
         id: Date.now().toString(),
         name: values.name,
         phone: values.phone,
-        type: values.type,
         status: values.status,
         package: values.package,
         features: {
-          media: values.type === 'customer' ? true : false,
+          media: true,
           recruitment: false,
           acquisition: false,
           sharing: false,
           referral: false,
         },
         createdAt: dayjs().format('YYYY-MM-DD'),
-        expireAt: values.expireAt ? values.expireAt.format('YYYY-MM-DD') : dayjs().add(1, 'year').format('YYYY-MM-DD'),
+        expireAt,
         users: 0,
         published: 0,
         acquired: 0,
       }
-      setTenants((prev) => [newTenant, ...prev])
-      message.success(`已成功开通：${values.name}，初始密码：123456`)
+      setCustomers((prev) => [newCustomer, ...prev])
+      message.success(`已成功开通：${values.name}，登录账号：${values.phone}，初始密码：123456`)
       setCreateVisible(false)
     })
   }
 
-  const columns: ColumnsType<Tenant> = [
+  const columns: ColumnsType<Customer> = [
     {
       title: '用户信息',
       key: 'user',
       render: (_, record) => (
         <Space>
-          <TeamOutlined style={{ color: record.type === 'agent' ? '#1890ff' : '#52c41a' }} />
+          <TeamOutlined style={{ color: '#52c41a' }} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.name}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
           </div>
-          <Tag color={record.type === 'agent' ? 'blue' : 'green'}>
-            {record.type === 'agent' ? '代理' : '客户'}
-          </Tag>
         </Space>
       ),
     },
@@ -323,7 +298,7 @@ export default function AdminTenantsPage() {
     {
       title: '操作',
       key: 'action',
-      width: 280,
+      width: 260,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -363,44 +338,38 @@ export default function AdminTenantsPage() {
   ]
 
   const stats = useMemo(() => {
-    const total = tenants.length
-    const active = tenants.filter((t) => t.status === 'active').length
-    const agents = tenants.filter((t) => t.type === 'agent').length
-    const customers = tenants.filter((t) => t.type === 'customer').length
-    return { total, active, agents, customers }
-  }, [tenants])
+    const total = customers.length
+    const active = customers.filter((c) => c.status === 'active').length
+    const totalUsers = customers.reduce((sum, c) => sum + c.users, 0)
+    return { total, active, totalUsers }
+  }, [customers])
 
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <Title level={2} className="mb-2">用户管理</Title>
-          <Text type="secondary">管理所有代理商和终端用户，开通账号、设置功能权限、冻结/解冻</Text>
+          <Title level={2} className="mb-2">终端客户管理</Title>
+          <Text type="secondary">管理所有终端客户，开通账号、设置功能权限、冻结/解冻</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>
-          开通用户
+          开通客户
         </Button>
       </div>
 
       <Row gutter={16} className="mb-6">
-        <Col span={6}>
+        <Col span={8}>
           <Card>
-            <Statistic title="总用户数" value={stats.total} prefix={<TeamOutlined />} />
+            <Statistic title="客户总数" value={stats.total} prefix={<TeamOutlined />} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
             <Statistic title="正常" value={stats.active} valueStyle={{ color: '#52c41a' }} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card>
-            <Statistic title="代理商" value={stats.agents} valueStyle={{ color: '#1890ff' }} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="终端客户" value={stats.customers} valueStyle={{ color: '#52c41a' }} />
+            <Statistic title="总用户数" value={stats.totalUsers} />
           </Card>
         </Col>
       </Row>
@@ -413,19 +382,14 @@ export default function AdminTenantsPage() {
             <Option value="active">正常</Option>
             <Option value="frozen">已冻结</Option>
           </Select>
-          <Select value={typeFilter} onChange={setTypeFilter} style={{ width: 120 }}>
-            <Option value="all">全部类型</Option>
-            <Option value="agent">代理商</Option>
-            <Option value="customer">客户</Option>
-          </Select>
         </Space>
 
-        <Table columns={columns} dataSource={filteredTenants} rowKey="id" pagination={{ pageSize: 10 }} />
+        <Table columns={columns} dataSource={filteredCustomers} rowKey="id" pagination={{ pageSize: 10 }} />
       </Card>
 
       {/* 编辑基本信息 */}
       <Modal
-        title="编辑用户信息"
+        title="编辑客户信息"
         open={editVisible}
         onOk={handleSave}
         onCancel={() => setEditVisible(false)}
@@ -463,7 +427,7 @@ export default function AdminTenantsPage() {
         width={500}
       >
         <Form form={featureForm} layout="vertical">
-          <Form.Item name="name" label="用户姓名">
+          <Form.Item name="name" label="客户姓名">
             <Input disabled />
           </Form.Item>
           <Form.Item name="phone" label="手机号">
@@ -508,9 +472,9 @@ export default function AdminTenantsPage() {
         </Form>
       </Modal>
 
-      {/* 开通用户 */}
+      {/* 开通客户 */}
       <Modal
-        title="开通用户"
+        title="开通终端客户"
         open={createVisible}
         onOk={handleCreate}
         onCancel={() => setCreateVisible(false)}
@@ -519,17 +483,6 @@ export default function AdminTenantsPage() {
         width={500}
       >
         <Form form={createForm} layout="vertical">
-          <Form.Item
-            name="type"
-            label="用户类型"
-            rules={[{ required: true }]}
-          >
-            <Select placeholder="选择用户类型">
-              <Option value="customer">终端客户</Option>
-              <Option value="agent">代理商</Option>
-            </Select>
-          </Form.Item>
-
           <Form.Item
             name="name"
             label="用户名"
@@ -540,7 +493,7 @@ export default function AdminTenantsPage() {
 
           <Form.Item
             name="phone"
-            label="手机号码"
+            label="手机号码（登录账号）"
             rules={[{ required: true, message: '请输入手机号码' }]}
           >
             <Input placeholder="请输入手机号码" />
@@ -559,11 +512,15 @@ export default function AdminTenantsPage() {
           </Form.Item>
 
           <Form.Item
-            name="expireAt"
-            label="到期时间"
-            rules={[{ required: true, message: '请选择到期时间' }]}
+            name="expireMonths"
+            label="有效时间"
+            rules={[{ required: true, message: '请选择有效时间' }]}
           >
-            <DatePicker style={{ width: '100%' }} placeholder="选择到期时间" />
+            <Select placeholder="选择有效时间">
+              {expireOptions.map(opt => (
+                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+              ))}
+            </Select>
           </Form.Item>
 
           <Form.Item name="status" label="初始状态">
@@ -572,6 +529,13 @@ export default function AdminTenantsPage() {
               <Option value="frozen">冻结</Option>
             </Select>
           </Form.Item>
+
+          <Card size="small" className="mt-4">
+            <Text type="secondary">
+              登录账号：手机号码<br />
+              初始密码：123456（用户自行修改）
+            </Text>
+          </Card>
         </Form>
       </Modal>
     </div>

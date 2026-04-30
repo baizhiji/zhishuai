@@ -5,9 +5,10 @@ import { Layout, Menu } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
-  SettingOutlined,
+  UserOutlined,
   BarChartOutlined,
   WarningOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -27,16 +28,16 @@ const AgentNavbar: React.FC = () => {
       path: '/agent/analytics',
     },
     {
-      key: 'clients',
-      icon: <TeamOutlined />,
-      label: '客户管理',
-      path: '/agent/clients',
+      key: 'agents',
+      icon: <GlobalOutlined />,
+      label: '代理商',
+      path: '/agent/agents',
     },
     {
-      key: 'features',
-      icon: <SettingOutlined />,
-      label: '功能开关',
-      path: '/agent/features',
+      key: 'customers',
+      icon: <TeamOutlined />,
+      label: '终端客户',
+      path: '/agent/customers',
     },
     {
       key: 'referrals',
