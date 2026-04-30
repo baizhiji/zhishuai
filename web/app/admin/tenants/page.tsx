@@ -10,7 +10,6 @@ import {
   Select,
   Modal,
   Form,
-  InputNumber,
   message,
   Card,
   Row,
@@ -24,13 +23,13 @@ import {
 } from 'antd'
 import {
   SearchOutlined,
-  UserOutlined,
   LockOutlined,
   UnlockOutlined,
   EditOutlined,
   DeleteOutlined,
   TeamOutlined,
   PlusOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
@@ -43,6 +42,7 @@ const { RangePicker } = DatePicker
 interface Tenant {
   id: string
   name: string
+  phone: string
   type: 'agent' | 'customer'
   status: 'active' | 'frozen'
   package: 'basic' | 'pro' | 'enterprise'
@@ -63,7 +63,8 @@ interface Tenant {
 const mockTenants: Tenant[] = [
   {
     id: '1',
-    name: '上海分公司',
+    name: '张经理',
+    phone: '138****1001',
     type: 'agent',
     status: 'active',
     package: 'enterprise',
@@ -76,7 +77,8 @@ const mockTenants: Tenant[] = [
   },
   {
     id: '2',
-    name: '北京科技有限公司',
+    name: '李总',
+    phone: '139****2002',
     type: 'customer',
     status: 'active',
     package: 'pro',
@@ -89,7 +91,8 @@ const mockTenants: Tenant[] = [
   },
   {
     id: '3',
-    name: '广州贸易公司',
+    name: '王老板',
+    phone: '137****3003',
     type: 'customer',
     status: 'frozen',
     package: 'basic',
@@ -102,7 +105,8 @@ const mockTenants: Tenant[] = [
   },
   {
     id: '4',
-    name: '深圳分公司',
+    name: '赵经理',
+    phone: '136****4004',
     type: 'agent',
     status: 'active',
     package: 'enterprise',
@@ -115,7 +119,8 @@ const mockTenants: Tenant[] = [
   },
   {
     id: '5',
-    name: '杭州创意工作室',
+    name: '刘总',
+    phone: '135****5005',
     type: 'customer',
     status: 'active',
     package: 'pro',
@@ -134,15 +139,17 @@ export default function AdminTenantsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [editVisible, setEditVisible] = useState(false)
+  const [featureVisible, setFeatureVisible] = useState(false)
   const [createVisible, setCreateVisible] = useState(false)
   const [editTenant, setEditTenant] = useState<Tenant | null>(null)
   const [form] = Form.useForm()
   const [createForm] = Form.useForm()
+  const [featureForm] = Form.useForm()
 
   const filteredTenants = useMemo(() => {
     return tenants.filter((t) => {
       const matchSearch =
-        !searchText || t.name.toLowerCase().includes(searchText.toLowerCase())
+        !searchText || t.name.toLowerCase().includes(searchText.toLowerCase()) || t.phone.includes(searchText)
       const matchStatus = statusFilter === 'all' || t.status === statusFilter
       const matchType = typeFilter === 'all' || t.type === typeFilter
       return matchSearch && matchStatus && matchType
@@ -165,7 +172,7 @@ export default function AdminTenantsPage() {
   const handleSave = () => {
     form.validateFields().then((values) => {
       setTenants((prev) => prev.map((t) => (t.id === editTenant?.id ? { ...t, ...values } : t)))
-      message.success('租户信息已更新')
+      message.success('信息已更新')
       setEditVisible(false)
     })
   }
@@ -175,6 +182,28 @@ export default function AdminTenantsPage() {
     message.success(`${tenant.name} 已删除`)
   }
 
+  // 打开功能设置
+  const handleOpenFeatures = (tenant: Tenant) => {
+    setEditTenant(tenant)
+    featureForm.setFieldsValue({
+      name: tenant.name,
+      phone: tenant.phone,
+      features: tenant.features
+    })
+    setFeatureVisible(true)
+  }
+
+  // 保存功能设置
+  const handleSaveFeatures = () => {
+    featureForm.validateFields().then((values) => {
+      setTenants((prev) => 
+        prev.map((t) => t.id === editTenant?.id ? { ...t, features: values.features } : t)
+      )
+      message.success('功能权限已更新')
+      setFeatureVisible(false)
+    })
+  }
+
   // 开通终端用户
   const handleOpenCreateModal = () => {
     createForm.resetFields()
@@ -182,7 +211,6 @@ export default function AdminTenantsPage() {
       type: 'customer',
       package: 'basic',
       status: 'active',
-      features: { media: true, recruitment: false, acquisition: false, sharing: false, referral: false },
       expireAt: dayjs().add(1, 'year'),
     })
     setCreateVisible(true)
@@ -193,11 +221,12 @@ export default function AdminTenantsPage() {
       const newTenant: Tenant = {
         id: Date.now().toString(),
         name: values.name,
+        phone: values.phone,
         type: values.type,
         status: values.status,
         package: values.package,
-        features: values.features || {
-          media: false,
+        features: {
+          media: values.type === 'customer' ? true : false,
           recruitment: false,
           acquisition: false,
           sharing: false,
@@ -210,20 +239,22 @@ export default function AdminTenantsPage() {
         acquired: 0,
       }
       setTenants((prev) => [newTenant, ...prev])
-      message.success(`已成功开通终端用户：${values.name}`)
+      message.success(`已成功开通：${values.name}，初始密码：123456`)
       setCreateVisible(false)
     })
   }
 
   const columns: ColumnsType<Tenant> = [
     {
-      title: '租户名称',
-      dataIndex: 'name',
-      key: 'name',
-      render: (name: string, record) => (
+      title: '用户信息',
+      key: 'user',
+      render: (_, record) => (
         <Space>
           <TeamOutlined style={{ color: record.type === 'agent' ? '#1890ff' : '#52c41a' }} />
-          <span>{name}</span>
+          <div>
+            <div style={{ fontWeight: 500 }}>{record.name}</div>
+            <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
+          </div>
           <Tag color={record.type === 'agent' ? 'blue' : 'green'}>
             {record.type === 'agent' ? '代理' : '客户'}
           </Tag>
@@ -254,7 +285,7 @@ export default function AdminTenantsPage() {
       },
     },
     {
-      title: '功能',
+      title: '功能权限',
       key: 'features',
       width: 200,
       render: (_, record) => (
@@ -264,6 +295,10 @@ export default function AdminTenantsPage() {
           {record.features.acquisition && <Tag color="orange">获客</Tag>}
           {record.features.sharing && <Tag color="green">分享</Tag>}
           {record.features.referral && <Tag color="gold">转介</Tag>}
+          {!record.features.media && !record.features.recruitment && !record.features.acquisition && 
+           !record.features.sharing && !record.features.referral && (
+            <Text type="secondary">暂无权限</Text>
+          )}
         </Space>
       ),
     },
@@ -288,17 +323,26 @@ export default function AdminTenantsPage() {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 280,
       render: (_, record) => (
-        <Space>
+        <Space size={4}>
           <Button
             type="text"
+            size="small"
             icon={record.status === 'active' ? <LockOutlined /> : <UnlockOutlined />}
             onClick={() => handleToggleStatus(record)}
           >
             {record.status === 'active' ? '冻结' : '解冻'}
           </Button>
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button
+            type="text"
+            size="small"
+            icon={<SettingOutlined />}
+            onClick={() => handleOpenFeatures(record)}
+          >
+            功能
+          </Button>
+          <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
             编辑
           </Button>
           <Popconfirm
@@ -309,7 +353,7 @@ export default function AdminTenantsPage() {
             cancelText="取消"
             okButtonProps={{ danger: true }}
           >
-            <Button type="text" danger icon={<DeleteOutlined />}>
+            <Button type="text" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
           </Popconfirm>
@@ -330,18 +374,18 @@ export default function AdminTenantsPage() {
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <Title level={2} className="mb-2">租户管理</Title>
-          <Text type="secondary">查看所有代理商和客户列表，强制开关功能、调整套餐、冻结/解冻</Text>
+          <Title level={2} className="mb-2">用户管理</Title>
+          <Text type="secondary">管理所有代理商和终端用户，开通账号、设置功能权限、冻结/解冻</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>
-          开通终端用户
+          开通用户
         </Button>
       </div>
 
       <Row gutter={16} className="mb-6">
         <Col span={6}>
           <Card>
-            <Statistic title="总租户数" value={stats.total} prefix={<TeamOutlined />} />
+            <Statistic title="总用户数" value={stats.total} prefix={<TeamOutlined />} />
           </Card>
         </Col>
         <Col span={6}>
@@ -363,7 +407,7 @@ export default function AdminTenantsPage() {
 
       <Card className="mb-6">
         <Space wrap className="mb-4">
-          <Search placeholder="搜索租户名称" onChange={(e) => setSearchText(e.target.value)} style={{ width: 200 }} />
+          <Search placeholder="搜索姓名或手机号" onChange={(e) => setSearchText(e.target.value)} style={{ width: 200 }} />
           <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 120 }}>
             <Option value="all">全部状态</Option>
             <Option value="active">正常</Option>
@@ -379,8 +423,9 @@ export default function AdminTenantsPage() {
         <Table columns={columns} dataSource={filteredTenants} rowKey="id" pagination={{ pageSize: 10 }} />
       </Card>
 
+      {/* 编辑基本信息 */}
       <Modal
-        title="编辑租户"
+        title="编辑用户信息"
         open={editVisible}
         onOk={handleSave}
         onCancel={() => setEditVisible(false)}
@@ -388,7 +433,10 @@ export default function AdminTenantsPage() {
         cancelText="取消"
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="租户名称" rules={[{ required: true }]}>
+          <Form.Item name="name" label="姓名" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="phone" label="手机号" rules={[{ required: true }]}>
             <Input />
           </Form.Item>
           <Form.Item name="package" label="套餐" rules={[{ required: true }]}>
@@ -404,22 +452,98 @@ export default function AdminTenantsPage() {
         </Form>
       </Modal>
 
+      {/* 设置功能权限 */}
       <Modal
-        title="开通终端用户"
+        title="功能权限设置"
+        open={featureVisible}
+        onOk={handleSaveFeatures}
+        onCancel={() => setFeatureVisible(false)}
+        okText="保存"
+        cancelText="取消"
+        width={500}
+      >
+        <Form form={featureForm} layout="vertical">
+          <Form.Item name="name" label="用户姓名">
+            <Input disabled />
+          </Form.Item>
+          <Form.Item name="phone" label="手机号">
+            <Input disabled />
+          </Form.Item>
+          <Form.Item name="features" label="功能权限" style={{ marginBottom: 0 }}>
+            <Card size="small">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div className="flex justify-between items-center">
+                  <Text>自媒体运营</Text>
+                  <Form.Item name={['features', 'media']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>招聘助手</Text>
+                  <Form.Item name={['features', 'recruitment']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>智能获客</Text>
+                  <Form.Item name={['features', 'acquisition']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>推荐分享</Text>
+                  <Form.Item name={['features', 'sharing']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>转介绍</Text>
+                  <Form.Item name={['features', 'referral']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+              </Space>
+            </Card>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 开通用户 */}
+      <Modal
+        title="开通用户"
         open={createVisible}
         onOk={handleCreate}
         onCancel={() => setCreateVisible(false)}
         okText="确认开通"
         cancelText="取消"
-        width={600}
+        width={500}
       >
-        <Form form={createForm} layout="vertical" initialValues={{ status: 'active' }}>
+        <Form form={createForm} layout="vertical">
+          <Form.Item
+            name="type"
+            label="用户类型"
+            rules={[{ required: true }]}
+          >
+            <Select placeholder="选择用户类型">
+              <Option value="customer">终端客户</Option>
+              <Option value="agent">代理商</Option>
+            </Select>
+          </Form.Item>
+
           <Form.Item
             name="name"
-            label="企业名称"
-            rules={[{ required: true, message: '请输入企业名称' }]}
+            label="用户名"
+            rules={[{ required: true, message: '请输入用户名' }]}
           >
-            <Input placeholder="请输入企业全称" />
+            <Input placeholder="请输入用户名" />
+          </Form.Item>
+
+          <Form.Item
+            name="phone"
+            label="手机号码"
+            rules={[{ required: true, message: '请输入手机号码' }]}
+          >
+            <Input placeholder="请输入手机号码" />
           </Form.Item>
 
           <Form.Item
@@ -442,39 +566,11 @@ export default function AdminTenantsPage() {
             <DatePicker style={{ width: '100%' }} placeholder="选择到期时间" />
           </Form.Item>
 
-          <Form.Item
-            name="features"
-            label="开通功能"
-          >
-            <Space direction="vertical">
-              <Space>
-                <Form.Item name={['features', 'media']} valuePropName="checked" noStyle>
-                  <Switch checkedChildren="自媒体" unCheckedChildren="自媒体" />
-                </Form.Item>
-                <Form.Item name={['features', 'recruitment']} valuePropName="checked" noStyle>
-                  <Switch checkedChildren="招聘" unCheckedChildren="招聘" />
-                </Form.Item>
-                <Form.Item name={['features', 'acquisition']} valuePropName="checked" noStyle>
-                  <Switch checkedChildren="获客" unCheckedChildren="获客" />
-                </Form.Item>
-              </Space>
-              <Space>
-                <Form.Item name={['features', 'sharing']} valuePropName="checked" noStyle>
-                  <Switch checkedChildren="分享" unCheckedChildren="分享" />
-                </Form.Item>
-                <Form.Item name={['features', 'referral']} valuePropName="checked" noStyle>
-                  <Switch checkedChildren="转介" unCheckedChildren="转介" />
-                </Form.Item>
-              </Space>
-            </Space>
-          </Form.Item>
-
-          <Form.Item name="status" label="初始状态" valuePropName="checked">
-            <Space>
-              <Form.Item name="status" valuePropName="checked" noStyle>
-                <Switch checkedChildren="正常" unCheckedChildren="冻结" />
-              </Form.Item>
-            </Space>
+          <Form.Item name="status" label="初始状态">
+            <Select>
+              <Option value="active">正常</Option>
+              <Option value="frozen">冻结</Option>
+            </Select>
           </Form.Item>
         </Form>
       </Modal>

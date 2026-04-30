@@ -18,7 +18,8 @@ import {
   Cascader,
   message,
   Popconfirm,
-  Descriptions
+  Descriptions,
+  Switch
 } from 'antd'
 import {
   PlusOutlined,
@@ -26,7 +27,8 @@ import {
   DeleteOutlined,
   UserOutlined,
   GlobalOutlined,
-  AreaChartOutlined
+  AreaChartOutlined,
+  SettingOutlined
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 
@@ -181,8 +183,10 @@ export default function AgentManagement() {
   const [agents, setAgents] = useState<Agent[]>(mockAgents)
   const [editVisible, setEditVisible] = useState(false)
   const [detailVisible, setDetailVisible] = useState(false)
+  const [featureVisible, setFeatureVisible] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [form] = Form.useForm()
+  const [featureForm] = Form.useForm()
 
   // 新增/编辑
   const handleEdit = (agent?: Agent) => {
@@ -197,6 +201,28 @@ export default function AgentManagement() {
       form.resetFields()
     }
     setEditVisible(true)
+  }
+
+  // 打开功能设置
+  const handleOpenFeatures = (agent: Agent) => {
+    setSelectedAgent(agent)
+    featureForm.setFieldsValue({
+      name: agent.name,
+      phone: agent.phone,
+      features: agent.features
+    })
+    setFeatureVisible(true)
+  }
+
+  // 保存功能设置
+  const handleSaveFeatures = () => {
+    featureForm.validateFields().then((values) => {
+      setAgents((prev) => 
+        prev.map(a => a.key === selectedAgent?.key ? { ...a, features: values.features } : a)
+      )
+      message.success('功能权限已更新')
+      setFeatureVisible(false)
+    })
   }
 
   // 保存
@@ -325,18 +351,26 @@ export default function AgentManagement() {
       title: '操作',
       key: 'action',
       render: (_, record) => (
-        <Space>
-          <Button 
-            type="link" 
-            size="small" 
+        <Space size={4}>
+          <Button
+            type="link"
+            size="small"
+            icon={<SettingOutlined />}
+            onClick={() => handleOpenFeatures(record)}
+          >
+            功能
+          </Button>
+          <Button
+            type="link"
+            size="small"
             icon={<UserOutlined />}
             onClick={() => handleViewDetail(record)}
           >
             详情
           </Button>
-          <Button 
-            type="link" 
-            size="small" 
+          <Button
+            type="link"
+            size="small"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
@@ -515,6 +549,62 @@ export default function AgentManagement() {
             <Descriptions.Item label="创建时间">{selectedAgent.createTime}</Descriptions.Item>
           </Descriptions>
         )}
+      </Modal>
+
+      {/* 功能权限设置弹窗 */}
+      <Modal
+        title="功能权限设置"
+        open={featureVisible}
+        onCancel={() => setFeatureVisible(false)}
+        onOk={handleSaveFeatures}
+        okText="保存"
+        cancelText="取消"
+        width={500}
+      >
+        <Form form={featureForm} layout="vertical">
+          <Form.Item name="name" label="代理商名称">
+            <Input disabled />
+          </Form.Item>
+          <Form.Item name="phone" label="联系电话">
+            <Input disabled />
+          </Form.Item>
+          <Form.Item name="features" label="可售卖功能" style={{ marginBottom: 0 }}>
+            <Card size="small">
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div className="flex justify-between items-center">
+                  <Text>自媒体运营</Text>
+                  <Form.Item name={['features']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>招聘助手</Text>
+                  <Form.Item name={['features']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>智能获客</Text>
+                  <Form.Item name={['features']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>推荐分享</Text>
+                  <Form.Item name={['features']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex justify-between items-center">
+                  <Text>转介绍</Text>
+                  <Form.Item name={['features']} valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
+              </Space>
+            </Card>
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   )
