@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, Input, Button, Card, Tabs, message, Divider, Space } from 'antd';
+import { Form, Input, Button, Card, Tabs, message, Divider, Space, Select } from 'antd';
 import {
   UserOutlined,
   LockOutlined,
@@ -11,34 +11,49 @@ import {
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
+const { Option } = Select;
+
 export default function LoginPageSimple() {
   const router = useRouter();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('password');
+  const [selectedRole, setSelectedRole] = useState<'customer' | 'agent' | 'admin'>('customer');
+
+  // 根据角色返回首页路径
+  const getHomePath = (role: string) => {
+    switch (role) {
+      case 'admin': return '/admin/tenants';
+      case 'agent': return '/agent/clients';
+      default: return '/dashboard';
+    }
+  };
 
   // 密码登录
   const handlePasswordLogin = async (values: any) => {
     setLoading(true);
     try {
-      // 模拟登录 token（实际应该从后端 API 获取）
       const token = `token_${Date.now()}`;
 
-      // 构造用户信息
+      // 根据角色构造用户信息
+      const roleNames = {
+        customer: '终端客户',
+        agent: '区域代理',
+        admin: '管理员'
+      };
+
       const user = {
-        id: '1',
-        name: '测试用户',
+        id: selectedRole === 'admin' ? 'admin-001' : selectedRole === 'agent' ? 'agent-001' : '1',
+        name: roleNames[selectedRole],
         phone: values.phone,
-        role: 'customer' as const,
+        role: selectedRole,
         status: 'active' as const
       };
 
-      // 调用 AuthContext 的 login 函数
       login(token, user);
 
-      // 跳转到工作台
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push(getHomePath(selectedRole));
       }, 500);
     } catch (error) {
       console.error('登录失败:', error);
@@ -52,24 +67,26 @@ export default function LoginPageSimple() {
   const handleCodeLogin = async (values: any) => {
     setLoading(true);
     try {
-      // 模拟登录 token（实际应该从后端 API 获取）
       const token = `token_${Date.now()}`;
 
-      // 构造用户信息
+      const roleNames = {
+        customer: '终端客户',
+        agent: '区域代理',
+        admin: '管理员'
+      };
+
       const user = {
-        id: '1',
-        name: '测试用户',
+        id: selectedRole === 'admin' ? 'admin-001' : selectedRole === 'agent' ? 'agent-001' : '1',
+        name: roleNames[selectedRole],
         phone: values.phone,
-        role: 'customer' as const,
+        role: selectedRole,
         status: 'active' as const
       };
 
-      // 调用 AuthContext 的 login 函数
       login(token, user);
 
-      // 跳转到工作台
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push(getHomePath(selectedRole));
       }, 500);
     } catch (error) {
       console.error('登录失败:', error);
@@ -148,15 +165,24 @@ export default function LoginPageSimple() {
                     />
                   </Form.Item>
 
-                  <Form.Item
-                    name="password"
-                    rules={[{ required: true, message: '请输入密码' }]}
-                  >
+                  <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
                     <Input.Password
                       prefix={<LockOutlined />}
                       placeholder="请输入密码"
                       size="large"
                     />
+                  </Form.Item>
+
+                  <Form.Item label="选择账号类型" name="role">
+                    <Select
+                      value={selectedRole}
+                      onChange={setSelectedRole}
+                      size="large"
+                    >
+                      <Option value="customer">终端客户</Option>
+                      <Option value="agent">区域代理</Option>
+                      <Option value="admin">管理员</Option>
+                    </Select>
                   </Form.Item>
 
                   <Form.Item>
@@ -234,27 +260,14 @@ export default function LoginPageSimple() {
           ]}
         />
 
-        <Divider plain>
-          <span style={{ color: '#999', fontSize: 12 }}>其他登录方式</span>
-        </Divider>
-
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <Button icon={<UserOutlined />} block size="large">
-            微信登录
-          </Button>
-          <Button icon={<UserOutlined />} block size="large">
-            QQ登录
-          </Button>
-        </Space>
-
-        <Divider />
-
-        <div style={{ textAlign: 'center' }}>
-          <span style={{ color: '#666' }}>还没有账号？</span>
-          <Button type="link" onClick={handleRegister}>
-            立即注册
-          </Button>
-        </div>
+        {/* 注册提示 - 仅供演示，所有账号由后台开通 */}
+        <Alert
+          message="演示说明"
+          description="本系统所有账号由开发者总后台统一开通管理。如需开通账号，请联系管理员。"
+          type="info"
+          showIcon
+          style={{ marginTop: 16 }}
+        />
       </Card>
     </div>
   );
