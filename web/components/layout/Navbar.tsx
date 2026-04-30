@@ -24,6 +24,7 @@ import {
   SettingOutlined,
   ShopOutlined,
   PieChartOutlined,
+  BarChartOutlined,
   ApiOutlined,
   ThunderboltOutlined,
   AppstoreOutlined,
@@ -81,7 +82,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
             { key: 'recruitment-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/recruitment/screen' },
             { key: 'recruitment-reply', label: '自动回复', icon: <ThunderboltOutlined />, path: '/recruitment/reply' },
             { key: 'recruitment-interview', label: '面试管理', icon: <TeamOutlined />, path: '/recruitment/interview' },
-            { key: 'recruitment-stats', label: '招聘看板', icon: <PieChartOutlined />, path: '/recruitment/stats' },
+            { key: 'recruitment-board', label: '招聘看板', icon: <PieChartOutlined />, path: '/recruitment/board' },
           ],
         },
         {
@@ -91,7 +92,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
           children: [
             { key: 'acquisition-discover', label: '潜客发现', icon: <UserAddOutlined />, path: '/acquisition/discover' },
             { key: 'acquisition-task', label: '引流任务', icon: <ShareAltOutlined />, path: '/acquisition/task' },
-            { key: 'acquisition-stats', label: '获客看板', icon: <PieChartOutlined />, path: '/acquisition/stats' },
+            { key: 'acquisition-board', label: '获客看板', icon: <PieChartOutlined />, path: '/acquisition/board' },
           ],
         },
         {
@@ -101,6 +102,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
           children: [
             { key: 'share-code', label: '码生成', icon: <PictureOutlined />, path: '/share/code' },
             { key: 'share-track', label: '推荐追踪', icon: <PieChartOutlined />, path: '/share/track' },
+            { key: 'share-board', label: '分享看板', icon: <BarChartOutlined />, path: '/share/board' },
           ],
         },
         {
