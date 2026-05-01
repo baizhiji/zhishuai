@@ -28,6 +28,7 @@ import {
   ApiOutlined,
   ThunderboltOutlined,
   AppstoreOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 

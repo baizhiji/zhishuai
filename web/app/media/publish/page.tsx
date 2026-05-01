@@ -118,7 +118,7 @@ export default function PublishCenterPage() {
 
   // 受控表单状态
   const [formData, setFormData] = useState({
-    contentType: 'text',
+    contentType: 'text' as 'text' | 'image' | 'video' | 'digital-human',
     title: '',
     content: '',
     platform: '' as Platform,  // 单一平台
@@ -239,6 +239,14 @@ export default function PublishCenterPage() {
     publishing: { text: '发布中', color: 'processing', icon: <ReloadOutlined spin /> },
     published: { text: '已发布', color: 'success', icon: <CheckCircleOutlined /> },
     failed: { text: '失败', color: 'error', icon: null },
+  }
+
+  // 内容类型配置
+  const typeConfig = {
+    text: { label: '文本', color: 'blue', icon: <FileTextOutlined /> },
+    image: { label: '图片', color: 'green', icon: <PictureOutlined /> },
+    video: { label: '视频', color: 'purple', icon: <VideoCameraOutlined /> },
+    'digital-human': { label: '数字人', color: 'orange', icon: <RobotOutlined /> },
   }
 
   // 文件上传配置
@@ -493,8 +501,9 @@ export default function PublishCenterPage() {
 
   // 从素材库选择
   const handleSelectFromMaterial = (material: Material) => {
-    form.setFieldsValue({
-      contentType: material.type,
+    setFormData({
+      ...formData,
+      contentType: material.type as 'text' | 'image' | 'video' | 'digital-human',
       content: material.content,
     })
     setIsMaterialDrawerVisible(false)
@@ -550,7 +559,7 @@ export default function PublishCenterPage() {
       render: (platforms: string[]) => (
         <Space size={4} wrap>
           {platforms.map((p) => (
-            <Tag key={p}>{platformConfig[p]?.label || p}</Tag>
+            <Tag key={p}>{platformConfig[p as Platform]?.label || p}</Tag>
           ))}
         </Space>
       ),
@@ -821,7 +830,7 @@ export default function PublishCenterPage() {
               type="link"
               size="small"
               icon={<InboxOutlined />}
-              onClick={() => setMaterialDrawerVisible(true)}
+              onClick={() => setIsMaterialDrawerVisible(true)}
               style={{ marginTop: 4, padding: 0 }}
             >
               从素材库选择
@@ -1088,8 +1097,8 @@ export default function PublishCenterPage() {
                   }
                   title={
                     <Space>
-                      <Tag color={typeConfig[material.type].color}>
-                        {typeConfig[material.type].label}
+                      <Tag color={typeConfig[material.type as keyof typeof typeConfig]?.color}>
+                        {typeConfig[material.type as keyof typeof typeConfig]?.label}
                       </Tag>
                       <Text>{material.title || '无标题'}</Text>
                     </Space>
@@ -1172,7 +1181,7 @@ export default function PublishCenterPage() {
                             </div>
                           }
                           title={<Text>{material.title || '无标题'}</Text>}
-                          description={<Tag color={typeConfig[material.type].color}>{typeConfig[material.type].label}</Tag>}
+                          description={<Tag color={typeConfig[material.type as keyof typeof typeConfig]?.color}>{typeConfig[material.type as keyof typeof typeConfig]?.label}</Tag>}
                         />
                       </List.Item>
                     )}
@@ -1399,7 +1408,7 @@ export default function PublishCenterPage() {
               const categoryConfig = contentCategoryConfig[categoryKey]
               if (!categoryConfig) return null
 
-              const iconMap: Record<ContentCategory, any> = {
+              const iconMap: Partial<Record<ContentCategory, any>> = {
                 [ContentCategory.TITLE]: <FontSizeOutlined />,
                 [ContentCategory.TAGS]: <TagsOutlined />,
                 [ContentCategory.COPYWRITING]: <FileTextOutlined />,
@@ -1408,6 +1417,7 @@ export default function PublishCenterPage() {
                 [ContentCategory.IMAGE]: <PictureOutlined />,
                 [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
                 [ContentCategory.VIDEO]: <VideoCameraOutlined />,
+                [ContentCategory.VIDEO_ANALYSIS]: <VideoCameraOutlined />,
                 [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
               }
 

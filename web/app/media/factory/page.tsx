@@ -715,11 +715,11 @@ export default function ContentFactoryPage() {
               <div>
                 {categoryConfig.type === 'image' ? (
                   <div className="text-center">
-                    <Image src={generatedContent} alt="Generated content" style={{ maxWidth: '100%' }} />
+                    <Image src={generatedContent || ''} alt="Generated content" style={{ maxWidth: '100%' }} />
                   </div>
                 ) : categoryConfig.type === 'video' ? (
                   <div className="text-center">
-                    <video src={generatedContent} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+                    <video src={generatedContent || ''} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
                   </div>
                 ) : (
                   <div className="bg-gray-50 p-4 rounded">

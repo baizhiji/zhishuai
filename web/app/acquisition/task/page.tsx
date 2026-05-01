@@ -143,9 +143,9 @@ export default function TaskPage() {
     const totalReplied = tasks.reduce((sum, t) => sum + t.repliedCount, 0)
     const totalScanned = tasks.reduce((sum, t) => sum + t.scannedCount, 0)
     const totalConverted = tasks.reduce((sum, t) => sum + t.convertedCount, 0)
-    const avgReplyRate = totalSent > 0 ? ((totalReplied / totalSent) * 100).toFixed(1) : '0.0'
-    const avgScanRate = totalReplied > 0 ? ((totalScanned / totalReplied) * 100).toFixed(1) : '0.0'
-    const avgConvertRate = totalScanned > 0 ? ((totalConverted / totalScanned) * 100).toFixed(1) : '0.0'
+    const avgReplyRate = totalSent > 0 ? Number(((totalReplied / totalSent) * 100).toFixed(1)) : 0
+    const avgScanRate = totalReplied > 0 ? Number(((totalScanned / totalReplied) * 100).toFixed(1)) : 0
+    const avgConvertRate = totalScanned > 0 ? Number(((totalConverted / totalScanned) * 100).toFixed(1)) : 0
     
     return {
       activeTasks: activeTasks.length,

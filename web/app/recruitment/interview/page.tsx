@@ -38,6 +38,7 @@ import {
   VideoCameraOutlined,
   PhoneOutlined,
   MailOutlined,
+  EditOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
 

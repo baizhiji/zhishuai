@@ -34,7 +34,8 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 
-const { Title, Text, TextArea } = Typography
+const { Title, Text } = Typography
+const { TextArea } = Input
 const { Option } = Select
 const { TabPane } = Tabs
 

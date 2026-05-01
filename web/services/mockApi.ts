@@ -3,10 +3,7 @@ import type {
   ApiResponse,
   User,
   Material,
-  MaterialType,
-  MaterialStatus,
   Account,
-  Platform,
   PublishTask,
   Job,
   Resume,
@@ -14,10 +11,10 @@ import type {
   AcquisitionStats,
   ReferralStats,
   Order,
-  OrderType,
   UserBalance,
   UserPoints
 } from '@/types/api';
+import { MaterialType, MaterialStatus, Platform, OrderType, PaymentMethod, OrderStatus, SubscriptionPlan } from '@/types/api';
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -416,8 +413,8 @@ export const mockApi = {
         id: '1',
         type: OrderType.RECHARGE,
         amount: 100,
-        paymentMethod: 'alipay',
-        status: 'paid',
+        paymentMethod: PaymentMethod.ALIPAY,
+        status: OrderStatus.PAID,
         createdAt: '2024-03-25 10:00:00',
         paidAt: '2024-03-25 10:01:00'
       },
@@ -425,9 +422,9 @@ export const mockApi = {
         id: '2',
         type: OrderType.SUBSCRIBE,
         amount: 299,
-        paymentMethod: 'wechat',
-        status: 'paid',
-        planId: 'monthly',
+        paymentMethod: PaymentMethod.WECHAT,
+        status: OrderStatus.PAID,
+        planId: SubscriptionPlan.MONTHLY,
         createdAt: '2024-03-24 10:00:00',
         paidAt: '2024-03-24 10:01:00'
       }
