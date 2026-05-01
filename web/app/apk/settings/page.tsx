@@ -36,8 +36,25 @@ import './styles.css';
 const { Content } = Layout;
 const { confirm } = Modal;
 
+// 设置项类型
+interface SettingItem {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  arrow?: boolean;
+  switch?: boolean;
+  defaultChecked?: boolean;
+  value?: string;
+}
+
+interface SettingSection {
+  title: string;
+  icon: React.ReactNode;
+  items: SettingItem[];
+}
+
 // 设置项配置
-const settingItems = [
+const settingItems: SettingSection[] = [
   {
     title: '账号设置',
     icon: <UserOutlined />,
@@ -72,7 +89,7 @@ const settingItems = [
 
 // 设置页面组件
 const SettingItem: React.FC<{
-  item: typeof settingItems[0]['items'][0];
+  item: SettingItem;
   onClick: (key: string) => void;
   onSwitchChange: (key: string, checked: boolean) => void;
 }> = ({ item, onClick, onSwitchChange }) => (

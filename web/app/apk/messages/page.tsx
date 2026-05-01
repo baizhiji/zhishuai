@@ -28,8 +28,19 @@ import './styles.css';
 const { Content } = Layout;
 const { TabPane } = Tabs;
 
+// 消息类型
+interface Message {
+  id: string;
+  title: string;
+  content: string;
+  time: string;
+  read: boolean;
+  type: string;
+  important?: boolean;
+}
+
 // 模拟消息数据
-const mockMessages = {
+const mockMessages: Record<string, Message[]> = {
   system: [
     {
       id: '1',
@@ -171,11 +182,11 @@ const MessagesPage: React.FC = () => {
   const handleDelete = (id: string) => {
     setMessages((prev) => {
       const newMessages = { ...prev };
-      for (const key in newMessages) {
-        newMessages[key as keyof typeof newMessages] = newMessages[key as keyof typeof newMessages].filter(
+      (Object.keys(newMessages) as Array<keyof typeof newMessages>).forEach((key) => {
+        newMessages[key] = newMessages[key].filter(
           (m) => m.id !== id
         );
-      }
+      });
       return newMessages;
     });
   };
@@ -184,11 +195,11 @@ const MessagesPage: React.FC = () => {
   const markAllRead = () => {
     setMessages((prev) => {
       const newMessages = { ...prev };
-      for (const key in newMessages) {
-        newMessages[key as keyof typeof newMessages] = newMessages[key as keyof typeof newMessages].map(
+      (Object.keys(newMessages) as Array<keyof typeof newMessages>).forEach((key) => {
+        newMessages[key] = newMessages[key].map(
           (m) => ({ ...m, read: true })
         );
-      }
+      });
       return newMessages;
     });
   };
