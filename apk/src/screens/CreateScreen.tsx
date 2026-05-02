@@ -77,36 +77,52 @@ export default function CreateScreen() {
         {/* 创作类型 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>选择创作类型</Text>
-          <View style={styles.typeGrid}>
-            {CREATE_TYPES.map((type) => (
-              <TouchableOpacity 
-                key={type.id}
-                style={[
-                  styles.typeCard,
-                  selectedType === type.id && { borderColor: type.color }
-                ]}
-                activeOpacity={0.7}
-                onPress={() => setSelectedType(selectedType === type.id ? null : type.id)}
-              >
-                <View style={[styles.typeIconContainer, { backgroundColor: type.color + '15' }]}>
-                  <Ionicons name={type.icon} size={26} color={type.color} />
-                </View>
-                <Text style={styles.typeName}>{type.name}</Text>
-                <Text style={styles.typeDesc}>{type.desc}</Text>
-                <View style={styles.typeTags}>
-                  {type.tags.slice(0, 2).map((tag, index) => (
-                    <View key={index} style={[styles.typeTag, { backgroundColor: type.color + '12' }]}>
-                      <Text style={[styles.typeTagText, { color: type.color }]}>{tag}</Text>
-                    </View>
-                  ))}
-                </View>
-                {selectedType === type.id && (
-                  <View style={[styles.selectedBadge, { backgroundColor: type.color }]}>
-                    <Ionicons name="checkmark" size={12} color="#fff" />
+          <View style={styles.typeCard}>
+            <View style={styles.typeGrid}>
+              {CREATE_TYPES.map((type) => (
+                <TouchableOpacity 
+                  key={type.id}
+                  style={[
+                    styles.typeItem,
+                    selectedType === type.id && { borderColor: type.color }
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => setSelectedType(selectedType === type.id ? null : type.id)}
+                >
+                  <View style={[styles.typeIconContainer, { backgroundColor: type.color + '20' }]}>
+                    <Ionicons name={type.icon} size={26} color={type.color} />
                   </View>
-                )}
-              </TouchableOpacity>
-            ))}
+                  <Text style={styles.typeName}>{type.name}</Text>
+                  {selectedType === type.id && (
+                    <View style={[styles.selectedBadge, { backgroundColor: type.color }]}>
+                      <Ionicons name="checkmark" size={10} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            {/* 选中类型的描述和标签 */}
+            {selectedType && (
+              <View style={styles.selectedInfo}>
+                {(() => {
+                  const type = CREATE_TYPES.find(t => t.id === selectedType);
+                  return (
+                    <>
+                      <Text style={styles.selectedTitle}>{type?.name}</Text>
+                      <Text style={styles.selectedDesc}>{type?.desc}</Text>
+                      <View style={styles.selectedTags}>
+                        {type?.tags.map((tag, index) => (
+                          <View key={index} style={[styles.typeTag, { backgroundColor: type!.color + '15' }]}>
+                            <Text style={[styles.typeTagText, { color: type!.color }]}>{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  );
+                })()}
+              </View>
+            )}
           </View>
         </View>
 
@@ -255,33 +271,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1E3A5F',
     marginBottom: 14,
-    textAlign: 'center',
   },
   moreLink: {
     fontSize: 13,
     color: '#2563EB',
+  },
+  typeCard: {
+    backgroundColor: '#DBEAFE',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
   typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -6,
   },
-  typeCard: {
-    width: '50%',
+  typeItem: {
+    width: '33.33%',
+    alignItems: 'center',
     paddingHorizontal: 6,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 20,
-    paddingHorizontal: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-    alignItems: 'center',
+    position: 'relative',
   },
   typeIconContainer: {
     width: 52,
@@ -289,46 +304,59 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
   },
   typeName: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#334155',
+    textAlign: 'center',
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: -4,
+    right: 10,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedInfo: {
+    marginTop: 8,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#BFDBFE',
+  },
+  selectedTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: '#1E3A5F',
     marginBottom: 4,
     textAlign: 'center',
   },
-  typeDesc: {
-    fontSize: 12,
+  selectedDesc: {
+    fontSize: 13,
     color: '#475569',
-    marginBottom: 10,
     textAlign: 'center',
+    marginBottom: 10,
   },
-  typeTags: {
+  selectedTags: {
     flexDirection: 'row',
     justifyContent: 'center',
     flexWrap: 'wrap',
   },
   typeTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginHorizontal: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginHorizontal: 4,
     marginBottom: 4,
   },
   typeTagText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '500',
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   actionSection: {
     marginBottom: 24,

@@ -55,7 +55,6 @@ const QUICK_STATS: QuickStat[] = [
 
 const MOCK_USER = {
   name: '张明',
-  company: '科技有限公司',
   expiryDate: '2026-08-15',
 };
 
@@ -89,10 +88,12 @@ export default function HomeScreen() {
       {/* 头部区域 */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.welcomeText}>欢迎回来</Text>
             <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.companyName}>{user.company}</Text>
+            <View style={styles.sloganBadge}>
+              <Text style={styles.sloganText}>用AI赋能企业，让商业更智能</Text>
+            </View>
           </View>
           <TouchableOpacity 
             style={styles.avatarButton}
@@ -140,20 +141,22 @@ export default function HomeScreen() {
 
         {/* 功能中心 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
-        <View style={styles.featureGrid}>
-          {FEATURES.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.featureItem}
-              activeOpacity={0.7}
-              onPress={() => navigateTo(item.route)}
-            >
-              <View style={styles.featureIconBox}>
-                <Ionicons name={item.icon} size={26} color="#2563EB" />
-              </View>
-              <Text style={styles.featureTitle}>{item.title}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.featureCard}>
+          <View style={styles.featureGrid}>
+            {FEATURES.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.featureItem}
+                activeOpacity={0.7}
+                onPress={() => navigateTo(item.route)}
+              >
+                <View style={styles.featureIconBox}>
+                  <Ionicons name={item.icon} size={26} color="#2563EB" />
+                </View>
+                <Text style={styles.featureTitle}>{item.title}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
         {/* 快捷操作 */}
@@ -216,6 +219,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
+  headerLeft: {
+    flex: 1,
+  },
   welcomeText: {
     fontSize: 13,
     color: '#475569',
@@ -225,11 +231,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#1E3A5F',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  companyName: {
-    fontSize: 14,
-    color: '#3B82F6',
+  sloganBadge: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  sloganText: {
+    fontSize: 12,
+    color: '#2563EB',
+    fontWeight: '500',
   },
   avatarButton: {
     width: 44,
@@ -311,6 +330,16 @@ const styles = StyleSheet.create({
     color: '#1E3A5F',
     marginTop: 24,
     marginBottom: 14,
+  },
+  featureCard: {
+    backgroundColor: '#DBEAFE',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
   featureGrid: {
     flexDirection: 'row',
