@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { 
   HomeScreen, 
   CreateScreen, 
@@ -13,7 +14,6 @@ import {
 
 const Tab = createBottomTabNavigator();
 
-// 简单 Modal 导航
 import { useNavigation } from '@react-navigation/native';
 
 function HomeScreenWithNav() {
@@ -37,22 +37,23 @@ function MainTabs() {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarIcon: ({ focused }) => {
-          const icons: Record<string, string> = {
-            Home: '🏠',
-            Create: '✨',
-            Profile: '👤',
-          };
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap = 'home';
+          
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Create') {
+            iconName = focused ? 'sparkles' : 'sparkles-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline';
+          }
+          
           return (
-            <View style={styles.iconContainer}>
-              <Text style={[styles.icon, focused && styles.iconFocused]}>
-                {icons[route.name] || '📱'}
-              </Text>
-            </View>
+            <Ionicons name={iconName} size={22} color={color} />
           );
         },
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#6B7280',
+        tabBarActiveTintColor: '#2A6DFF',
+        tabBarInactiveTintColor: '#64748B',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       })}
@@ -107,12 +108,20 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef}>
+      <StatusBar barStyle="light-content" backgroundColor="#0A0E1A" />
       <View style={styles.container}>
         {currentScreen !== 'main' && (
           <View style={styles.header}>
             <TouchableOpacity onPress={goBack} style={styles.backButton}>
-              <Text style={styles.backText}>← 返回</Text>
+              <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>
+              {currentScreen === 'login' && '登录'}
+              {currentScreen === 'materials' && '素材库'}
+              {currentScreen === 'messages' && '消息'}
+              {currentScreen === 'settings' && '设置'}
+            </Text>
+            <View style={styles.placeholder} />
           </View>
         )}
         {renderScreen()}
@@ -121,48 +130,49 @@ export default function AppNavigator() {
   );
 }
 
-// 需要导入 LoginScreen
 import { LoginScreen } from '../screens';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FA',
+    backgroundColor: '#0A0E1A',
   },
   header: {
-    backgroundColor: '#3B82F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0A0E1A',
     paddingTop: 50,
-    paddingBottom: 15,
-    paddingHorizontal: 15,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
   },
   backButton: {
-    padding: 5,
+    padding: 4,
+    width: 40,
   },
-  backText: {
+  headerTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 17,
+    fontWeight: '600',
   },
-  iconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 22,
-    opacity: 0.6,
-  },
-  iconFocused: {
-    opacity: 1,
+  placeholder: {
+    width: 40,
   },
   tabBar: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    backgroundColor: '#1A1F2B',
+    borderTopWidth: 0,
+    height: 85,
     paddingTop: 8,
-    paddingBottom: 8,
-    height: 70,
+    paddingBottom: 28,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    elevation: 0,
   },
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '500',
     marginTop: 4,
   },
 });

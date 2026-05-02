@@ -28,29 +28,35 @@ interface FeatureItem {
   id: string;
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
-  color: string;
   route: string;
 }
 
+interface QuickStat {
+  label: string;
+  value: string;
+  change: string;
+  trend: 'up' | 'down';
+}
+
 const FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#3B82F6', route: 'Media' },
-  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#10B981', route: 'Recruitment' },
-  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#F59E0B', route: 'Acquisition' },
-  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#8B5CF6', route: 'Referral' },
-  { id: 'materials', title: '素材库', icon: 'folder-outline', color: '#EC4899', route: 'Materials' },
-  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#06B6D4', route: 'Analytics' },
+  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', route: 'Media' },
+  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', route: 'Acquisition' },
+  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', route: 'Referral' },
+  { id: 'materials', title: '素材库', icon: 'folder-outline', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', route: 'Analytics' },
 ];
 
-const QUICK_ACTIONS = [
-  { id: 'create', title: 'AI创作', icon: 'sparkles-outline', color: '#F59E0B' },
-  { id: 'messages', title: '消息', icon: 'mail-outline', color: '#3B82F6' },
-  { id: 'settings', title: '设置', icon: 'settings-outline', color: '#6B7280' },
+const QUICK_STATS: QuickStat[] = [
+  { label: '今日曝光', value: '12.8W', change: '+18%', trend: 'up' },
+  { label: '新增客户', value: '156', change: '+24%', trend: 'up' },
+  { label: '待办任务', value: '8', change: '-3', trend: 'down' },
 ];
 
 const MOCK_USER = {
   name: '张明',
   company: '科技有限公司',
-  role: '运营总监',
+  expiryDate: '2026-08-15',
 };
 
 export default function HomeScreen() {
@@ -78,34 +84,62 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1E40AF" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A0E1A" />
       
-      {/* 头部 */}
+      {/* 头部区域 */}
       <View style={styles.header}>
-        <View style={styles.headerContent}>
+        <View style={styles.headerTop}>
           <View>
             <Text style={styles.welcomeText}>欢迎回来</Text>
             <Text style={styles.userName}>{user.name}</Text>
-            <Text style={styles.userRole}>{user.company} · {user.role}</Text>
+            <Text style={styles.companyName}>{user.company}</Text>
           </View>
           <TouchableOpacity 
-            style={styles.avatar}
+            style={styles.avatarButton}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Ionicons name="person" size={24} color="#1E40AF" />
+            <Ionicons name="person-outline" size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* 内容区 */}
+      {/* 内容区域 */}
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* 功能入口标题 */}
+        {/* 今日数据卡片 */}
+        <View style={styles.statsCard}>
+          <Text style={styles.statsTitle}>今日概览</Text>
+          <View style={styles.statsRow}>
+            {QUICK_STATS.map((stat, index) => (
+              <View key={stat.label} style={[
+                styles.statItem,
+                index < QUICK_STATS.length - 1 && styles.statBorder
+              ]}>
+                <Text style={styles.statValue}>{stat.value}</Text>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+                <View style={[
+                  styles.statChange,
+                  stat.trend === 'up' ? styles.trendUp : styles.trendDown
+                ]}>
+                  <Ionicons 
+                    name={stat.trend === 'up' ? 'arrow-up' : 'arrow-down'} 
+                    size={10} 
+                    color={stat.trend === 'up' ? '#22C55E' : '#EF4444'} 
+                  />
+                  <Text style={[
+                    styles.changeText,
+                    { color: stat.trend === 'up' ? '#22C55E' : '#EF4444' }
+                  ]}>{stat.change}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* 功能中心 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
-        
-        {/* 功能网格 */}
         <View style={styles.featureGrid}>
           {FEATURES.map((item) => (
             <TouchableOpacity
@@ -114,8 +148,8 @@ export default function HomeScreen() {
               activeOpacity={0.7}
               onPress={() => navigateTo(item.route)}
             >
-              <View style={[styles.featureIcon, { backgroundColor: item.color + '15' }]}>
-                <Ionicons name={item.icon} size={24} color={item.color} />
+              <View style={styles.featureIconBox}>
+                <Ionicons name={item.icon} size={28} color="#2A6DFF" />
               </View>
               <Text style={styles.featureTitle}>{item.title}</Text>
             </TouchableOpacity>
@@ -125,22 +159,41 @@ export default function HomeScreen() {
         {/* 快捷操作 */}
         <Text style={styles.sectionTitle}>快捷操作</Text>
         <View style={styles.quickActions}>
-          {QUICK_ACTIONS.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.quickItem}
-              activeOpacity={0.7}
-              onPress={() => navigateTo(item.route)}
-            >
-              <View style={[styles.quickIcon, { backgroundColor: item.color }]}>
-                <Ionicons name={item.icon} size={18} color="#FFFFFF" />
-              </View>
-              <Text style={styles.quickTitle}>{item.title}</Text>
-            </TouchableOpacity>
-          ))}
+          <TouchableOpacity
+            style={styles.quickItem}
+            activeOpacity={0.7}
+            onPress={() => navigateTo('Create')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#2A6DFF' }]}>
+              <Ionicons name="sparkles" size={20} color="#FFFFFF" />
+            </View>
+            <Text style={styles.quickTitle}>AI创作</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.quickItem}
+            activeOpacity={0.7}
+            onPress={() => navigateTo('Messages')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#6366F1' }]}>
+              <Ionicons name="mail-outline" size={20} color="#FFFFFF" />
+            </View>
+            <Text style={styles.quickTitle}>消息</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.quickItem}
+            activeOpacity={0.7}
+            onPress={() => navigateTo('Settings')}
+          >
+            <View style={[styles.quickIconBox, { backgroundColor: '#64748B' }]}>
+              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+            </View>
+            <Text style={styles.quickTitle}>设置</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 底部占位 */}
+        {/* 底部留白 */}
         <View style={styles.bottomSpace} />
       </ScrollView>
     </View>
@@ -150,53 +203,106 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#0A0E1A',
   },
   header: {
-    backgroundColor: '#1E40AF',
+    backgroundColor: '#0A0E1A',
     paddingTop: 50,
     paddingBottom: 24,
     paddingHorizontal: 20,
   },
-  headerContent: {
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   welcomeText: {
-    fontSize: 14,
-    color: '#93C5FD',
-    marginBottom: 4,
+    fontSize: 13,
+    color: '#64748B',
+    marginBottom: 6,
   },
   userName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  companyName: {
+    fontSize: 14,
+    color: '#94A3B8',
+  },
+  avatarButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#1A1F2B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2A6DFF',
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  statsCard: {
+    backgroundColor: '#1A1F2B',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 8,
+  },
+  statsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statBorder: {
+    borderRightWidth: 1,
+    borderRightColor: '#2D3748',
+  },
+  statValue: {
     fontSize: 22,
     fontWeight: '700',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  userRole: {
-    fontSize: 13,
-    color: '#93C5FD',
+  statLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 6,
   },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
+  statChange: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    marginTop: -12,
+  trendUp: {
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+  },
+  trendDown: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  changeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginLeft: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1F2937',
-    marginTop: 20,
-    marginBottom: 12,
+    color: '#FFFFFF',
+    marginTop: 24,
+    marginBottom: 14,
   },
   featureGrid: {
     flexDirection: 'row',
@@ -206,20 +312,22 @@ const styles = StyleSheet.create({
   featureItem: {
     width: '33.33%',
     paddingHorizontal: 6,
-    marginBottom: 12,
+    marginBottom: 16,
+    alignItems: 'center',
   },
-  featureIcon: {
-    width: '100%',
-    aspectRatio: 1.2,
-    borderRadius: 12,
+  featureIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: 14,
+    backgroundColor: '#1A1F2B',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   featureTitle: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    color: '#374151',
+    color: '#E2E8F0',
     textAlign: 'center',
   },
   quickActions: {
@@ -231,17 +339,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
   },
-  quickIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  quickIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   quickTitle: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 13,
+    color: '#94A3B8',
   },
   bottomSpace: {
     height: 100,
