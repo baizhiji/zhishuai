@@ -32,6 +32,10 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
+// 创建导航器
+const RootStack = createNativeStackNavigator<RootStackParamList>();
+const MainTabs = createBottomTabNavigator<MainTabParamList>();
+
 // Tab 配置
 const TAB_CONFIG = [
   { name: 'Home', label: '首页', icon: 'home-outline', activeIcon: 'home' },
