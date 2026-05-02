@@ -52,8 +52,8 @@ function MainTabs() {
             <Ionicons name={iconName} size={22} color={color} />
           );
         },
-        tabBarActiveTintColor: '#2A6DFF',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: '#3B82F6',
+        tabBarInactiveTintColor: '#94A3B8',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       })}
@@ -108,12 +108,12 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0E1A" />
+      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
       <View style={styles.container}>
         {currentScreen !== 'main' && (
           <View style={styles.header}>
             <TouchableOpacity onPress={goBack} style={styles.backButton}>
-              <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+              <Ionicons name="chevron-back" size={24} color="#1E3A5F" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>
               {currentScreen === 'login' && '登录'}
@@ -135,13 +135,13 @@ import { LoginScreen } from '../screens';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#F0F7FF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#E8F4FD',
     paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   headerTitle: {
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     fontSize: 17,
     fontWeight: '600',
   },
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   tabBar: {
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 0,
     height: 85,
     paddingTop: 8,
@@ -168,7 +168,11 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    elevation: 0,
+    elevation: 10,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
   },
   tabBarLabel: {
     fontSize: 11,

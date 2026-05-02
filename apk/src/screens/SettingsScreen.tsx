@@ -37,7 +37,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '个人资料',
         subtitle: '头像、昵称、联系方式',
         icon: 'person-outline',
-        iconColor: '#2A6DFF',
+        iconColor: '#3B82F6',
         type: 'navigate',
       },
       {
@@ -45,7 +45,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '账号安全',
         subtitle: '修改密码、绑定手机',
         icon: 'shield-outline',
-        iconColor: '#22C55E',
+        iconColor: '#10B981',
         type: 'navigate',
       },
       {
@@ -94,7 +94,7 @@ const SETTINGS_DATA: SettingSection[] = [
         icon: 'moon-outline',
         iconColor: '#6366F1',
         type: 'toggle',
-        value: true,
+        value: false,
       },
     ],
   },
@@ -176,7 +176,7 @@ export default function SettingsScreen() {
       onPress={() => handleItemPress(item)}
       activeOpacity={item.type === 'toggle' ? 1 : 0.7}
     >
-      <View style={[styles.iconContainer, { backgroundColor: item.iconColor + '20' }]}>
+      <View style={[styles.iconContainer, { backgroundColor: item.iconColor + '15' }]}>
         <Ionicons name={item.icon} size={20} color={item.iconColor} />
       </View>
       
@@ -190,14 +190,14 @@ export default function SettingsScreen() {
       </View>
       
       {item.type === 'navigate' && (
-        <Ionicons name="chevron-forward" size={18} color="#475569" />
+        <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
       )}
       {item.type === 'toggle' && (
         <Switch
           value={settings[item.id]}
           onValueChange={() => handleToggle(item.id)}
-          trackColor={{ false: '#374151', true: '#2A6DFF' }}
-          thumbColor={settings[item.id] ? '#FFFFFF' : '#9CA3AF'}
+          trackColor={{ false: '#E2E8F0', true: '#93C5FD' }}
+          thumbColor={settings[item.id] ? '#3B82F6' : '#FFFFFF'}
         />
       )}
       {item.type === 'action' && (
@@ -222,7 +222,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0E1A" />
+      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
       
       {/* 头部 */}
       <View style={styles.header}>
@@ -266,17 +266,18 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#F0F7FF',
   },
   header: {
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 20,
+    backgroundColor: '#E8F4FD',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
   },
   userCard: {
     flexDirection: 'row',
@@ -284,8 +285,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 24,
     padding: 16,
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 2,
   },
   avatarContainer: {
     marginRight: 14,
@@ -294,9 +300,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2A6DFF',
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   avatarText: {
     fontSize: 22,
@@ -309,7 +320,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 17,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 4,
   },
   userPhone: {
@@ -319,14 +330,14 @@ const styles = StyleSheet.create({
   editBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F0F7FF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#3B82F6',
   },
   editText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#3B82F6',
     fontWeight: '500',
   },
   scrollView: {
@@ -347,9 +358,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   sectionContent: {
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     overflow: 'hidden',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   settingItem: {
     flexDirection: 'row',
@@ -358,7 +374,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#2D3748',
+    backgroundColor: '#F0F7FF',
     marginLeft: 58,
   },
   iconContainer: {
@@ -375,7 +391,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#E2E8F0',
+    color: '#334155',
     marginBottom: 2,
   },
   logoutText: {
@@ -383,7 +399,7 @@ const styles = StyleSheet.create({
   },
   itemSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
   },
   footer: {
     alignItems: 'center',
@@ -392,11 +408,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#475569',
+    color: '#94A3B8',
     marginBottom: 4,
   },
   footerSubtext: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#CBD5E1',
   },
 });

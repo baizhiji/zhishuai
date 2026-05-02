@@ -84,7 +84,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0E1A" />
+      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
       
       {/* 头部区域 */}
       <View style={styles.header}>
@@ -98,7 +98,7 @@ export default function HomeScreen() {
             style={styles.avatarButton}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Ionicons name="person-outline" size={22} color="#FFFFFF" />
+            <Ionicons name="person-outline" size={22} color="#3B82F6" />
           </TouchableOpacity>
         </View>
       </View>
@@ -126,11 +126,11 @@ export default function HomeScreen() {
                   <Ionicons 
                     name={stat.trend === 'up' ? 'arrow-up' : 'arrow-down'} 
                     size={10} 
-                    color={stat.trend === 'up' ? '#22C55E' : '#EF4444'} 
+                    color={stat.trend === 'up' ? '#10B981' : '#EF4444'} 
                   />
                   <Text style={[
                     styles.changeText,
-                    { color: stat.trend === 'up' ? '#22C55E' : '#EF4444' }
+                    { color: stat.trend === 'up' ? '#10B981' : '#EF4444' }
                   ]}>{stat.change}</Text>
                 </View>
               </View>
@@ -149,7 +149,7 @@ export default function HomeScreen() {
               onPress={() => navigateTo(item.route)}
             >
               <View style={styles.featureIconBox}>
-                <Ionicons name={item.icon} size={28} color="#2A6DFF" />
+                <Ionicons name={item.icon} size={26} color="#3B82F6" />
               </View>
               <Text style={styles.featureTitle}>{item.title}</Text>
             </TouchableOpacity>
@@ -164,7 +164,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             onPress={() => navigateTo('Create')}
           >
-            <View style={[styles.quickIconBox, { backgroundColor: '#2A6DFF' }]}>
+            <View style={[styles.quickIconBox, { backgroundColor: '#3B82F6' }]}>
               <Ionicons name="sparkles" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.quickTitle}>AI创作</Text>
@@ -203,10 +203,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#F0F7FF',
   },
   header: {
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#E8F4FD',
     paddingTop: 50,
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -224,37 +224,45 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 4,
   },
   companyName: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#5B8DB8',
   },
   avatarButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2A6DFF',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
   },
   statsCard: {
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     marginTop: 8,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 2,
   },
   statsTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 16,
   },
   statsRow: {
@@ -266,17 +274,17 @@ const styles = StyleSheet.create({
   },
   statBorder: {
     borderRightWidth: 1,
-    borderRightColor: '#2D3748',
+    borderRightColor: '#E5EEF7',
   },
   statValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     marginBottom: 6,
   },
   statChange: {
@@ -287,10 +295,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   trendUp: {
-    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
   },
   trendDown: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
   },
   changeText: {
     fontSize: 11,
@@ -300,7 +308,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginTop: 24,
     marginBottom: 14,
   },
@@ -319,15 +327,20 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
   featureTitle: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#E2E8F0',
+    color: '#334155',
     textAlign: 'center',
   },
   quickActions: {
@@ -346,10 +359,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   quickTitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   bottomSpace: {
     height: 100,

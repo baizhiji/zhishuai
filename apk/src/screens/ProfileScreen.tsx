@@ -23,9 +23,9 @@ interface MenuItem {
 const MENU_GROUPS: { title?: string; items: MenuItem[] }[] = [
   {
     items: [
-      { id: '1', icon: 'person-outline', iconColor: '#2A6DFF', title: '账号信息', subtitle: '修改头像、昵称等信息' },
+      { id: '1', icon: 'person-outline', iconColor: '#3B82F6', title: '账号信息', subtitle: '修改头像、昵称等信息' },
       { id: '2', icon: 'shield-outline', iconColor: '#6366F1', title: '账号安全', subtitle: '修改密码、绑定手机' },
-      { id: '3', icon: 'wallet-outline', iconColor: '#22C55E', title: '我的钱包', subtitle: '余额 ¥0.00' },
+      { id: '3', icon: 'wallet-outline', iconColor: '#10B981', title: '我的钱包', subtitle: '余额 ¥0.00' },
       { id: '4', icon: 'receipt-outline', iconColor: '#F59E0B', title: '充值记录', subtitle: '查看充值明细' },
     ]
   },
@@ -50,10 +50,10 @@ const MENU_GROUPS: { title?: string; items: MenuItem[] }[] = [
 ];
 
 const STATS_DATA = [
-  { label: '创作数', value: '126', color: '#2A6DFF' },
+  { label: '创作数', value: '126', color: '#3B82F6' },
   { label: '使用时长', value: '28h', color: '#6366F1' },
   { label: '收藏数', value: '15', color: '#EC4899' },
-  { label: '分享数', value: '32', color: '#22C55E' },
+  { label: '分享数', value: '32', color: '#10B981' },
 ];
 
 const MOCK_USER = {
@@ -64,7 +64,7 @@ const MOCK_USER = {
 export default function ProfileScreen() {
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0E1A" />
+      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
       
       <ScrollView 
         style={styles.scrollView}
@@ -76,7 +76,7 @@ export default function ProfileScreen() {
           <View style={styles.header}>
             <Text style={styles.headerTitle}>我的</Text>
             <TouchableOpacity style={styles.headerAction}>
-              <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
+              <Ionicons name="settings-outline" size={24} color="#3B82F6" />
             </TouchableOpacity>
           </View>
 
@@ -91,7 +91,7 @@ export default function ProfileScreen() {
               <Text style={styles.userName}>{MOCK_USER.name}</Text>
               <Text style={styles.userId}>ID: 88776655</Text>
               <View style={styles.expiryTag}>
-                <Ionicons name="calendar-outline" size={12} color="#94A3B8" />
+                <Ionicons name="calendar-outline" size={12} color="#5B8DB8" />
                 <Text style={styles.expiryText}>到期时间：{MOCK_USER.expiryDate}</Text>
               </View>
             </View>
@@ -129,7 +129,7 @@ export default function ProfileScreen() {
                 ]}
                 activeOpacity={0.7}
               >
-                <View style={[styles.menuIcon, { backgroundColor: item.iconColor + '20' }]}>
+                <View style={[styles.menuIcon, { backgroundColor: item.iconColor + '15' }]}>
                   <Ionicons name={item.icon} size={20} color={item.iconColor} />
                 </View>
                 <View style={styles.menuContent}>
@@ -143,7 +143,7 @@ export default function ProfileScreen() {
                     <Text style={styles.badgeText}>{item.badge}</Text>
                   </View>
                 )}
-                <Ionicons name="chevron-forward" size={18} color="#475569" />
+                <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
               </TouchableOpacity>
             ))}
           </View>
@@ -162,7 +162,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#F0F7FF',
   },
   scrollView: {
     flex: 1,
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   headerBg: {
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#E8F4FD',
     paddingTop: 50,
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -185,15 +185,20 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
   },
   headerAction: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   userCard: {
     flexDirection: 'row',
@@ -206,9 +211,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#2A6DFF',
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   avatarText: {
     fontSize: 24,
@@ -221,7 +231,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 4,
   },
   userId: {
@@ -232,37 +242,52 @@ const styles = StyleSheet.create({
   expiryTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
     alignSelf: 'flex-start',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 1,
   },
   expiryText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#5B8DB8',
     marginLeft: 4,
   },
   editButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#2A6DFF',
+    borderColor: '#3B82F6',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   editButtonText: {
     fontSize: 13,
-    color: '#2A6DFF',
+    color: '#3B82F6',
     fontWeight: '500',
   },
   statsCard: {
     flexDirection: 'row',
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     marginHorizontal: 16,
     marginTop: 8,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 2,
   },
   statItem: {
     flex: 1,
@@ -270,7 +295,7 @@ const styles = StyleSheet.create({
   },
   statBorder: {
     borderRightWidth: 1,
-    borderRightColor: '#2D3748',
+    borderRightColor: '#E5EEF7',
   },
   statValue: {
     fontSize: 20,
@@ -279,14 +304,19 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   menuCard: {
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 16,
     padding: 4,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 2,
   },
   menuGroupTitle: {
     fontSize: 13,
@@ -304,7 +334,7 @@ const styles = StyleSheet.create({
   },
   menuItemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: '#2D3748',
+    borderBottomColor: '#F0F7FF',
   },
   menuIcon: {
     width: 36,
@@ -320,11 +350,11 @@ const styles = StyleSheet.create({
   menuTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#E2E8F0',
+    color: '#334155',
   },
   menuSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
     marginTop: 2,
   },
   badge: {
@@ -345,7 +375,7 @@ const styles = StyleSheet.create({
   versionText: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#475569',
+    color: '#94A3B8',
     marginTop: 24,
   },
   bottomSpace: {

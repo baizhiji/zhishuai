@@ -24,8 +24,8 @@ interface CreateType {
 const CREATE_TYPES: CreateType[] = [
   { id: '1', name: 'AI文案', icon: 'create-outline', color: '#6366F1', desc: '智能生成营销文案', tags: ['小红书', '抖音', '朋友圈'] },
   { id: '2', name: 'AI图片', icon: 'image-outline', color: '#EC4899', desc: '文字生成精美图片', tags: ['海报', '封面', '配图'] },
-  { id: '3', name: 'AI视频', icon: 'videocam-outline', color: '#2A6DFF', desc: '一键生成视频内容', tags: ['短视频', '种草', '带货'] },
-  { id: '4', name: 'AI剪辑', icon: 'cut-outline', color: '#22C55E', desc: '智能剪辑视频素材', tags: ['混剪', '特效', '字幕'] },
+  { id: '3', name: 'AI视频', icon: 'videocam-outline', color: '#3B82F6', desc: '一键生成视频内容', tags: ['短视频', '种草', '带货'] },
+  { id: '4', name: 'AI剪辑', icon: 'cut-outline', color: '#10B981', desc: '智能剪辑视频素材', tags: ['混剪', '特效', '字幕'] },
   { id: '5', name: '数字人', icon: 'person-outline', color: '#F59E0B', desc: 'AI虚拟主播带货', tags: ['主播', '口播', '介绍'] },
   { id: '6', name: '声音克隆', icon: 'mic-outline', color: '#8B5CF6', desc: '复制你的声音', tags: ['配音', '解说', '语音'] },
 ];
@@ -42,7 +42,7 @@ export default function CreateScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0E1A" />
+      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
       
       {/* 头部 */}
       <View style={styles.header}>
@@ -53,17 +53,17 @@ export default function CreateScreen() {
       {/* 搜索栏 */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#64748B" />
+          <Ionicons name="search" size={20} color="#94A3B8" />
           <TextInput
             style={styles.searchInput}
             placeholder="搜索创作模板..."
-            placeholderTextColor="#64748B"
+            placeholderTextColor="#94A3B8"
             value={searchText}
             onChangeText={setSearchText}
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => setSearchText('')}>
-              <Ionicons name="close-circle" size={20} color="#64748B" />
+              <Ionicons name="close-circle" size={20} color="#94A3B8" />
             </TouchableOpacity>
           )}
         </View>
@@ -88,14 +88,14 @@ export default function CreateScreen() {
                 activeOpacity={0.7}
                 onPress={() => setSelectedType(selectedType === type.id ? null : type.id)}
               >
-                <View style={[styles.typeIconContainer, { backgroundColor: type.color + '20' }]}>
+                <View style={[styles.typeIconContainer, { backgroundColor: type.color + '15' }]}>
                   <Ionicons name={type.icon} size={24} color={type.color} />
                 </View>
                 <Text style={styles.typeName}>{type.name}</Text>
                 <Text style={styles.typeDesc}>{type.desc}</Text>
                 <View style={styles.typeTags}>
                   {type.tags.slice(0, 2).map((tag, index) => (
-                    <View key={index} style={[styles.typeTag, { backgroundColor: type.color + '15' }]}>
+                    <View key={index} style={[styles.typeTag, { backgroundColor: type.color + '12' }]}>
                       <Text style={[styles.typeTagText, { color: type.color }]}>{tag}</Text>
                     </View>
                   ))}
@@ -142,7 +142,7 @@ export default function CreateScreen() {
             {HISTORY_ITEMS.map((item) => (
               <TouchableOpacity key={item.id} style={styles.historyCard} activeOpacity={0.7}>
                 <View style={styles.historyThumbnail}>
-                  <Ionicons name="document-text-outline" size={22} color="#2A6DFF" />
+                  <Ionicons name="document-text-outline" size={22} color="#3B82F6" />
                 </View>
                 <View style={styles.historyInfo}>
                   <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
@@ -154,7 +154,7 @@ export default function CreateScreen() {
                   </View>
                 </View>
                 <TouchableOpacity style={styles.historyAction}>
-                  <Ionicons name="ellipsis-vertical" size={20} color="#64748B" />
+                  <Ionicons name="ellipsis-vertical" size={20} color="#94A3B8" />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
@@ -166,8 +166,8 @@ export default function CreateScreen() {
           <Text style={styles.sectionTitle}>创作技巧</Text>
           <View style={styles.tipsCard}>
             <View style={styles.tipItem}>
-              <View style={[styles.tipIcon, { backgroundColor: 'rgba(42, 109, 255, 0.15)' }]}>
-                <Ionicons name="bulb-outline" size={20} color="#2A6DFF" />
+              <View style={[styles.tipIcon, { backgroundColor: 'rgba(59, 130, 246, 0.12)' }]}>
+                <Ionicons name="bulb-outline" size={20} color="#3B82F6" />
               </View>
               <View style={styles.tipContent}>
                 <Text style={styles.tipTitle}>描述越详细，生成越精准</Text>
@@ -175,7 +175,7 @@ export default function CreateScreen() {
               </View>
             </View>
             <View style={styles.tipItem}>
-              <View style={[styles.tipIcon, { backgroundColor: 'rgba(99, 102, 241, 0.15)' }]}>
+              <View style={[styles.tipIcon, { backgroundColor: 'rgba(99, 102, 241, 0.12)' }]}>
                 <Ionicons name="copy-outline" size={20} color="#6366F1" />
               </View>
               <View style={styles.tipContent}>
@@ -195,39 +195,46 @@ export default function CreateScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A0E1A',
+    backgroundColor: '#F0F7FF',
   },
   header: {
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 20,
+    backgroundColor: '#E8F4FD',
   },
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
-    color: '#64748B',
+    color: '#5B8DB8',
   },
   searchContainer: {
     paddingHorizontal: 16,
     marginBottom: 16,
+    marginTop: -8,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 14,
     height: 44,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: '#FFFFFF',
+    color: '#334155',
     marginLeft: 10,
   },
   scrollView: {
@@ -248,12 +255,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 14,
   },
   moreLink: {
     fontSize: 13,
-    color: '#2A6DFF',
+    color: '#3B82F6',
   },
   typeGrid: {
     flexDirection: 'row',
@@ -264,11 +271,16 @@ const styles = StyleSheet.create({
     width: '50%',
     paddingHorizontal: 6,
     marginBottom: 12,
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     borderWidth: 2,
     borderColor: 'transparent',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   typeIconContainer: {
     width: 48,
@@ -281,12 +293,12 @@ const styles = StyleSheet.create({
   typeName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#1E3A5F',
     marginBottom: 4,
   },
   typeDesc: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
     marginBottom: 10,
   },
   typeTags: {
@@ -321,12 +333,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2A6DFF',
+    backgroundColor: '#3B82F6',
     borderRadius: 14,
     paddingVertical: 16,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 4,
   },
   createButtonDisabled: {
-    backgroundColor: '#374151',
+    backgroundColor: '#CBD5E1',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   createButtonText: {
     fontSize: 16,
@@ -335,22 +354,27 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   historyList: {
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     overflow: 'hidden',
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   historyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#2D3748',
+    borderBottomColor: '#F0F7FF',
   },
   historyThumbnail: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: 'rgba(42, 109, 255, 0.15)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -361,7 +385,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#E2E8F0',
+    color: '#334155',
     marginBottom: 4,
   },
   historyMeta: {
@@ -369,7 +393,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   historyType: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -382,15 +406,20 @@ const styles = StyleSheet.create({
   },
   historyTime: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
   },
   historyAction: {
     padding: 4,
   },
   tipsCard: {
-    backgroundColor: '#1A1F2B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
+    shadowColor: '#3B82F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
   },
   tipItem: {
     flexDirection: 'row',
@@ -411,7 +440,7 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#E2E8F0',
+    color: '#334155',
     marginBottom: 4,
   },
   tipDesc: {
