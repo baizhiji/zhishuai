@@ -4,7 +4,7 @@
  */
 import apiClient from './api.client'
 import { apiConfig } from './api.config'
-import { Storage } from '@/utils/tokenStorage'
+import { Storage } from '../utils/tokenStorage'
 
 // 内容分类
 export enum ContentCategory {
