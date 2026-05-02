@@ -21,7 +21,7 @@ import {
   ContentCategory,
   imageSizeOptions,
   styleOptions,
-} from '@/services/content.service'
+} from '../../services/content.service'
 
 interface Props {
   navigation: any

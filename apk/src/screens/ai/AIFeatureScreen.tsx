@@ -21,7 +21,7 @@ import {
   ContentCategory,
   contentCategoryConfig,
   styleOptions,
-} from '@/services/content.service'
+} from '../../services/content.service'
 
 // 内容分类配置（简化版）
 const categoryConfigs = {
