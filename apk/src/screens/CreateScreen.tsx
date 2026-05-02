@@ -17,16 +17,17 @@ interface CreateType {
   name: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
-  screen: string;
+  desc: string;
+  tags: string[];
 }
 
 const CREATE_TYPES: CreateType[] = [
-  { id: '1', name: 'AI文案', icon: 'create-outline', color: '#4F46E5', screen: 'aiCopy' },
-  { id: '2', name: 'AI图片', icon: 'image-outline', color: '#DB2777', screen: 'aiImage' },
-  { id: '3', name: 'AI视频', icon: 'videocam-outline', color: '#2563EB', screen: 'aiVideo' },
-  { id: '4', name: 'AI剪辑', icon: 'cut-outline', color: '#059669', screen: 'aiEdit' },
-  { id: '5', name: '数字人', icon: 'person-outline', color: '#D97706', screen: 'digitalHuman' },
-  { id: '6', name: '声音克隆', icon: 'mic-outline', color: '#7C3AED', screen: 'voiceClone' },
+  { id: '1', name: 'AI文案', icon: 'create-outline', color: '#4F46E5', desc: '智能生成营销文案', tags: ['小红书', '抖音', '朋友圈'] },
+  { id: '2', name: 'AI图片', icon: 'image-outline', color: '#DB2777', desc: '文字生成精美图片', tags: ['海报', '封面', '配图'] },
+  { id: '3', name: 'AI视频', icon: 'videocam-outline', color: '#2563EB', desc: '一键生成视频内容', tags: ['短视频', '种草', '带货'] },
+  { id: '4', name: 'AI剪辑', icon: 'cut-outline', color: '#059669', desc: '智能剪辑视频素材', tags: ['混剪', '特效', '字幕'] },
+  { id: '5', name: '数字人', icon: 'person-outline', color: '#D97706', desc: 'AI虚拟主播带货', tags: ['主播', '口播', '介绍'] },
+  { id: '6', name: '声音克隆', icon: 'mic-outline', color: '#7C3AED', desc: '复制你的声音', tags: ['配音', '解说', '语音'] },
 ];
 
 const HISTORY_ITEMS = [
@@ -45,11 +46,24 @@ const TYPE_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; color:
   '声音克隆': { icon: 'mic-outline', color: '#7C3AED' },
 };
 
+// 屏幕映射
+const SCREEN_MAP: Record<string, string> = {
+  '1': 'aiCopy',
+  '2': 'aiImage',
+  '3': 'aiVideo',
+  '4': 'aiEdit',
+  '5': 'digitalHuman',
+  '6': 'voiceClone',
+};
+
 export default function CreateScreen({ navigation }: { navigation: any }) {
   const [searchText, setSearchText] = useState('');
 
-  const handleTypePress = (type: CreateType) => {
-    navigation.navigate(type.screen);
+  const handleTypePress = (typeId: string) => {
+    const screen = SCREEN_MAP[typeId];
+    if (screen) {
+      navigation.navigate(screen);
+    }
   };
 
   return (
@@ -86,43 +100,86 @@ export default function CreateScreen({ navigation }: { navigation: any }) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* 创作类型 */}
+        {/* 创作类型 - 2x3网格 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>选择创作类型</Text>
           <View style={styles.typeGrid}>
             {CREATE_TYPES.map((type) => (
               <TouchableOpacity 
                 key={type.id}
-                style={styles.typeItem}
+                style={[
+                  styles.typeItem,
+                  { borderColor: type.color + '40' }
+                ]}
                 activeOpacity={0.7}
-                onPress={() => handleTypePress(type)}
+                onPress={() => handleTypePress(type.id)}
               >
                 <View style={[styles.typeIconBox, { backgroundColor: type.color }]}>
-                  <Ionicons name={type.icon} size={28} color="#FFFFFF" />
+                  <Ionicons name={type.icon} size={26} color="#FFFFFF" />
                 </View>
                 <Text style={styles.typeName}>{type.name}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#94A3B8" style={styles.arrow} />
+                <Text style={styles.typeDesc} numberOfLines={1}>{type.desc}</Text>
+                <View style={styles.typeTags}>
+                  {type.tags.slice(0, 2).map((tag, index) => (
+                    <View key={index} style={[styles.tagItem, { backgroundColor: type.color + '15' }]}>
+                      <Text style={[styles.tagText, { color: type.color }]}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* 创作历史 */}
+        {/* 创作技巧 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>创作历史</Text>
+          <Text style={styles.sectionTitle}>创作技巧</Text>
+          <View style={styles.tipsCard}>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipIcon, { backgroundColor: 'rgba(37, 99, 235, 0.12)' }]}>
+                <Ionicons name="bulb-outline" size={20} color="#2563EB" />
+              </View>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>描述越详细，生成越精准</Text>
+                <Text style={styles.tipDesc}>包含产品特点、目标人群、使用场景等</Text>
+              </View>
+            </View>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipIcon, { backgroundColor: 'rgba(79, 70, 229, 0.12)' }]}>
+                <Ionicons name="copy-outline" size={20} color="#4F46E5" />
+              </View>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>参考同行优秀内容</Text>
+                <Text style={styles.tipDesc}>可以复制链接让AI分析学习</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* 历史记录 */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>最近创作</Text>
+            <TouchableOpacity>
+              <Text style={styles.moreLink}>查看全部</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.historyList}>
             {HISTORY_ITEMS.map((item) => {
               const config = TYPE_CONFIG[item.type] || { icon: 'document-outline', color: '#64748B' };
               return (
-                <View key={item.id} style={styles.historyItem}>
-                  <View style={[styles.historyIcon, { backgroundColor: config.color }]}>
-                    <Ionicons name={config.icon} size={18} color="#FFFFFF" />
+                <View key={item.id} style={styles.historyCard}>
+                  <View style={[styles.historyIconBox, { backgroundColor: config.color + '15' }]}>
+                    <Ionicons name={config.icon} size={20} color={config.color} />
                   </View>
-                  <View style={styles.historyContent}>
+                  <View style={styles.historyInfo}>
                     <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
-                    <Text style={styles.historyMeta}>{item.type} · {item.time}</Text>
+                    <View style={styles.historyMeta}>
+                      <Text style={[styles.historyTypeText, { color: config.color }]}>{item.type}</Text>
+                      <Text style={styles.historyTime}>{item.time}</Text>
+                    </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color="#CBD5E1" />
+                  <Ionicons name="chevron-forward" size={18} color="#64748B" />
                 </View>
               );
             })}
@@ -188,83 +245,138 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1E3A5F',
     marginBottom: 12,
   },
+  moreLink: {
+    fontSize: 13,
+    color: '#2563EB',
+    marginBottom: 12,
+  },
   typeGrid: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   typeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  typeIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  typeName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#334155',
-  },
-  arrow: {
-    marginLeft: 8,
-  },
-  historyList: {
+    width: '48%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  historyItem: {
-    flexDirection: 'row',
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1.5,
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
   },
-  historyIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
+  typeIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 10,
   },
-  historyContent: {
+  typeName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E3A5F',
+    marginBottom: 4,
+  },
+  typeDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  typeTags: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  tagItem: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  tagText: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  tipsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    gap: 16,
+  },
+  tipItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tipIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tipContent: {
     flex: 1,
   },
-  historyTitle: {
-    fontSize: 15,
-    fontWeight: '500',
+  tipTitle: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#334155',
     marginBottom: 2,
   },
+  tipDesc: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  historyList: {
+    gap: 10,
+  },
+  historyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+  },
+  historyIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  historyInfo: {
+    flex: 1,
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#334155',
+    marginBottom: 4,
+  },
   historyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  historyTypeText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  historyTime: {
     fontSize: 12,
     color: '#94A3B8',
   },
