@@ -1,58 +1,92 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, StyleSheet } from 'react-native';
-import { HomeScreen, CreateScreen, ProfileScreen } from '../screens';
+import { 
+  HomeScreen, 
+  CreateScreen, 
+  ProfileScreen,
+  LoginScreen,
+  MaterialsScreen,
+  MessagesScreen,
+  SettingsScreen,
+} from '../screens';
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
-function TabIcon({ name, focused }: { name: string; focused: boolean }) {
-  const icons: Record<string, string> = {
-    Home: '🏠',
-    Create: '✨',
-    Profile: '👤',
-  };
-  
+// 登录 Stack
+function AuthStack() {
   return (
-    <View style={styles.iconContainer}>
-      <Text style={[styles.icon, focused && styles.iconFocused]}>
-        {icons[name]}
-      </Text>
-    </View>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+    </Stack.Navigator>
   );
 }
 
+// 主 Tab 导航
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused }) => {
+          const icons: Record<string, string> = {
+            Home: '🏠',
+            Create: '✨',
+            Profile: '👤',
+          };
+          return (
+            <View style={styles.iconContainer}>
+              <Text style={[styles.icon, focused && styles.iconFocused]}>
+                {icons[route.name] || '📱'}
+              </Text>
+            </View>
+          );
+        },
+        tabBarActiveTintColor: '#3B82F6',
+        tabBarInactiveTintColor: '#6B7280',
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{ tabBarLabel: '首页' }}
+      />
+      <Tab.Screen 
+        name="Create" 
+        component={CreateScreen}
+        options={{ tabBarLabel: 'AI创作' }}
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{ tabBarLabel: '我的' }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// 根导航
 export default function AppNavigator() {
+  const [isLoggedIn] = React.useState(false);
+
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: false,
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name={route.name} focused={focused} />
-          ),
-          tabBarActiveTintColor: '#3B82F6',
-          tabBarInactiveTintColor: '#6B7280',
-          tabBarStyle: styles.tabBar,
-          tabBarLabelStyle: styles.tabBarLabel,
-        })}
-      >
-        <Tab.Screen 
-          name="Home" 
-          component={HomeScreen}
-          options={{ tabBarLabel: '首页' }}
-        />
-        <Tab.Screen 
-          name="Create" 
-          component={CreateScreen}
-          options={{ tabBarLabel: 'AI创作' }}
-        />
-        <Tab.Screen 
-          name="Profile" 
-          component={ProfileScreen}
-          options={{ tabBarLabel: '我的' }}
-        />
-      </Tab.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {/* 根据登录状态选择根页面 */}
+        {/* 暂时直接显示主界面，后续接入登录 */}
+        <Stack.Screen name="Main" component={MainTabs} />
+        
+        {/* 公共页面 */}
+        <Stack.Screen name="Materials" component={MaterialsScreen} />
+        <Stack.Screen name="Messages" component={MessagesScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
@@ -81,7 +115,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   icon: {
-    fontSize: 26,
+    fontSize: 24,
     opacity: 0.6,
   },
   iconFocused: {
