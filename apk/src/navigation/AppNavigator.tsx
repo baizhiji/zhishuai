@@ -10,7 +10,16 @@ import {
   MaterialsScreen,
   MessagesScreen,
   SettingsScreen,
+  LoginScreen,
 } from '../screens';
+import {
+  AICopyScreen,
+  AIImageScreen,
+  AIVideoScreen,
+  AIEditScreen,
+  DigitalHumanScreen,
+  VoiceCloneScreen,
+} from '../screens/ai';
 
 const Tab = createBottomTabNavigator();
 
@@ -77,12 +86,26 @@ function MainTabs() {
   );
 }
 
+// 页面标题映射
+const SCREEN_TITLES: Record<string, string> = {
+  login: '登录',
+  materials: '素材库',
+  messages: '消息',
+  settings: '设置',
+  aiCopy: 'AI文案',
+  aiImage: 'AI图片',
+  aiVideo: 'AI视频',
+  aiEdit: 'AI剪辑',
+  digitalHuman: '数字人',
+  voiceClone: '声音克隆',
+};
+
 export default function AppNavigator() {
-  const [currentScreen, setCurrentScreen] = useState<'main' | 'login' | 'materials' | 'messages' | 'settings'>('main');
+  const [currentScreen, setCurrentScreen] = useState<string>('main');
   const navigationRef = React.useRef<any>(null);
 
   const navigate = (screen: string) => {
-    setCurrentScreen(screen as any);
+    setCurrentScreen(screen);
   };
 
   const goBack = () => {
@@ -99,27 +122,36 @@ export default function AppNavigator() {
         return <MessagesScreen navigation={{ goBack }} />;
       case 'settings':
         return <SettingsScreen navigation={{ goBack }} />;
+      case 'aiCopy':
+        return <AICopyScreen navigation={{ goBack }} />;
+      case 'aiImage':
+        return <AIImageScreen navigation={{ goBack }} />;
+      case 'aiVideo':
+        return <AIVideoScreen navigation={{ goBack }} />;
+      case 'aiEdit':
+        return <AIEditScreen navigation={{ goBack }} />;
+      case 'digitalHuman':
+        return <DigitalHumanScreen navigation={{ goBack }} />;
+      case 'voiceClone':
+        return <VoiceCloneScreen navigation={{ goBack }} />;
       default:
-        return (
-          <MainTabs />
-        );
+        return <MainTabs />;
     }
   };
+
+  const showHeader = currentScreen !== 'main';
 
   return (
     <NavigationContainer ref={navigationRef}>
       <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
       <View style={styles.container}>
-        {currentScreen !== 'main' && (
+        {showHeader && (
           <View style={styles.header}>
             <TouchableOpacity onPress={goBack} style={styles.backButton}>
               <Ionicons name="chevron-back" size={24} color="#1E3A5F" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>
-              {currentScreen === 'login' && '登录'}
-              {currentScreen === 'materials' && '素材库'}
-              {currentScreen === 'messages' && '消息'}
-              {currentScreen === 'settings' && '设置'}
+              {SCREEN_TITLES[currentScreen] || ''}
             </Text>
             <View style={styles.placeholder} />
           </View>
@@ -129,8 +161,6 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
-
-import { LoginScreen } from '../screens';
 
 const styles = StyleSheet.create({
   container: {
