@@ -1,0 +1,169 @@
+/* APK端功能申请页面样式 */
+
+/* 说明卡片 */
+.apply-tip {
+  margin: 12px 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fffbe6 0%, #fff7e6 100%);
+  border-radius: 12px;
+  border-left: 4px solid #faad14;
+}
+
+.apply-tip p {
+  margin: 0;
+  font-size: 13px;
+  color: #d48806;
+}
+
+/* 标签页 */
+.apply-tabs {
+  padding: 0 16px;
+  background: #fff;
+}
+
+.apply-tabs .apk-tabs .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.count-tag {
+  margin-left: 4px;
+  font-size: 10px;
+}
+
+/* 内容区 */
+.apply-content {
+  padding: 12px 16px;
+  background: #f5f5f5;
+  min-height: calc(100vh - 180px);
+}
+
+/* 功能卡片 */
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feature-card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.feature-card .ant-card-head {
+  background: #fafafa;
+  min-height: 44px;
+}
+
+.feature-category {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.category-icon {
+  font-size: 18px;
+}
+
+/* 功能项 */
+.feature-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.feature-item:last-child {
+  border-bottom: none;
+}
+
+.feature-item.enabled {
+  opacity: 0.7;
+}
+
+.feature-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.feature-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.feature-desc {
+  font-size: 12px;
+  color: #999;
+}
+
+.apply-btn {
+  border-radius: 16px;
+}
+
+/* 申请记录 */
+.records-list {
+  background: #fff;
+  border-radius: 12px;
+}
+
+.records-list .ant-list-item {
+  padding: 14px 16px;
+}
+
+.record-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.reject-reason {
+  color: #ff4d4f;
+}
+
+/* 代理商列表 */
+.agents-list {
+  background: #fff;
+  border-radius: 12px;
+}
+
+.agents-list .ant-list-item {
+  padding: 14px 16px;
+}
+
+/* 弹窗 */
+.apk-modal .ant-modal-content {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.apk-modal .ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.apk-modal .ant-modal-body {
+  padding: 20px;
+}
+
+/* 响应式 */
+@media (max-width: 576px) {
+  .feature-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .feature-item .ant-btn {
+    width: 100%;
+  }
+
+  .agents-list .ant-list-item .ant-list-item-action {
+    margin-left: 0;
+    margin-top: 8px;
+  }
+}
