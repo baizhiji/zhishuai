@@ -10,8 +10,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
 import { authService, referralService, UserInfo, ReferralStats } from '../services';
+
+interface Props {
+  navigate?: (screen: string) => void;
+  goBack?: () => void;
+}
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -42,7 +46,7 @@ const MenuItem: React.FC<MenuItemProps> = ({
   </TouchableOpacity>
 );
 
-export default function ProfileScreen({ navigation }: { navigation: any }) {
+export default function ProfileScreen({ navigate, goBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
@@ -51,14 +55,6 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   useEffect(() => {
     loadData();
   }, []);
-
-  // 监听页面focus，重新加载数据
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadData();
-    });
-    return unsubscribe;
-  }, [navigation]);
 
   const loadData = async () => {
     setLoading(true);
@@ -101,18 +97,12 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             setLoggingOut(true);
             try {
               await authService.logout();
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
             } catch (error) {
-              Alert.alert('提示', '退出成功');
-              navigation.reset({
-                index: 0,
-                routes: [{ name: 'Login' }],
-              });
+              console.log('登出请求失败');
             } finally {
               setLoggingOut(false);
+              // 跳转到登录页
+              navigate?.('login');
             }
           }
         },
@@ -217,7 +207,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             iconColor="#64748B"
             title="设置"
             subtitle="账号、安全、服务"
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() => navigate?.('settings')}
           />
           <MenuItem
             icon="sparkles-outline"

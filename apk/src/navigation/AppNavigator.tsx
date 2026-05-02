@@ -1,8 +1,4 @@
-import React, { useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { 
   HomeScreen, 
   CreateScreen, 
@@ -18,71 +14,11 @@ import {
   AIFeatureScreen,
   DigitalHumanScreen,
 } from '../screens/ai';
+import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 const Tab = createBottomTabNavigator();
-
-import { useNavigation } from '@react-navigation/native';
-
-function HomeScreenWithNav() {
-  const navigation = useNavigation<any>();
-  return <HomeScreen navigation={navigation} />;
-}
-
-function CreateScreenWithNav() {
-  const navigation = useNavigation<any>();
-  return <CreateScreen navigation={navigation} />;
-}
-
-function ProfileScreenWithNav() {
-  const navigation = useNavigation<any>();
-  return <ProfileScreen navigation={navigation} />;
-}
-
-// 主 Tab 导航
-function MainTabs() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'home';
-          
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Create') {
-            iconName = focused ? 'sparkles' : 'sparkles-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-          
-          return (
-            <Ionicons name={iconName} size={22} color={color} />
-          );
-        },
-        tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#64748B',
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabBarLabel,
-      })}
-    >
-      <Tab.Screen 
-        name="Home" 
-        component={HomeScreenWithNav}
-        options={{ tabBarLabel: '首页' }}
-      />
-      <Tab.Screen 
-        name="Create" 
-        component={CreateScreenWithNav}
-        options={{ tabBarLabel: 'AI创作' }}
-      />
-      <Tab.Screen 
-        name="Profile" 
-        component={ProfileScreenWithNav}
-        options={{ tabBarLabel: '我的' }}
-      />
-    </Tab.Navigator>
-  );
-}
 
 // 页面标题映射
 const SCREEN_TITLES: Record<string, string> = {
@@ -120,9 +56,27 @@ const getCategoryFromScreen = (screen: string): string => {
   return map[screen] || 'copywriting';
 };
 
-export default function AppNavigator() {
-  const [currentScreen, setCurrentScreen] = useState<string>('main');
-  const navigationRef = React.useRef<any>(null);
+interface NavigationContextType {
+  navigate: (screen: string) => void;
+  goBack: () => void;
+}
+
+const NavigationContext = createContext<NavigationContextType | null>(null);
+
+export function useAppNavigation() {
+  const context = useContext(NavigationContext);
+  if (!context) {
+    throw new Error('useAppNavigation must be used within AppNavigator');
+  }
+  return context;
+}
+
+interface Props {
+  initialScreen?: string;
+}
+
+export default function AppNavigator({ initialScreen = 'main' }: Props) {
+  const [currentScreen, setCurrentScreen] = useState<string>(initialScreen);
 
   const navigate = (screen: string) => {
     setCurrentScreen(screen);
@@ -157,14 +111,14 @@ export default function AppNavigator() {
       case 'digitalHuman':
         return <AIVideoScreen navigation={{ goBack }} route={{ params: { category: getCategoryFromScreen(currentScreen) } }} />;
       default:
-        return <MainTabs />;
+        return <MainTabs navigate={navigate} goBack={goBack} />;
     }
   };
 
   const showHeader = currentScreen !== 'main';
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContext.Provider value={{ navigate, goBack }}>
       <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
       <View style={styles.container}>
         {showHeader && (
@@ -180,7 +134,53 @@ export default function AppNavigator() {
         )}
         {renderScreen()}
       </View>
-    </NavigationContainer>
+    </NavigationContext.Provider>
+  );
+}
+
+// 主 Tab 导航
+function MainTabs({ navigate, goBack }: { navigate: (screen: string) => void; goBack: () => void }) {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName: keyof typeof Ionicons.glyphMap = 'home';
+          
+          if (route.name === 'Home') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Create') {
+            iconName = focused ? 'sparkles' : 'sparkles-outline';
+          } else if (route.name === 'Profile') {
+            iconName = focused ? 'person' : 'person-outline';
+          }
+          
+          return (
+            <Ionicons name={iconName} size={22} color={color} />
+          );
+        },
+        tabBarActiveTintColor: '#2563EB',
+        tabBarInactiveTintColor: '#64748B',
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
+      })}
+    >
+      <Tab.Screen 
+        name="Home" 
+        component={() => <HomeScreen navigate={navigate} goBack={goBack} />}
+        options={{ tabBarLabel: '首页' }}
+      />
+      <Tab.Screen 
+        name="Create" 
+        component={() => <CreateScreen navigate={navigate} />}
+        options={{ tabBarLabel: 'AI创作' }}
+      />
+      <Tab.Screen 
+        name="Profile" 
+        component={() => <ProfileScreen navigate={navigate} goBack={goBack} />}
+        options={{ tabBarLabel: '我的' }}
+      />
+    </Tab.Navigator>
   );
 }
 

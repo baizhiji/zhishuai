@@ -11,20 +11,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/stack';
 import { homeService, authService, TodayStats, ReferralStats } from '../services';
 
-type RootStackParamList = {
-  MainTabs: undefined;
-  Materials: undefined;
-  Messages: undefined;
-  Settings: undefined;
-  Login: undefined;
-  Create: undefined;
-};
-
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+interface Props {
+  navigate?: (screen: string) => void;
+  goBack?: () => void;
+}
 
 interface FeatureItem {
   id: string;
@@ -43,8 +35,7 @@ const FEATURES: FeatureItem[] = [
   { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#6366F1', route: 'Analytics' },
 ];
 
-export default function HomeScreen() {
-  const navigation = useNavigation<NavigationProp>();
+export default function HomeScreen({ navigate: propNavigate, goBack }: Props = {}) {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('用户');
   const [expiryDate, setExpiryDate] = useState('');
@@ -104,21 +95,10 @@ export default function HomeScreen() {
   };
 
   const navigateTo = (route: string) => {
-    switch (route) {
-      case 'Materials':
-        navigation.navigate('Materials');
-        break;
-      case 'Messages':
-        navigation.navigate('Messages');
-        break;
-      case 'Settings':
-        navigation.navigate('Settings');
-        break;
-      case 'Create':
-        navigation.navigate('Create');
-        break;
-      default:
-        console.log('Navigate to:', route);
+    if (propNavigate) {
+      propNavigate(route);
+    } else {
+      console.log('Navigate to:', route);
     }
   };
 
@@ -146,7 +126,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity 
             style={styles.avatarButton}
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() => navigateTo('settings')}
           >
             <Ionicons name="person-outline" size={22} color="#2563EB" />
           </TouchableOpacity>

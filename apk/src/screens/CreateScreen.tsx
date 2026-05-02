@@ -25,7 +25,7 @@ const SCREEN_MAP: Record<string, string> = {
   'digitalHuman': 'digitalHuman',
 };
 
-export default function CreateScreen({ navigation }: { navigation: any }) {
+export default function CreateScreen({ navigate }: { navigate?: (screen: string) => void }) {
   const [searchText, setSearchText] = useState('');
 
   // 过滤搜索
@@ -36,8 +36,8 @@ export default function CreateScreen({ navigation }: { navigation: any }) {
 
   const handleTypePress = (typeId: string) => {
     const screen = SCREEN_MAP[typeId];
-    if (screen) {
-      navigation.navigate(screen);
+    if (screen && navigate) {
+      navigate(screen);
     }
   };
 
