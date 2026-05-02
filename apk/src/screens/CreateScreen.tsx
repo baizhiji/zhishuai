@@ -11,17 +11,17 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { AI_CREATION_TYPES } from '../constants';
 
-// 屏幕映射 - 根据创作类型ID
+// 屏幕映射 - 根据创作类型ID（匹配Web端"内容自动生成"）
 const SCREEN_MAP: Record<string, string> = {
   'title': 'aiTitle',
-  'tag': 'aiTag',
-  'longText': 'aiLongText',
-  'shortText': 'aiShortText',
-  'imageText': 'aiImageText',
-  'xhsPost': 'aiXhsPost',
+  'tags': 'aiTag',
+  'copywriting': 'aiCopywriting',
+  'imageToText': 'aiImageToText',
+  'xiaohongshu': 'aiXiaohongshu',
   'image': 'aiImage',
   'ecommerce': 'aiEcommerce',
   'video': 'aiVideo',
+  'videoAnalysis': 'aiVideoAnalysis',
   'digitalHuman': 'digitalHuman',
 };
 

@@ -89,17 +89,17 @@ const SCREEN_TITLES: Record<string, string> = {
   materials: '素材库',
   messages: '消息',
   settings: '设置',
-  // AI创作类型
-  aiTitle: '标题生成',
+  // AI创作类型 - 匹配Web端"内容自动生成"
+  aiTitle: '标题',
   aiTag: '话题/标签',
-  aiLongText: '长文案',
-  aiShortText: '短文案',
-  aiImageText: '图生文',
-  aiXhsPost: '小红书图文',
-  aiImage: '图片生成',
+  aiCopywriting: '文案生成',
+  aiImageToText: '图生文',
+  aiXiaohongshu: '小红书图文',
+  aiImage: '图片',
   aiEcommerce: '电商详情页',
-  aiVideo: '短视频脚本',
-  digitalHuman: '数字人视频',
+  aiVideo: '短视频',
+  aiVideoAnalysis: '视频解析',
+  digitalHuman: '数字人短视频',
 };
 
 export default function AppNavigator() {
@@ -124,18 +124,18 @@ export default function AppNavigator() {
         return <MessagesScreen navigation={{ goBack }} />;
       case 'settings':
         return <SettingsScreen navigation={{ goBack }} />;
-      // AI创作类型 - 使用通用模板占位
+      // AI创作类型 - 匹配Web端"内容自动生成"（使用通用模板占位）
       case 'aiTitle':
       case 'aiTag':
-      case 'aiLongText':
-      case 'aiShortText':
-      case 'aiImageText':
-      case 'aiXhsPost':
+      case 'aiCopywriting':
+      case 'aiImageToText':
+      case 'aiXiaohongshu':
       case 'aiEcommerce':
         return <DigitalHumanScreen navigation={{ goBack }} />;
       case 'aiImage':
         return <AIImageScreen navigation={{ goBack }} />;
       case 'aiVideo':
+      case 'aiVideoAnalysis':
         return <AIVideoScreen navigation={{ goBack }} />;
       case 'digitalHuman':
         return <DigitalHumanScreen navigation={{ goBack }} />;

@@ -2,18 +2,18 @@
 import { apiClient } from './api.client';
 import { API_ENDPOINTS } from './api.config';
 
-// 内容类型
+// 内容类型 - 匹配Web端"内容自动生成"
 export type ContentType = 
-  | 'title'           // 标题生成
-  | 'tag'             // 话题/标签
-  | 'long_text'       // 长文案
-  | 'short_text'      // 短文案
-  | 'image_to_text'   // 图生文
+  | 'title'           // 标题
+  | 'tags'            // 话题/标签
+  | 'copywriting'     // 文案生成
+  | 'imageToText'     // 图生文
   | 'xiaohongshu'     // 小红书图文
-  | 'image'           // 图片生成
+  | 'image'           // 图片
   | 'ecommerce'       // 电商详情页
-  | 'video_script'    // 短视频脚本
-  | 'digital_human';  // 数字人视频
+  | 'video'           // 短视频
+  | 'videoAnalysis'   // 视频解析
+  | 'digitalHuman';   // 数字人短视频
 
 // 内容生成请求
 export interface GenerateContentParams {
@@ -73,67 +73,67 @@ export const PLATFORMS = [
   { value: 'bilibili', label: 'B站', icon: 'play-circle-outline' },
 ];
 
-// 内容类型配置
+// 内容类型配置 - 匹配Web端"内容自动生成"
 export const CONTENT_TYPES: Record<ContentType, { label: string; icon: string; color: string; description: string }> = {
   title: {
-    label: '标题生成',
+    label: '标题',
     icon: 'text',
-    color: '#8B5CF6',
-    description: '智能生成吸引人的文章标题'
+    color: '#3B82F6',
+    description: '生成吸引人的标题，提升内容点击率'
   },
-  tag: {
+  tags: {
     label: '话题/标签',
     icon: 'pricetags',
-    color: '#EC4899',
-    description: '生成热门话题和标签'
+    color: '#10B981',
+    description: '生成相关话题标签，增加内容曝光'
   },
-  long_text: {
-    label: '长文案',
+  copywriting: {
+    label: '文案生成',
     icon: 'document-text',
     color: '#6366F1',
-    description: '生成完整的长篇文章'
+    description: '智能生成文案，根据字数自动判断长短'
   },
-  short_text: {
-    label: '短文案',
-    icon: 'chatbubble',
-    color: '#10B981',
-    description: '生成简短精炼的文案'
-  },
-  image_to_text: {
+  imageToText: {
     label: '图生文',
-    icon: 'image-outline',
-    color: '#F59E0B',
-    description: '根据图片生成描述文案'
+    icon: 'image',
+    color: '#EC4899',
+    description: '根据图片生成文案描述'
   },
   xiaohongshu: {
     label: '小红书图文',
-    icon: 'images',
+    icon: 'logo-instapaper',
     color: '#EF4444',
-    description: '生成小红书风格图文'
+    description: '生成小红书风格的图文内容'
   },
   image: {
-    label: '图片生成',
-    icon: 'brush',
-    color: '#DB2777',
-    description: 'AI生成高质量图片'
+    label: '图片',
+    icon: 'images',
+    color: '#F59E0B',
+    description: '生成高质量图片内容'
   },
   ecommerce: {
     label: '电商详情页',
     icon: 'storefront',
-    color: '#2563EB',
-    description: '生成电商产品详情页'
+    color: '#14B8A6',
+    description: '生成电商产品详情页内容'
   },
-  video_script: {
-    label: '短视频脚本',
+  video: {
+    label: '短视频',
     icon: 'videocam',
-    color: '#059669',
-    description: '生成短视频拍摄脚本'
+    color: '#2563EB',
+    description: '生成短视频内容，自动生成字幕、配音和背景音乐'
   },
-  digital_human: {
-    label: '数字人视频',
+  videoAnalysis: {
+    label: '视频解析',
+    icon: 'analytics',
+    color: '#8B5CF6',
+    description: '分析短视频链接，生成新的爆款视频'
+  },
+  digitalHuman: {
+    label: '数字人短视频',
     icon: 'person',
     color: '#D97706',
-    description: '数字人短视频创作'
+    description: '使用数字人生成真人出镜视频'
   },
 };
 

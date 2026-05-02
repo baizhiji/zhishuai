@@ -13,18 +13,18 @@ export const COLORS = {
   border: '#E5E7EB',
 };
 
-// AI创作类型 - 匹配Web端
+// AI创作类型 - 匹配Web端"内容自动生成"
 export const AI_CREATION_TYPES = [
-  { id: 'title', name: '标题生成', icon: 'text', color: '#3B82F6', description: '智能生成吸引人的文章标题' },
-  { id: 'tag', name: '话题/标签', icon: 'pricetags', color: '#10B981', description: '生成热门话题和标签' },
-  { id: 'longText', name: '长文案', icon: 'document-text', color: '#6366F1', description: '生成完整的长篇文章' },
-  { id: 'shortText', name: '短文案', icon: 'chatbox-ellipses', color: '#8B5CF6', description: '生成简短精炼的文案' },
-  { id: 'imageText', name: '图生文', icon: 'image', color: '#EC4899', description: '根据图片生成描述文案' },
-  { id: 'xhsPost', name: '小红书图文', icon: 'logo-instapaper', color: '#EF4444', description: '生成小红书风格图文' },
-  { id: 'image', name: '图片生成', icon: 'images', color: '#F59E0B', description: 'AI生成高质量图片' },
-  { id: 'ecommerce', name: '电商详情页', icon: 'storefront', color: '#14B8A6', description: '生成电商产品详情页' },
-  { id: 'video', name: '短视频脚本', icon: 'videocam', color: '#2563EB', description: '生成短视频拍摄脚本' },
-  { id: 'digitalHuman', name: '数字人视频', icon: 'person', color: '#D97706', description: '数字人短视频创作' },
+  { id: 'title', name: '标题', icon: 'text', color: '#3B82F6', description: '生成吸引人的标题，提升内容点击率' },
+  { id: 'tags', name: '话题/标签', icon: 'pricetags', color: '#10B981', description: '生成相关话题标签，增加内容曝光' },
+  { id: 'copywriting', name: '文案生成', icon: 'document-text', color: '#6366F1', description: '智能生成文案，根据字数自动判断长短' },
+  { id: 'imageToText', name: '图生文', icon: 'image', color: '#EC4899', description: '根据图片生成文案描述' },
+  { id: 'xiaohongshu', name: '小红书图文', icon: 'logo-instapaper', color: '#EF4444', description: '生成小红书风格的图文内容' },
+  { id: 'image', name: '图片', icon: 'images', color: '#F59E0B', description: '生成高质量图片内容' },
+  { id: 'ecommerce', name: '电商详情页', icon: 'storefront', color: '#14B8A6', description: '生成电商产品详情页内容' },
+  { id: 'video', name: '短视频', icon: 'videocam', color: '#2563EB', description: '生成短视频内容，自动生成字幕、配音和背景音乐' },
+  { id: 'videoAnalysis', name: '视频解析', icon: 'analytics', color: '#8B5CF6', description: '分析短视频链接，生成新的爆款视频' },
+  { id: 'digitalHuman', name: '数字人短视频', icon: 'person', color: '#D97706', description: '使用数字人生成真人出镜视频' },
 ];
 
 export const FEATURES = [
