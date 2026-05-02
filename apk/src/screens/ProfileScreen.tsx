@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import {
   View,
@@ -8,152 +6,143 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MOCK_USER } from '../constants';
 
-interface MenuItem {
-  id: string;
+interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
   iconColor: string;
   title: string;
   subtitle?: string;
-  badge?: number;
+  onPress?: () => void;
+  showArrow?: boolean;
 }
 
-const MENU_GROUPS: { title?: string; items: MenuItem[] }[] = [
-  {
-    items: [
-      { id: '1', icon: 'person-outline', iconColor: '#2563EB', title: '账号信息', subtitle: '修改头像、昵称等信息' },
-      { id: '2', icon: 'shield-outline', iconColor: '#4F46E5', title: '账号安全', subtitle: '修改密码、绑定手机' },
-      { id: '3', icon: 'wallet-outline', iconColor: '#059669', title: '我的钱包', subtitle: '余额 ¥0.00' },
-      { id: '4', icon: 'receipt-outline', iconColor: '#D97706', title: '充值记录', subtitle: '查看充值明细' },
-    ]
-  },
-  {
-    title: '我的服务',
-    items: [
-      { id: '5', icon: 'document-text-outline', iconColor: '#DB2777', title: '我的订单', subtitle: '查看全部订单', badge: 2 },
-      { id: '6', icon: 'heart-outline', iconColor: '#DC2626', title: '我的收藏', subtitle: '收藏的内容' },
-      { id: '7', icon: 'time-outline', iconColor: '#7C3AED', title: '浏览历史', subtitle: '最近浏览' },
-      { id: '8', icon: 'download-outline', iconColor: '#0891B2', title: '我的下载', subtitle: '下载的文件' },
-    ]
-  },
-  {
-    title: '其他',
-    items: [
-      { id: '9', icon: 'help-circle-outline', iconColor: '#475569', title: '帮助中心' },
-      { id: '10', icon: 'chatbubbles-outline', iconColor: '#475569', title: '意见反馈' },
-      { id: '11', icon: 'document-outline', iconColor: '#475569', title: '用户协议' },
-      { id: '12', icon: 'lock-closed-outline', iconColor: '#475569', title: '隐私政策' },
-    ]
-  },
-];
+const MenuItem: React.FC<MenuItemProps> = ({
+  icon,
+  iconColor,
+  title,
+  subtitle,
+  onPress,
+  showArrow = true,
+}) => (
+  <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
+    <View style={[styles.menuIcon, { backgroundColor: iconColor + '15' }]}>
+      <Ionicons name={icon} size={20} color={iconColor} />
+    </View>
+    <View style={styles.menuContent}>
+      <Text style={styles.menuTitle}>{title}</Text>
+      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
+    </View>
+    {showArrow && <Ionicons name="chevron-forward" size={20} color="#CBD5E1" />}
+  </TouchableOpacity>
+);
 
-const STATS_DATA = [
-  { label: '创作数', value: '126', color: '#2563EB' },
-  { label: '使用时长', value: '28h', color: '#4F46E5' },
-  { label: '收藏数', value: '15', color: '#DB2777' },
-  { label: '分享数', value: '32', color: '#059669' },
-];
+export default function ProfileScreen({ navigation }: { navigation: any }) {
+  const handleUpgrade = () => {
+    // APK升级入口 - 实际可跳转到应用商店或更新页面
+    Alert.alert(
+      '检查更新',
+      '当前已是最新版本 v1.0.0',
+      [{ text: '确定' }]
+    );
+  };
 
-const MOCK_USER = {
-  name: '张明',
-  expiryDate: '2026-08-15',
-};
+  const handleReferral = () => {
+    Alert.alert(
+      '转介绍',
+      '邀请好友使用智枢AI，好友首充您可获得奖励',
+      [
+        { text: '取消', style: 'cancel' },
+        { text: '立即邀请', onPress: () => {} }
+      ]
+    );
+  };
 
-export default function ProfileScreen() {
+  const handleServiceExpiry = () => {
+    Alert.alert(
+      '服务到期',
+      `您的服务将于 2025-06-30 到期\n到期后将无法使用AI创作功能`,
+      [{ text: '确定' }]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
       
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* 头部 */}
-        <View style={styles.headerBg}>
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>我的</Text>
-            <TouchableOpacity style={styles.headerAction}>
-              <Ionicons name="settings-outline" size={24} color="#2563EB" />
-            </TouchableOpacity>
-          </View>
-
-          {/* 用户信息卡片 */}
-          <View style={styles.userCard}>
-            <View style={styles.avatarContainer}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>张</Text>
-              </View>
-            </View>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{MOCK_USER.name}</Text>
-              <Text style={styles.userId}>ID: 88776655</Text>
-              <View style={styles.expiryTag}>
-                <Ionicons name="calendar-outline" size={12} color="#3B82F6" />
-                <Text style={styles.expiryText}>到期时间：{MOCK_USER.expiryDate}</Text>
-              </View>
-            </View>
-            <TouchableOpacity style={styles.editButton}>
-              <Text style={styles.editButtonText}>编辑</Text>
-            </TouchableOpacity>
+      {/* 头部 */}
+      <View style={styles.header}>
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>
+              {MOCK_USER.nickname?.charAt(0) || 'U'}
+            </Text>
           </View>
         </View>
+        <Text style={styles.nickname}>{MOCK_USER.nickname}</Text>
+        <Text style={styles.phone}>{MOCK_USER.phone}</Text>
+        <TouchableOpacity style={styles.expiryBadge} onPress={handleServiceExpiry}>
+          <Ionicons name="time-outline" size={14} color="#3B82F6" />
+          <Text style={styles.expiryText}>服务到期：2025-06-30</Text>
+        </TouchableOpacity>
+      </View>
 
-        {/* 数据统计 */}
-        <View style={styles.statsCard}>
-          {STATS_DATA.map((stat, index) => (
-            <View key={stat.label} style={[
-              styles.statItem,
-              index < STATS_DATA.length - 1 && styles.statBorder
-            ]}>
-              <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* 转介绍入口 */}
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.referralCard} onPress={handleReferral}>
+            <View style={styles.referralLeft}>
+              <Ionicons name="gift" size={28} color="#FFFFFF" />
             </View>
-          ))}
+            <View style={styles.referralContent}>
+              <Text style={styles.referralTitle}>邀请好友 赚取奖励</Text>
+              <Text style={styles.referralDesc}>每邀请1位好友注册，双方各获得积分奖励</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
-        {/* 菜单列表 */}
-        {MENU_GROUPS.map((group, groupIndex) => (
-          <View key={groupIndex} style={styles.menuCard}>
-            {group.title && (
-              <Text style={styles.menuGroupTitle}>{group.title}</Text>
-            )}
-            {group.items.map((item, itemIndex) => (
-              <TouchableOpacity 
-                key={item.id} 
-                style={[
-                  styles.menuItem,
-                  itemIndex < group.items.length - 1 && styles.menuItemBorder
-                ]}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.menuIcon, { backgroundColor: item.iconColor + '15' }]}>
-                  <Ionicons name={item.icon} size={20} color={item.iconColor} />
-                </View>
-                <View style={styles.menuContent}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  {item.subtitle && (
-                    <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                  )}
-                </View>
-                {item.badge && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{item.badge}</Text>
-                  </View>
-                )}
-                <Ionicons name="chevron-forward" size={18} color="#64748B" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
+        {/* 功能菜单 */}
+        <View style={styles.section}>
+          <MenuItem
+            icon="settings-outline"
+            iconColor="#64748B"
+            title="设置"
+            subtitle="账号、安全、服务"
+            onPress={() => navigation.navigate('Settings')}
+          />
+          <MenuItem
+            icon="cloud-download-outline"
+            iconColor="#3B82F6"
+            title="检查更新"
+            subtitle="当前版本 v1.0.0"
+            onPress={handleUpgrade}
+          />
+          <MenuItem
+            icon="help-circle-outline"
+            iconColor="#10B981"
+            title="帮助与反馈"
+            onPress={() => Alert.alert('帮助与反馈', '请联系客服获取帮助')}
+          />
+          <MenuItem
+            icon="information-circle-outline"
+            iconColor="#6366F1"
+            title="关于我们"
+            onPress={() => Alert.alert('关于我们', '智枢AI v1.0.0\n用AI赋能企业，让商业更智能')}
+          />
+        </View>
 
-        {/* 版本信息 */}
-        <Text style={styles.versionText}>智枢AI v1.0.0</Text>
-        
-        {/* 底部留白 */}
-        <View style={styles.bottomSpace} />
+        {/* 退出登录 */}
+        <TouchableOpacity style={styles.logoutButton}>
+          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>退出登录</Text>
+        </TouchableOpacity>
+
+        <View style={styles.bottomPadding} />
       </ScrollView>
     </View>
   );
@@ -164,177 +153,101 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#EFF6FF',
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  headerBg: {
+  header: {
     backgroundColor: '#DBEAFE',
     paddingTop: 50,
     paddingBottom: 24,
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E3A5F',
-  },
-  headerAction: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  userCard: {
-    flexDirection: 'row',
     alignItems: 'center',
   },
   avatarContainer: {
-    marginRight: 16,
+    marginBottom: 12,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#2563EB',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#3B82F6',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
   avatarText: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
+  nickname: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1E3A5F',
     marginBottom: 4,
   },
-  userId: {
-    fontSize: 13,
-    color: '#475569',
-    marginBottom: 6,
+  phone: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 12,
   },
-  expiryTag: {
+  expiryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   expiryText: {
     fontSize: 12,
     color: '#3B82F6',
     marginLeft: 4,
   },
-  editButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#2563EB',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  editButtonText: {
-    fontSize: 13,
-    color: '#2563EB',
-    fontWeight: '500',
-  },
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 16,
-    marginTop: 8,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  statItem: {
+  content: {
     flex: 1,
-    alignItems: 'center',
   },
-  statBorder: {
-    borderRightWidth: 1,
-    borderRightColor: '#E0E7FF',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#475569',
-  },
-  menuCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 4,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  menuGroupTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
+  section: {
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingTop: 16,
+  },
+  referralCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
+    padding: 16,
+  },
+  referralLeft: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  referralContent: {
+    flex: 1,
+  },
+  referralTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  referralDesc: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 14,
-    paddingHorizontal: 12,
-  },
-  menuItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EFF6FF',
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   menuIcon: {
     width: 36,
@@ -349,36 +262,30 @@ const styles = StyleSheet.create({
   },
   menuTitle: {
     fontSize: 15,
-    fontWeight: '500',
-    color: '#334155',
+    color: '#1E3A5F',
   },
   menuSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
     marginTop: 2,
   },
-  badge: {
-    backgroundColor: '#DC2626',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    justifyContent: 'center',
+  logoutButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 8,
-    paddingHorizontal: 6,
+    justifyContent: 'center',
+    backgroundColor: '#FEE2E2',
+    marginHorizontal: 16,
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
   },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  logoutText: {
+    fontSize: 15,
+    color: '#EF4444',
+    fontWeight: '500',
+    marginLeft: 6,
   },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 24,
-  },
-  bottomSpace: {
-    height: 100,
+  bottomPadding: {
+    height: 30,
   },
 });

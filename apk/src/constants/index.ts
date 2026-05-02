@@ -13,6 +13,20 @@ export const COLORS = {
   border: '#E5E7EB',
 };
 
+// AI创作类型 - 匹配Web端
+export const AI_CREATION_TYPES = [
+  { id: 'title', name: '标题生成', icon: 'text', color: '#3B82F6', description: '智能生成吸引人的文章标题' },
+  { id: 'tag', name: '话题/标签', icon: 'pricetags', color: '#10B981', description: '生成热门话题和标签' },
+  { id: 'longText', name: '长文案', icon: 'document-text', color: '#6366F1', description: '生成完整的长篇文章' },
+  { id: 'shortText', name: '短文案', icon: 'chatbox-ellipses', color: '#8B5CF6', description: '生成简短精炼的文案' },
+  { id: 'imageText', name: '图生文', icon: 'image', color: '#EC4899', description: '根据图片生成描述文案' },
+  { id: 'xhsPost', name: '小红书图文', icon: 'logo-instapaper', color: '#EF4444', description: '生成小红书风格图文' },
+  { id: 'image', name: '图片生成', icon: 'images', color: '#F59E0B', description: 'AI生成高质量图片' },
+  { id: 'ecommerce', name: '电商详情页', icon: 'storefront', color: '#14B8A6', description: '生成电商产品详情页' },
+  { id: 'video', name: '短视频脚本', icon: 'videocam', color: '#2563EB', description: '生成短视频拍摄脚本' },
+  { id: 'digitalHuman', name: '数字人视频', icon: 'person', color: '#D97706', description: '数字人短视频创作' },
+];
+
 export const FEATURES = [
   { id: 'media', name: '自媒体运营', icon: 'grid', color: '#3B82F6', description: 'AI内容生成与发布' },
   { id: 'recruitment', name: '招聘助手', icon: 'briefcase', color: '#10B981', description: '智能招聘解决方案' },

@@ -13,12 +13,9 @@ import {
   LoginScreen,
 } from '../screens';
 import {
-  AICopyScreen,
   AIImageScreen,
   AIVideoScreen,
-  AIEditScreen,
   DigitalHumanScreen,
-  VoiceCloneScreen,
 } from '../screens/ai';
 
 const Tab = createBottomTabNavigator();
@@ -92,12 +89,17 @@ const SCREEN_TITLES: Record<string, string> = {
   materials: '素材库',
   messages: '消息',
   settings: '设置',
-  aiCopy: 'AI文案',
-  aiImage: 'AI图片',
-  aiVideo: 'AI视频',
-  aiEdit: 'AI剪辑',
-  digitalHuman: '数字人',
-  voiceClone: '声音克隆',
+  // AI创作类型
+  aiTitle: '标题生成',
+  aiTag: '话题/标签',
+  aiLongText: '长文案',
+  aiShortText: '短文案',
+  aiImageText: '图生文',
+  aiXhsPost: '小红书图文',
+  aiImage: '图片生成',
+  aiEcommerce: '电商详情页',
+  aiVideo: '短视频脚本',
+  digitalHuman: '数字人视频',
 };
 
 export default function AppNavigator() {
@@ -122,18 +124,21 @@ export default function AppNavigator() {
         return <MessagesScreen navigation={{ goBack }} />;
       case 'settings':
         return <SettingsScreen navigation={{ goBack }} />;
-      case 'aiCopy':
-        return <AICopyScreen navigation={{ goBack }} />;
+      // AI创作类型 - 使用通用模板占位
+      case 'aiTitle':
+      case 'aiTag':
+      case 'aiLongText':
+      case 'aiShortText':
+      case 'aiImageText':
+      case 'aiXhsPost':
+      case 'aiEcommerce':
+        return <DigitalHumanScreen navigation={{ goBack }} />;
       case 'aiImage':
         return <AIImageScreen navigation={{ goBack }} />;
       case 'aiVideo':
         return <AIVideoScreen navigation={{ goBack }} />;
-      case 'aiEdit':
-        return <AIEditScreen navigation={{ goBack }} />;
       case 'digitalHuman':
         return <DigitalHumanScreen navigation={{ goBack }} />;
-      case 'voiceClone':
-        return <VoiceCloneScreen navigation={{ goBack }} />;
       default:
         return <MainTabs />;
     }
