@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { homeService, authService, TodayStats, ReferralStats } from '../services';
-import { useAppNavigation } from '../context/NavigationContext';
+import { useAppNavigation } from '../navigation/AppNavigator';
 
 interface FeatureItem {
   id: string;

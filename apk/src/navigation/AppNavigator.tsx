@@ -1,13 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import React, { createContext, useContext, useRef, useCallback } from 'react';
+import { NavigationContainer, NavigationContainerRef, useNavigation as useRNNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-
-// 导入上下文
-import { NavigationProvider } from '../context/NavigationContext';
 
 // 导入屏幕组件
 import { HomeScreen, CreateScreen, ProfileScreen, LoginScreen, SettingsScreen, MaterialsScreen, MessagesScreen } from '../screens';
@@ -34,7 +31,20 @@ export type MainTabParamList = {
 
 // 创建导航器
 const RootStack = createNativeStackNavigator<RootStackParamList>();
-const MainTabs = createBottomTabNavigator<MainTabParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
+
+// 导航上下文
+interface NavigationContextType {
+  navigate: (name: string, params?: any) => void;
+  goBack: () => void;
+}
+
+const NavigationContext = createContext<NavigationContextType>({
+  navigate: () => {},
+  goBack: () => {},
+});
+
+export const useAppNavigation = () => useContext(NavigationContext);
 
 // Tab 配置
 const TAB_CONFIG = [
@@ -42,17 +52,6 @@ const TAB_CONFIG = [
   { name: 'Create', label: 'AI创作', icon: 'sparkles-outline', activeIcon: 'sparkles' },
   { name: 'Profile', label: '我的', icon: 'person-outline', activeIcon: 'person' },
 ];
-
-// 页面标题
-const SCREEN_TITLES: Record<string, string> = {
-  Settings: '设置',
-  Materials: '素材库',
-  Messages: '消息',
-  AIFeature: 'AI创作',
-  AIImage: '图片生成',
-  AIVideo: '视频生成',
-  DigitalHuman: '数字人视频',
-};
 
 // Tab 图标
 const TabIcon = ({ focused, icon, activeIcon }: { focused: boolean; icon: string; activeIcon: string }) => (
@@ -65,6 +64,8 @@ const TabIcon = ({ focused, icon, activeIcon }: { focused: boolean; icon: string
 
 // Tab 导航组件
 const MainTabs = () => {
+  const { navigate, goBack } = useAppNavigation();
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -85,6 +86,7 @@ const MainTabs = () => {
           key={tab.name}
           name={tab.name as keyof MainTabParamList}
           component={tab.name === 'Home' ? HomeScreen : tab.name === 'Create' ? CreateScreen : ProfileScreen}
+          initialParams={{ navigate, goBack }}
           options={{
             tabBarLabel: tab.label,
             tabBarIcon: ({ focused }) => (
@@ -97,20 +99,31 @@ const MainTabs = () => {
   );
 };
 
+// 页面标题
+const SCREEN_TITLES: Record<string, string> = {
+  Settings: '设置',
+  Materials: '素材库',
+  Messages: '消息',
+  AIFeature: 'AI创作',
+  AIImage: '图片生成',
+  AIVideo: '视频生成',
+  DigitalHuman: '数字人视频',
+};
+
 // 主导航组件
 const AppNavigator = () => {
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
 
-  const navigate = (name: string, params?: any) => {
+  const navigate = useCallback((name: string, params?: any) => {
     navigationRef.current?.navigate(name as any, params);
-  };
+  }, []);
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     navigationRef.current?.goBack();
-  };
+  }, []);
 
   return (
-    <NavigationProvider value={{ navigate, goBack }}>
+    <NavigationContext.Provider value={{ navigate, goBack }}>
       <NavigationContainer ref={navigationRef}>
         <StatusBar style="dark" />
         <RootStack.Navigator
@@ -169,7 +182,7 @@ const AppNavigator = () => {
           />
         </RootStack.Navigator>
       </NavigationContainer>
-    </NavigationProvider>
+    </NavigationContext.Provider>
   );
 };
 
