@@ -195,11 +195,11 @@ export default function AIVideoScreen({ navigation, route }: Props) {
   const getColor = () => {
     switch (category) {
       case ContentCategory.VIDEO_ANALYSIS:
-        return '#8B5CF6'
+        return '#3B82F6'
       case ContentCategory.DIGITAL_HUMAN:
-        return '#6366F1'
+        return '#3B82F6'
       default:
-        return '#EC4899'
+        return '#3B82F6'
     }
   }
 
@@ -600,8 +600,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   chipButtonActive: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
   chipText: {
     fontSize: 13,
@@ -625,8 +625,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   digitalHumanButtonActive: {
-    borderColor: '#6366F1',
-    backgroundColor: '#6366F110',
+    borderColor: '#3B82F6',
+    backgroundColor: '#3B82F610',
   },
   avatar: {
     width: 56,
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatarActive: {
-    backgroundColor: '#6366F1',
+    backgroundColor: '#3B82F6',
   },
   digitalHumanName: {
     fontSize: 14,
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   digitalHumanNameActive: {
-    color: '#6366F1',
+    color: '#3B82F6',
   },
   digitalHumanType: {
     fontSize: 12,

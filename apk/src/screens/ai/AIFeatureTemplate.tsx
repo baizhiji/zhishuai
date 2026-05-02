@@ -114,15 +114,15 @@ export default function AIFeatureScreen({
           <Text style={styles.sectionTitle}>使用技巧</Text>
           <View style={styles.tipsBox}>
             <View style={styles.tipItem}>
-              <Ionicons name="bulb-outline" size={18} color="#F59E0B" />
+              <Ionicons name="bulb-outline" size={18} color="#3B82F6" />
               <Text style={styles.tipText}>输入越详细，生成效果越好</Text>
             </View>
             <View style={styles.tipItem}>
-              <Ionicons name="bulb-outline" size={18} color="#F59E0B" />
+              <Ionicons name="bulb-outline" size={18} color="#3B82F6" />
               <Text style={styles.tipText}>可以指定风格、长度、格式等要求</Text>
             </View>
             <View style={styles.tipItem}>
-              <Ionicons name="bulb-outline" size={18} color="#F59E0B" />
+              <Ionicons name="bulb-outline" size={18} color="#3B82F6" />
               <Text style={styles.tipText}>生成结果可多次调整优化</Text>
             </View>
           </View>

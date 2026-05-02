@@ -105,7 +105,7 @@ export default function CreateScreen() {
           <Text style={styles.sectionTitle}>创作技巧</Text>
           <View style={styles.tipCard}>
             <View style={styles.tipIcon}>
-              <Ionicons name="bulb" size={20} color="#F59E0B" />
+              <Ionicons name="bulb" size={20} color="#3B82F6" />
             </View>
             <View style={styles.tipContent}>
               <Text style={styles.tipTitle}>提升文案质量</Text>

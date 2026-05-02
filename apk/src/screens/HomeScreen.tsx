@@ -24,11 +24,11 @@ interface FeatureItem {
 
 const FEATURES: FeatureItem[] = [
   { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#3B82F6', route: 'Media' },
-  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#4F46E5', route: 'Recruitment' },
-  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#059669', route: 'Acquisition' },
-  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#10B981', route: 'Referral' },
-  { id: 'materials', title: '素材库', icon: 'folder-outline', color: '#F59E0B', route: 'Materials' },
-  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#6366F1', route: 'Analytics' },
+  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#3B82F6', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#3B82F6', route: 'Acquisition' },
+  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#3B82F6', route: 'Referral' },
+  { id: 'materials', title: '素材库', icon: 'folder-outline', color: '#3B82F6', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#3B82F6', route: 'Analytics' },
 ];
 
 export default function HomeScreen() {
@@ -217,7 +217,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             onPress={() => navigateTo('Messages')}
           >
-            <View style={[styles.quickIconBox, { backgroundColor: '#4F46E5' }]}>
+            <View style={[styles.quickIconBox, { backgroundColor: '#3B82F6' }]}>
               <Ionicons name="mail-outline" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.quickTitle}>消息</Text>
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 11,
-    color: '#059669',
+    color: '#3B82F6',
   },
   sectionTitle: {
     fontSize: 16,

@@ -208,13 +208,13 @@ export default function ProfileScreen() {
           />
           <MenuItem
             icon="sparkles-outline"
-            iconColor="#8B5CF6"
+            iconColor="#3B82F6"
             title="功能申请"
             onPress={handleFeatureRequest}
           />
           <MenuItem
             icon="help-circle-outline"
-            iconColor="#10B981"
+            iconColor="#3B82F6"
             title="帮助与反馈"
             subtitle="帮助文档、联系客服"
             onPress={() => Alert.alert(
@@ -236,7 +236,7 @@ export default function ProfileScreen() {
           />
           <MenuItem
             icon="information-circle-outline"
-            iconColor="#6366F1"
+            iconColor="#3B82F6"
             title="关于我们"
             onPress={() => Alert.alert('关于我们', '智枢AI v1.0.0\n用AI赋能企业，让商业更智能')}
           />

@@ -315,8 +315,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   optionButtonActive: {
-    backgroundColor: '#F97316',
-    borderColor: '#F97316',
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
   optionText: {
     fontSize: 14,
@@ -342,8 +342,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sizeButtonActive: {
-    backgroundColor: '#F97316',
-    borderColor: '#F97316',
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
   sizeText: {
     fontSize: 13,
