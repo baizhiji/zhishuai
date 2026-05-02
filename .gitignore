@@ -1,12 +1,18 @@
 # 1. 忽略当前目录下的所有文件和文件夹
 /*
 
-# 2. 只追踪配置文件、coze文件、web源代码
+# 2. 只追踪配置文件、coze文件、web源代码、apk移动端
 !/openclaw.json
 !/scripts
 !/.coze
 !/.gitignore
 !/web
+!/apk
+!/backend
+!/docs
+!/shared
+!/package.json
+!/README.md
 
 # 3. web目录下的忽略项
 web/.next
@@ -18,3 +24,23 @@ web/out
 web/.DS_Store
 web/*.log
 web/.pnpm-debug.log*
+
+# 4. apk目录下的忽略项
+apk/.next
+apk/node_modules
+apk/.env*
+apk/out
+apk/dist
+apk/.DS_Store
+apk/*.log
+
+# 5. backend目录下的忽略项
+backend/node_modules
+backend/.env*
+backend/dist
+backend/logs
+
+# 6. shared目录下的忽略项
+shared/node_modules
+shared/.env*
+shared/dist
