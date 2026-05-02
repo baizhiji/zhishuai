@@ -7,146 +7,187 @@ import {
   StyleSheet,
   Dimensions,
   TextInput,
-  Modal,
+  StatusBar,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
 
 const { width } = Dimensions.get('window');
 
-const CREATE_TYPES = [
-  { id: 'text', icon: '📝', name: '文案创作', color: '#3B82F6', desc: 'AI智能写作' },
-  { id: 'image', icon: '🎨', name: '图片生成', color: '#10B981', desc: 'AI绘画' },
-  { id: 'video', icon: '🎬', name: '视频生成', color: '#F59E0B', desc: 'AI剪辑' },
-  { id: 'digital', icon: '🧑', name: '数字人', color: '#8B5CF6', desc: '虚拟主播' },
-  { id: 'clone', icon: '🔊', name: '声音克隆', color: '#EC4899', desc: '声音复制' },
-  { id: 'more', icon: '✨', name: '更多功能', color: '#6366F1', desc: '敬请期待' },
+interface CreateType {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  desc: string;
+  tags: string[];
+}
+
+const CREATE_TYPES: CreateType[] = [
+  { id: '1', name: 'AI文案', icon: '📝', color: '#667eea', desc: '智能生成营销文案', tags: ['小红书', '抖音', '朋友圈'] },
+  { id: '2', name: 'AI图片', icon: '🎨', color: '#f093fb', desc: '文字生成精美图片', tags: ['海报', '封面', '配图'] },
+  { id: '3', name: 'AI视频', icon: '🎬', color: '#4facfe', desc: '一键生成视频内容', tags: ['短视频', '种草', '带货'] },
+  { id: '4', name: 'AI剪辑', icon: '✂️', color: '#43e97b', desc: '智能剪辑视频素材', tags: ['混剪', '特效', '字幕'] },
+  { id: '5', name: '数字人', icon: '👤', color: '#fa709a', desc: 'AI虚拟主播带货', tags: ['主播', '口播', '介绍'] },
+  { id: '6', name: '声音克隆', icon: '🎙️', color: '#fee140', desc: '复制你的声音', tags: ['配音', '解说', '语音'] },
 ];
 
-const RECENT_CONTENT = [
-  { id: '1', title: 'AI赋能企业数字化转型', type: 'text', status: '已完成', time: '10分钟前' },
-  { id: '2', title: '新品上市宣传视频', type: 'video', status: '生成中', time: '30分钟前' },
-  { id: '3', title: '端午节活动海报', type: 'image', status: '已完成', time: '1小时前' },
+const HISTORY_ITEMS = [
+  { id: '1', title: '夏日防晒产品种草文案', type: 'AI文案', time: '2小时前', thumbnail: '📝' },
+  { id: '2', title: '护肤品宣传海报设计', type: 'AI图片', time: '5小时前', thumbnail: '🎨' },
+  { id: '3', title: '618促销活动视频', type: 'AI视频', time: '昨天', thumbnail: '🎬' },
 ];
 
 export default function CreateScreen() {
+  const [searchText, setSearchText] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-
-  const TypeCard = ({ item }: { item: typeof CREATE_TYPES[0] }) => (
-    <TouchableOpacity
-      style={styles.typeCard}
-      onPress={() => {
-        if (item.id !== 'more') {
-          setSelectedType(item.id);
-          setModalVisible(true);
-        }
-      }}
-    >
-      <View style={[styles.typeIcon, { backgroundColor: item.color + '20' }]}>
-        <Text style={styles.typeIconText}>{item.icon}</Text>
-      </View>
-      <Text style={styles.typeName}>{item.name}</Text>
-      <Text style={styles.typeDesc}>{item.desc}</Text>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* 搜索栏 */}
+      <StatusBar barStyle="dark-content" />
+      
+      {/* 头部 */}
+      <View style={styles.header}>
+        <Text style={styles.title}>✨ AI创作中心</Text>
+        <Text style={styles.subtitle}>一站式智能内容创作平台</Text>
+      </View>
+
+      {/* 搜索栏 */}
+      <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Ionicons name="search" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="搜索模板、素材..."
-            placeholderTextColor={COLORS.textSecondary}
+            placeholder="搜索创作模板..."
+            placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={setSearchText}
           />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText('')}>
+              <Ionicons name="close-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
         </View>
+      </View>
 
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* 创作类型 */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>选择创作类型</Text>
+          <Text style={styles.sectionTitle}>🎯 选择创作类型</Text>
           <View style={styles.typeGrid}>
-            {CREATE_TYPES.map((item) => (
-              <TypeCard key={item.id} item={item} />
+            {CREATE_TYPES.map((type) => (
+              <TouchableOpacity 
+                key={type.id}
+                style={[
+                  styles.typeCard,
+                  selectedType === type.id && styles.typeCardActive
+                ]}
+                onPress={() => setSelectedType(selectedType === type.id ? null : type.id)}
+              >
+                <View style={[styles.typeIconContainer, { backgroundColor: type.color + '20' }]}>
+                  <Text style={styles.typeIcon}>{type.icon}</Text>
+                </View>
+                <Text style={styles.typeName}>{type.name}</Text>
+                <Text style={styles.typeDesc}>{type.desc}</Text>
+                <View style={styles.typeTags}>
+                  {type.tags.slice(0, 2).map((tag, index) => (
+                    <View key={index} style={[styles.typeTag, { backgroundColor: type.color + '15' }]}>
+                      <Text style={[styles.typeTagText, { color: type.color }]}>{tag}</Text>
+                    </View>
+                  ))}
+                </View>
+                {selectedType === type.id && (
+                  <View style={[styles.selectedBadge, { backgroundColor: type.color }]}>
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* 最近创作 */}
+        {/* 创作按钮 */}
+        <View style={styles.actionSection}>
+          <TouchableOpacity 
+            style={[
+              styles.createButton,
+              !selectedType && styles.createButtonDisabled
+            ]}
+            disabled={!selectedType}
+          >
+            <Ionicons name="sparkles" size={24} color="#fff" />
+            <Text style={styles.createButtonText}>
+              {selectedType 
+                ? `开始创作 ${CREATE_TYPES.find(t => t.id === selectedType)?.name}` 
+                : '请先选择创作类型'
+              }
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 历史记录 */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>最近创作</Text>
+            <Text style={styles.sectionTitle}>📜 最近创作</Text>
             <TouchableOpacity>
               <Text style={styles.moreLink}>查看全部</Text>
             </TouchableOpacity>
           </View>
-          {RECENT_CONTENT.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.contentItem}>
-              <View style={styles.contentInfo}>
-                <Text style={styles.contentTitle}>{item.title}</Text>
-                <View style={styles.contentMeta}>
-                  <Text style={styles.contentType}>
-                    {item.type === 'text' ? '📝' : item.type === 'video' ? '🎬' : '🎨'}
-                  </Text>
-                  <Text style={styles.contentStatus}>{item.status}</Text>
-                  <Text style={styles.contentTime}>{item.time}</Text>
+          <View style={styles.historyList}>
+            {HISTORY_ITEMS.map((item) => (
+              <TouchableOpacity key={item.id} style={styles.historyCard}>
+                <View style={styles.historyThumbnail}>
+                  <Text style={styles.historyThumbnailText}>{item.thumbnail}</Text>
                 </View>
-              </View>
-              <Text style={styles.arrow}>›</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* 推荐模板 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>推荐模板</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <View key={i} style={styles.templateCard}>
-                <Text style={styles.templateIcon}>
-                  {i === 1 ? '📱' : i === 2 ? '🎯' : i === 3 ? '🔥' : i === 4 ? '💼' : '✨'}
-                </Text>
-                <Text style={styles.templateName}>
-                  {i === 1 ? '产品推广' : i === 2 ? '活动策划' : i === 3 ? '热点营销' : i === 4 ? '企业宣传' : '节日问候'}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.bottomSafe} />
-      </ScrollView>
-
-      {/* 创建弹窗 */}
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                {CREATE_TYPES.find(t => t.id === selectedType)?.name}
-              </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeBtn}>✕</Text>
+                <View style={styles.historyInfo}>
+                  <Text style={styles.historyTitle} numberOfLines={1}>{item.title}</Text>
+                  <View style={styles.historyMeta}>
+                    <View style={styles.historyType}>
+                      <Text style={styles.historyTypeText}>{item.type}</Text>
+                    </View>
+                    <Text style={styles.historyTime}>{item.time}</Text>
+                  </View>
+                </View>
+                <TouchableOpacity style={styles.historyAction}>
+                  <Ionicons name="ellipsis-vertical" size={20} color="#999" />
+                </TouchableOpacity>
               </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.input}
-              placeholder="输入创作主题或关键词..."
-              multiline
-              numberOfLines={4}
-            />
-            <TouchableOpacity style={styles.createBtn}>
-              <Text style={styles.createBtnText}>开始创作</Text>
-            </TouchableOpacity>
+            ))}
           </View>
         </View>
-      </Modal>
+
+        {/* 创作技巧 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>💡 创作技巧</Text>
+          <View style={styles.tipsCard}>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipIcon, { backgroundColor: '#E3F2FD' }]}>
+                <Ionicons name="bulb" size={20} color="#2196F3" />
+              </View>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>描述越详细，生成越精准</Text>
+                <Text style={styles.tipDesc}>包含产品特点、目标人群、使用场景等</Text>
+              </View>
+            </View>
+            <View style={styles.tipItem}>
+              <View style={[styles.tipIcon, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="copy" size={20} color="#FF9800" />
+              </View>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>参考同行优秀内容</Text>
+                <Text style={styles.tipDesc}>可以复制链接让AI分析学习</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.bottomPadding} />
+      </ScrollView>
     </View>
   );
 }
@@ -154,30 +195,54 @@ export default function CreateScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f8f9fa',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1a1a2e',
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    margin: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
-  },
-  searchIcon: {
-    fontSize: 18,
-    marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
-    color: COLORS.text,
+    marginLeft: 10,
+    fontSize: 15,
+    color: '#333',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 8,
   },
   section: {
     paddingHorizontal: 20,
@@ -187,17 +252,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 15,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginBottom: 12,
   },
   moreLink: {
     fontSize: 14,
-    color: COLORS.primary,
+    color: '#667eea',
+    marginBottom: 12,
   },
   typeGrid: {
     flexDirection: 'row',
@@ -205,147 +270,181 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   typeCard: {
-    width: (width - 50) / 3,
-    backgroundColor: COLORS.card,
-    borderRadius: 16,
+    width: (width - 50) / 2,
+    backgroundColor: '#fff',
+    borderRadius: 20,
     padding: 16,
     marginBottom: 12,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
   },
+  typeCardActive: {
+    borderWidth: 2,
+    borderColor: '#667eea',
+  },
+  typeIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   typeIcon: {
-    width: 48,
-    height: 48,
+    fontSize: 28,
+  },
+  typeName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1a1a2e',
+    marginBottom: 4,
+  },
+  typeDesc: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 10,
+  },
+  typeTags: {
+    flexDirection: 'row',
+  },
+  typeTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginRight: 6,
+  },
+  typeTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
   },
-  typeIconText: {
+  actionSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#667eea',
+    borderRadius: 16,
+    paddingVertical: 16,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  createButtonDisabled: {
+    backgroundColor: '#ccc',
+    shadowOpacity: 0,
+  },
+  createButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+    marginLeft: 8,
+  },
+  historyList: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  historyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  historyThumbnail: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  historyThumbnailText: {
     fontSize: 24,
   },
-  typeName: {
+  historyInfo: {
+    flex: 1,
+  },
+  historyTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
+    color: '#1a1a2e',
+    marginBottom: 4,
   },
-  typeDesc: {
+  historyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyType: {
+    backgroundColor: '#667eea20',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginRight: 8,
+  },
+  historyTypeText: {
     fontSize: 10,
-    color: COLORS.textSecondary,
-    marginTop: 2,
+    fontWeight: '600',
+    color: '#667eea',
   },
-  contentItem: {
+  historyTime: {
+    fontSize: 12,
+    color: '#999',
+  },
+  historyAction: {
+    padding: 8,
+  },
+  tipsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+  },
+  tipItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 10,
+    paddingVertical: 12,
   },
-  contentInfo: {
-    flex: 1,
-  },
-  contentTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: COLORS.text,
-  },
-  contentMeta: {
-    flexDirection: 'row',
+  tipIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 6,
-  },
-  contentType: {
-    fontSize: 12,
-    marginRight: 8,
-  },
-  contentStatus: {
-    fontSize: 12,
-    color: COLORS.success,
-    marginRight: 8,
-  },
-  contentTime: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-  },
-  arrow: {
-    fontSize: 24,
-    color: COLORS.textSecondary,
-  },
-  templateCard: {
-    width: 100,
-    backgroundColor: COLORS.card,
-    borderRadius: 12,
-    padding: 16,
     marginRight: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  templateIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  templateName: {
-    fontSize: 12,
-    color: COLORS.text,
-    textAlign: 'center',
-  },
-  bottomSafe: {
-    height: 100,
-  },
-  modalOverlay: {
+  tipContent: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
   },
-  modalContent: {
-    backgroundColor: COLORS.card,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 40,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
+  tipTitle: {
+    fontSize: 14,
     fontWeight: '600',
-    color: COLORS.text,
+    color: '#1a1a2e',
+    marginBottom: 2,
   },
-  closeBtn: {
-    fontSize: 24,
-    color: COLORS.textSecondary,
+  tipDesc: {
+    fontSize: 12,
+    color: '#666',
   },
-  input: {
-    backgroundColor: COLORS.background,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    height: 120,
-    textAlignVertical: 'top',
-    marginBottom: 20,
-  },
-  createBtn: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 25,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  createBtnText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+  bottomPadding: {
+    height: 100,
   },
 });

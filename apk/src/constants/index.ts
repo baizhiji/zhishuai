@@ -34,6 +34,7 @@ export const MOCK_USER = {
 export const MOCK_STATS = {
   todayViews: 12580,
   todayLikes: 892,
+  todayComments: 234,
   todayShares: 156,
   totalContent: 328,
   totalFollowers: 15820,

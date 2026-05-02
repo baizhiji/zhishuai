@@ -4,160 +4,278 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
   ScrollView,
   Switch,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+
+const { width } = Dimensions.get('window');
 
 interface SettingItem {
-  icon: string;
+  id: string;
   title: string;
   subtitle?: string;
-  type: 'navigate' | 'switch' | 'action';
-  value?: string;
-  onPress?: () => void;
+  icon: string;
+  iconColor: string;
+  iconBg: string;
+  type: 'navigate' | 'toggle' | 'action';
+  value?: boolean;
 }
 
-interface SettingGroup {
+interface SettingSection {
   title: string;
   items: SettingItem[];
 }
 
+const SETTINGS_DATA: SettingSection[] = [
+  {
+    title: '账号设置',
+    items: [
+      {
+        id: 'profile',
+        title: '个人资料',
+        subtitle: '头像、昵称、联系方式',
+        icon: 'person-circle',
+        iconColor: '#667eea',
+        iconBg: '#eef2ff',
+        type: 'navigate',
+      },
+      {
+        id: 'security',
+        title: '账号安全',
+        subtitle: '修改密码、绑定手机',
+        icon: 'shield-checkmark',
+        iconColor: '#10b981',
+        iconBg: '#d1fae5',
+        type: 'navigate',
+      },
+      {
+        id: 'subscription',
+        title: '我的套餐',
+        subtitle: '年度会员 · 剩余365天',
+        icon: 'diamond',
+        iconColor: '#f59e0b',
+        iconBg: '#fef3c7',
+        type: 'navigate',
+      },
+      {
+        id: 'recharge',
+        title: '充值积分',
+        subtitle: '当前积分 2,580',
+        icon: 'wallet',
+        iconColor: '#ec4899',
+        iconBg: '#fce7f3',
+        type: 'navigate',
+      },
+    ],
+  },
+  {
+    title: '偏好设置',
+    items: [
+      {
+        id: 'notifications',
+        title: '推送通知',
+        subtitle: '接收系统消息和活动提醒',
+        icon: 'notifications',
+        iconColor: '#3b82f6',
+        iconBg: '#dbeafe',
+        type: 'toggle',
+        value: true,
+      },
+      {
+        id: 'sound',
+        title: '声音',
+        subtitle: '操作音效和语音播报',
+        icon: 'volume-high',
+        iconColor: '#8b5cf6',
+        iconBg: '#ede9fe',
+        type: 'toggle',
+        value: false,
+      },
+      {
+        id: 'darkMode',
+        title: '深色模式',
+        subtitle: '跟随系统设置',
+        icon: 'moon',
+        iconColor: '#6366f1',
+        iconBg: '#e0e7ff',
+        type: 'toggle',
+        value: false,
+      },
+    ],
+  },
+  {
+    title: '其他',
+    items: [
+      {
+        id: 'help',
+        title: '帮助中心',
+        subtitle: '常见问题和使用教程',
+        icon: 'help-circle',
+        iconColor: '#06b6d4',
+        iconBg: '#cffafe',
+        type: 'navigate',
+      },
+      {
+        id: 'feedback',
+        title: '意见反馈',
+        subtitle: '提交问题和建议',
+        icon: 'chatbox-ellipses',
+        iconColor: '#f97316',
+        iconBg: '#ffedd5',
+        type: 'navigate',
+      },
+      {
+        id: 'about',
+        title: '关于我们',
+        subtitle: '版本 1.0.0',
+        icon: 'information-circle',
+        iconColor: '#64748b',
+        iconBg: '#f1f5f9',
+        type: 'navigate',
+      },
+      {
+        id: 'logout',
+        title: '退出登录',
+        subtitle: '当前账号：138****8888',
+        icon: 'log-out',
+        iconColor: '#ef4444',
+        iconBg: '#fee2e2',
+        type: 'action',
+      },
+    ],
+  },
+];
+
 export default function SettingsScreen() {
-  const navigation = useNavigation();
-  const [settings, setSettings] = useState({
-    notifications: true,
-    sound: true,
-    vibration: true,
-    autoLogin: false,
-    darkMode: false,
+  const [settings, setSettings] = useState(() => {
+    const initial: Record<string, boolean> = {};
+    SETTINGS_DATA.forEach(section => {
+      section.items.forEach(item => {
+        if (item.type === 'toggle' && item.value !== undefined) {
+          initial[item.id] = item.value;
+        }
+      });
+    });
+    return initial;
   });
 
-  const settingGroups: SettingGroup[] = [
-    {
-      title: '账号设置',
-      items: [
-        { icon: 'person-outline', title: '个人资料', subtitle: '修改头像、昵称等信息', type: 'navigate' },
-        { icon: 'lock-closed-outline', title: '修改密码', subtitle: '定期更换密码保障安全', type: 'navigate' },
-        { icon: 'phone-portrait-outline', title: '绑定手机', subtitle: '156****8888', type: 'navigate' },
-        { icon: 'shield-outline', title: '账号安全', subtitle: '安全中心', type: 'navigate' },
-      ],
-    },
-    {
-      title: '偏好设置',
-      items: [
-        { icon: 'notifications-outline', title: '消息通知', subtitle: '接收系统消息推送', type: 'switch', value: 'notifications' },
-        { icon: 'volume-medium-outline', title: '声音提示', subtitle: '操作音效', type: 'switch', value: 'sound' },
-        { icon: 'phone-portrait-outline', title: '震动反馈', subtitle: '触觉反馈', type: 'switch', value: 'vibration' },
-        { icon: 'moon-outline', title: '深色模式', subtitle: '跟随系统', type: 'switch', value: 'darkMode' },
-      ],
-    },
-    {
-      title: '应用设置',
-      items: [
-        { icon: 'cloud-download-outline', title: '清理缓存', subtitle: '当前缓存: 23.5MB', type: 'action', onPress: () => Alert.alert('提示', '缓存已清理') },
-        { icon: 'information-circle-outline', title: '关于我们', subtitle: '版本 1.0.0', type: 'navigate' },
-        { icon: 'document-text-outline', title: '用户协议', type: 'navigate' },
-        { icon: 'shield-checkmark-outline', title: '隐私政策', type: 'navigate' },
-      ],
-    },
-  ];
-
-  const handleSwitch = (key: string) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+  const handleToggle = (id: string) => {
+    setSettings(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const renderItem = (item: SettingItem) => {
-    return (
-      <TouchableOpacity
-        key={item.title}
-        style={styles.settingItem}
-        onPress={item.type === 'switch' ? () => handleSwitch(item.value || '') : item.onPress}
-        disabled={item.type === 'switch'}
-      >
-        <View style={styles.settingLeft}>
-          <View style={styles.iconContainer}>
-            <Ionicons name={item.icon as any} size={20} color="#4F46E5" />
-          </View>
-          <View style={styles.settingInfo}>
-            <Text style={styles.settingTitle}>{item.title}</Text>
-            {item.subtitle && <Text style={styles.settingSubtitle}>{item.subtitle}</Text>}
-          </View>
-        </View>
-        <View style={styles.settingRight}>
-          {item.type === 'switch' ? (
-            <Switch
-              value={settings[item.value as keyof typeof settings] as boolean}
-              onValueChange={() => handleSwitch(item.value || '')}
-              trackColor={{ false: '#E5E7EB', true: '#A5B4FC' }}
-              thumbColor={settings[item.value as keyof typeof settings] ? '#4F46E5' : '#fff'}
-            />
-          ) : (
-            <Ionicons name="chevron-forward" size={20} color="#C4C4C4" />
-          )}
-        </View>
-      </TouchableOpacity>
-    );
+  const handleItemPress = (item: SettingItem) => {
+    if (item.type === 'action' && item.id === 'logout') {
+      Alert.alert(
+        '退出登录',
+        '确定要退出当前账号吗？',
+        [
+          { text: '取消', style: 'cancel' },
+          { text: '确定', style: 'destructive', onPress: () => {} },
+        ]
+      );
+    } else {
+      Alert.alert(item.title, `跳转到${item.title}页面`);
+    }
   };
+
+  const renderSettingItem = (item: SettingItem) => (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.settingItem}
+      onPress={() => handleItemPress(item)}
+      activeOpacity={item.type === 'toggle' ? 1 : 0.7}
+    >
+      <View style={[styles.iconContainer, { backgroundColor: item.iconBg }]}>
+        <Ionicons name={item.icon as any} size={22} color={item.iconColor} />
+      </View>
+      
+      <View style={styles.itemContent}>
+        <Text style={[styles.itemTitle, item.id === 'logout' && styles.logoutText]}>
+          {item.title}
+        </Text>
+        {item.subtitle && (
+          <Text style={styles.itemSubtitle}>{item.subtitle}</Text>
+        )}
+      </View>
+      
+      {item.type === 'navigate' && (
+        <Ionicons name="chevron-forward" size={20} color="#ccc" />
+      )}
+      {item.type === 'toggle' && (
+        <Switch
+          value={settings[item.id]}
+          onValueChange={() => handleToggle(item.id)}
+          trackColor={{ false: '#e5e7eb', true: '#c7d2fe' }}
+          thumbColor={settings[item.id] ? '#667eea' : '#f4f4f5'}
+        />
+      )}
+      {item.type === 'action' && (
+        <View style={styles.logoutBadge}>
+          <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
+  const renderSection = (section: SettingSection, index: number) => (
+    <View key={section.title} style={styles.section}>
+      <Text style={styles.sectionTitle}>{section.title}</Text>
+      <View style={styles.sectionContent}>
+        {section.items.map((item, i) => (
+          <React.Fragment key={item.id}>
+            {renderSettingItem(item)}
+            {i < section.items.length - 1 && <View style={styles.divider} />}
+          </React.Fragment>
+        ))}
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      {/* 顶部导航 */}
+      {/* 头部 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#333" />
+        <TouchableOpacity style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color="#1a1a2e" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>设置</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.placeholder} />
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* 用户信息卡片 */}
         <View style={styles.userCard}>
-          <View style={styles.avatar}>
-            <Ionicons name="person" size={30} color="#fff" />
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Ionicons name="person" size={32} color="#667eea" />
+            </View>
+            <View style={styles.vipBadge}>
+              <Ionicons name="star" size={12} color="#fff" />
+            </View>
           </View>
           <View style={styles.userInfo}>
-            <Text style={styles.userName}>张明</Text>
-            <Text style={styles.userRole}>终端客户</Text>
+            <Text style={styles.userName}>智枢用户</Text>
+            <Text style={styles.userPhone}>138****8888</Text>
           </View>
           <TouchableOpacity style={styles.editBtn}>
-            <Ionicons name="pencil" size={18} color="#4F46E5" />
+            <Text style={styles.editText}>编辑</Text>
           </TouchableOpacity>
         </View>
 
-        {/* 设置分组 */}
-        {settingGroups.map((group, index) => (
-          <View key={index} style={styles.group}>
-            <Text style={styles.groupTitle}>{group.title}</Text>
-            <View style={styles.groupContent}>
-              {group.items.map((item, idx) => (
-                <View key={idx}>
-                  {renderItem(item)}
-                  {idx < group.items.length - 1 && <View style={styles.divider} />}
-                </View>
-              ))}
-            </View>
-          </View>
-        ))}
+        {/* 设置项 */}
+        {SETTINGS_DATA.map((section, index) => renderSection(section, index))}
 
-        {/* 退出登录 */}
-        <TouchableOpacity
-          style={styles.logoutBtn}
-          onPress={() => Alert.alert('提示', '确定要退出登录吗？', [
-            { text: '取消', style: 'cancel' },
-            { text: '确定', onPress: () => {} },
-          ])}
-        >
-          <Ionicons name="log-out-outline" size={22} color="#EF4444" />
-          <Text style={styles.logoutText}>退出登录</Text>
-        </TouchableOpacity>
-
+        {/* 底部版权 */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>智枢AI v1.0.0</Text>
-          <Text style={styles.footerSubtext}>© 2025 智枢科技 版权所有</Text>
+          <Text style={styles.footerText}>智枢AI © 2024</Text>
+          <Text style={styles.footerSubtext}>让商业更智能</Text>
         </View>
       </ScrollView>
     </View>
@@ -167,153 +285,170 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#f5f6f8',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 12,
+    paddingTop: 60,
+    paddingBottom: 16,
     backgroundColor: '#fff',
   },
+  backBtn: {
+    padding: 4,
+  },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a2e',
+  },
+  placeholder: {
+    width: 32,
   },
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 40,
+  },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
     marginHorizontal: 16,
     marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  avatarContainer: {
+    position: 'relative',
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4F46E5',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#eef2ff',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  vipBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#f59e0b',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
   },
   userInfo: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: 16,
   },
   userName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
+    fontWeight: '700',
+    color: '#1a1a2e',
   },
-  userRole: {
-    fontSize: 14,
-    color: '#666',
-  },
-  editBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  group: {
-    marginTop: 20,
-    marginHorizontal: 16,
-  },
-  groupTitle: {
+  userPhone: {
     fontSize: 13,
     color: '#999',
-    marginBottom: 8,
-    marginLeft: 4,
+    marginTop: 4,
   },
-  groupContent: {
+  editBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#f5f6f8',
+    borderRadius: 20,
+  },
+  editText: {
+    fontSize: 13,
+    color: '#667eea',
+    fontWeight: '600',
+  },
+  section: {
+    marginTop: 24,
+    marginHorizontal: 16,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#999',
+    marginBottom: 10,
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionContent: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 14,
-    paddingHorizontal: 14,
-  },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+    paddingHorizontal: 16,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: '#EEF2FF',
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  settingInfo: {
+  itemContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: 14,
   },
-  settingTitle: {
+  itemTitle: {
     fontSize: 15,
-    color: '#333',
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#1a1a2e',
   },
-  settingSubtitle: {
+  logoutText: {
+    color: '#ef4444',
+  },
+  itemSubtitle: {
     fontSize: 12,
     color: '#999',
-    marginTop: 2,
-  },
-  settingRight: {
-    marginLeft: 10,
+    marginTop: 3,
   },
   divider: {
     height: 1,
-    backgroundColor: '#F5F5F5',
-    marginLeft: 62,
+    backgroundColor: '#f5f6f8',
+    marginLeft: 70,
   },
-  logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  logoutBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fee2e2',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  logoutText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#EF4444',
-    fontWeight: '500',
+    alignItems: 'center',
   },
   footer: {
     alignItems: 'center',
-    paddingVertical: 30,
+    marginTop: 40,
+    marginBottom: 20,
   },
   footerText: {
     fontSize: 13,
-    color: '#999',
+    color: '#ccc',
   },
   footerSubtext: {
-    fontSize: 12,
-    color: '#CCC',
+    fontSize: 11,
+    color: '#ddd',
     marginTop: 4,
   },
 });
