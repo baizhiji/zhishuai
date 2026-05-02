@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { authService, referralService, UserInfo, ReferralStats } from '../services';
-import { useAppNavigation } from '../navigation/AppNavigator';
+import { useAppNavigation } from '../context/NavigationContext';
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
