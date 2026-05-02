@@ -15,6 +15,7 @@ import {
 import {
   AIImageScreen,
   AIVideoScreen,
+  AIFeatureScreen,
   DigitalHumanScreen,
 } from '../screens/ai';
 
