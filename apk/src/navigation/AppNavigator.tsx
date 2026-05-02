@@ -1,25 +1,14 @@
-import React, { useState, useRef, ReactNode, createContext, useContext } from 'react';
+import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 
-import { 
-  HomeScreen, 
-  CreateScreen, 
-  ProfileScreen,
-  MaterialsScreen,
-  MessagesScreen,
-  SettingsScreen,
-  LoginScreen,
-} from '../screens';
-import {
-  AIImageScreen,
-  AIVideoScreen,
-  AIFeatureScreen,
-  DigitalHumanScreen,
-} from '../screens/ai';
+// 导入屏幕组件
+import { HomeScreen, CreateScreen, ProfileScreen, LoginScreen, SettingsScreen, MaterialsScreen, MessagesScreen } from '../screens';
+import { AIFeatureScreen, AIImageScreen, AIVideoScreen, DigitalHumanScreen } from '../screens/ai';
 
 // 类型定义
 export type RootStackParamList = {
@@ -40,18 +29,16 @@ export type MainTabParamList = {
   Profile: undefined;
 };
 
+// Navigation Context 类型
 export type NavigationContextType = {
   navigate: (name: string, params?: any) => void;
   goBack: () => void;
 };
 
-// 创建导航引用
-const RootStack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
+// 创建全局 Context
+const NavigationContext = createContext<NavigationContextType | null>(null);
 
-// 创建 Context
-export const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
-
+// 导出 hook
 export const useAppNavigation = (): NavigationContextType => {
   const context = useContext(NavigationContext);
   if (!context) {
@@ -60,28 +47,30 @@ export const useAppNavigation = (): NavigationContextType => {
   return context;
 };
 
-// 页面标题映射
-const SCREEN_TITLES: Record<string, string> = {
-  Login: '登录',
-  Settings: '设置',
-  Materials: '素材库',
-  Messages: '消息',
-  AIFeature: 'AI创作',
-  AIImage: '图片生成',
-  AIVideo: '视频生成',
-  DigitalHuman: '数字人',
-  MainTabs: '',
-};
+// 创建导航器
+const RootStack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// 底部 Tab 配置
+// Tab 配置
 const TAB_CONFIG = [
   { name: 'Home', label: '首页', icon: 'home-outline', activeIcon: 'home' },
   { name: 'Create', label: 'AI创作', icon: 'sparkles-outline', activeIcon: 'sparkles' },
   { name: 'Profile', label: '我的', icon: 'person-outline', activeIcon: 'person' },
 ];
 
-// Tab 图标组件
-const TabIcon = ({ name, focused, icon, activeIcon }: { name: string; focused: boolean; icon: string; activeIcon: string }) => (
+// 页面标题
+const SCREEN_TITLES: Record<string, string> = {
+  Settings: '设置',
+  Materials: '素材库',
+  Messages: '消息',
+  AIFeature: 'AI创作',
+  AIImage: '图片生成',
+  AIVideo: '视频生成',
+  DigitalHuman: '数字人视频',
+};
+
+// Tab 图标
+const TabIcon = ({ focused, icon, activeIcon }: { focused: boolean; icon: string; activeIcon: string }) => (
   <Ionicons
     name={(focused ? activeIcon : icon) as any}
     size={24}
@@ -89,56 +78,37 @@ const TabIcon = ({ name, focused, icon, activeIcon }: { name: string; focused: b
   />
 );
 
-// 主内容组件
+// Tab 导航组件
 const MainTabs = () => {
-  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
-  const [navigateState, setNavigateState] = useState({ name: '', params: {} });
-
-  const navigate = (name: string, params?: any) => {
-    setNavigateState({ name, params });
-    navigationRef.current?.navigate(name as any, params);
-  };
-
-  const goBack = () => {
-    navigationRef.current?.goBack();
-  };
-
   return (
-    <NavigationContext.Provider value={{ navigate, goBack }}>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: {
-            backgroundColor: '#FFFFFF',
-            borderTopColor: '#E2E8F0',
-            height: 60,
-            paddingBottom: 8,
-            paddingTop: 8,
-          },
-          tabBarActiveTintColor: '#2563EB',
-          tabBarInactiveTintColor: '#94A3B8',
-        }}
-      >
-        {TAB_CONFIG.map((tab) => (
-          <Tab.Screen
-            key={tab.name}
-            name={tab.name as keyof MainTabParamList}
-            component={tab.name === 'Home' ? HomeScreen : tab.name === 'Create' ? CreateScreen : ProfileScreen}
-            options={{
-              tabBarLabel: tab.label,
-              tabBarIcon: ({ focused }) => (
-                <TabIcon name={tab.name} focused={focused} icon={tab.icon} activeIcon={tab.activeIcon} />
-              ),
-            }}
-          />
-        ))}
-      </Tab.Navigator>
-      <NavigationContainer ref={navigationRef}>
-        <View style={styles.hiddenContainer}>
-          <StatusBar barStyle="dark-content" backgroundColor="#EFF6FF" />
-        </View>
-      </NavigationContainer>
-    </NavigationContext.Provider>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E2E8F0',
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: '#2563EB',
+        tabBarInactiveTintColor: '#94A3B8',
+      }}
+    >
+      {TAB_CONFIG.map((tab) => (
+        <Tab.Screen
+          key={tab.name}
+          name={tab.name as keyof MainTabParamList}
+          component={tab.name === 'Home' ? HomeScreen : tab.name === 'Create' ? CreateScreen : ProfileScreen}
+          options={{
+            tabBarLabel: tab.label,
+            tabBarIcon: ({ focused }) => (
+              <TabIcon focused={focused} icon={tab.icon} activeIcon={tab.activeIcon} />
+            ),
+          }}
+        />
+      ))}
+    </Tab.Navigator>
   );
 };
 
@@ -146,18 +116,18 @@ const MainTabs = () => {
 const AppNavigator = () => {
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
 
-  const navigate = (name: string, params?: any) => {
+  const navigate = useCallback((name: string, params?: any) => {
     navigationRef.current?.navigate(name as any, params);
-  };
+  }, []);
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     navigationRef.current?.goBack();
-  };
+  }, []);
 
   return (
     <NavigationContext.Provider value={{ navigate, goBack }}>
       <NavigationContainer ref={navigationRef}>
-        <StatusBar barStyle="dark-content" backgroundColor="#EFF6FF" />
+        <StatusBar style="dark" />
         <RootStack.Navigator
           screenOptions={({ route }) => ({
             headerStyle: { backgroundColor: '#EFF6FF' },
@@ -217,13 +187,5 @@ const AppNavigator = () => {
     </NavigationContext.Provider>
   );
 };
-
-const styles = StyleSheet.create({
-  hiddenContainer: {
-    position: 'absolute',
-    top: -9999,
-    left: -9999,
-  },
-});
 
 export default AppNavigator;
