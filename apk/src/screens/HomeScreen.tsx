@@ -1,86 +1,123 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, MOCK_USER, FEATURES } from '../constants';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/stack';
 
-const { width } = Dimensions.get('window');
+type RootStackParamList = {
+  MainTabs: undefined;
+  Materials: undefined;
+  Messages: undefined;
+  Settings: undefined;
+  Login: undefined;
+  Create: undefined;
+};
 
-interface Feature {
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+interface FeatureItem {
   id: string;
-  name: string;
-  icon: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
   color: string;
-  route?: string;
+  route: string;
 }
 
-export default function HomeScreen({ navigation }: any) {
-  const user = MOCK_USER;
-  const features = FEATURES.slice(0, 6);
+const FEATURES: FeatureItem[] = [
+  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#3B82F6', route: 'Media' },
+  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#10B981', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#F59E0B', route: 'Acquisition' },
+  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#8B5CF6', route: 'Referral' },
+  { id: 'materials', title: '素材库', icon: 'folder-outline', color: '#EC4899', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#06B6D4', route: 'Analytics' },
+];
 
-  const handleFeaturePress = (feature: Feature) => {
-    if (feature.route) {
-      navigation.navigate(feature.route);
+const QUICK_ACTIONS = [
+  { id: 'create', title: 'AI创作', icon: 'sparkles-outline', color: '#F59E0B' },
+  { id: 'messages', title: '消息', icon: 'mail-outline', color: '#3B82F6' },
+  { id: 'settings', title: '设置', icon: 'settings-outline', color: '#6B7280' },
+];
+
+const MOCK_USER = {
+  name: '张明',
+  company: '科技有限公司',
+  role: '运营总监',
+};
+
+export default function HomeScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const [user] = useState(MOCK_USER);
+
+  const navigateTo = (route: string) => {
+    switch (route) {
+      case 'Materials':
+        navigation.navigate('Materials');
+        break;
+      case 'Messages':
+        navigation.navigate('Messages');
+        break;
+      case 'Settings':
+        navigation.navigate('Settings');
+        break;
+      case 'Create':
+        navigation.navigate('Create');
+        break;
+      default:
+        console.log('Navigate to:', route);
     }
   };
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+      <StatusBar barStyle="light-content" backgroundColor="#1E40AF" />
       
-      {/* 顶部标题区 */}
+      {/* 头部 */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="chatbubble-ellipses" size={32} color="#fff" />
-            <Text style={styles.logoText}>智枢AI</Text>
-          </View>
-          <Text style={styles.slogan}>智能商业 SaaS 平台</Text>
-        </View>
-      </View>
-
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* 用户欢迎 */}
-        <View style={styles.welcomeCard}>
-          <View style={styles.welcomeLeft}>
+          <View>
             <Text style={styles.welcomeText}>欢迎回来</Text>
             <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userRole}>{user.company} · {user.role}</Text>
           </View>
           <TouchableOpacity 
             style={styles.avatar}
-            onPress={() => navigation.navigate('Profile')}
+            onPress={() => navigation.navigate('Settings')}
           >
-            <Ionicons name="person" size={24} color="#fff" />
+            <Ionicons name="person" size={24} color="#1E40AF" />
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* 功能入口网格 */}
+      {/* 内容区 */}
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 功能入口标题 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
+        
+        {/* 功能网格 */}
         <View style={styles.featureGrid}>
-          {features.map((feature) => (
+          {FEATURES.map((item) => (
             <TouchableOpacity
-              key={feature.id}
-              style={styles.featureCard}
-              onPress={() => handleFeaturePress(feature)}
+              key={item.id}
+              style={styles.featureItem}
               activeOpacity={0.7}
+              onPress={() => navigateTo(item.route)}
             >
-              <View style={[styles.featureIcon, { backgroundColor: feature.color + '20' }]}>
-                <Ionicons name={feature.icon as any} size={28} color={feature.color} />
+              <View style={[styles.featureIcon, { backgroundColor: item.color + '15' }]}>
+                <Ionicons name={item.icon} size={24} color={item.color} />
               </View>
-              <Text style={styles.featureName}>{feature.name}</Text>
+              <Text style={styles.featureTitle}>{item.title}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -88,30 +125,22 @@ export default function HomeScreen({ navigation }: any) {
         {/* 快捷操作 */}
         <Text style={styles.sectionTitle}>快捷操作</Text>
         <View style={styles.quickActions}>
-          <TouchableOpacity 
-            style={styles.quickButton}
-            onPress={() => navigation.navigate('Materials')}
-          >
-            <Ionicons name="images-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.quickButtonText}>素材库</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.quickButton}
-            onPress={() => navigation.navigate('Messages')}
-          >
-            <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.quickButtonText}>消息</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.quickButton}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Ionicons name="settings-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.quickButtonText}>设置</Text>
-          </TouchableOpacity>
+          {QUICK_ACTIONS.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.quickItem}
+              activeOpacity={0.7}
+              onPress={() => navigateTo(item.route)}
+            >
+              <View style={[styles.quickIcon, { backgroundColor: item.color }]}>
+                <Ionicons name={item.icon} size={18} color="#FFFFFF" />
+              </View>
+              <Text style={styles.quickTitle}>{item.title}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* 底部安全区 */}
+        {/* 底部占位 */}
         <View style={styles.bottomSpace} />
       </ScrollView>
     </View>
@@ -121,142 +150,100 @@ export default function HomeScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#F3F4F6',
   },
   header: {
-    backgroundColor: COLORS.primary,
-    paddingTop: StatusBar.currentHeight || 44,
+    backgroundColor: '#1E40AF',
+    paddingTop: 50,
     paddingBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
     paddingHorizontal: 20,
   },
-  logoContainer: {
+  headerContent: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  logoText: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#fff',
-    marginLeft: 8,
-  },
-  slogan: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  scrollView: {
-    flex: 1,
-    marginTop: -12,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-  },
-  welcomeCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  welcomeLeft: {
-    flex: 1,
+    alignItems: 'center',
   },
   welcomeText: {
-    fontSize: 13,
-    color: '#888',
-    marginBottom: 2,
+    fontSize: 14,
+    color: '#93C5FD',
+    marginBottom: 4,
   },
   userName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  userRole: {
+    fontSize: 13,
+    color: '#93C5FD',
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+    marginTop: -12,
+  },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#1F2937',
+    marginTop: 20,
     marginBottom: 12,
   },
   featureGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -6,
-    marginBottom: 20,
   },
-  featureCard: {
-    width: (width - 48) / 3,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginHorizontal: 6,
+  featureItem: {
+    width: '33.33%',
+    paddingHorizontal: 6,
     marginBottom: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
   featureIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: '100%',
+    aspectRatio: 1.2,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  featureName: {
-    fontSize: 13,
-    color: '#333',
+  featureTitle: {
+    fontSize: 12,
     fontWeight: '500',
+    color: '#374151',
     textAlign: 'center',
   },
   quickActions: {
     flexDirection: 'row',
-    marginBottom: 20,
+    marginHorizontal: -6,
   },
-  quickButton: {
+  quickItem: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
+    paddingHorizontal: 6,
   },
-  quickButtonText: {
-    fontSize: 13,
-    color: '#333',
-    marginLeft: 6,
-    fontWeight: '500',
+  quickIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quickTitle: {
+    fontSize: 12,
+    color: '#6B7280',
   },
   bottomSpace: {
-    height: 20,
+    height: 100,
   },
 });

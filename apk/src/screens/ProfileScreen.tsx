@@ -82,21 +82,13 @@ export default function ProfileScreen() {
           <View style={styles.userCard}>
             <View style={styles.userAvatar}>
               <Text style={styles.avatarText}>用</Text>
-              <View style={styles.vipBadge}>
-                <Ionicons name="star" size={12} color="#ffd700" />
-              </View>
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>智枢用户</Text>
-              <View style={styles.userMeta}>
-                <View style={styles.vipTag}>
-                  <Text style={styles.vipTagText}>VIP会员</Text>
-                </View>
-                <Text style={styles.userId}>ID: 88776655</Text>
-              </View>
+              <Text style={styles.userId}>ID: 88776655</Text>
             </View>
             <TouchableOpacity style={styles.editButton}>
-              <Text style={styles.editButtonText}>编辑资料</Text>
+              <Text style={styles.editButtonText}>编辑</Text>
             </TouchableOpacity>
           </View>
 
