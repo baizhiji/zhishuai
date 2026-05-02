@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, ReactNode } from 'react';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+
 import { 
   HomeScreen, 
   CreateScreen, 
@@ -14,11 +20,30 @@ import {
   AIFeatureScreen,
   DigitalHumanScreen,
 } from '../screens/ai';
-import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-const Tab = createBottomTabNavigator();
+// 类型定义
+export type RootStackParamList = {
+  MainTabs: undefined;
+  Login: undefined;
+  Settings: undefined;
+  Materials: undefined;
+  Messages: undefined;
+  // AI功能页面
+  AIFeature: { type: string };
+  AIImage: undefined;
+  AIVideo: undefined;
+  DigitalHuman: undefined;
+};
+
+export type MainTabParamList = {
+  Home: undefined;
+  Create: undefined;
+  Profile: undefined;
+};
+
+// 创建导航引用
+const RootStack = createStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // 页面标题映射
 const SCREEN_TITLES: Record<string, string> = {
@@ -28,7 +53,7 @@ const SCREEN_TITLES: Record<string, string> = {
   settings: '设置',
   // AI创作类型 - 匹配Web端"内容自动生成"
   aiTitle: '标题',
-  aiTag: '话题/标签',
+  aiTopics: '话题/标签',
   aiCopywriting: '文案生成',
   aiImageToText: '图生文',
   aiXiaohongshu: '小红书图文',
@@ -36,117 +61,32 @@ const SCREEN_TITLES: Record<string, string> = {
   aiEcommerce: '电商详情页',
   aiVideo: '短视频',
   aiVideoAnalysis: '视频解析',
-  digitalHuman: '数字人短视频',
+  digitalHuman: '数字人视频',
 };
 
-// 屏幕到内容分类的映射
-const getCategoryFromScreen = (screen: string): string => {
-  const map: Record<string, string> = {
-    aiTitle: 'title',
-    aiTag: 'tags',
-    aiCopywriting: 'copywriting',
-    aiImageToText: 'image-to-text',
-    aiXiaohongshu: 'xiaohongshu',
-    aiImage: 'image',
-    aiEcommerce: 'ecommerce',
-    aiVideo: 'video',
-    aiVideoAnalysis: 'video-analysis',
-    digitalHuman: 'digital-human',
-  };
-  return map[screen] || 'copywriting';
-};
-
+// Navigation Context
 interface NavigationContextType {
-  navigate: (screen: string) => void;
+  navigate: (name: string, params?: any) => void;
   goBack: () => void;
 }
 
-const NavigationContext = createContext<NavigationContextType | null>(null);
+const NavigationContext = createContext<NavigationContextType>({
+  navigate: () => {},
+  goBack: () => {},
+});
 
-export function useAppNavigation() {
-  const context = useContext(NavigationContext);
-  if (!context) {
-    throw new Error('useAppNavigation must be used within AppNavigator');
-  }
-  return context;
-}
+export const useAppNavigation = () => useContext(NavigationContext);
 
-interface Props {
-  initialScreen?: string;
-}
+// 主Tab导航
+function MainTabs({ navigation }: any) {
+  const { navigate, goBack } = useAppNavigation();
 
-export default function AppNavigator({ initialScreen = 'main' }: Props) {
-  const [currentScreen, setCurrentScreen] = useState<string>(initialScreen);
-
-  const navigate = (screen: string) => {
-    setCurrentScreen(screen);
-  };
-
-  const goBack = () => {
-    setCurrentScreen('main');
-  };
-
-  const renderScreen = () => {
-    switch (currentScreen) {
-      case 'login':
-        return <LoginScreen navigation={{ navigate }} />;
-      case 'materials':
-        return <MaterialsScreen navigation={{ goBack }} />;
-      case 'messages':
-        return <MessagesScreen navigation={{ goBack }} />;
-      case 'settings':
-        return <SettingsScreen navigation={{ goBack }} />;
-      // AI创作类型 - 使用通用模板或专用页面
-      case 'aiTitle':
-      case 'aiTag':
-      case 'aiCopywriting':
-      case 'aiImageToText':
-      case 'aiXiaohongshu':
-      case 'aiEcommerce':
-        return <AIFeatureScreen navigation={{ goBack }} route={{ params: { category: getCategoryFromScreen(currentScreen) } }} />;
-      case 'aiImage':
-        return <AIImageScreen navigation={{ goBack }} />;
-      case 'aiVideo':
-      case 'aiVideoAnalysis':
-      case 'digitalHuman':
-        return <AIVideoScreen navigation={{ goBack }} route={{ params: { category: getCategoryFromScreen(currentScreen) } }} />;
-      default:
-        return <MainTabs navigate={navigate} goBack={goBack} />;
-    }
-  };
-
-  const showHeader = currentScreen !== 'main';
-
-  return (
-    <NavigationContext.Provider value={{ navigate, goBack }}>
-      <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
-      <View style={styles.container}>
-        {showHeader && (
-          <View style={styles.header}>
-            <TouchableOpacity onPress={goBack} style={styles.backButton}>
-              <Ionicons name="chevron-back" size={24} color="#1E3A5F" />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>
-              {SCREEN_TITLES[currentScreen] || ''}
-            </Text>
-            <View style={styles.placeholder} />
-          </View>
-        )}
-        {renderScreen()}
-      </View>
-    </NavigationContext.Provider>
-  );
-}
-
-// 主 Tab 导航
-function MainTabs({ navigate, goBack }: { navigate: (screen: string) => void; goBack: () => void }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'home';
-          
+
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Create') {
@@ -154,62 +94,139 @@ function MainTabs({ navigate, goBack }: { navigate: (screen: string) => void; go
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
-          
-          return (
-            <Ionicons name={iconName} size={22} color={color} />
-          );
+
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#2563EB',
-        tabBarInactiveTintColor: '#64748B',
+        tabBarInactiveTintColor: '#94A3B8',
+        headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       })}
     >
       <Tab.Screen 
         name="Home" 
-        component={() => <HomeScreen navigate={navigate} goBack={goBack} />}
+        component={HomeScreen} 
+        initialParams={{ navigate, goBack }}
         options={{ tabBarLabel: '首页' }}
       />
       <Tab.Screen 
         name="Create" 
-        component={() => <CreateScreen navigate={navigate} />}
+        component={CreateScreen}
+        initialParams={{ navigate, goBack }}
         options={{ tabBarLabel: 'AI创作' }}
       />
       <Tab.Screen 
         name="Profile" 
-        component={() => <ProfileScreen navigate={navigate} goBack={goBack} />}
+        component={ProfileScreen}
+        initialParams={{ navigate, goBack }}
         options={{ tabBarLabel: '我的' }}
       />
     </Tab.Navigator>
   );
 }
 
+// 根导航器
+function RootNavigator() {
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const [navigateState, setNavigateState] = useState({ navigate: (_name: string, _params?: any) => {}, goBack: () => {} });
+
+  // 更新导航函数
+  React.useEffect(() => {
+    if (navigationRef.current) {
+      setNavigateState({
+        navigate: (name, params) => {
+          navigationRef.current?.navigate(name as any, params);
+        },
+        goBack: () => {
+          navigationRef.current?.goBack();
+        },
+      });
+    }
+  }, []);
+
+  return (
+    <NavigationContext.Provider value={navigateState}>
+      <RootStack.Navigator
+        screenOptions={({ route }) => ({
+          headerStyle: {
+            backgroundColor: '#FFFFFF',
+            elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E7EB',
+          },
+          headerTintColor: '#1E3A5F',
+          headerTitleStyle: {
+            fontWeight: '600',
+            fontSize: 17,
+          },
+          headerBackTitleVisible: false,
+          headerTitle: SCREEN_TITLES[route.name] || route.name,
+        })}
+      >
+        <RootStack.Screen
+          name="MainTabs"
+          component={MainTabs}
+          options={{ headerShown: false }}
+        />
+        <RootStack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <RootStack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: '设置' }}
+        />
+        <RootStack.Screen
+          name="Materials"
+          component={MaterialsScreen}
+          options={{ title: '素材库' }}
+        />
+        <RootStack.Screen
+          name="Messages"
+          component={MessagesScreen}
+          options={{ title: '消息' }}
+        />
+        {/* AI功能页面 */}
+        <RootStack.Screen
+          name="AIFeature"
+          component={AIFeatureScreen}
+          options={{ title: 'AI创作' }}
+        />
+        <RootStack.Screen
+          name="AIImage"
+          component={AIImageScreen}
+          options={{ title: '图片生成' }}
+        />
+        <RootStack.Screen
+          name="AIVideo"
+          component={AIVideoScreen}
+          options={{ title: '视频生成' }}
+        />
+        <RootStack.Screen
+          name="DigitalHuman"
+          component={DigitalHumanScreen}
+          options={{ title: '数字人视频' }}
+        />
+      </RootStack.Navigator>
+    </NavigationContext.Provider>
+  );
+}
+
+// 导出AppNavigator组件
+export default function AppNavigator() {
+  return (
+    <NavigationContainer>
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <RootNavigator />
+    </NavigationContainer>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#EFF6FF',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#DBEAFE',
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-  },
-  backButton: {
-    padding: 4,
-    width: 40,
-  },
-  headerTitle: {
-    color: '#1E3A5F',
-    fontSize: 17,
-    fontWeight: '600',
-  },
-  placeholder: {
-    width: 40,
-  },
   tabBar: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 0,

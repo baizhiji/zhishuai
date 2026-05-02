@@ -12,11 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { homeService, authService, TodayStats, ReferralStats } from '../services';
-
-interface Props {
-  navigate?: (screen: string) => void;
-  goBack?: () => void;
-}
+import { useAppNavigation } from '../navigation/AppNavigator';
 
 interface FeatureItem {
   id: string;
@@ -35,7 +31,8 @@ const FEATURES: FeatureItem[] = [
   { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#6366F1', route: 'Analytics' },
 ];
 
-export default function HomeScreen({ navigate: propNavigate, goBack }: Props = {}) {
+export default function HomeScreen() {
+  const { navigate, goBack } = useAppNavigation();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('用户');
   const [expiryDate, setExpiryDate] = useState('');
@@ -95,8 +92,11 @@ export default function HomeScreen({ navigate: propNavigate, goBack }: Props = {
   };
 
   const navigateTo = (route: string) => {
-    if (propNavigate) {
-      propNavigate(route);
+    if (route === 'Materials') {
+      navigate('Materials');
+    } else if (route === 'Analytics') {
+      // 跳转到Web端查看数据统计
+      navigate('MainTabs');
     } else {
       console.log('Navigate to:', route);
     }

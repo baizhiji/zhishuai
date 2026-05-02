@@ -10,22 +10,24 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AI_CREATION_TYPES } from '../constants';
+import { useAppNavigation } from '../navigation/AppNavigator';
 
 // 屏幕映射 - 根据创作类型ID（匹配Web端"内容自动生成"）
 const SCREEN_MAP: Record<string, string> = {
-  'title': 'aiTitle',
-  'tags': 'aiTag',
-  'copywriting': 'aiCopywriting',
-  'imageToText': 'aiImageToText',
-  'xiaohongshu': 'aiXiaohongshu',
-  'image': 'aiImage',
-  'ecommerce': 'aiEcommerce',
-  'video': 'aiVideo',
-  'videoAnalysis': 'aiVideoAnalysis',
-  'digitalHuman': 'digitalHuman',
+  'title': 'AIFeature',
+  'tags': 'AIFeature',
+  'copywriting': 'AIFeature',
+  'imageToText': 'AIFeature',
+  'xiaohongshu': 'AIFeature',
+  'image': 'AIImage',
+  'ecommerce': 'AIFeature',
+  'video': 'AIVideo',
+  'videoAnalysis': 'AIVideo',
+  'digitalHuman': 'DigitalHuman',
 };
 
-export default function CreateScreen({ navigate }: { navigate?: (screen: string) => void }) {
+export default function CreateScreen() {
+  const { navigate } = useAppNavigation();
   const [searchText, setSearchText] = useState('');
 
   // 过滤搜索
@@ -36,8 +38,12 @@ export default function CreateScreen({ navigate }: { navigate?: (screen: string)
 
   const handleTypePress = (typeId: string) => {
     const screen = SCREEN_MAP[typeId];
-    if (screen && navigate) {
-      navigate(screen);
+    if (screen) {
+      if (screen === 'AIFeature') {
+        navigate('AIFeature', { type: typeId });
+      } else {
+        navigate(screen);
+      }
     }
   };
 

@@ -11,11 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { authService, referralService, UserInfo, ReferralStats } from '../services';
-
-interface Props {
-  navigate?: (screen: string) => void;
-  goBack?: () => void;
-}
+import { useAppNavigation } from '../navigation/AppNavigator';
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -46,7 +42,8 @@ const MenuItem: React.FC<MenuItemProps> = ({
   </TouchableOpacity>
 );
 
-export default function ProfileScreen({ navigate, goBack }: Props) {
+export default function ProfileScreen() {
+  const { navigate, goBack } = useAppNavigation();
   const [loading, setLoading] = useState(true);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
@@ -102,7 +99,7 @@ export default function ProfileScreen({ navigate, goBack }: Props) {
             } finally {
               setLoggingOut(false);
               // 跳转到登录页
-              navigate?.('login');
+              navigate('Login');
             }
           }
         },
