@@ -5,6 +5,9 @@
 (global as any).userToken = null;
 (global as any).userInfo = null;
 
+// 本地存储
+(global as any).localStorage = {};
+
 class TokenStorage {
   // 获取Token
   static getToken(): string | null {
@@ -45,6 +48,33 @@ class TokenStorage {
   static clearAll(): void {
     this.clearToken();
     this.clearUserInfo();
+  }
+
+  // 获取本地存储数据
+  static get(key: string): any {
+    const data = (global as any).localStorage[key];
+    if (data) {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return data;
+      }
+    }
+    return null;
+  }
+
+  // 设置本地存储数据
+  static set(key: string, value: any): void {
+    if (typeof value === 'string') {
+      (global as any).localStorage[key] = value;
+    } else {
+      (global as any).localStorage[key] = JSON.stringify(value);
+    }
+  }
+
+  // 移除本地存储数据
+  static remove(key: string): void {
+    delete (global as any).localStorage[key];
   }
 }
 

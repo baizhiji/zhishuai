@@ -102,6 +102,23 @@ const SCREEN_TITLES: Record<string, string> = {
   digitalHuman: '数字人短视频',
 };
 
+// 屏幕到内容分类的映射
+const getCategoryFromScreen = (screen: string): string => {
+  const map: Record<string, string> = {
+    aiTitle: 'title',
+    aiTag: 'tags',
+    aiCopywriting: 'copywriting',
+    aiImageToText: 'image-to-text',
+    aiXiaohongshu: 'xiaohongshu',
+    aiImage: 'image',
+    aiEcommerce: 'ecommerce',
+    aiVideo: 'video',
+    aiVideoAnalysis: 'video-analysis',
+    digitalHuman: 'digital-human',
+  };
+  return map[screen] || 'copywriting';
+};
+
 export default function AppNavigator() {
   const [currentScreen, setCurrentScreen] = useState<string>('main');
   const navigationRef = React.useRef<any>(null);
@@ -124,21 +141,20 @@ export default function AppNavigator() {
         return <MessagesScreen navigation={{ goBack }} />;
       case 'settings':
         return <SettingsScreen navigation={{ goBack }} />;
-      // AI创作类型 - 匹配Web端"内容自动生成"（使用通用模板占位）
+      // AI创作类型 - 使用通用模板或专用页面
       case 'aiTitle':
       case 'aiTag':
       case 'aiCopywriting':
       case 'aiImageToText':
       case 'aiXiaohongshu':
       case 'aiEcommerce':
-        return <DigitalHumanScreen navigation={{ goBack }} />;
+        return <AIFeatureScreen navigation={{ goBack }} route={{ params: { category: getCategoryFromScreen(currentScreen) } }} />;
       case 'aiImage':
         return <AIImageScreen navigation={{ goBack }} />;
       case 'aiVideo':
       case 'aiVideoAnalysis':
-        return <AIVideoScreen navigation={{ goBack }} />;
       case 'digitalHuman':
-        return <DigitalHumanScreen navigation={{ goBack }} />;
+        return <AIVideoScreen navigation={{ goBack }} route={{ params: { category: getCategoryFromScreen(currentScreen) } }} />;
       default:
         return <MainTabs />;
     }
