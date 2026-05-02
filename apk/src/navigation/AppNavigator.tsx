@@ -1,10 +1,13 @@
-import React, { createContext, useContext, useRef, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+// 导入上下文
+import { NavigationProvider } from '../context/NavigationContext';
 
 // 导入屏幕组件
 import { HomeScreen, CreateScreen, ProfileScreen, LoginScreen, SettingsScreen, MaterialsScreen, MessagesScreen } from '../screens';
@@ -28,28 +31,6 @@ export type MainTabParamList = {
   Create: undefined;
   Profile: undefined;
 };
-
-// Navigation Context 类型
-export type NavigationContextType = {
-  navigate: (name: string, params?: any) => void;
-  goBack: () => void;
-};
-
-// 创建全局 Context
-const NavigationContext = createContext<NavigationContextType | null>(null);
-
-// 导出 hook
-export const useAppNavigation = (): NavigationContextType => {
-  const context = useContext(NavigationContext);
-  if (!context) {
-    throw new Error('useAppNavigation must be used within NavigationProvider');
-  }
-  return context;
-};
-
-// 创建导航器
-const RootStack = createNativeStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
 
 // Tab 配置
 const TAB_CONFIG = [
@@ -116,16 +97,16 @@ const MainTabs = () => {
 const AppNavigator = () => {
   const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
 
-  const navigate = useCallback((name: string, params?: any) => {
+  const navigate = (name: string, params?: any) => {
     navigationRef.current?.navigate(name as any, params);
-  }, []);
+  };
 
-  const goBack = useCallback(() => {
+  const goBack = () => {
     navigationRef.current?.goBack();
-  }, []);
+  };
 
   return (
-    <NavigationContext.Provider value={{ navigate, goBack }}>
+    <NavigationProvider value={{ navigate, goBack }}>
       <NavigationContainer ref={navigationRef}>
         <StatusBar style="dark" />
         <RootStack.Navigator
@@ -184,7 +165,7 @@ const AppNavigator = () => {
           />
         </RootStack.Navigator>
       </NavigationContainer>
-    </NavigationContext.Provider>
+    </NavigationProvider>
   );
 };
 
