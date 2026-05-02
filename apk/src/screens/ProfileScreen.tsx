@@ -54,11 +54,8 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const handleReferral = () => {
     Alert.alert(
       '转介绍',
-      '邀请好友使用智枢AI，好友首充您可获得奖励',
-      [
-        { text: '取消', style: 'cancel' },
-        { text: '立即邀请', onPress: () => {} }
-      ]
+      '邀请好友使用智枢AI',
+      [{ text: '确定' }]
     );
   };
 
@@ -99,8 +96,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
               <Ionicons name="gift" size={28} color="#FFFFFF" />
             </View>
             <View style={styles.referralContent}>
-              <Text style={styles.referralTitle}>邀请好友 赚取奖励</Text>
-              <Text style={styles.referralDesc}>每邀请1位好友注册，双方各获得积分奖励</Text>
+              <Text style={styles.referralTitle}>邀请好友</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
           </TouchableOpacity>

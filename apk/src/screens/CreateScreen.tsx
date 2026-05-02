@@ -255,6 +255,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   bottomPadding: {
-    height: 30,
+    height: 100,
   },
 });
