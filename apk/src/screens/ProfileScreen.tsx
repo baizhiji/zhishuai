@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,11 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { MOCK_USER } from '../constants';
+import { useNavigation } from '@react-navigation/native';
+import { authService, referralService, UserInfo, ReferralStats } from '../services';
 
 interface MenuItemProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -41,6 +43,83 @@ const MenuItem: React.FC<MenuItemProps> = ({
 );
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
+  const [loading, setLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // 监听页面focus，重新加载数据
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadData();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // 获取用户信息
+      let user = authService.getCurrentUser();
+      if (!user && authService.isLoggedIn()) {
+        try {
+          user = await authService.getUserInfo();
+        } catch (e) {
+          console.log('获取用户信息失败');
+        }
+      }
+      setUserInfo(user);
+
+      // 获取转介绍统计
+      try {
+        const stats = await referralService.getStats();
+        setReferralStats(stats);
+      } catch (e) {
+        console.log('获取转介绍统计失败');
+      }
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      '退出登录',
+      '确定要退出当前账号吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        { 
+          text: '确定', 
+          style: 'destructive',
+          onPress: async () => {
+            setLoggingOut(true);
+            try {
+              await authService.logout();
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } catch (error) {
+              Alert.alert('提示', '退出成功');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            } finally {
+              setLoggingOut(false);
+            }
+          }
+        },
+      ]
+    );
+  };
+
   const handleUpgrade = () => {
     Alert.alert(
       '检查更新',
@@ -52,17 +131,16 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const handleReferral = () => {
     Alert.alert(
       '转介绍',
-      '邀请好友使用智枢AI，获取更多权益',
+      `累计邀请: ${referralStats?.totalInvites || 0}人\n有效邀请: ${referralStats?.activeInvites || 0}人\n已获得积分: ${referralStats?.pointsEarned || 0}`,
       [{ text: '确定' }]
     );
   };
 
   const handleServiceExpiry = () => {
-    Alert.alert(
-      '服务到期',
-      `您的服务将于 2025-06-30 到期\n到期后将无法使用AI创作功能`,
-      [{ text: '确定' }]
-    );
+    const expiryText = userInfo?.expireTime 
+      ? `您的服务将于 ${formatDate(userInfo.expireTime)} 到期`
+      : '您的服务暂未设置到期时间';
+    Alert.alert('服务到期', expiryText + '\n\n到期后将无法使用AI创作功能', [{ text: '确定' }]);
   };
 
   const handleHelpDoc = () => {
@@ -77,6 +155,25 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     Alert.alert('功能申请', '向代理商申请开通新功能', [{ text: '确定' }]);
   };
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.loadingText}>加载中...</Text>
+      </View>
+    );
+  }
+
+  const displayName = userInfo?.name || '用户';
+  const displayPhone = userInfo?.phone || '未登录';
+  const expiryDate = userInfo?.expireTime ? formatDate(userInfo.expireTime) : '未设置';
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
@@ -85,16 +182,14 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {MOCK_USER.nickname?.charAt(0) || 'U'}
-            </Text>
+            <Text style={styles.avatarText}>{displayName.charAt(0)}</Text>
           </View>
         </View>
-        <Text style={styles.nickname}>{MOCK_USER.nickname}</Text>
-        <Text style={styles.phone}>{MOCK_USER.phone}</Text>
+        <Text style={styles.nickname}>{displayName}</Text>
+        <Text style={styles.phone}>{displayPhone}</Text>
         <TouchableOpacity style={styles.expiryBadge} onPress={handleServiceExpiry}>
           <Ionicons name="time-outline" size={14} color="#3B82F6" />
-          <Text style={styles.expiryText}>服务到期：2025-06-30</Text>
+          <Text style={styles.expiryText}>服务到期：{expiryDate}</Text>
         </TouchableOpacity>
       </View>
 
@@ -107,6 +202,9 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             </View>
             <View style={styles.referralContent}>
               <Text style={styles.referralTitle}>转介绍</Text>
+              <Text style={styles.referralSubtitle}>
+                已邀请 {referralStats?.totalInvites || 0} 人
+              </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -158,9 +256,19 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         </View>
 
         {/* 退出登录 */}
-        <TouchableOpacity style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={styles.logoutText}>退出登录</Text>
+        <TouchableOpacity 
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          disabled={loggingOut}
+        >
+          {loggingOut ? (
+            <ActivityIndicator size="small" color="#EF4444" />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+              <Text style={styles.logoutText}>退出登录</Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <View style={styles.bottomPadding} />
@@ -173,6 +281,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#EFF6FF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
   },
   header: {
     backgroundColor: '#DBEAFE',
@@ -247,28 +366,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   referralTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  referralSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     paddingVertical: 14,
-    paddingHorizontal: 14,
-    marginBottom: 8,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    elevation: 1,
+    paddingHorizontal: 16,
+    marginBottom: 1,
   },
   menuIcon: {
     width: 36,
     height: 36,
-    borderRadius: 10,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -289,17 +407,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 24,
     paddingVertical: 14,
     borderRadius: 12,
   },
   logoutText: {
     fontSize: 15,
     color: '#EF4444',
-    fontWeight: '500',
-    marginLeft: 6,
+    marginLeft: 8,
   },
   bottomPadding: {
     height: 100,

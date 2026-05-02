@@ -13,17 +13,44 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { authService } from '../../services/auth.service';
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState(''); // 注册时的昵称
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [verifyCode, setVerifyCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
+  // 发送验证码
+  const sendVerifyCode = async () => {
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      Alert.alert('错误', '请输入正确的手机号');
+      return;
+    }
+    
+    // TODO: 调用发送验证码API
+    Alert.alert('提示', '验证码已发送');
+    
+    // 开始倒计时
+    setCountdown(60);
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  // 用户登录
   const handleLogin = async () => {
     if (!phone || !password) {
       Alert.alert('错误', '请输入手机号和密码');
@@ -35,17 +62,21 @@ export default function LoginScreen() {
     }
     
     setLoading(true);
-    // 模拟登录
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert('提示', '登录成功！', [
+    try {
+      await authService.login({ phone, password });
+      Alert.alert('成功', '登录成功！', [
         { text: '确定', onPress: () => navigation.replace('Main') }
       ]);
-    }, 1000);
+    } catch (error: any) {
+      Alert.alert('登录失败', error.message || '请检查账号密码是否正确');
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // 用户注册
   const handleRegister = async () => {
-    if (!phone || !password || !confirmPassword) {
+    if (!name || !phone || !password || !confirmPassword || !verifyCode) {
       Alert.alert('错误', '请填写所有必填项');
       return;
     }
@@ -63,21 +94,26 @@ export default function LoginScreen() {
     }
     
     setLoading(true);
-    // 模拟注册
-    setTimeout(() => {
-      setLoading(false);
-      Alert.alert('提示', '注册成功！', [
-        { text: '确定', onPress: () => setIsLogin(true) }
+    try {
+      await authService.register({ 
+        phone, 
+        password, 
+        code: verifyCode,
+        name 
+      });
+      Alert.alert('成功', '注册成功！', [
+        { text: '确定', onPress: () => {
+          setIsLogin(true);
+          setPassword('');
+          setConfirmPassword('');
+          setVerifyCode('');
+        }}
       ]);
-    }, 1000);
-  };
-
-  const sendVerifyCode = () => {
-    if (!/^1[3-9]\d{9}$/.test(phone)) {
-      Alert.alert('错误', '请输入正确的手机号');
-      return;
+    } catch (error: any) {
+      Alert.alert('注册失败', error.message || '请稍后重试');
+    } finally {
+      setLoading(false);
     }
-    Alert.alert('提示', '验证码已发送');
   };
 
   return (
@@ -92,7 +128,7 @@ export default function LoginScreen() {
         {/* Logo区域 */}
         <View style={styles.logoContainer}>
           <View style={styles.logo}>
-            <Ionicons name="logo-google-playstore" size={48} color="#4F46E5" />
+            <Ionicons name="logo-google-playstore" size={48} color="#3B82F6" />
           </View>
           <Text style={styles.appName}>智枢AI</Text>
           <Text style={styles.appSlogan}>用AI赋能企业，让商业更智能</Text>
@@ -115,6 +151,21 @@ export default function LoginScreen() {
               <Text style={[styles.tabText, !isLogin && styles.tabTextActive]}>注册</Text>
             </TouchableOpacity>
           </View>
+
+          {/* 昵称（注册时显示） */}
+          {!isLogin && (
+            <View style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="请输入昵称"
+                placeholderTextColor="#999"
+                value={name}
+                onChangeText={setName}
+                maxLength={20}
+              />
+            </View>
+          )}
 
           {/* 手机号 */}
           <View style={styles.inputContainer}>
@@ -143,8 +194,14 @@ export default function LoginScreen() {
                 onChangeText={setVerifyCode}
                 maxLength={6}
               />
-              <TouchableOpacity style={styles.verifyBtn} onPress={sendVerifyCode}>
-                <Text style={styles.verifyBtnText}>获取验证码</Text>
+              <TouchableOpacity 
+                style={[styles.verifyBtn, countdown > 0 && styles.verifyBtnDisabled]} 
+                onPress={sendVerifyCode}
+                disabled={countdown > 0}
+              >
+                <Text style={styles.verifyBtnText}>
+                  {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -239,7 +296,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#EFF6FF',
   },
   scrollContent: {
     flexGrow: 1,
@@ -259,7 +316,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
-    shadowColor: '#4F46E5',
+    shadowColor: '#3B82F6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -268,12 +325,12 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E3A5F',
     marginBottom: 8,
   },
   appSlogan: {
     fontSize: 14,
-    color: '#666',
+    color: '#64748B',
   },
   formContainer: {
     backgroundColor: '#fff',
@@ -288,7 +345,7 @@ const styles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     marginBottom: 24,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#EFF6FF',
     borderRadius: 8,
     padding: 4,
   },
@@ -311,13 +368,13 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   tabTextActive: {
-    color: '#4F46E5',
+    color: '#3B82F6',
     fontWeight: '600',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#EFF6FF',
     borderRadius: 12,
     paddingHorizontal: 16,
     marginBottom: 16,
@@ -335,10 +392,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   verifyBtn: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#3B82F6',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
+  },
+  verifyBtnDisabled: {
+    backgroundColor: '#93C5FD',
   },
   verifyBtnText: {
     color: '#fff',
@@ -350,18 +410,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   forgetPasswordText: {
-    color: '#4F46E5',
+    color: '#3B82F6',
     fontSize: 14,
   },
   submitBtn: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#3B82F6',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: 20,
   },
   submitBtnDisabled: {
-    opacity: 0.7,
+    backgroundColor: '#93C5FD',
   },
   submitBtnText: {
     color: '#fff',
@@ -369,7 +429,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   otherLogin: {
-    marginTop: 8,
+    marginTop: 10,
   },
   divider: {
     flexDirection: 'row',
@@ -382,30 +442,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#E5E7EB',
   },
   dividerText: {
-    marginHorizontal: 16,
     color: '#999',
-    fontSize: 13,
+    fontSize: 12,
+    marginHorizontal: 16,
   },
   otherLoginIcons: {
     flexDirection: 'row',
     justifyContent: 'center',
+    gap: 40,
   },
   otherLoginBtn: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#F9FAFB',
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 12,
   },
   agreement: {
     textAlign: 'center',
     color: '#999',
     fontSize: 12,
     marginTop: 24,
+    lineHeight: 20,
   },
   agreementLink: {
-    color: '#4F46E5',
+    color: '#3B82F6',
   },
 });

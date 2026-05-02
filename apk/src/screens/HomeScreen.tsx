@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/stack';
+import { homeService, authService, TodayStats, ReferralStats } from '../services';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -32,13 +34,6 @@ interface FeatureItem {
   route: string;
 }
 
-interface QuickStat {
-  label: string;
-  value: string;
-  change: string;
-  trend: 'up' | 'down';
-}
-
 const FEATURES: FeatureItem[] = [
   { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#3B82F6', route: 'Media' },
   { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#4F46E5', route: 'Recruitment' },
@@ -48,20 +43,65 @@ const FEATURES: FeatureItem[] = [
   { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#6366F1', route: 'Analytics' },
 ];
 
-const QUICK_STATS: QuickStat[] = [
-  { label: '今日曝光', value: '12.8W', change: '+18%', trend: 'up' },
-  { label: '新增客户', value: '156', change: '+24%', trend: 'up' },
-  { label: '待办任务', value: '8', change: '-3', trend: 'down' },
-];
-
-const MOCK_USER = {
-  name: '张明',
-  expiryDate: '2026-08-15',
-};
-
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const [user] = useState(MOCK_USER);
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('用户');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [todayStats, setTodayStats] = useState<TodayStats | null>(null);
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
+
+  // 加载数据
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // 并行加载数据
+      const [userInfo, stats, referral] = await Promise.all([
+        loadUserInfo(),
+        homeService.getTodayStats(),
+        homeService.getReferralStats(),
+      ]);
+
+      if (userInfo) {
+        setUserName(userInfo.name);
+        if (userInfo.expireTime) {
+          setExpiryDate(formatDate(userInfo.expireTime));
+        }
+      }
+      setTodayStats(stats);
+      setReferralStats(referral);
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUserInfo = async () => {
+    try {
+      // 优先从本地存储获取
+      const localUser = authService.getCurrentUser();
+      if (localUser) {
+        return localUser;
+      }
+      // 如果已登录，尝试从API获取
+      if (authService.isLoggedIn()) {
+        return await authService.getUserInfo();
+      }
+    } catch (error) {
+      console.log('获取用户信息失败');
+    }
+    return null;
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
 
   const navigateTo = (route: string) => {
     switch (route) {
@@ -82,6 +122,16 @@ export default function HomeScreen() {
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.loadingText}>加载中...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
@@ -91,7 +141,7 @@ export default function HomeScreen() {
         <View style={styles.headerTop}>
           <View style={styles.headerLeft}>
             <Text style={styles.welcomeText}>欢迎回来</Text>
-            <Text style={styles.userName}>{user.name}</Text>
+            <Text style={styles.userName}>{userName}</Text>
             <Text style={styles.sloganText}>用AI赋能企业，让商业更智能</Text>
           </View>
           <TouchableOpacity 
@@ -107,34 +157,58 @@ export default function HomeScreen() {
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
+        onRefresh={loadData}
+        refreshing={loading}
       >
         {/* 今日数据卡片 */}
         <View style={styles.statsCard}>
           <Text style={styles.statsTitle}>今日概览</Text>
           <View style={styles.statsRow}>
-            {QUICK_STATS.map((stat, index) => (
-              <View key={stat.label} style={[
-                styles.statItem,
-                index < QUICK_STATS.length - 1 && styles.statBorder
-              ]}>
-                <Text style={styles.statValue}>{stat.value}</Text>
-                <Text style={styles.statLabel}>{stat.label}</Text>
-                <View style={[
-                  styles.statChange,
-                  stat.trend === 'up' ? styles.trendUp : styles.trendDown
-                ]}>
-                  <Ionicons 
-                    name={stat.trend === 'up' ? 'arrow-up' : 'arrow-down'} 
-                    size={10} 
-                    color={stat.trend === 'up' ? '#059669' : '#DC2626'} 
-                  />
-                  <Text style={[
-                    styles.changeText,
-                    { color: stat.trend === 'up' ? '#059669' : '#DC2626' }
-                  ]}>{stat.change}</Text>
-                </View>
+            <View style={[styles.statItem, styles.statBorder]}>
+              <Text style={styles.statValue}>
+                {todayStats?.contentGenerated || 0}
+              </Text>
+              <Text style={styles.statLabel}>生成内容</Text>
+              <View style={[styles.statChange, styles.trendUp]}>
+                <Text style={styles.changeText}>+{todayStats?.contentUsed || 0}使用</Text>
               </View>
-            ))}
+            </View>
+            
+            <View style={[styles.statItem, styles.statBorder]}>
+              <Text style={styles.statValue}>
+                {todayStats?.newCustomers || 0}
+              </Text>
+              <Text style={styles.statLabel}>新增潜客</Text>
+              <View style={[styles.statChange, todayStats?.customersGrowth && todayStats.customersGrowth > 0 ? styles.trendUp : styles.trendDown]}>
+                <Text style={styles.changeText}>
+                  {todayStats?.customersGrowth ? (todayStats.customersGrowth > 0 ? '+' : '') + todayStats.customersGrowth + '%' : '0%'}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statItem, styles.statItemLast]}>
+              <Text style={styles.statValue}>
+                {todayStats?.publishedToday || 0}
+              </Text>
+              <Text style={styles.statLabel}>今日发布</Text>
+              <View style={styles.statChange}>
+                <Text style={[styles.changeText, { color: '#64748B' }]}>
+                  共{todayStats?.totalPublished || 0}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* 积分卡片 */}
+        <View style={styles.pointsCard}>
+          <View style={styles.pointsLeft}>
+            <Ionicons name="diamond-outline" size={20} color="#3B82F6" />
+            <Text style={styles.pointsLabel}>当前积分</Text>
+          </View>
+          <View style={styles.pointsRight}>
+            <Text style={styles.pointsValue}>{todayStats?.points || 0}</Text>
+            <Text style={styles.pointsUsed}>今日消耗: {todayStats?.pointsUsedToday || 0}</Text>
           </View>
         </View>
 
@@ -204,6 +278,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#EFF6FF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
   },
   header: {
     backgroundColor: '#DBEAFE',
@@ -279,6 +364,10 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#E0E7FF',
   },
+  statItemLast: {
+    flex: 1,
+    alignItems: 'center',
+  },
   statValue: {
     fontSize: 22,
     fontWeight: '700',
@@ -298,78 +387,111 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   trendUp: {
-    backgroundColor: 'rgba(5, 150, 105, 0.12)',
+    backgroundColor: '#DCFCE7',
   },
   trendDown: {
-    backgroundColor: 'rgba(220, 38, 38, 0.12)',
+    backgroundColor: '#FEE2E2',
   },
   changeText: {
     fontSize: 11,
-    fontWeight: '600',
-    marginLeft: 2,
+    color: '#059669',
+  },
+  pointsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  pointsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pointsLabel: {
+    fontSize: 14,
+    color: '#475569',
+    marginLeft: 8,
+  },
+  pointsRight: {
+    alignItems: 'flex-end',
+  },
+  pointsValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#3B82F6',
+  },
+  pointsUsed: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1E3A5F',
     marginTop: 24,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   featureGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -6,
+    justifyContent: 'space-between',
   },
   featureItem: {
-    width: '33.33%',
-    paddingHorizontal: 6,
-    marginBottom: 16,
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   featureIconBox: {
-    width: 56,
-    height: 56,
+    width: 52,
+    height: 52,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    marginBottom: 12,
   },
   featureTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '500',
     color: '#334155',
-    textAlign: 'center',
   },
   quickActions: {
     flexDirection: 'row',
-    marginHorizontal: -6,
+    justifyContent: 'space-around',
+    backgroundColor: '#DBEAFE',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 4,
   },
   quickItem: {
-    flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 6,
   },
   quickIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
   },
   quickTitle: {
-    fontSize: 13,
-    color: '#475569',
+    fontSize: 12,
+    color: '#334155',
   },
   bottomSpace: {
     height: 100,
