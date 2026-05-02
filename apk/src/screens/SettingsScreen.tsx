@@ -37,7 +37,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '个人资料',
         subtitle: '头像、昵称、联系方式',
         icon: 'person-outline',
-        iconColor: '#3B82F6',
+        iconColor: '#2563EB',
         type: 'navigate',
       },
       {
@@ -45,7 +45,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '账号安全',
         subtitle: '修改密码、绑定手机',
         icon: 'shield-outline',
-        iconColor: '#10B981',
+        iconColor: '#059669',
         type: 'navigate',
       },
       {
@@ -53,7 +53,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '服务到期',
         subtitle: '到期时间：2026-08-15',
         icon: 'calendar-outline',
-        iconColor: '#F59E0B',
+        iconColor: '#D97706',
         type: 'navigate',
       },
       {
@@ -61,7 +61,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '充值积分',
         subtitle: '当前积分 2,580',
         icon: 'wallet-outline',
-        iconColor: '#EC4899',
+        iconColor: '#DB2777',
         type: 'navigate',
       },
     ],
@@ -74,7 +74,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '推送通知',
         subtitle: '接收系统消息和活动提醒',
         icon: 'notifications-outline',
-        iconColor: '#6366F1',
+        iconColor: '#4F46E5',
         type: 'toggle',
         value: true,
       },
@@ -83,7 +83,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '声音',
         subtitle: '操作音效和语音播报',
         icon: 'volume-medium-outline',
-        iconColor: '#8B5CF6',
+        iconColor: '#7C3AED',
         type: 'toggle',
         value: false,
       },
@@ -92,7 +92,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '深色模式',
         subtitle: '跟随系统设置',
         icon: 'moon-outline',
-        iconColor: '#6366F1',
+        iconColor: '#4F46E5',
         type: 'toggle',
         value: false,
       },
@@ -106,7 +106,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '帮助中心',
         subtitle: '常见问题和使用教程',
         icon: 'help-circle-outline',
-        iconColor: '#06B6D4',
+        iconColor: '#0891B2',
         type: 'navigate',
       },
       {
@@ -114,7 +114,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '意见反馈',
         subtitle: '提交问题和建议',
         icon: 'chatbubbles-outline',
-        iconColor: '#F97316',
+        iconColor: '#EA580C',
         type: 'navigate',
       },
       {
@@ -122,7 +122,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '关于我们',
         subtitle: '版本 1.0.0',
         icon: 'information-circle-outline',
-        iconColor: '#64748B',
+        iconColor: '#475569',
         type: 'navigate',
       },
       {
@@ -130,7 +130,7 @@ const SETTINGS_DATA: SettingSection[] = [
         title: '退出登录',
         subtitle: '当前账号：138****8888',
         icon: 'log-out-outline',
-        iconColor: '#EF4444',
+        iconColor: '#DC2626',
         type: 'action',
       },
     ],
@@ -190,18 +190,18 @@ export default function SettingsScreen() {
       </View>
       
       {item.type === 'navigate' && (
-        <Ionicons name="chevron-forward" size={18} color="#94A3B8" />
+        <Ionicons name="chevron-forward" size={18} color="#64748B" />
       )}
       {item.type === 'toggle' && (
         <Switch
           value={settings[item.id]}
           onValueChange={() => handleToggle(item.id)}
-          trackColor={{ false: '#E2E8F0', true: '#93C5FD' }}
-          thumbColor={settings[item.id] ? '#3B82F6' : '#FFFFFF'}
+          trackColor={{ false: '#CBD5E1', true: '#93C5FD' }}
+          thumbColor={settings[item.id] ? '#2563EB' : '#FFFFFF'}
         />
       )}
       {item.type === 'action' && (
-        <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+        <Ionicons name="log-out-outline" size={18} color="#DC2626" />
       )}
     </TouchableOpacity>
   );
@@ -222,7 +222,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
+      <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
       
       {/* 头部 */}
       <View style={styles.header}>
@@ -266,13 +266,13 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#EFF6FF',
   },
   header: {
     paddingTop: 50,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#E8F4FD',
+    backgroundColor: '#DBEAFE',
   },
   headerTitle: {
     fontSize: 20,
@@ -287,9 +287,9 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 2,
   },
@@ -300,10 +300,10 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#2563EB',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -325,19 +325,19 @@ const styles = StyleSheet.create({
   },
   userPhone: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#475569',
   },
   editBtn: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#EFF6FF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#3B82F6',
+    borderColor: '#2563EB',
   },
   editText: {
     fontSize: 13,
-    color: '#3B82F6',
+    color: '#2563EB',
     fontWeight: '500',
   },
   scrollView: {
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#475569',
     marginBottom: 10,
     marginLeft: 4,
   },
@@ -361,9 +361,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 2,
   },
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#EFF6FF',
     marginLeft: 58,
   },
   iconContainer: {
@@ -395,11 +395,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   logoutText: {
-    color: '#EF4444',
+    color: '#DC2626',
   },
   itemSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#64748B',
   },
   footer: {
     alignItems: 'center',
@@ -408,11 +408,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#64748B',
     marginBottom: 4,
   },
   footerSubtext: {
     fontSize: 12,
-    color: '#CBD5E1',
+    color: '#94A3B8',
   },
 });

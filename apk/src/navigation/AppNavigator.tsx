@@ -52,8 +52,8 @@ function MainTabs() {
             <Ionicons name={iconName} size={22} color={color} />
           );
         },
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: '#2563EB',
+        tabBarInactiveTintColor: '#64748B',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel,
       })}
@@ -108,7 +108,7 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef}>
-      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
+      <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
       <View style={styles.container}>
         {currentScreen !== 'main' && (
           <View style={styles.header}>
@@ -135,13 +135,13 @@ import { LoginScreen } from '../screens';
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#EFF6FF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#E8F4FD',
+    backgroundColor: '#DBEAFE',
     paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 16,
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     elevation: 10,
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,

@@ -84,7 +84,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#E8F4FD" />
+      <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
       
       {/* 头部区域 */}
       <View style={styles.header}>
@@ -98,7 +98,7 @@ export default function HomeScreen() {
             style={styles.avatarButton}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Ionicons name="person-outline" size={22} color="#3B82F6" />
+            <Ionicons name="person-outline" size={22} color="#2563EB" />
           </TouchableOpacity>
         </View>
       </View>
@@ -126,11 +126,11 @@ export default function HomeScreen() {
                   <Ionicons 
                     name={stat.trend === 'up' ? 'arrow-up' : 'arrow-down'} 
                     size={10} 
-                    color={stat.trend === 'up' ? '#10B981' : '#EF4444'} 
+                    color={stat.trend === 'up' ? '#059669' : '#DC2626'} 
                   />
                   <Text style={[
                     styles.changeText,
-                    { color: stat.trend === 'up' ? '#10B981' : '#EF4444' }
+                    { color: stat.trend === 'up' ? '#059669' : '#DC2626' }
                   ]}>{stat.change}</Text>
                 </View>
               </View>
@@ -149,7 +149,7 @@ export default function HomeScreen() {
               onPress={() => navigateTo(item.route)}
             >
               <View style={styles.featureIconBox}>
-                <Ionicons name={item.icon} size={26} color="#3B82F6" />
+                <Ionicons name={item.icon} size={26} color="#2563EB" />
               </View>
               <Text style={styles.featureTitle}>{item.title}</Text>
             </TouchableOpacity>
@@ -164,7 +164,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             onPress={() => navigateTo('Create')}
           >
-            <View style={[styles.quickIconBox, { backgroundColor: '#3B82F6' }]}>
+            <View style={[styles.quickIconBox, { backgroundColor: '#2563EB' }]}>
               <Ionicons name="sparkles" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.quickTitle}>AI创作</Text>
@@ -175,7 +175,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             onPress={() => navigateTo('Messages')}
           >
-            <View style={[styles.quickIconBox, { backgroundColor: '#6366F1' }]}>
+            <View style={[styles.quickIconBox, { backgroundColor: '#4F46E5' }]}>
               <Ionicons name="mail-outline" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.quickTitle}>消息</Text>
@@ -186,7 +186,7 @@ export default function HomeScreen() {
             activeOpacity={0.7}
             onPress={() => navigateTo('Settings')}
           >
-            <View style={[styles.quickIconBox, { backgroundColor: '#64748B' }]}>
+            <View style={[styles.quickIconBox, { backgroundColor: '#475569' }]}>
               <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
             </View>
             <Text style={styles.quickTitle}>设置</Text>
@@ -203,10 +203,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F7FF',
+    backgroundColor: '#EFF6FF',
   },
   header: {
-    backgroundColor: '#E8F4FD',
+    backgroundColor: '#DBEAFE',
     paddingTop: 50,
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#475569',
     marginBottom: 6,
   },
   userName: {
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   companyName: {
     fontSize: 14,
-    color: '#5B8DB8',
+    color: '#3B82F6',
   },
   avatarButton: {
     width: 44,
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -253,9 +253,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginTop: 8,
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 2,
   },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   },
   statBorder: {
     borderRightWidth: 1,
-    borderRightColor: '#E5EEF7',
+    borderRightColor: '#E0E7FF',
   },
   statValue: {
     fontSize: 22,
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#475569',
     marginBottom: 6,
   },
   statChange: {
@@ -295,10 +295,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   trendUp: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    backgroundColor: 'rgba(5, 150, 105, 0.12)',
   },
   trendDown: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(220, 38, 38, 0.12)',
   },
   changeText: {
     fontSize: 11,
@@ -331,9 +331,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 2,
   },
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
-    shadowColor: '#3B82F6',
+    shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   },
   quickTitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#475569',
   },
   bottomSpace: {
     height: 100,
