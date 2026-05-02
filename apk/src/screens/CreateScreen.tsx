@@ -77,53 +77,52 @@ export default function CreateScreen() {
         {/* 创作类型 */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>选择创作类型</Text>
-          <View style={styles.typeCard}>
-            <View style={styles.typeGrid}>
-              {CREATE_TYPES.map((type) => (
-                <TouchableOpacity 
-                  key={type.id}
-                  style={[
-                    styles.typeItem,
-                    selectedType === type.id && { borderColor: type.color }
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => setSelectedType(selectedType === type.id ? null : type.id)}
-                >
-                  <View style={[styles.typeIconContainer, { backgroundColor: type.color + '20' }]}>
-                    <Ionicons name={type.icon} size={26} color={type.color} />
+          <View style={styles.typeGrid}>
+            {CREATE_TYPES.map((type) => (
+              <TouchableOpacity 
+                key={type.id}
+                style={[
+                  styles.typeItem,
+                  selectedType === type.id && { borderColor: type.color }
+                ]}
+                activeOpacity={0.7}
+                onPress={() => setSelectedType(selectedType === type.id ? null : type.id)}
+              >
+                <View style={[styles.typeIconBox, { backgroundColor: type.color }]}>
+                  <Ionicons name={type.icon} size={26} color="#FFFFFF" />
+                </View>
+                <Text style={styles.typeName}>{type.name}</Text>
+                <Text style={styles.typeDesc} numberOfLines={1}>{type.desc}</Text>
+                {selectedType === type.id && (
+                  <View style={[styles.selectedBadge, { backgroundColor: type.color }]}>
+                    <Ionicons name="checkmark" size={12} color="#fff" />
                   </View>
-                  <Text style={styles.typeName}>{type.name}</Text>
-                  {selectedType === type.id && (
-                    <View style={[styles.selectedBadge, { backgroundColor: type.color }]}>
-                      <Ionicons name="checkmark" size={10} color="#fff" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-            
-            {/* 选中类型的描述和标签 */}
-            {selectedType && (
-              <View style={styles.selectedInfo}>
-                {(() => {
-                  const type = CREATE_TYPES.find(t => t.id === selectedType);
-                  return (
-                    <>
-                      <Text style={styles.selectedTitle}>{type?.name}</Text>
-                      <Text style={styles.selectedDesc}>{type?.desc}</Text>
-                      <View style={styles.selectedTags}>
-                        {type?.tags.map((tag, index) => (
-                          <View key={index} style={[styles.typeTag, { backgroundColor: type!.color + '15' }]}>
-                            <Text style={[styles.typeTagText, { color: type!.color }]}>{tag}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </>
-                  );
-                })()}
-              </View>
-            )}
+                )}
+              </TouchableOpacity>
+            ))}
           </View>
+          
+          {/* 选中类型的详情 */}
+          {selectedType && (
+            <View style={styles.selectedInfo}>
+              {(() => {
+                const type = CREATE_TYPES.find(t => t.id === selectedType);
+                return (
+                  <>
+                    <Text style={styles.selectedTitle}>{type?.name}</Text>
+                    <Text style={styles.selectedDesc}>{type?.desc}</Text>
+                    <View style={styles.selectedTags}>
+                      {type?.tags.map((tag, index) => (
+                        <View key={index} style={[styles.tagItem, { backgroundColor: type!.color + '20' }]}>
+                          <Text style={[styles.tagText, { color: type!.color }]}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </>
+                );
+              })()}
+            </View>
+          )}
         </View>
 
         {/* 创作按钮 */}
@@ -276,85 +275,91 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#2563EB',
   },
-  typeCard: {
-    backgroundColor: '#DBEAFE',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
-  },
   typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -6,
   },
   typeItem: {
-    width: '33.33%',
-    alignItems: 'center',
+    width: '50%',
     paddingHorizontal: 6,
     marginBottom: 12,
-    position: 'relative',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  typeIconContainer: {
+  typeIconBox: {
     width: 52,
     height: 52,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: '#FFFFFF',
+    marginBottom: 10,
   },
   typeName: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#334155',
-    textAlign: 'center',
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: -4,
-    right: 10,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedInfo: {
-    marginTop: 8,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#BFDBFE',
-  },
-  selectedTitle: {
     fontSize: 15,
     fontWeight: '600',
     color: '#1E3A5F',
     marginBottom: 4,
+  },
+  typeDesc: {
+    fontSize: 11,
+    color: '#64748B',
     textAlign: 'center',
+    paddingHorizontal: 8,
+  },
+  selectedBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  selectedInfo: {
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  selectedTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E3A5F',
+    marginBottom: 4,
   },
   selectedDesc: {
     fontSize: 13,
     color: '#475569',
-    textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   selectedTags: {
     flexDirection: 'row',
-    justifyContent: 'center',
     flexWrap: 'wrap',
   },
-  typeTag: {
+  tagItem: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
-    marginHorizontal: 4,
+    marginRight: 8,
     marginBottom: 4,
   },
-  typeTagText: {
+  tagText: {
     fontSize: 12,
     fontWeight: '500',
   },
@@ -391,8 +396,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   historyCard: {
@@ -446,8 +451,8 @@ const styles = StyleSheet.create({
     padding: 16,
     shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   tipItem: {

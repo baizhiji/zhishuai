@@ -28,6 +28,7 @@ interface FeatureItem {
   id: string;
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
+  color: string;
   route: string;
 }
 
@@ -39,12 +40,12 @@ interface QuickStat {
 }
 
 const FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', route: 'Media' },
-  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', route: 'Recruitment' },
-  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', route: 'Acquisition' },
-  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', route: 'Referral' },
-  { id: 'materials', title: '素材库', icon: 'folder-outline', route: 'Materials' },
-  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', route: 'Analytics' },
+  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#3B82F6', route: 'Media' },
+  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#4F46E5', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#059669', route: 'Acquisition' },
+  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#10B981', route: 'Referral' },
+  { id: 'materials', title: '素材库', icon: 'folder-outline', color: '#F59E0B', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#6366F1', route: 'Analytics' },
 ];
 
 const QUICK_STATS: QuickStat[] = [
@@ -91,9 +92,7 @@ export default function HomeScreen() {
           <View style={styles.headerLeft}>
             <Text style={styles.welcomeText}>欢迎回来</Text>
             <Text style={styles.userName}>{user.name}</Text>
-            <View style={styles.sloganBadge}>
-              <Text style={styles.sloganText}>用AI赋能企业，让商业更智能</Text>
-            </View>
+            <Text style={styles.sloganText}>用AI赋能企业，让商业更智能</Text>
           </View>
           <TouchableOpacity 
             style={styles.avatarButton}
@@ -141,22 +140,20 @@ export default function HomeScreen() {
 
         {/* 功能中心 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
-        <View style={styles.featureCard}>
-          <View style={styles.featureGrid}>
-            {FEATURES.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.featureItem}
-                activeOpacity={0.7}
-                onPress={() => navigateTo(item.route)}
-              >
-                <View style={styles.featureIconBox}>
-                  <Ionicons name={item.icon} size={26} color="#2563EB" />
-                </View>
-                <Text style={styles.featureTitle}>{item.title}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.featureGrid}>
+          {FEATURES.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.featureItem}
+              activeOpacity={0.7}
+              onPress={() => navigateTo(item.route)}
+            >
+              <View style={[styles.featureIconBox, { backgroundColor: item.color }]}>
+                <Ionicons name={item.icon} size={26} color="#FFFFFF" />
+              </View>
+              <Text style={styles.featureTitle}>{item.title}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* 快捷操作 */}
@@ -231,24 +228,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#1E3A5F',
-    marginBottom: 8,
-  },
-  sloganBadge: {
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
+    marginBottom: 4,
   },
   sloganText: {
-    fontSize: 12,
-    color: '#2563EB',
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#3B82F6',
   },
   avatarButton: {
     width: 44,
@@ -331,16 +315,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 14,
   },
-  featureCard: {
-    backgroundColor: '#DBEAFE',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 2,
-  },
   featureGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -356,15 +330,14 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 14,
-    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
     shadowColor: '#2563EB',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
   },
   featureTitle: {
     fontSize: 13,
