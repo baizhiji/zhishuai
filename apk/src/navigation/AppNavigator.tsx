@@ -1,28 +1,34 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { 
   HomeScreen, 
   CreateScreen, 
   ProfileScreen,
-  LoginScreen,
   MaterialsScreen,
   MessagesScreen,
   SettingsScreen,
 } from '../screens';
 
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
 
-// 登录 Stack
-function AuthStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-    </Stack.Navigator>
-  );
+// 简单 Modal 导航
+import { useNavigation } from '@react-navigation/native';
+
+function HomeScreenWithNav() {
+  const navigation = useNavigation<any>();
+  return <HomeScreen navigation={navigation} />;
+}
+
+function CreateScreenWithNav() {
+  const navigation = useNavigation<any>();
+  return <CreateScreen navigation={navigation} />;
+}
+
+function ProfileScreenWithNav() {
+  const navigation = useNavigation<any>();
+  return <ProfileScreen navigation={navigation} />;
 }
 
 // 主 Tab 导航
@@ -53,72 +59,110 @@ function MainTabs() {
     >
       <Tab.Screen 
         name="Home" 
-        component={HomeScreen}
+        component={HomeScreenWithNav}
         options={{ tabBarLabel: '首页' }}
       />
       <Tab.Screen 
         name="Create" 
-        component={CreateScreen}
+        component={CreateScreenWithNav}
         options={{ tabBarLabel: 'AI创作' }}
       />
       <Tab.Screen 
         name="Profile" 
-        component={ProfileScreen}
+        component={ProfileScreenWithNav}
         options={{ tabBarLabel: '我的' }}
       />
     </Tab.Navigator>
   );
 }
 
-// 根导航
 export default function AppNavigator() {
-  const [isLoggedIn] = React.useState(false);
+  const [currentScreen, setCurrentScreen] = useState<'main' | 'login' | 'materials' | 'messages' | 'settings'>('main');
+  const navigationRef = React.useRef<any>(null);
+
+  const navigate = (screen: string) => {
+    setCurrentScreen(screen as any);
+  };
+
+  const goBack = () => {
+    setCurrentScreen('main');
+  };
+
+  const renderScreen = () => {
+    switch (currentScreen) {
+      case 'login':
+        return <LoginScreen navigation={{ navigate }} />;
+      case 'materials':
+        return <MaterialsScreen navigation={{ goBack }} />;
+      case 'messages':
+        return <MessagesScreen navigation={{ goBack }} />;
+      case 'settings':
+        return <SettingsScreen navigation={{ goBack }} />;
+      default:
+        return (
+          <MainTabs />
+        );
+    }
+  };
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* 根据登录状态选择根页面 */}
-        {/* 暂时直接显示主界面，后续接入登录 */}
-        <Stack.Screen name="Main" component={MainTabs} />
-        
-        {/* 公共页面 */}
-        <Stack.Screen name="Materials" component={MaterialsScreen} />
-        <Stack.Screen name="Messages" component={MessagesScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-      </Stack.Navigator>
+    <NavigationContainer ref={navigationRef}>
+      <View style={styles.container}>
+        {currentScreen !== 'main' && (
+          <View style={styles.header}>
+            <TouchableOpacity onPress={goBack} style={styles.backButton}>
+              <Text style={styles.backText}>← 返回</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {renderScreen()}
+      </View>
     </NavigationContainer>
   );
 }
 
+// 需要导入 LoginScreen
+import { LoginScreen } from '../screens';
+
 const styles = StyleSheet.create({
-  tabBar: {
-    position: 'absolute',
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 0,
-    elevation: 0,
-    height: 85,
-    paddingTop: 10,
-    paddingBottom: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F7FA',
   },
-  tabBarLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 4,
+  header: {
+    backgroundColor: '#3B82F6',
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 15,
+  },
+  backButton: {
+    padding: 5,
+  },
+  backText: {
+    color: '#FFFFFF',
+    fontSize: 16,
   },
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   icon: {
-    fontSize: 24,
+    fontSize: 22,
     opacity: 0.6,
   },
   iconFocused: {
     opacity: 1,
+  },
+  tabBar: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    paddingTop: 8,
+    paddingBottom: 8,
+    height: 70,
+  },
+  tabBarLabel: {
+    fontSize: 12,
+    marginTop: 4,
   },
 });
