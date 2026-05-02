@@ -19,18 +19,12 @@ export interface TodayStats {
   // 招聘统计
   newResumes: number; // 新增简历
   resumesReviewed: number; // 已查看简历
-  
-  // 积分
-  points: number; // 当前积分
-  pointsUsedToday: number; // 今日消耗积分
 }
 
 // 转介绍统计
 export interface ReferralStats {
   totalInvites: number; // 累计邀请人数
   activeInvites: number; // 有效邀请人数
-  pointsEarned: number; // 已获得积分
-  pointsPending: number; // 待生效积分
 }
 
 // 自媒体运营统计
@@ -105,8 +99,6 @@ class HomeService {
       totalPublished: 156,
       newResumes: 12,
       resumesReviewed: 8,
-      points: 2580,
-      pointsUsedToday: 120,
     };
   }
 
@@ -114,8 +106,6 @@ class HomeService {
     return {
       totalInvites: 15,
       activeInvites: 8,
-      pointsEarned: 800,
-      pointsPending: 350,
     };
   }
 

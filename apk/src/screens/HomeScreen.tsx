@@ -200,18 +200,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 积分卡片 */}
-        <View style={styles.pointsCard}>
-          <View style={styles.pointsLeft}>
-            <Ionicons name="diamond-outline" size={20} color="#3B82F6" />
-            <Text style={styles.pointsLabel}>当前积分</Text>
-          </View>
-          <View style={styles.pointsRight}>
-            <Text style={styles.pointsValue}>{todayStats?.points || 0}</Text>
-            <Text style={styles.pointsUsed}>今日消耗: {todayStats?.pointsUsedToday || 0}</Text>
-          </View>
-        </View>
-
         {/* 功能中心 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
         <View style={styles.featureGrid}>
@@ -395,42 +383,6 @@ const styles = StyleSheet.create({
   changeText: {
     fontSize: 11,
     color: '#059669',
-  },
-  pointsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginTop: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  pointsLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pointsLabel: {
-    fontSize: 14,
-    color: '#475569',
-    marginLeft: 8,
-  },
-  pointsRight: {
-    alignItems: 'flex-end',
-  },
-  pointsValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#3B82F6',
-  },
-  pointsUsed: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
   },
   sectionTitle: {
     fontSize: 16,

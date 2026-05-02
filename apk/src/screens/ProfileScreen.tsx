@@ -131,7 +131,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const handleReferral = () => {
     Alert.alert(
       '转介绍',
-      `累计邀请: ${referralStats?.totalInvites || 0}人\n有效邀请: ${referralStats?.activeInvites || 0}人\n已获得积分: ${referralStats?.pointsEarned || 0}`,
+      `累计邀请: ${referralStats?.totalInvites || 0}人\n有效邀请: ${referralStats?.activeInvites || 0}人`,
       [{ text: '确定' }]
     );
   };

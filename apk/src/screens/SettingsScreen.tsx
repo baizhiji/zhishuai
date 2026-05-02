@@ -56,14 +56,6 @@ const SETTINGS_DATA: SettingSection[] = [
         iconColor: '#D97706',
         type: 'navigate',
       },
-      {
-        id: 'recharge',
-        title: '充值积分',
-        subtitle: '当前积分 2,580',
-        icon: 'wallet-outline',
-        iconColor: '#DB2777',
-        type: 'navigate',
-      },
     ],
   },
   {

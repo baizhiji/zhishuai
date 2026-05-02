@@ -16,8 +16,6 @@ export interface ReferralRecord {
   inviteeName: string;    // 被邀请人昵称
   inviteePhone: string;   // 被邀请人手机号（脱敏）
   status: 'pending' | 'activated' | 'expired';  // 状态
-  pointsEarned: number;    // 已获得积分
-  pointsPending: number;   // 待生效积分
   invitedAt: string;      // 邀请时间
   activatedAt?: string;   // 激活时间
 }
@@ -26,9 +24,6 @@ export interface ReferralRecord {
 export interface ReferralStats {
   totalInvites: number;    // 累计邀请人数
   activeInvites: number;   // 有效邀请人数
-  pointsEarned: number;    // 已获得积分
-  pointsPending: number;   // 待生效积分
-  expiredPoints: number;   // 已过期积分
 }
 
 class ReferralService {
@@ -112,8 +107,6 @@ class ReferralService {
         inviteeName: '张三',
         inviteePhone: '138****8888',
         status: 'activated',
-        pointsEarned: 100,
-        pointsPending: 0,
         invitedAt: '2024-01-10 10:00',
         activatedAt: '2024-01-10 14:30',
       },
@@ -122,8 +115,6 @@ class ReferralService {
         inviteeName: '李四',
         inviteePhone: '139****6666',
         status: 'pending',
-        pointsEarned: 0,
-        pointsPending: 100,
         invitedAt: '2024-01-14 09:00',
       },
       {
@@ -131,8 +122,6 @@ class ReferralService {
         inviteeName: '王五',
         inviteePhone: '137****5555',
         status: 'activated',
-        pointsEarned: 100,
-        pointsPending: 0,
         invitedAt: '2024-01-08 16:00',
         activatedAt: '2024-01-09 10:00',
       },
@@ -143,9 +132,6 @@ class ReferralService {
     return {
       totalInvites: 15,
       activeInvites: 8,
-      pointsEarned: 800,
-      pointsPending: 100,
-      expiredPoints: 0,
     };
   }
 }
