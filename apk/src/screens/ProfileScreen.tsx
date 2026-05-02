@@ -7,7 +7,6 @@ import {
   StyleSheet,
   StatusBar,
   Alert,
-  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MOCK_USER } from '../constants';
@@ -43,7 +42,6 @@ const MenuItem: React.FC<MenuItemProps> = ({
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
   const handleUpgrade = () => {
-    // APK升级入口 - 实际可跳转到应用商店或更新页面
     Alert.alert(
       '检查更新',
       '当前已是最新版本 v1.0.0',
@@ -54,7 +52,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const handleReferral = () => {
     Alert.alert(
       '转介绍',
-      '邀请好友使用智枢AI',
+      '邀请好友使用智枢AI，获取更多权益',
       [{ text: '确定' }]
     );
   };
@@ -65,6 +63,18 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
       `您的服务将于 2025-06-30 到期\n到期后将无法使用AI创作功能`,
       [{ text: '确定' }]
     );
+  };
+
+  const handleHelpDoc = () => {
+    Alert.alert('帮助文档', '功能使用说明和常见问题解答', [{ text: '确定' }]);
+  };
+
+  const handleCustomerService = () => {
+    Alert.alert('联系客服', '客服电话：400-xxx-xxxx\n工作时间：9:00-18:00', [{ text: '确定' }]);
+  };
+
+  const handleFeatureRequest = () => {
+    Alert.alert('功能申请', '向代理商申请开通新功能', [{ text: '确定' }]);
   };
 
   return (
@@ -96,7 +106,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
               <Ionicons name="gift" size={28} color="#FFFFFF" />
             </View>
             <View style={styles.referralContent}>
-              <Text style={styles.referralTitle}>邀请好友</Text>
+              <Text style={styles.referralTitle}>转介绍</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
           </TouchableOpacity>
@@ -112,17 +122,32 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             onPress={() => navigation.navigate('Settings')}
           />
           <MenuItem
-            icon="cloud-download-outline"
-            iconColor="#3B82F6"
-            title="检查更新"
-            subtitle="当前版本 v1.0.0"
-            onPress={handleUpgrade}
+            icon="sparkles-outline"
+            iconColor="#8B5CF6"
+            title="功能申请"
+            onPress={handleFeatureRequest}
           />
           <MenuItem
             icon="help-circle-outline"
             iconColor="#10B981"
             title="帮助与反馈"
-            onPress={() => Alert.alert('帮助与反馈', '请联系客服获取帮助')}
+            subtitle="帮助文档、联系客服"
+            onPress={() => Alert.alert(
+              '帮助与反馈',
+              '请选择：',
+              [
+                { text: '帮助文档', onPress: handleHelpDoc },
+                { text: '联系客服', onPress: handleCustomerService },
+                { text: '取消', style: 'cancel' }
+              ]
+            )}
+          />
+          <MenuItem
+            icon="cloud-download-outline"
+            iconColor="#3B82F6"
+            title="检查更新"
+            subtitle="当前版本 v1.0.0"
+            onPress={handleUpgrade}
           />
           <MenuItem
             icon="information-circle-outline"
@@ -222,14 +247,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   referralTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  referralDesc: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.8)',
   },
   menuItem: {
     flexDirection: 'row',
