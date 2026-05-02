@@ -14,12 +14,12 @@ export const COLORS = {
 };
 
 export const FEATURES = [
-  { id: 'media', name: '自媒体运营', icon: '📱', color: '#3B82F6', description: 'AI内容生成与发布' },
-  { id: 'recruitment', name: '招聘助手', icon: '👔', color: '#10B981', description: '智能招聘解决方案' },
-  { id: 'acquisition', name: '智能获客', icon: '🎯', color: '#F59E0B', description: '精准客户发现' },
-  { id: 'referral', name: '转介绍', icon: '🤝', color: '#8B5CF6', description: '推荐奖励系统' },
-  { id: 'materials', name: '素材库', icon: '📁', color: '#EC4899', description: '素材管理' },
-  { id: 'stats', name: '数据统计', icon: '📊', color: '#6366F1', description: '数据报表' },
+  { id: 'media', name: '自媒体运营', icon: 'grid', color: '#3B82F6', description: 'AI内容生成与发布' },
+  { id: 'recruitment', name: '招聘助手', icon: 'briefcase', color: '#10B981', description: '智能招聘解决方案' },
+  { id: 'acquisition', name: '智能获客', icon: 'search', color: '#F59E0B', description: '精准客户发现' },
+  { id: 'referral', name: '转介绍', icon: 'people', color: '#8B5CF6', description: '推荐奖励系统' },
+  { id: 'materials', name: '素材库', icon: 'folder', color: '#EC4899', description: '素材管理' },
+  { id: 'stats', name: '数据统计', icon: 'stats-chart', color: '#6366F1', description: '数据报表' },
 ];
 
 export const MOCK_USER = {
