@@ -1,4 +1,3 @@
-'use client';
 
 import AIFeatureTemplate from './AIFeatureTemplate';
 import { ContentCategory } from '../../services/content.service';
