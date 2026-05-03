@@ -98,34 +98,24 @@ export default function HomeScreen() {
         navigate('Materials');
         break;
       case 'Analytics':
-        // 数据统计 - 显示提示，跳转到Web端
-        Alert.alert('数据统计', '数据统计功能请在Web端查看', [
-          { text: '确定', style: 'default' }
-        ]);
+        // 数据统计
+        navigate('Statistics');
         break;
       case 'Media':
-        // 自媒体运营 - 跳转到Web端
-        Alert.alert('自媒体运营', '该功能正在开发中，敬请期待！', [
-          { text: '确定', style: 'default' }
-        ]);
+        // 自媒体运营 - 跳转到AI创作中心
+        navigate('Create');
         break;
       case 'Recruitment':
-        // 招聘助手 - 跳转到Web端
-        Alert.alert('招聘助手', '该功能正在开发中，敬请期待！', [
-          { text: '确定', style: 'default' }
-        ]);
+        // 招聘助手
+        navigate('Recruitment');
         break;
       case 'Acquisition':
-        // 智能获客 - 跳转到Web端
-        Alert.alert('智能获客', '该功能正在开发中，敬请期待！', [
-          { text: '确定', style: 'default' }
-        ]);
+        // 智能获客
+        navigate('Acquisition');
         break;
       case 'Referral':
-        // 推荐分享 - 跳转到个人中心
-        Alert.alert('推荐分享', '该功能正在开发中，敬请期待！', [
-          { text: '确定', style: 'default' }
-        ]);
+        // 推荐分享
+        navigate('Referral');
         break;
       case 'Messages':
         navigate('Messages');
