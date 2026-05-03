@@ -14,8 +14,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { authService } from '../../services/auth.service';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LoginScreen() {
+  const { setUser } = useAuth();
   const navigation = useNavigation<any>();
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState(''); // 注册时的昵称
@@ -63,7 +65,11 @@ export default function LoginScreen() {
     
     setLoading(true);
     try {
-      await authService.login({ phone, password });
+      const response = await authService.login({ phone, password });
+      // 使用AuthContext更新用户状态
+      if (setUser && response?.data?.user) {
+        setUser(response.data.user);
+      }
       Alert.alert('成功', '登录成功！', [
         { text: '确定', onPress: () => navigation.replace('Main') }
       ]);

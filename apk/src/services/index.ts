@@ -34,3 +34,4 @@ export {
   PLATFORMS,
 } from './content.service';
 export { referralService, type ReferralCode, type ReferralRecord, type ReferralStats } from './referral.service';
+export { checkForUpdate, getCurrentVersion, downloadAndInstall, type VersionInfo, type UpdateCheckResult } from './update.service';

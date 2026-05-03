@@ -9,6 +9,7 @@ import {
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { homeService, authService, TodayStats, ReferralStats } from '../services';
@@ -92,13 +93,52 @@ export default function HomeScreen() {
   };
 
   const navigateTo = (route: string) => {
-    if (route === 'Materials') {
-      navigate('Materials');
-    } else if (route === 'Analytics') {
-      // 跳转到Web端查看数据统计
-      navigate('MainTabs');
-    } else {
-      console.log('Navigate to:', route);
+    switch (route) {
+      case 'Materials':
+        // 跳转到素材库
+        navigate('Materials');
+        break;
+      case 'Analytics':
+        // 数据统计 - 显示提示，跳转到Web端
+        Alert.alert('数据统计', '数据统计功能请在Web端查看', [
+          { text: '确定', style: 'default' }
+        ]);
+        break;
+      case 'Media':
+        // 自媒体运营 - 跳转到Web端
+        Alert.alert('自媒体运营', '该功能正在开发中，敬请期待！', [
+          { text: '确定', style: 'default' }
+        ]);
+        break;
+      case 'Recruitment':
+        // 招聘助手 - 跳转到Web端
+        Alert.alert('招聘助手', '该功能正在开发中，敬请期待！', [
+          { text: '确定', style: 'default' }
+        ]);
+        break;
+      case 'Acquisition':
+        // 智能获客 - 跳转到Web端
+        Alert.alert('智能获客', '该功能正在开发中，敬请期待！', [
+          { text: '确定', style: 'default' }
+        ]);
+        break;
+      case 'Referral':
+        // 推荐分享 - 跳转到个人中心
+        Alert.alert('推荐分享', '该功能正在开发中，敬请期待！', [
+          { text: '确定', style: 'default' }
+        ]);
+        break;
+      case 'Messages':
+        navigate('Messages');
+        break;
+      case 'Settings':
+        navigate('Settings');
+        break;
+      case 'Create':
+        navigate('Create');
+        break;
+      default:
+        console.log('Navigate to:', route);
     }
   };
 

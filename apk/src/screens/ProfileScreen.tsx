@@ -6,11 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
-  Alert,
   ActivityIndicator,
+  Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { authService, referralService, UserInfo, ReferralStats } from '../services';
+import { authService, referralService, updateService, UserInfo, ReferralStats } from '../services';
 import { useAppNavigation } from '../navigation/AppNavigator';
 
 interface MenuItemProps {
@@ -56,7 +57,6 @@ export default function ProfileScreen() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 获取用户信息
       let user = authService.getCurrentUser();
       if (!user && authService.isLoggedIn()) {
         try {
@@ -66,8 +66,6 @@ export default function ProfileScreen() {
         }
       }
       setUserInfo(user);
-
-      // 获取转介绍统计
       try {
         const stats = await referralService.getStats();
         setReferralStats(stats);
@@ -98,7 +96,6 @@ export default function ProfileScreen() {
               console.log('登出请求失败');
             } finally {
               setLoggingOut(false);
-              // 跳转到登录页
               navigate('Login');
             }
           }
@@ -107,20 +104,35 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleUpgrade = () => {
-    Alert.alert(
-      '检查更新',
-      '当前已是最新版本 v1.0.0',
-      [{ text: '确定' }]
-    );
+  const handleUpgrade = async () => {
+    try {
+      const result = await updateService.checkForUpdate();
+      if (result.hasUpdate) {
+        Alert.alert(
+          '发现新版本',
+          `新版本: v${result.latestVersion}\n更新内容:\n${result.releaseNotes || '暂无更新说明'}\n\n是否立即更新?`,
+          [
+            { text: '稍后', style: 'cancel' },
+            { 
+              text: '立即更新', 
+              onPress: () => updateService.downloadUpdate()
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          '已是最新版本',
+          `当前版本: v${result.currentVersion}`,
+          [{ text: '确定' }]
+        );
+      }
+    } catch (error) {
+      Alert.alert('检查更新失败', '请稍后重试', [{ text: '确定' }]);
+    }
   };
 
   const handleReferral = () => {
-    Alert.alert(
-      '转介绍',
-      `累计邀请: ${referralStats?.totalInvites || 0}人\n有效邀请: ${referralStats?.activeInvites || 0}人`,
-      [{ text: '确定' }]
-    );
+    navigate?.('Referral');
   };
 
   const handleServiceExpiry = () => {
@@ -131,15 +143,35 @@ export default function ProfileScreen() {
   };
 
   const handleHelpDoc = () => {
-    Alert.alert('帮助文档', '功能使用说明和常见问题解答', [{ text: '确定' }]);
+    Linking.openURL('https://help.zhishuai.com');
   };
 
   const handleCustomerService = () => {
-    Alert.alert('联系客服', '客服电话：400-xxx-xxxx\n工作时间：9:00-18:00', [{ text: '确定' }]);
+    Alert.alert(
+      '联系客服',
+      '请选择联系方式：',
+      [
+        { text: '拨打热线', onPress: () => Linking.openURL('tel:400-xxx-xxxx') },
+        { text: '发送邮件', onPress: () => Linking.openURL('mailto:support@zhishuai.com') },
+        { text: '取消', style: 'cancel' }
+      ]
+    );
   };
 
   const handleFeatureRequest = () => {
-    Alert.alert('功能申请', '向代理商申请开通新功能', [{ text: '确定' }]);
+    Alert.alert('功能申请', '请联系代理商申请开通新功能', [{ text: '确定' }]);
+  };
+
+  const handleHelpFeedback = () => {
+    Alert.alert(
+      '帮助与反馈',
+      '请选择：',
+      [
+        { text: '帮助文档', onPress: handleHelpDoc },
+        { text: '联系客服', onPress: handleCustomerService },
+        { text: '取消', style: 'cancel' }
+      ]
+    );
   };
 
   const formatDate = (dateStr: string) => {
@@ -165,7 +197,6 @@ export default function ProfileScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
       
-      {/* 头部 */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
@@ -181,7 +212,6 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 转介绍入口 */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.referralCard} onPress={handleReferral}>
             <View style={styles.referralLeft}>
@@ -197,7 +227,6 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 功能菜单 */}
         <View style={styles.section}>
           <MenuItem
             icon="settings-outline"
@@ -217,15 +246,7 @@ export default function ProfileScreen() {
             iconColor="#3B82F6"
             title="帮助与反馈"
             subtitle="帮助文档、联系客服"
-            onPress={() => Alert.alert(
-              '帮助与反馈',
-              '请选择：',
-              [
-                { text: '帮助文档', onPress: handleHelpDoc },
-                { text: '联系客服', onPress: handleCustomerService },
-                { text: '取消', style: 'cancel' }
-              ]
-            )}
+            onPress={handleHelpFeedback}
           />
           <MenuItem
             icon="cloud-download-outline"
@@ -242,7 +263,6 @@ export default function ProfileScreen() {
           />
         </View>
 
-        {/* 退出登录 */}
         <TouchableOpacity 
           style={styles.logoutButton}
           onPress={handleLogout}
