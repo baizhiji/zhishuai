@@ -12,6 +12,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { AI_CREATION_TYPES } from '../constants';
 import { useAppNavigation } from '../context/NavigationContext';
 
+// 类型ID到ContentCategory的映射
+const TYPE_TO_CATEGORY: Record<string, string> = {
+  'title': 'TITLE',
+  'tags': 'TAGS',
+  'copywriting': 'COPYWRITING',
+  'imageToText': 'IMAGE_TO_TEXT',
+  'xiaohongshu': 'XIAOHONGSHU',
+  'image': 'IMAGE',
+  'ecommerce': 'ECOMMERCE',
+  'video': 'VIDEO',
+  'videoAnalysis': 'VIDEO_ANALYSIS',
+  'digitalHuman': 'DIGITAL_HUMAN',
+};
+
 // 屏幕映射 - 根据创作类型ID（匹配Web端"内容自动生成"）
 const SCREEN_MAP: Record<string, string> = {
   'title': 'AIFeature',
@@ -38,9 +52,10 @@ export default function CreateScreen() {
 
   const handleTypePress = (typeId: string) => {
     const screen = SCREEN_MAP[typeId];
+    const category = TYPE_TO_CATEGORY[typeId];
     if (screen) {
       if (screen === 'AIFeature') {
-        navigate('AIFeature', { type: typeId });
+        navigate('AIFeature', { category: category || typeId });
       } else {
         navigate(screen);
       }
