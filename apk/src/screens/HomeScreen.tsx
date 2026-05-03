@@ -23,12 +23,12 @@ interface FeatureItem {
 }
 
 const FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#3B82F6', route: 'Media' },
-  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#3B82F6', route: 'Recruitment' },
-  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#3B82F6', route: 'Acquisition' },
-  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#3B82F6', route: 'Referral' },
-  { id: 'materials', title: '素材库', icon: 'folder-outline', color: '#3B82F6', route: 'Materials' },
-  { id: 'analytics', title: '数据统计', icon: 'bar-chart-outline', color: '#3B82F6', route: 'Analytics' },
+  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#2563EB', route: 'Media' },
+  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', route: 'Acquisition' },
+  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Referral' },
+  { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', route: 'Analytics' },
 ];
 
 export default function HomeScreen() {
