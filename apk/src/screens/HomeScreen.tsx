@@ -29,10 +29,6 @@ const FEATURES: FeatureItem[] = [
   { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Share' },
   { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', route: 'Materials' },
   { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', route: 'Statistics' },
-  { id: 'crm', title: '客户管理', icon: 'people-outline', color: '#EC4899', route: 'CRM' },
-  { id: 'marketing', title: '营销中心', icon: 'megaphone-outline', color: '#EF4444', route: 'Marketing' },
-  { id: 'ai', title: 'AI助手', icon: 'bulb-outline', color: '#8B5CF6', route: 'AI' },
-  { id: 'dashboard', title: '数据大盘', icon: 'pulse-outline', color: '#14B8A6', route: 'Dashboard' },
 ];
 
 export default function HomeScreen() {
