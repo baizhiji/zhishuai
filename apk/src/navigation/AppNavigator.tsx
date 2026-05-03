@@ -37,6 +37,10 @@ import DigitalHumanScreen from '../screens/ai/DigitalHumanScreen';
 import AICopyScreen from '../screens/ai/AICopyScreen';
 import AIEditScreen from '../screens/ai/AIEditScreen';
 import VoiceCloneScreen from '../screens/ai/VoiceCloneScreen';
+import DashboardScreen from '../screens/DashboardScreen';
+import AIScreen from '../screens/AIScreen';
+import CRMScreen from '../screens/CRMScreen';
+import MarketingScreen from '../screens/MarketingScreen';
 
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
@@ -55,6 +59,10 @@ export type RootStackParamList = {
   Statistics: undefined;
   Recruitment: undefined;
   Acquisition: undefined;
+  Dashboard: undefined;
+  AIAssistant: undefined;
+  CRM: undefined;
+  Marketing: undefined;
   AIFeature: { category?: string };
   AIImage: undefined;
   AIVideo: { category?: string };
@@ -86,6 +94,10 @@ const SCREEN_TITLES: Record<string, string> = {
   AICopy: 'AI文案',
   AIEdit: 'AI剪辑',
   VoiceClone: '声音克隆',
+  Dashboard: '数据大盘',
+  AIAssistant: 'AI助手',
+  CRM: '客户管理',
+  Marketing: '营销中心',
 };
 
 // Tab导航组件
@@ -286,6 +298,26 @@ const AppNavigator = () => {
             name="VoiceClone"
             component={VoiceCloneScreen}
             options={{ title: '声音克隆' }}
+          />
+          <RootStack.Screen
+            name="Dashboard"
+            component={DashboardScreen}
+            options={{ title: '数据大盘' }}
+          />
+          <RootStack.Screen
+            name="AIAssistant"
+            component={AIScreen}
+            options={{ title: 'AI助手' }}
+          />
+          <RootStack.Screen
+            name="CRM"
+            component={CRMScreen}
+            options={{ title: '客户管理' }}
+          />
+          <RootStack.Screen
+            name="Marketing"
+            component={MarketingScreen}
+            options={{ title: '营销中心' }}
           />
         </RootStack.Navigator>
       </NavigationContainer>
