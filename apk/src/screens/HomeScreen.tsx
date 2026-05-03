@@ -23,7 +23,7 @@ interface FeatureItem {
 }
 
 const FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#2563EB', route: 'Materials' },
+  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#2563EB', route: 'Create' },
   { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', route: 'Acquisition' },
   { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Referral' },
@@ -94,37 +94,29 @@ export default function HomeScreen() {
   const navigateTo = (route: string) => {
     switch (route) {
       case 'Materials':
-        // 跳转到素材库
         navigate('Materials');
         break;
-      case 'Analytics':
-        // 数据统计
+      case 'Statistics':
         navigate('Statistics');
         break;
-      case 'Media':
-        // 自媒体运营 - 跳转到AI创作中心
+      case 'Create':
         navigate('Create');
         break;
       case 'Recruitment':
-        // 招聘助手
         navigate('Recruitment');
         break;
       case 'Acquisition':
-        // 智能获客
         navigate('Acquisition');
         break;
       case 'Referral':
-        // 推荐分享
         navigate('Referral');
         break;
       case 'Messages':
         navigate('Messages');
         break;
       case 'Settings':
+      case 'settings':
         navigate('Settings');
-        break;
-      case 'Create':
-        navigate('Create');
         break;
       default:
         console.log('Navigate to:', route);

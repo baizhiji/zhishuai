@@ -35,19 +35,15 @@ const CATEGORIES = ['全部', '图片', '视频', '文案'];
 // 从本地存储加载素材
 const loadMaterials = (): Material[] => {
   const saved = Storage.get('materials');
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return getMockData();
-    }
+  if (saved && Array.isArray(saved)) {
+    return saved;
   }
   return getMockData();
 };
 
 // 保存素材到本地存储
 const saveMaterials = (materials: Material[]) => {
-  Storage.set('materials', JSON.stringify(materials));
+  Storage.set('materials', materials);
 };
 
 const getMockData = (): Material[] => [
