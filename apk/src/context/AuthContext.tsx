@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Storage } from '../utils/tokenStorage';
+import { TokenStorage as Storage } from '../utils/tokenStorage';
 
 interface User {
   id: string;
