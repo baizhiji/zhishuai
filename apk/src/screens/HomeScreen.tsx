@@ -92,35 +92,9 @@ export default function HomeScreen() {
   };
 
   const navigateTo = (route: string) => {
-    switch (route) {
-      case 'Materials':
-        navigate('Materials');
-        break;
-      case 'Statistics':
-        navigate('Statistics');
-        break;
-      case 'Create':
-        navigate('Create');
-        break;
-      case 'Recruitment':
-        navigate('Recruitment');
-        break;
-      case 'Acquisition':
-        navigate('Acquisition');
-        break;
-      case 'Share':
-        navigate('Share');
-        break;
-      case 'Messages':
-        navigate('Messages');
-        break;
-      case 'Settings':
-      case 'settings':
-        navigate('Settings');
-        break;
-      default:
-        console.log('Navigate to:', route);
-    }
+    // 统一转换为标题大小写格式
+    const normalizedRoute = route.charAt(0).toUpperCase() + route.slice(1).toLowerCase();
+    navigate(normalizedRoute);
   };
 
   if (loading) {

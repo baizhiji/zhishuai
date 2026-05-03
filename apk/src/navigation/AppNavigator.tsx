@@ -55,9 +55,9 @@ export type RootStackParamList = {
   Statistics: undefined;
   Recruitment: undefined;
   Acquisition: undefined;
-  AIFeature: { type?: string };
+  AIFeature: { category?: string };
   AIImage: undefined;
-  AIVideo: { type?: string };
+  AIVideo: { category?: string };
   DigitalHuman: undefined;
   AICopy: undefined;
   AIEdit: undefined;

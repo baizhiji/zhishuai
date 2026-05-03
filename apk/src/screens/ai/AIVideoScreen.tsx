@@ -36,7 +36,11 @@ interface Props {
 }
 
 export default function AIVideoScreen({ navigation, route }: Props) {
-  const category = route.params?.category || ContentCategory.VIDEO
+  // 确保category是有效的枚举值
+  const rawCategory = route.params?.category || ContentCategory.VIDEO
+  const category = Object.values(ContentCategory).includes(rawCategory as ContentCategory) 
+    ? rawCategory as ContentCategory 
+    : ContentCategory.VIDEO
 
   const [description, setDescription] = useState('')
   const [style, setStyle] = useState('专业')

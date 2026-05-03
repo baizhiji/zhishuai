@@ -99,7 +99,11 @@ interface Props {
 }
 
 export default function AIFeatureScreen({ navigation, route }: Props) {
-  const category = route.params?.category || ContentCategory.COPYWRITING
+  // 确保category是有效的枚举值
+  const rawCategory = route.params?.category || ContentCategory.COPYWRITING
+  const category = Object.values(ContentCategory).includes(rawCategory as ContentCategory) 
+    ? rawCategory as ContentCategory 
+    : ContentCategory.COPYWRITING
   const config = categoryConfigs[category] || categoryConfigs[ContentCategory.COPYWRITING]
 
   const [description, setDescription] = useState('')
