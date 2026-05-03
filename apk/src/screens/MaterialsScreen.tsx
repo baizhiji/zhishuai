@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { Storage } from '../utils/tokenStorage';
+import { TokenStorage } from '../utils/tokenStorage';
 
 const { width } = Dimensions.get('window');
 const COLUMN = 3;
@@ -32,20 +32,7 @@ interface Material {
 
 const CATEGORIES = ['全部', '图片', '视频', '文案'];
 
-// 从本地存储加载素材
-const loadMaterials = (): Material[] => {
-  const saved = Storage.get('materials');
-  if (saved && Array.isArray(saved)) {
-    return saved;
-  }
-  return getMockData();
-};
-
-// 保存素材到本地存储
-const saveMaterials = (materials: Material[]) => {
-  Storage.set('materials', materials);
-};
-
+// Mock数据
 const getMockData = (): Material[] => [
   { id: '1', type: 'image', thumbnail: 'https://picsum.photos/200', title: '产品展示图', time: '2小时前' },
   { id: '2', type: 'video', thumbnail: 'https://picsum.photos/201', title: '宣传视频', time: '5小时前' },
@@ -58,16 +45,51 @@ const getMockData = (): Material[] => [
   { id: '9', type: 'image', thumbnail: 'https://picsum.photos/206', title: '新品图册', time: '5天前' },
 ];
 
+// 存储key
+const STORAGE_KEY = 'app_materials';
+
 export default function MaterialsScreen({ navigation }: { navigation: any }) {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('全部');
   const [searchText, setSearchText] = useState('');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [materials, setMaterials] = useState<Material[]>(loadMaterials);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [detailModal, setDetailModal] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+
+  // 初始化加载数据
+  useEffect(() => {
+    loadMaterials();
+  }, []);
+
+  // 加载素材
+  const loadMaterials = async () => {
+    try {
+      const storage = new TokenStorage();
+      const saved = await storage.getUserInfo();
+      // 使用简单的内存缓存
+      const cached = global['__materials__'];
+      if (cached) {
+        setMaterials(cached);
+      } else {
+        const data = getMockData();
+        global['__materials__'] = data;
+        setMaterials(data);
+      }
+    } catch (error) {
+      console.log('加载素材失败，使用Mock数据:', error);
+      const data = getMockData();
+      global['__materials__'] = data;
+      setMaterials(data);
+    }
+  };
+
+  // 保存素材
+  const saveMaterials = (data: Material[]) => {
+    global['__materials__'] = data;
+  };
 
   const filteredMaterials = materials.filter(item => {
     const matchCategory = activeTab === '全部' || 
@@ -111,7 +133,7 @@ export default function MaterialsScreen({ navigation }: { navigation: any }) {
     setRefreshing(true);
     // 模拟从Web端同步
     setTimeout(() => {
-      setMaterials(loadMaterials());
+      loadMaterials();
       setRefreshing(false);
     }, 1000);
   }, []);
@@ -260,57 +282,61 @@ export default function MaterialsScreen({ navigation }: { navigation: any }) {
         contentContainerStyle={styles.listContent}
         columnWrapperStyle={styles.row}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.primary]}
+            tintColor={theme.primary}
+          />
         }
         ListEmptyComponent={
-          <View style={styles.empty}>
+          <View style={styles.emptyContainer}>
             <Ionicons name="images-outline" size={64} color={theme.textSecondary} />
-            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>暂无素材</Text>
+            <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
+              暂无{activeTab === '全部' ? '' : activeTab}素材
+            </Text>
+            <TouchableOpacity style={[styles.uploadBtn, { backgroundColor: theme.primary }]} onPress={handleUpload}>
+              <Text style={styles.uploadBtnText}>上传素材</Text>
+            </TouchableOpacity>
           </View>
         }
       />
 
       {/* 底部操作栏 */}
-      <View style={[styles.bottomBar, { backgroundColor: theme.card, borderColor: theme.border }]}>
-        {selectMode ? (
-          <>
-            <TouchableOpacity style={styles.bottomBtn} onPress={() => {
-              setSelectMode(false);
-              setSelectedItems([]);
-            }}>
-              <Ionicons name="close" size={22} color={theme.error} />
-              <Text style={[styles.bottomBtnText, { color: theme.error }]}>取消</Text>
-            </TouchableOpacity>
-            <Text style={[styles.selectedCount, { color: theme.textSecondary }]}>
-              已选 {selectedItems.length} 项
+      {selectMode && (
+        <View style={[styles.bottomBar, { backgroundColor: theme.card }]}>
+          <TouchableOpacity style={styles.bottomBtn} onPress={() => {
+            setSelectMode(false);
+            setSelectedItems([]);
+          }}>
+            <Text style={[styles.bottomBtnText, { color: theme.text }]}>取消</Text>
+          </TouchableOpacity>
+          <Text style={[styles.selectedCount, { color: theme.textSecondary }]}>
+            已选{selectedItems.length}项
+          </Text>
+          <TouchableOpacity 
+            style={[styles.bottomBtn, styles.deleteBtn]} 
+            onPress={deleteSelected}
+            disabled={selectedItems.length === 0}
+          >
+            <Text style={[styles.bottomBtnText, { color: selectedItems.length > 0 ? '#FF3B30' : theme.textSecondary }]}>
+              删除
             </Text>
-            <TouchableOpacity style={styles.bottomBtn} onPress={deleteSelected}>
-              <Ionicons name="trash-outline" size={22} color={theme.error} />
-              <Text style={[styles.bottomBtnText, { color: theme.error }]}>删除</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <TouchableOpacity style={styles.bottomBtn} onPress={handleUpload}>
-              <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
-              <Text style={[styles.bottomBtnText, { color: theme.primary }]}>上传</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.bottomBtn} onPress={onRefresh}>
-              <Ionicons name="sync-outline" size={22} color={theme.primary} />
-              <Text style={[styles.bottomBtnText, { color: theme.primary }]}>同步</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.bottomBtn} onPress={() => {
-              const webUrl = 'https://zhishuai.com/materials';
-              Alert.alert('Web端素材库', '链接：\n' + webUrl);
-            }}>
-              <Ionicons name="browsers-outline" size={22} color={theme.primary} />
-              <Text style={[styles.bottomBtnText, { color: theme.primary }]}>Web端</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* 详情弹窗 */}
+      {/* 悬浮上传按钮 */}
+      {!selectMode && (
+        <TouchableOpacity
+          style={[styles.fab, { backgroundColor: theme.primary }]}
+          onPress={handleUpload}
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
+      )}
+
+      {/* 素材详情弹窗 */}
       <Modal
         visible={detailModal}
         animationType="slide"
@@ -320,40 +346,59 @@ export default function MaterialsScreen({ navigation }: { navigation: any }) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>{selectedMaterial?.title}</Text>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>
+                {selectedMaterial?.title}
+              </Text>
               <TouchableOpacity onPress={() => setDetailModal(false)}>
                 <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
-            
-            {selectedMaterial?.type === 'text' ? (
-              <View style={[styles.textContent, { backgroundColor: theme.background }]}>
-                <Text style={[styles.contentText, { color: theme.text }]}>
-                  {selectedMaterial.content || '暂无内容'}
+
+            {selectedMaterial && (
+              <View style={styles.modalBody}>
+                {selectedMaterial.type === 'image' || selectedMaterial.type === 'video' ? (
+                  <Image
+                    source={{ uri: selectedMaterial.thumbnail }}
+                    style={styles.detailImage}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View style={[styles.textContent, { backgroundColor: theme.primaryLight }]}>
+                    <Text style={[styles.textContentText, { color: theme.text }]}>
+                      {selectedMaterial.content || '暂无内容'}
+                    </Text>
+                  </View>
+                )}
+
+                <Text style={[styles.detailTime, { color: theme.textSecondary }]}>
+                  上传时间：{selectedMaterial.time}
                 </Text>
+
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { borderColor: theme.primary }]}
+                    onPress={() => handleDownload(selectedMaterial)}
+                  >
+                    <Ionicons name="download-outline" size={20} color={theme.primary} />
+                    <Text style={[styles.actionBtnText, { color: theme.primary }]}>下载</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { borderColor: theme.primary }]}
+                    onPress={() => handleShare(selectedMaterial)}
+                  >
+                    <Ionicons name="share-outline" size={20} color={theme.primary} />
+                    <Text style={[styles.actionBtnText, { color: theme.primary }]}>分享</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionBtn, { borderColor: theme.primary }]}
+                    onPress={() => handleOpenWeb(selectedMaterial)}
+                  >
+                    <Ionicons name="globe-outline" size={20} color={theme.primary} />
+                    <Text style={[styles.actionBtnText, { color: theme.primary }]}>Web端</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            ) : (
-              <Image
-                source={{ uri: selectedMaterial?.thumbnail }}
-                style={styles.detailImage}
-                resizeMode="contain"
-              />
             )}
-            
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.primaryLight }]} onPress={() => handleDownload(selectedMaterial!)}>
-                <Ionicons name="download-outline" size={20} color={theme.primary} />
-                <Text style={[styles.actionText, { color: theme.primary }]}>下载</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.primaryLight }]} onPress={() => handleShare(selectedMaterial!)}>
-                <Ionicons name="share-outline" size={20} color={theme.primary} />
-                <Text style={[styles.actionText, { color: theme.primary }]}>分享</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.primaryLight }]} onPress={() => { setDetailModal(false); handleOpenWeb(selectedMaterial!); }}>
-                <Ionicons name="browsers-outline" size={20} color={theme.primary} />
-                <Text style={[styles.actionText, { color: theme.primary }]}>Web端</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
       </Modal>
@@ -362,22 +407,43 @@ export default function MaterialsScreen({ navigation }: { navigation: any }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: {
+    flex: 1,
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     margin: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
+    padding: 10,
+    borderRadius: 8,
     borderWidth: 1,
   },
-  searchInput: { flex: 1, marginLeft: 8, fontSize: 15 },
-  tabs: { flexDirection: 'row', paddingHorizontal: 16, marginBottom: 12, gap: 8 },
-  tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  tabText: { fontSize: 14, fontWeight: '500' },
-  listContent: { paddingHorizontal: 16, paddingBottom: 100 },
-  row: { justifyContent: 'space-between' },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  tabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  tabText: {
+    fontSize: 13,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
+  row: {
+    justifyContent: 'space-between',
+  },
   materialItem: {
     width: ITEM_WIDTH,
     marginBottom: 12,
@@ -385,7 +451,33 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
   },
-  materialItemSelected: { borderWidth: 2 },
+  thumbnail: {
+    width: '100%',
+    height: ITEM_WIDTH,
+  },
+  videoBadge: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 10,
+    padding: 4,
+  },
+  textPreview: {
+    height: ITEM_WIDTH,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8,
+  },
+  textLabel: {
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  itemTitle: {
+    fontSize: 11,
+    padding: 6,
+  },
   selectBadge: {
     position: 'absolute',
     top: 4,
@@ -397,49 +489,126 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1,
   },
-  thumbnail: { width: '100%', height: ITEM_WIDTH, backgroundColor: '#F0F0F0' },
-  textPreview: {
-    height: ITEM_WIDTH,
+  emptyContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 8,
+    paddingTop: 100,
   },
-  textLabel: { fontSize: 12, textAlign: 'center', marginTop: 8 },
-  videoBadge: {
-    position: 'absolute',
-    top: 4,
-    left: 4,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+  emptyText: {
+    fontSize: 14,
+    marginTop: 12,
+    marginBottom: 20,
   },
-  itemTitle: { fontSize: 12, padding: 6, textAlign: 'center' },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 15, marginTop: 12 },
+  uploadBtn: {
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  uploadBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingBottom: 30,
+    justifyContent: 'space-between',
+    padding: 16,
+    paddingBottom: 32,
     borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
   },
-  bottomBtn: { alignItems: 'center', paddingHorizontal: 20 },
-  bottomBtnText: { fontSize: 12, marginTop: 4 },
-  selectedCount: { fontSize: 14 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 18, fontWeight: '600' },
-  detailImage: { width: '100%', height: 300, borderRadius: 12 },
-  textContent: { padding: 16, borderRadius: 12, minHeight: 150 },
-  contentText: { fontSize: 15, lineHeight: 24 },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
-  actionBtn: { alignItems: 'center', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10 },
-  actionText: { fontSize: 13, marginTop: 4 },
+  bottomBtn: {
+    padding: 8,
+  },
+  deleteBtn: {
+    marginLeft: 'auto',
+  },
+  bottomBtnText: {
+    fontSize: 14,
+  },
+  selectedCount: {
+    fontSize: 13,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 32,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    flex: 1,
+  },
+  modalBody: {
+    padding: 16,
+  },
+  detailImage: {
+    width: '100%',
+    height: 250,
+    borderRadius: 8,
+  },
+  textContent: {
+    padding: 20,
+    borderRadius: 8,
+    minHeight: 150,
+  },
+  textContentText: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  detailTime: {
+    fontSize: 12,
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  actionBtnText: {
+    fontSize: 13,
+    marginLeft: 4,
+  },
 });

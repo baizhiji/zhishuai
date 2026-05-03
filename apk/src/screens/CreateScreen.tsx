@@ -16,7 +16,7 @@ import { ContentCategory } from '../services/content.service';
 // 类型ID到ContentCategory的映射（使用枚举的小写字符串值）
 const TYPE_TO_CATEGORY: Record<string, ContentCategory> = {
   'title': ContentCategory.TITLE,
-  'tags': ContentCategory.TAGS,
+  'topics': ContentCategory.TAGS,
   'copywriting': ContentCategory.COPYWRITING,
   'imageToText': ContentCategory.IMAGE_TO_TEXT,
   'xiaohongshu': ContentCategory.XIAOHONGSHU,
