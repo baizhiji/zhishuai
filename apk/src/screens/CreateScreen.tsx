@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AI_CREATION_TYPES } from '../constants';
-import { useAppNavigation } from '../context/NavigationContext';
+import { useAppNavigation } from '../navigation/AppNavigator';
 
 // 屏幕映射 - 根据创作类型ID（匹配Web端"内容自动生成"）
 const SCREEN_MAP: Record<string, string> = {

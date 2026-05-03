@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+import React, { useRef, useCallback, useEffect, useState, useContext } from 'react';
 import {
   NavigationContainer,
   NavigationContainerRef,
@@ -61,10 +61,16 @@ interface NavigationContextType {
 }
 
 // 创建导航上下文
-export const NavigationContext = React.createContext<NavigationContextType>({
+const NavigationContextRaw = React.createContext<NavigationContextType>({
   navigate: () => {},
   goBack: () => {},
 });
+
+// 导出导航上下文
+export const NavigationContext = NavigationContextRaw;
+
+// 导出useAppNavigation hook
+export const useAppNavigation = () => useContext(NavigationContextRaw);
 
 // 页面标题
 const SCREEN_TITLES: Record<string, string> = {
