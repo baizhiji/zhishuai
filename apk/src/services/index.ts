@@ -35,3 +35,4 @@ export {
 } from './content.service';
 export { referralService, type ReferralCode, type ReferralRecord, type ReferralStats } from './referral.service';
 export { checkForUpdate, getCurrentVersion, downloadAndInstall, type VersionInfo, type UpdateCheckResult } from './update.service';
+export { notificationService, type NotificationData, type ScheduledNotification } from './notification.service';

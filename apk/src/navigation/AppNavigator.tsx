@@ -10,6 +10,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
+// 导入Theme
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
+
 // 导入页面
 import HomeScreen from '../screens/HomeScreen';
 import CreateScreen from '../screens/CreateScreen';
@@ -51,6 +54,18 @@ export type MainTabParamList = {
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
 
+// 导航上下文类型
+interface NavigationContextType {
+  navigate: (name: string, params?: any) => void;
+  goBack: () => void;
+}
+
+// 创建导航上下文
+export const NavigationContext = React.createContext<NavigationContextType>({
+  navigate: () => {},
+  goBack: () => {},
+});
+
 // 页面标题
 const SCREEN_TITLES: Record<string, string> = {
   Settings: '设置',
@@ -66,6 +81,7 @@ const SCREEN_TITLES: Record<string, string> = {
 // Tab导航组件
 const MainTabs = () => {
   const navigation = useNavigation<any>();
+  const { theme } = useTheme();
 
   return (
     <MainTab.Navigator
@@ -85,11 +101,11 @@ const MainTabs = () => {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#3B82F6',
-        tabBarInactiveTintColor: '#94A3B8',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E2E8F0',
+          backgroundColor: theme.card,
+          borderTopColor: theme.border,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
@@ -119,6 +135,12 @@ const MainTabs = () => {
   );
 };
 
+// StatusBar包装组件
+const StatusBarWrapper = () => {
+  const { theme, isDark } = useTheme();
+  return <StatusBar style={isDark ? 'light' : 'dark'} />;
+};
+
 // 主导航组件
 const AppNavigator = () => {
   const { isLoggedIn, isLoading } = useAuth();
@@ -140,9 +162,6 @@ const AppNavigator = () => {
     navigationRef.current?.goBack();
   }, []);
 
-  // 导航上下文
-  const NavigationContext = React.createContext({ navigate, goBack });
-
   // 加载中显示
   if (isLoading) {
     return (
@@ -154,29 +173,30 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContext.Provider value={{ navigate, goBack }}>
-      <NavigationContainer ref={navigationRef}>
-        <StatusBar style="dark" />
-        <RootStack.Navigator
-          initialRouteName={initialRoute as any}
-          screenOptions={({ route }) => ({
-            headerStyle: { backgroundColor: '#EFF6FF' },
-            headerTintColor: '#1E3A5F',
-            headerTitleStyle: { fontWeight: '600' },
-            headerTitle: SCREEN_TITLES[route.name] || '',
-            headerShadowVisible: false,
-          })}
-        >
-          <RootStack.Screen
-            name="MainTabs"
-            component={MainTabs}
-            options={{ headerShown: false }}
-          />
-          <RootStack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
+    <ThemeProvider>
+      <StatusBarWrapper />
+      <NavigationContext.Provider value={{ navigate, goBack }}>
+        <NavigationContainer ref={navigationRef}>
+          <RootStack.Navigator
+            initialRouteName={initialRoute as any}
+            screenOptions={({ route }) => ({
+              headerStyle: { backgroundColor: '#EFF6FF' },
+              headerTintColor: '#1E3A5F',
+              headerTitleStyle: { fontWeight: '600' },
+              headerTitle: SCREEN_TITLES[route.name] || '',
+              headerShadowVisible: false,
+            })}
+          >
+            <RootStack.Screen
+              name="MainTabs"
+              component={MainTabs}
+              options={{ headerShown: false }}
+            />
+            <RootStack.Screen
+              name="Login"
+              component={LoginScreen}
+              options={{ headerShown: false }}
+            />
           <RootStack.Screen
             name="Settings"
             component={SettingsScreen}
@@ -220,6 +240,7 @@ const AppNavigator = () => {
         </RootStack.Navigator>
       </NavigationContainer>
     </NavigationContext.Provider>
+    </ThemeProvider>
   );
 };
 
