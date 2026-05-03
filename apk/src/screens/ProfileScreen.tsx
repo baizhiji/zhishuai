@@ -258,8 +258,36 @@ export default function ProfileScreen() {
           <MenuItem
             icon="browsers-outline"
             iconColor="#3B82F6"
+            title="账号总览"
+            subtitle="套餐信息、用量统计"
+            onPress={() => navigate?.('AccountOverview')}
+          />
+          <MenuItem
+            icon="card-outline"
+            iconColor="#faad14"
+            title="订阅管理"
+            subtitle="套餐升级、续费"
+            onPress={() => navigate?.('Subscription')}
+          />
+          <MenuItem
+            icon="people-outline"
+            iconColor="#22C55E"
+            title="员工管理"
+            subtitle="添加员工、角色权限"
+            onPress={() => navigate?.('StaffManagement')}
+          />
+          <MenuItem
+            icon="link-outline"
+            iconColor="#3B82F6"
+            title="账号绑定"
+            subtitle="微信、抖音、小红书"
+            onPress={() => navigate?.('AccountManagement')}
+          />
+          <MenuItem
+            icon="browsers-outline"
+            iconColor="#64748B"
             title="Web端功能"
-            subtitle="素材库、AI创作、数据统计"
+            subtitle="更多功能请在Web端使用"
             onPress={handleWebFeatures}
           />
           <MenuItem

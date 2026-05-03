@@ -41,6 +41,9 @@ import DashboardScreen from '../screens/DashboardScreen';
 import AIScreen from '../screens/AIScreen';
 import CRMScreen from '../screens/CRMScreen';
 import MarketingScreen from '../screens/MarketingScreen';
+import AccountOverviewScreen from '../screens/AccountOverviewScreen';
+import SubscriptionScreen from '../screens/SubscriptionScreen';
+import StaffManagementScreen from '../screens/StaffManagementScreen';
 
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
@@ -52,6 +55,9 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Settings: undefined;
   AccountManagement: undefined;
+  AccountOverview: undefined;
+  Subscription: undefined;
+  StaffManagement: undefined;
   Materials: undefined;
   Messages: undefined;
   Referral: undefined;
@@ -98,6 +104,9 @@ const SCREEN_TITLES: Record<string, string> = {
   AIAssistant: 'AI助手',
   CRM: '客户管理',
   Marketing: '营销中心',
+  AccountOverview: '账号总览',
+  Subscription: '订阅管理',
+  StaffManagement: '员工管理',
 };
 
 // Tab导航组件
@@ -318,6 +327,21 @@ const AppNavigator = () => {
             name="Marketing"
             component={MarketingScreen}
             options={{ title: '营销中心' }}
+          />
+          <RootStack.Screen
+            name="AccountOverview"
+            component={AccountOverviewScreen}
+            options={{ title: '账号总览' }}
+          />
+          <RootStack.Screen
+            name="Subscription"
+            component={SubscriptionScreen}
+            options={{ title: '订阅管理' }}
+          />
+          <RootStack.Screen
+            name="StaffManagement"
+            component={StaffManagementScreen}
+            options={{ title: '员工管理' }}
           />
         </RootStack.Navigator>
       </NavigationContainer>

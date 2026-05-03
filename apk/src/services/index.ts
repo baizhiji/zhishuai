@@ -53,3 +53,12 @@ export {
   WEB_DEEP_LINKS,
   type WebPageKey,
 } from './webLink.service';
+export {
+  accountService,
+  type AccountInfo,
+  type UsageStat,
+  type UsageRecord,
+  type SubscriptionInfo,
+  type PlanInfo,
+  type StaffInfo,
+} from './account.service';
