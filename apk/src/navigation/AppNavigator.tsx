@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect, useState, useContext } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import {
   NavigationContainer,
   NavigationContainerRef,
@@ -12,6 +12,9 @@ import { StatusBar } from 'expo-status-bar';
 
 // 导入Theme
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+
+// 导入导航上下文（从独立文件，打破循环依赖）
+import { NavigationContext } from '../context/NavigationContext';
 
 // 导入页面
 import HomeScreen from '../screens/HomeScreen';
@@ -53,24 +56,6 @@ export type MainTabParamList = {
 
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 const MainTab = createBottomTabNavigator<MainTabParamList>();
-
-// 导航上下文类型
-interface NavigationContextType {
-  navigate: (name: string, params?: any) => void;
-  goBack: () => void;
-}
-
-// 创建导航上下文
-const NavigationContextRaw = React.createContext<NavigationContextType>({
-  navigate: () => {},
-  goBack: () => {},
-});
-
-// 导出导航上下文
-export const NavigationContext = NavigationContextRaw;
-
-// 导出useAppNavigation hook
-export const useAppNavigation = () => useContext(NavigationContextRaw);
 
 // 页面标题
 const SCREEN_TITLES: Record<string, string> = {
@@ -265,4 +250,3 @@ const styles = StyleSheet.create({
 });
 
 export default AppNavigator;
-export { NavigationContext };
