@@ -1,128 +1,70 @@
 /**
- * Web端跳转服务 - 从APK打开Web端特定页面
+ * Web端链接服务 - 从APK跳转到Web端特定页面
  */
-
-import { Linking, Alert, Share, Platform } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { Linking, Share, Alert } from 'react-native';
 
 // Web端基础URL
 const WEB_BASE_URL = 'https://zhishuai.com';
 
-// 深度链接配置
+// 深链接映射表
 export const WEB_DEEP_LINKS = {
-  home: '/',
-  materials: '/materials',
-  media: '/media',
-  recruitment: '/recruitment',
-  acquisition: '/acquisition',
-  profile: '/profile',
-  settings: '/settings',
-  ai: '/ai',
-  referrals: '/referrals',
-  statistics: '/statistics',
-} as const;
+  home: `${WEB_BASE_URL}/home`,
+  create: `${WEB_BASE_URL}/create`,
+  materials: `${WEB_BASE_URL}/materials`,
+  media: `${WEB_BASE_URL}/media`,
+  statistics: `${WEB_BASE_URL}/statistics`,
+  recruitment: `${WEB_BASE_URL}/recruitment`,
+  acquisition: `${WEB_BASE_URL}/acquisition`,
+  share: `${WEB_BASE_URL}/share`,
+  settings: `${WEB_BASE_URL}/settings`,
+  profile: `${WEB_BASE_URL}/profile`,
+  help: `${WEB_BASE_URL}/help`,
+  feedback: `${WEB_BASE_URL}/feedback`,
+  update: `${WEB_BASE_URL}/update`,
+};
 
 export type WebPageKey = keyof typeof WEB_DEEP_LINKS;
 
 /**
- * 跳转到Web端指定页面
+ * 打开Web端指定页面
  */
-export const openWebPage = async (
-  page: WebPageKey,
-  params?: Record<string, string>
-): Promise<boolean> => {
+export const openWebPage = async (page: WebPageKey): Promise<void> => {
+  const url = WEB_DEEP_LINKS[page];
+  if (!url) {
+    Alert.alert('错误', '未知的页面类型');
+    return;
+  }
+
   try {
-    let url = `${WEB_BASE_URL}${WEB_DEEP_LINKS[page]}`;
-    
-    // 添加查询参数
-    if (params && Object.keys(params).length > 0) {
-      const queryString = Object.entries(params)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-      url += `?${queryString}`;
+    const canOpen = await Linking.canOpenURL(url);
+    if (canOpen) {
+      await Linking.openURL(url);
+    } else {
+      // 如果无法打开，尝试复制链接
+      await Share.share({
+        message: `打开智枢AI：${url}`,
+        title: '智枢AI',
+      });
+      Alert.alert('提示', '已在浏览器中打开链接');
     }
-
-    // 使用系统浏览器打开
-    const result = await WebBrowser.openBrowserAsync(url, {
-      toolbarColor: '#1890FF',
-      controlsColor: '#1890FF',
-      dismissButtonStyle: 'done',
-      enableBarCollapsing: false,
-    });
-
-    return result.type === 'dismiss';
   } catch (error) {
     console.error('打开Web页面失败:', error);
-    Alert.alert('提示', '无法打开Web页面，请检查网络连接');
-    return false;
+    Alert.alert('错误', '无法打开链接，请稍后重试');
   }
 };
 
 /**
- * 分享Web链接
+ * 分享Web端链接
  */
-export const shareWebLink = async (
-  page: WebPageKey,
-  params?: Record<string, string>,
-  title?: string
-): Promise<boolean> => {
+export const shareWebLink = async (page?: WebPageKey): Promise<void> => {
+  const url = page ? WEB_DEEP_LINKS[page] : WEB_BASE_URL;
   try {
-    let url = `${WEB_BASE_URL}${WEB_DEEP_LINKS[page]}`;
-    
-    if (params && Object.keys(params).length > 0) {
-      const queryString = Object.entries(params)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join('&');
-      url += `?${queryString}`;
-    }
-
-    const result = await Share.share({
-      url,
-      title: title || '智枢AI',
-      message: Platform.OS === 'ios' ? undefined : `智枢AI - ${title || '分享链接'}\n${url}`,
+    await Share.share({
+      message: `体验智枢AI SaaS系统：${url}`,
+      title: '智枢AI',
+      url: url,
     });
-
-    return result.action === Share.sharedAction;
   } catch (error) {
     console.error('分享失败:', error);
-    return false;
   }
-};
-
-/**
- * 获取当前App版本对应的Web端页面URL
- */
-export const getWebPageUrl = (
-  page: WebPageKey,
-  params?: Record<string, string>
-): string => {
-  let url = `${WEB_BASE_URL}${WEB_DEEP_LINKS[page]}`;
-  
-  if (params && Object.keys(params).length > 0) {
-    const queryString = Object.entries(params)
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-      .join('&');
-    url += `?${queryString}`;
-  }
-
-  return url;
-};
-
-/**
- * 检查是否可以处理某个URL
- */
-export const canOpenUrl = async (url: string): Promise<boolean> => {
-  try {
-    const supported = await Linking.canOpenURL(url);
-    return supported;
-  } catch {
-    return false;
-  }
-};
-
-/**
- * 获取分享文本（用于复制）
- */
-export const getShareText = (page: WebPageKey, params?: Record<string, string>): string => {
-  return getWebPageUrl(page, params);
 };
