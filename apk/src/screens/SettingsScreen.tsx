@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
+import { useAppNavigation } from '../context/NavigationContext';
 
 interface SettingItem {
   id: string;
@@ -32,6 +33,7 @@ interface SettingSection {
 
 export default function SettingsScreen() {
   const { theme, themeMode, setThemeMode, isDark } = useTheme();
+  const { navigate } = useAppNavigation();
   const [notifications, setNotifications] = useState(true);
   const [sound, setSound] = useState(false);
   const [darkModeModalVisible, setDarkModeModalVisible] = useState(false);
@@ -67,6 +69,8 @@ export default function SettingsScreen() {
           { text: '确定', style: 'destructive', onPress: () => {} },
         ]
       );
+    } else if (item.type === 'navigate' && item.id === 'matrix') {
+      navigate?.('AccountManagement');
     } else {
       Alert.alert(item.title, `跳转到${item.title}页面`);
     }
@@ -171,6 +175,7 @@ export default function SettingsScreen() {
             title: '账号设置',
             items: [
               { id: 'profile', title: '个人资料', subtitle: '头像、昵称、联系方式', icon: 'person-outline' as const, iconColor: '#2563EB', type: 'navigate' as const },
+              { id: 'matrix', title: '矩阵账号', subtitle: '管理多平台绑定账号', icon: 'people-outline' as const, iconColor: '#8B5CF6', type: 'navigate' as const },
               { id: 'security', title: '账号安全', subtitle: '修改密码、绑定手机', icon: 'shield-outline' as const, iconColor: '#3B82F6', type: 'navigate' as const },
               { id: 'subscription', title: '服务到期', subtitle: '到期时间：2026-08-15', icon: 'calendar-outline' as const, iconColor: '#D97706', type: 'navigate' as const },
             ]

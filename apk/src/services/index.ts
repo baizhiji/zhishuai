@@ -35,5 +35,21 @@ export {
 } from './content.service';
 export { referralService, type ReferralCode, type ReferralRecord, type ReferralStats } from './referral.service';
 export { checkForUpdate, getCurrentVersion, downloadAndInstall, type VersionInfo, type UpdateCheckResult } from './update.service';
-// 暂时禁用通知服务（待解决expo-notifications兼容性问题）
-// export { notificationService, type NotificationData, type ScheduledNotification } from './notification.service';
+export {
+  initNotifications,
+  subscribeToMessages,
+  sendLocalNotification,
+  clearAllNotifications,
+  getLocalNotifications,
+  getUnreadCount,
+  notificationsAvailable,
+  type NotificationMessage,
+} from './notification.service';
+export {
+  openWebPage,
+  shareWebLink,
+  getWebPageUrl,
+  getShareText,
+  WEB_DEEP_LINKS,
+  type WebPageKey,
+} from './webLink.service';

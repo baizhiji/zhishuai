@@ -22,13 +22,20 @@ import CreateScreen from '../screens/CreateScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import AccountManagementScreen from '../screens/AccountManagementScreen';
 import MaterialsScreen from '../screens/MaterialsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ReferralScreen from '../screens/ReferralScreen';
+import StatisticsScreen from '../screens/StatisticsScreen';
+import RecruitmentScreen from '../screens/RecruitmentScreen';
+import AcquisitionScreen from '../screens/AcquisitionScreen';
 import AIFeatureScreen from '../screens/ai/AIFeatureScreen';
 import AIImageScreen from '../screens/ai/AIImageScreen';
 import AIVideoScreen from '../screens/ai/AIVideoScreen';
 import DigitalHumanScreen from '../screens/ai/DigitalHumanScreen';
+import AICopyScreen from '../screens/ai/AICopyScreen';
+import AIEditScreen from '../screens/ai/AIEditScreen';
+import VoiceCloneScreen from '../screens/ai/VoiceCloneScreen';
 
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
@@ -39,13 +46,20 @@ export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
   Settings: undefined;
+  AccountManagement: undefined;
   Materials: undefined;
   Messages: undefined;
   Referral: undefined;
+  Statistics: undefined;
+  Recruitment: undefined;
+  Acquisition: undefined;
   AIFeature: { type?: string };
   AIImage: undefined;
   AIVideo: { type?: string };
   DigitalHuman: undefined;
+  AICopy: undefined;
+  AIEdit: undefined;
+  VoiceClone: undefined;
 };
 
 export type MainTabParamList = {
@@ -67,6 +81,9 @@ const SCREEN_TITLES: Record<string, string> = {
   AIImage: '图片生成',
   AIVideo: '视频生成',
   DigitalHuman: '数字人视频',
+  AICopy: 'AI文案',
+  AIEdit: 'AI剪辑',
+  VoiceClone: '声音克隆',
 };
 
 // Tab导航组件
@@ -224,9 +241,44 @@ const AppNavigator = () => {
             options={{ title: '转介绍' }}
           />
           <RootStack.Screen
+            name="AccountManagement"
+            component={AccountManagementScreen}
+            options={{ title: '账号管理' }}
+          />
+          <RootStack.Screen
+            name="Statistics"
+            component={StatisticsScreen}
+            options={{ title: '数据统计' }}
+          />
+          <RootStack.Screen
+            name="Recruitment"
+            component={RecruitmentScreen}
+            options={{ title: '招聘助手' }}
+          />
+          <RootStack.Screen
+            name="Acquisition"
+            component={AcquisitionScreen}
+            options={{ title: '智能获客' }}
+          />
+          <RootStack.Screen
             name="DigitalHuman"
             component={DigitalHumanScreen}
             options={{ title: '数字人视频' }}
+          />
+          <RootStack.Screen
+            name="AICopy"
+            component={AICopyScreen}
+            options={{ title: 'AI文案' }}
+          />
+          <RootStack.Screen
+            name="AIEdit"
+            component={AIEditScreen}
+            options={{ title: 'AI剪辑' }}
+          />
+          <RootStack.Screen
+            name="VoiceClone"
+            component={VoiceCloneScreen}
+            options={{ title: '声音克隆' }}
           />
         </RootStack.Navigator>
       </NavigationContainer>

@@ -1,251 +1,168 @@
 /**
  * 通知服务 - 处理推送通知
+ * 使用 expo-notifications (如可用)
  */
-import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
+
 import { Platform, Alert } from 'react-native';
+import { Storage } from '../utils/tokenStorage';
 
-// 配置通知处理方式
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// 检查是否可以使用通知功能
+const canUseNotifications = () => {
+  try {
+    require('expo-notifications');
+    return true;
+  } catch {
+    return false;
+  }
+};
 
-export interface NotificationData {
+// 通知消息类型
+export interface NotificationMessage {
   title: string;
   body: string;
   data?: Record<string, any>;
 }
 
-export interface ScheduledNotification {
-  id: string;
-  title: string;
-  body: string;
-  trigger: Notifications.NotificationTriggerInput;
-  data?: Record<string, any>;
-}
+// 消息订阅者
+type MessageHandler = (message: NotificationMessage) => void;
+const messageHandlers: MessageHandler[] = [];
 
-class NotificationService {
-  private notificationListeners: Notifications.Subscription[] = [];
-  private responseListeners: Notifications.Subscription[] = [];
+// 本地通知存储
+const NOTIFICATION_KEY = 'local_notifications';
 
-  /**
-   * 初始化通知服务
-   */
-  async initialize(): Promise<void> {
-    if (!Device.isDevice) {
-      console.log('推送通知仅在真机上可用');
-      return;
-    }
-
-    // 检查权限
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-
-    if (finalStatus !== 'granted') {
-      console.log('未获得推送通知权限');
-      return;
-    }
-
-    // 获取 Expo 项目推送令牌
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#3B82F6',
-      });
-    }
-
-    console.log('通知服务初始化成功');
-  }
-
-  /**
-   * 获取设备推送令牌
-   */
-  async getPushToken(): Promise<string | null> {
+// 获取本地通知列表
+export const getLocalNotifications = (): NotificationMessage[] => {
+  const stored = Storage.get(NOTIFICATION_KEY);
+  if (stored) {
     try {
-      if (!Device.isDevice) {
-        return null;
-      }
-
-      const { data: token } = await Notifications.getExpoPushTokenAsync({
-        projectId: 'your-project-id', // 需要替换为实际的 Expo 项目 ID
-      });
-
-      console.log('Push token:', token);
-      return token;
-    } catch (error) {
-      console.error('获取推送令牌失败:', error);
-      return null;
-    }
-  }
-
-  /**
-   * 发送本地通知
-   */
-  async sendLocalNotification(notification: NotificationData): Promise<string | null> {
-    try {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: notification.title,
-          body: notification.body,
-          data: notification.data,
-          sound: true,
-        },
-        trigger: null, // 立即发送
-      });
-
-      console.log('本地通知已发送:', id);
-      return id;
-    } catch (error) {
-      console.error('发送本地通知失败:', error);
-      return null;
-    }
-  }
-
-  /**
-   * 发送定时通知
-   */
-  async scheduleNotification(notification: ScheduledNotification): Promise<string | null> {
-    try {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: notification.title,
-          body: notification.body,
-          data: notification.data,
-          sound: true,
-        },
-        trigger: notification.trigger,
-      });
-
-      console.log('定时通知已安排:', id);
-      return id;
-    } catch (error) {
-      console.error('发送定时通知失败:', error);
-      return null;
-    }
-  }
-
-  /**
-   * 取消所有定时通知
-   */
-  async cancelAllScheduledNotifications(): Promise<void> {
-    try {
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      console.log('已取消所有定时通知');
-    } catch (error) {
-      console.error('取消定时通知失败:', error);
-    }
-  }
-
-  /**
-   * 取消指定通知
-   */
-  async cancelNotification(notificationId: string): Promise<void> {
-    try {
-      await Notifications.cancelScheduledNotificationAsync(notificationId);
-      console.log('已取消通知:', notificationId);
-    } catch (error) {
-      console.error('取消通知失败:', error);
-    }
-  }
-
-  /**
-   * 设置通知监听器 - 接收到通知时
-   */
-  addNotificationReceivedListener(
-    callback: (notification: Notifications.Notification) => void
-  ): void {
-    const listener = Notifications.addNotificationReceivedListener(callback);
-    this.notificationListeners.push(listener);
-  }
-
-  /**
-   * 设置响应监听器 - 用户点击通知时
-   */
-  addNotificationResponseListener(
-    callback: (response: Notifications.NotificationResponse) => void
-  ): void {
-    const listener = Notifications.addNotificationResponseReceivedListener(callback);
-    this.responseListeners.push(listener);
-  }
-
-  /**
-   * 移除所有监听器
-   */
-  removeAllListeners(): void {
-    this.notificationListeners.forEach(listener => listener.remove());
-    this.responseListeners.forEach(listener => listener.remove());
-    this.notificationListeners = [];
-    this.responseListeners = [];
-  }
-
-  /**
-   * 获取所有待发送的通知
-   */
-  async getAllScheduledNotifications(): Promise<Notifications.NotificationRequest[]> {
-    try {
-      return await Notifications.getAllScheduledNotificationsAsync();
-    } catch (error) {
-      console.error('获取定时通知失败:', error);
+      return JSON.parse(stored);
+    } catch {
       return [];
     }
   }
+  return [];
+};
 
-  /**
-   * 显示任务完成通知
-   */
-  async showTaskCompleteNotification(
-    taskName: string,
-    taskType: string
-  ): Promise<void> {
-    await this.sendLocalNotification({
-      title: '🎉 任务完成',
-      body: `您的${taskType}任务"${taskName}"已完成，点击查看`,
-      data: { type: 'task_complete', taskName, taskType },
-    });
+// 保存通知到本地
+const saveNotification = (notification: NotificationMessage) => {
+  const notifications = getLocalNotifications();
+  notifications.unshift(notification);
+  // 只保留最近50条
+  const trimmed = notifications.slice(0, 50);
+  Storage.set(NOTIFICATION_KEY, JSON.stringify(trimmed));
+  
+  // 通知所有订阅者
+  messageHandlers.forEach(handler => handler(notification));
+};
+
+/**
+ * 初始化通知服务
+ */
+export const initNotifications = async (): Promise<boolean> => {
+  if (!canUseNotifications()) {
+    console.log('通知服务: expo-notifications 不可用，使用本地通知模式');
+    return false;
   }
 
-  /**
-   * 显示新消息通知
-   */
-  async showNewMessageNotification(
-    sender: string,
-    preview: string
-  ): Promise<void> {
-    await this.sendLocalNotification({
-      title: `💬 ${sender}发来新消息`,
-      body: preview,
-      data: { type: 'new_message', sender },
+  try {
+    const Notifications = require('expo-notifications');
+    
+    // 配置通知行为
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
     });
+
+    // 请求权限
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: '默认通知',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    }
+
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('通知权限未授予');
+      return false;
+    }
+
+    console.log('通知服务初始化成功');
+    return true;
+  } catch (error) {
+    console.log('通知服务初始化失败:', error);
+    return false;
+  }
+};
+
+/**
+ * 订阅消息通知
+ */
+export const subscribeToMessages = (handler: MessageHandler) => {
+  messageHandlers.push(handler);
+  return () => {
+    const index = messageHandlers.indexOf(handler);
+    if (index > -1) {
+      messageHandlers.splice(index, 1);
+    }
+  };
+};
+
+/**
+ * 发送本地通知
+ */
+export const sendLocalNotification = async (message: NotificationMessage): Promise<void> => {
+  // 保存到本地存储
+  saveNotification(message);
+
+  if (!canUseNotifications()) {
+    return;
   }
 
-  /**
-   * 显示系统通知
-   */
-  async showSystemNotification(
-    title: string,
-    message: string
-  ): Promise<void> {
-    await this.sendLocalNotification({
-      title,
-      body: message,
-      data: { type: 'system' },
+  try {
+    const Notifications = require('expo-notifications');
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: message.title,
+        body: message.body,
+        data: message.data,
+      },
+      trigger: null, // 立即发送
     });
+  } catch (error) {
+    console.log('发送通知失败:', error);
   }
-}
+};
 
-// 导出单例
-export const notificationService = new NotificationService();
-export default notificationService;
+/**
+ * 清除所有通知
+ */
+export const clearAllNotifications = async (): Promise<void> => {
+  Storage.delete(NOTIFICATION_KEY);
+  
+  if (!canUseNotifications()) {
+    return;
+  }
+
+  try {
+    const Notifications = require('expo-notifications');
+    await Notifications.dismissAllNotificationsAsync();
+  } catch (error) {
+    console.log('清除通知失败:', error);
+  }
+};
+
+/**
+ * 获取未读消息数量
+ */
+export const getUnreadCount = (): number => {
+  const notifications = getLocalNotifications();
+  return notifications.length;
+};
+
+// 导出状态
+export const notificationsAvailable = canUseNotifications();
