@@ -1,4 +1,4 @@
-// AI创作类型配置
+// AI创作类型配置（兼容别名）
 export const CONTENT_TYPES = [
   { id: 'title', name: '标题', icon: 'text-outline', color: '#2563EB', description: '生成吸引人的标题', tags: ['吸引点击', 'SEO优化', '热点标题'] },
   { id: 'topics', name: '话题标签', icon: 'pricetag-outline', color: '#7C3AED', description: '生成热门话题标签', tags: ['微博话题', '抖音话题', '小红书话题'] },
@@ -11,6 +11,9 @@ export const CONTENT_TYPES = [
   { id: 'videoAnalysis', name: '视频解析', icon: 'link-outline', color: '#0891B2', description: '分析视频链接生成脚本', tags: ['链接解析', '脚本改写', '爆款分析'] },
   { id: 'digitalHuman', name: '数字人短视频', icon: 'people-outline', color: '#4F46E5', description: '生成数字人视频脚本', tags: ['数字人', 'AI主播', '虚拟形象'] },
 ];
+
+// 别名兼容
+export const AI_CREATION_TYPES = CONTENT_TYPES;
 
 // 首页功能中心
 export const FEATURES = [
