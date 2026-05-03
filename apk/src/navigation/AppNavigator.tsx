@@ -44,6 +44,7 @@ import MarketingScreen from '../screens/MarketingScreen';
 import AccountOverviewScreen from '../screens/AccountOverviewScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import StaffManagementScreen from '../screens/StaffManagementScreen';
+import MediaFactoryScreen from '../screens/MediaFactoryScreen';
 
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
@@ -76,6 +77,7 @@ export type RootStackParamList = {
   AICopy: undefined;
   AIEdit: undefined;
   VoiceClone: undefined;
+  MediaFactory: undefined;
 };
 
 export type MainTabParamList = {
@@ -107,6 +109,7 @@ const SCREEN_TITLES: Record<string, string> = {
   AccountOverview: '账号总览',
   Subscription: '订阅管理',
   StaffManagement: '员工管理',
+  MediaFactory: '内容工厂',
 };
 
 // Tab导航组件
@@ -342,6 +345,11 @@ const AppNavigator = () => {
             name="StaffManagement"
             component={StaffManagementScreen}
             options={{ title: '员工管理' }}
+          />
+          <RootStack.Screen
+            name="MediaFactory"
+            component={MediaFactoryScreen}
+            options={{ title: '内容工厂' }}
           />
         </RootStack.Navigator>
       </NavigationContainer>

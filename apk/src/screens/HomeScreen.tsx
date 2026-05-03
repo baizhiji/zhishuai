@@ -25,7 +25,7 @@ const FEATURES: FeatureItem[] = [
   { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', route: 'Acquisition' },
   { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Share' },
-  { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', route: 'Materials' },
+  { id: 'factory', title: '内容工厂', icon: 'images-outline', color: '#06B6D4', route: 'MediaFactory' },
   { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', route: 'Statistics' },
 ];
 
