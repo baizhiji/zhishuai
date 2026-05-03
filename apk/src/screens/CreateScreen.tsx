@@ -12,18 +12,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { AI_CREATION_TYPES } from '../constants';
 import { useAppNavigation } from '../context/NavigationContext';
 
-// 类型ID到ContentCategory的映射
-const TYPE_TO_CATEGORY: Record<string, string> = {
-  'title': 'TITLE',
-  'tags': 'TAGS',
-  'copywriting': 'COPYWRITING',
-  'imageToText': 'IMAGE_TO_TEXT',
-  'xiaohongshu': 'XIAOHONGSHU',
-  'image': 'IMAGE',
-  'ecommerce': 'ECOMMERCE',
-  'video': 'VIDEO',
-  'videoAnalysis': 'VIDEO_ANALYSIS',
-  'digitalHuman': 'DIGITAL_HUMAN',
+// 类型ID到ContentCategory的映射（使用枚举的小写字符串值）
+const TYPE_TO_CATEGORY: Record<string, ContentCategory> = {
+  'title': ContentCategory.TITLE,
+  'tags': ContentCategory.TAGS,
+  'copywriting': ContentCategory.COPYWRITING,
+  'imageToText': ContentCategory.IMAGE_TO_TEXT,
+  'xiaohongshu': ContentCategory.XIAOHONGSHU,
+  'image': ContentCategory.IMAGE,
+  'ecommerce': ContentCategory.ECOMMERCE,
+  'video': ContentCategory.VIDEO,
+  'videoAnalysis': ContentCategory.VIDEO_ANALYSIS,
+  'digitalHuman': ContentCategory.DIGITAL_HUMAN,
 };
 
 // 屏幕映射 - 根据创作类型ID（匹配Web端"内容自动生成"）
@@ -55,7 +55,7 @@ export default function CreateScreen() {
     const category = TYPE_TO_CATEGORY[typeId];
     if (screen) {
       if (screen === 'AIFeature') {
-        navigate('AIFeature', { category: category || typeId });
+        navigate('AIFeature', { category });
       } else {
         navigate(screen);
       }
