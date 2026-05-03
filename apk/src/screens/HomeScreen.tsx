@@ -26,7 +26,8 @@ const FEATURES: FeatureItem[] = [
   { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#2563EB', route: 'Create' },
   { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', route: 'Acquisition' },
-  { id: 'referral', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Referral' },
+  { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Share' },
+  { id: 'referral', title: '转介绍', icon: 'people-outline', color: '#EC4899', route: 'Referral' },
   { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', route: 'Materials' },
   { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', route: 'Statistics' },
 ];
@@ -110,6 +111,9 @@ export default function HomeScreen() {
         break;
       case 'Referral':
         navigate('Referral');
+        break;
+      case 'Share':
+        navigate('Share');
         break;
       case 'Messages':
         navigate('Messages');
