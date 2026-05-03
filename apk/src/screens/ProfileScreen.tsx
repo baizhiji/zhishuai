@@ -8,11 +8,9 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
-  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { authService, referralService, updateService, UserInfo, ReferralStats } from '../services';
-import { openWebPage, WEB_DEEP_LINKS, type WebPageKey } from '../services/webLink.service';
 import { useAppNavigation } from '../context/NavigationContext';
 
 interface MenuItemProps {
@@ -175,32 +173,6 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleOpenWeb = (page: WebPageKey, title: string) => {
-    Alert.alert(
-      'Web端功能',
-      `是否在浏览器中打开「${title}」页面？`,
-      [
-        { text: '取消', style: 'cancel' },
-        { text: '打开', onPress: () => openWebPage(page) }
-      ]
-    );
-  };
-
-  const handleWebFeatures = () => {
-    Alert.alert(
-      'Web端功能',
-      '以下功能请在Web端使用：',
-      [
-        { text: '素材库', onPress: () => handleOpenWeb('materials', '素材库') },
-        { text: 'AI创作', onPress: () => handleOpenWeb('ai', 'AI创作') },
-        { text: '数据统计', onPress: () => handleOpenWeb('statistics', '数据统计') },
-        { text: '招聘管理', onPress: () => handleOpenWeb('recruitment', '招聘管理') },
-        { text: '智能获客', onPress: () => handleOpenWeb('acquisition', '智能获客') },
-        { text: '取消', style: 'cancel' }
-      ]
-    );
-  };
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -282,13 +254,6 @@ export default function ProfileScreen() {
             title="账号绑定"
             subtitle="微信、抖音、小红书"
             onPress={() => navigate?.('AccountManagement')}
-          />
-          <MenuItem
-            icon="browsers-outline"
-            iconColor="#64748B"
-            title="Web端功能"
-            subtitle="更多功能请在Web端使用"
-            onPress={handleWebFeatures}
           />
           <MenuItem
             icon="settings-outline"

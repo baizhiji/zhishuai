@@ -176,14 +176,6 @@ export default function MaterialsScreen({ navigation }: { navigation: any }) {
     });
   };
 
-  const handleOpenWeb = (item: Material) => {
-    const { Linking } = require('react-native');
-    const webUrl = `https://zhishuai.com/materials/detail?id=${item.id}`;
-    Linking.openURL(webUrl).catch(() => {
-      Alert.alert('提示', '请在浏览器中打开：\n' + webUrl);
-    });
-  };
-
   const renderItem = ({ item }: { item: Material }) => {
     const isSelected = selectedItems.includes(item.id);
     
@@ -388,13 +380,6 @@ export default function MaterialsScreen({ navigation }: { navigation: any }) {
                   >
                     <Ionicons name="share-outline" size={20} color={theme.primary} />
                     <Text style={[styles.actionBtnText, { color: theme.primary }]}>分享</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionBtn, { borderColor: theme.primary }]}
-                    onPress={() => handleOpenWeb(selectedMaterial)}
-                  >
-                    <Ionicons name="globe-outline" size={20} color={theme.primary} />
-                    <Text style={[styles.actionBtnText, { color: theme.primary }]}>Web端</Text>
                   </TouchableOpacity>
                 </View>
               </View>

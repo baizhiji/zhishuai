@@ -137,15 +137,6 @@ export default function AIFeatureTemplate({
     }
   };
 
-  // 打开Web端编辑
-  const handleOpenWeb = () => {
-    const webUrl = `https://zhishuai.com/media/factory?type=${contentType}&content=${encodeURIComponent(result?.content || '')}`;
-    const { Linking } = require('react-native');
-    Linking.openURL(webUrl).catch(() => {
-      Alert.alert('提示', '请在浏览器中打开：\n' + webUrl);
-    });
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light" backgroundColor={color} />
@@ -230,13 +221,6 @@ export default function AIFeatureTemplate({
               
               {/* 快捷操作 */}
               <View style={styles.quickActions}>
-                <TouchableOpacity 
-                  style={[styles.quickButton, { backgroundColor: theme.card, borderColor: theme.border }]}
-                  onPress={handleOpenWeb}
-                >
-                  <Ionicons name="browsers-outline" size={20} color={color} />
-                  <Text style={[styles.quickButtonText, { color: theme.text }]}>在Web端编辑</Text>
-                </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.quickButton, { backgroundColor: theme.card, borderColor: theme.border }]}
                   onPress={() => {

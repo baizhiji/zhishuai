@@ -96,10 +96,6 @@ export default function AcquisitionScreen({ navigation }: { navigation: any }) {
     Alert.alert('提示', '请在Web端创建和管理营销活动');
   };
 
-  const handleOpenWeb = () => {
-    openWebPage('acquisition');
-  };
-
   const getTotalStats = () => {
     const totalReach = campaigns.reduce((sum, c) => sum + c.reach, 0);
     const totalLeads = campaigns.reduce((sum, c) => sum + c.leads, 0);
@@ -297,18 +293,6 @@ export default function AcquisitionScreen({ navigation }: { navigation: any }) {
             {campaigns.map(campaign => renderCampaignItem({ item: campaign }))}
           </>
         )}
-
-        {/* Web端入口 */}
-        <TouchableOpacity style={[styles.webEntry, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={handleOpenWeb}>
-          <Ionicons name="browsers-outline" size={24} color={theme.primary} />
-          <View style={styles.webEntryContent}>
-            <Text style={[styles.webEntryTitle, { color: theme.text }]}>Web端管理</Text>
-            <Text style={[styles.webEntrySubtitle, { color: theme.textSecondary }]}>
-              完整功能，请在Web端操作
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />
-        </TouchableOpacity>
       </ScrollView>
 
       {/* 筛选弹窗 */}

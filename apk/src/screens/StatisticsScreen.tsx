@@ -88,10 +88,6 @@ export default function StatisticsScreen({ navigation }: { navigation: any }) {
     setRefreshing(false);
   };
 
-  const handleOpenWeb = () => {
-    openWebPage('statistics');
-  };
-
   const getMaxValue = () => Math.max(...trendData.map(d => d.value));
 
   const renderTrendChart = () => {
@@ -218,18 +214,6 @@ export default function StatisticsScreen({ navigation }: { navigation: any }) {
 
         {/* 平台分布 */}
         {renderPlatformStats()}
-
-        {/* Web端入口 */}
-        <TouchableOpacity style={[styles.webEntry, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={handleOpenWeb}>
-          <Ionicons name="browsers-outline" size={24} color={theme.primary} />
-          <View style={styles.webEntryContent}>
-            <Text style={[styles.webEntryTitle, { color: theme.text }]}>查看更多数据</Text>
-            <Text style={[styles.webEntrySubtitle, { color: theme.textSecondary }]}>
-              详细数据分析，请在Web端查看
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );

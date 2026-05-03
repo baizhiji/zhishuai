@@ -155,10 +155,6 @@ export default function AccountManagementScreen({ navigation }: { navigation: an
     saveAccounts(updated);
   };
 
-  const handleOpenWeb = () => {
-    Alert.alert('Web端管理', '请在Web端进行完整的矩阵账号管理');
-  };
-
   const getPlatformIcon = (platform: string) => {
     const config = PLATFORM_CONFIG[platform as keyof typeof PLATFORM_CONFIG];
     return config?.icon || 'help-circle-outline';
@@ -270,18 +266,6 @@ export default function AccountManagementScreen({ navigation }: { navigation: an
           <Text style={[styles.sectionTitle, { color: theme.text }]}>未绑定账号</Text>
           {accounts.filter(a => !a.bound).map(renderAccount)}
         </View>
-
-        {/* Web端管理入口 */}
-        <TouchableOpacity style={[styles.webEntry, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={handleOpenWeb}>
-          <Ionicons name="browsers-outline" size={24} color={theme.primary} />
-          <View style={styles.webEntryContent}>
-            <Text style={[styles.webEntryTitle, { color: theme.text }]}>Web端管理</Text>
-            <Text style={[styles.webEntrySubtitle, { color: theme.textSecondary }]}>
-              更多高级功能，请在Web端操作
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />
-        </TouchableOpacity>
       </ScrollView>
 
       {/* 绑定弹窗 */}

@@ -122,10 +122,6 @@ export default function RecruitmentScreen({ navigation }: { navigation: any }) {
     Alert.alert('处理成功', `已将「${resume.name}」标记为${RESUME_STATUS_CONFIG[statusMap[action]].label}`);
   };
 
-  const handleOpenWeb = () => {
-    openWebPage('recruitment');
-  };
-
   const renderJobItem = ({ item }: { item: Job }) => (
     <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View style={styles.cardHeader}>
@@ -267,18 +263,6 @@ export default function RecruitmentScreen({ navigation }: { navigation: any }) {
             {resumes.map(resume => renderResumeItem({ item: resume }))}
           </>
         )}
-
-        {/* Web端入口 */}
-        <TouchableOpacity style={[styles.webEntry, { backgroundColor: theme.card, borderColor: theme.border }]} onPress={handleOpenWeb}>
-          <Ionicons name="browsers-outline" size={24} color={theme.primary} />
-          <View style={styles.webEntryContent}>
-            <Text style={[styles.webEntryTitle, { color: theme.text }]}>Web端管理</Text>
-            <Text style={[styles.webEntrySubtitle, { color: theme.textSecondary }]}>
-              完整功能，请在Web端操作
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={theme.textTertiary} />
-        </TouchableOpacity>
       </ScrollView>
 
       {/* 发布岗位弹窗 */}
