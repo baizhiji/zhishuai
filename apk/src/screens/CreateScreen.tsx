@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { AI_CREATION_TYPES } from '../constants';
 import { useAppNavigation } from '../context/NavigationContext';
+import { ContentCategory } from '../services/content.service';
 
 // 类型ID到ContentCategory的映射（使用枚举的小写字符串值）
 const TYPE_TO_CATEGORY: Record<string, ContentCategory> = {
