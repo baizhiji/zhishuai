@@ -35,6 +35,9 @@ import SubscriptionScreen from '../screens/SubscriptionScreen';
 import StaffManagementScreen from '../screens/StaffManagementScreen';
 import AICreateCenterScreen from '../screens/AICreateCenterScreen';
 import AICreateDetailScreen from '../screens/AICreateDetailScreen';
+import MatrixAccountScreen from '../screens/MatrixAccountScreen';
+import PublishCenterScreen from '../screens/PublishCenterScreen';
+import DataListScreen from '../screens/DataListScreen';
 
 import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, AIEditScreen, DigitalHumanScreen, VoiceCloneScreen } from '../screens/ai';
 // 导入Auth
@@ -67,6 +70,9 @@ export type RootStackParamList = {
   VoiceClone: undefined;
   AICreateDetail: { category: string };
   AICreateCenter: undefined;
+  MatrixAccount: undefined;
+  PublishCenter: undefined;
+  DataList: undefined;
 };
 
 export type MainTabParamList = {
@@ -313,6 +319,21 @@ const AppNavigator = () => {
           <RootStack.Screen
             name="AICreateDetail"
             component={AICreateDetailScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="MatrixAccount"
+            component={MatrixAccountScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="PublishCenter"
+            component={PublishCenterScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="DataList"
+            component={DataListScreen}
             options={{ headerShown: false }}
           />
         </RootStack.Navigator>

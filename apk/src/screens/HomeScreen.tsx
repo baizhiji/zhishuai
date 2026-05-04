@@ -17,16 +17,17 @@ interface FeatureItem {
   title: string;
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
+  bgColor: string;
   route: string;
 }
 
 const FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'videocam-outline', color: '#2563EB', route: 'MediaOperation' },
-  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', route: 'Recruitment' },
-  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', route: 'Acquisition' },
-  { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Share' },
-  { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', route: 'Materials' },
-  { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', route: 'Statistics' },
+  { id: 'media', title: '自媒体运营', icon: 'videocam-outline', color: '#2563EB', bgColor: '#DBEAFE', route: 'MediaOperation' },
+  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', bgColor: '#E0E7FF', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', bgColor: '#DCFCE7', route: 'Acquisition' },
+  { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', bgColor: '#FFEDD5', route: 'Share' },
+  { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', bgColor: '#CFFAFE', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', bgColor: '#E0E7FF', route: 'Statistics' },
 ];
 
 export default function HomeScreen() {
@@ -86,8 +87,6 @@ export default function HomeScreen() {
   };
 
   const navigateTo = (route: string) => {
-    // 直接使用原始route名称，避免转换错误
-    // MediaOperation 直接导航
     navigate(route);
   };
 
@@ -126,8 +125,6 @@ export default function HomeScreen() {
       <ScrollView 
         style={styles.content}
         showsVerticalScrollIndicator={false}
-        onRefresh={loadData}
-        refreshing={loading}
       >
         {/* 今日数据卡片 */}
         <View style={styles.statsCard}>
@@ -169,7 +166,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 功能中心 */}
+        {/* 功能中心 - 改用3列紧凑布局 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
         <View style={styles.featureGrid}>
           {FEATURES.map((item) => (
@@ -179,8 +176,8 @@ export default function HomeScreen() {
               activeOpacity={0.7}
               onPress={() => navigateTo(item.route)}
             >
-              <View style={[styles.featureIconBox, { backgroundColor: item.color }]}>
-                <Ionicons name={item.icon} size={26} color="#FFFFFF" />
+              <View style={[styles.featureIconBox, { backgroundColor: item.bgColor }]}>
+                <Ionicons name={item.icon} size={24} color={item.color} />
               </View>
               <Text style={styles.featureTitle}>{item.title}</Text>
             </TouchableOpacity>
@@ -329,60 +326,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   featureItem: {
-    width: '48%',
+    width: '31%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    marginBottom: 10,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 1,
   },
   featureIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   featureTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#334155',
-  },
-  quickRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quickItem: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  quickIconBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  quickTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#334155',
+    textAlign: 'center',
   },
   bottomSpace: {
     height: 100,

@@ -61,11 +61,11 @@ export default function MediaOperationScreen() {
       // AI创作中心使用Tab切换
       navigation.navigate('MainTabs', { screen: 'Create' });
     } else if (item.route === 'AccountManagement') {
-      navigation.navigate('AccountManagement');
+      navigation.navigate('MatrixAccount');
     } else if (item.route === 'PublishCenter') {
-      navigation.navigate('AICreateCenter', { screen: 'publish' });
+      navigation.navigate('PublishCenter');
     } else if (item.route === 'DataList') {
-      navigation.navigate('AICreateCenter', { screen: 'data' });
+      navigation.navigate('DataList');
     }
   };
 
