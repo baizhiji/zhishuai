@@ -511,7 +511,7 @@ const pickerStyles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   materialItemSelected: {
-    backgroundColor: '#4F46E5' + '10',
+    backgroundColor: '#4F46E510',
   },
   materialInfo: {
     flex: 1,
