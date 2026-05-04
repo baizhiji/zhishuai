@@ -58,7 +58,6 @@ export default function MediaOperationScreen() {
 
   const handlePress = (item: OperationItem) => {
     if (item.route === 'AICreateCenter') {
-      // AI创作中心使用Tab切换
       navigation.navigate('MainTabs', { screen: 'Create' });
     } else if (item.route === 'AccountManagement') {
       navigation.navigate('AccountManagement');
@@ -70,41 +69,38 @@ export default function MediaOperationScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      contentContainerStyle={styles.contentContainer}
-    >
-      {/* 标题 */}
-      <Text style={[styles.title, { color: theme.text }]}>自媒体运营</Text>
-      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-        选择操作类型
-      </Text>
-
-      {/* 操作列表 */}
-      <View style={styles.grid}>
-        {operations.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.card, { backgroundColor: theme.card }]}
-            onPress={() => handlePress(item)}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconContainer, { backgroundColor: item.color + '15' }]}>
-              <Ionicons name={item.icon} size={28} color={item.color} />
-            </View>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>
-              {item.title}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={theme.textSecondary}
-              style={styles.arrow}
-            />
-          </TouchableOpacity>
-        ))}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: theme.text }]}>自媒体运营</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          选择操作类型
+        </Text>
       </View>
-    </ScrollView>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.grid}>
+          {operations.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.card, { backgroundColor: theme.card }]}
+              onPress={() => handlePress(item)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.iconContainer, { backgroundColor: item.color + '15' }]}>
+                <Ionicons name={item.icon} size={24} color={item.color} />
+              </View>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>
+                {item.title}
+              </Text>
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={theme.textSecondary}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -112,42 +108,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  contentContainer: {
-    padding: 16,
+  header: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    marginBottom: 24,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
   },
   grid: {
-    gap: 12,
+    paddingHorizontal: 16,
   },
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 14,
+    marginRight: 12,
   },
   cardTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     flex: 1,
-  },
-  arrow: {
-    marginLeft: 8,
   },
 });

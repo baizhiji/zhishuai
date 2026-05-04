@@ -86,8 +86,9 @@ export default function HomeScreen() {
   };
 
   const navigateTo = (route: string) => {
-    const normalizedRoute = route.charAt(0).toUpperCase() + route.slice(1).toLowerCase();
-    navigate(normalizedRoute);
+    // 直接使用原始route名称，避免转换错误
+    // MediaOperation 直接导航
+    navigate(route);
   };
 
   if (loading) {
