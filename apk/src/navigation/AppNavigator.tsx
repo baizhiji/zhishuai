@@ -18,7 +18,6 @@ import { NavigationContext } from '../context/NavigationContext';
 
 // 导入页面
 import HomeScreen from '../screens/HomeScreen';
-import CreateScreen from '../screens/CreateScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SettingsScreen from '../screens/SettingsScreen';
@@ -26,25 +25,14 @@ import AccountManagementScreen from '../screens/AccountManagementScreen';
 import MaterialsScreen from '../screens/MaterialsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ReferralScreen from '../screens/ReferralScreen';
-import ShareScreen from '../screens/ShareScreen';
 import StatisticsScreen from '../screens/StatisticsScreen';
 import RecruitmentScreen from '../screens/RecruitmentScreen';
 import AcquisitionScreen from '../screens/AcquisitionScreen';
-import AIFeatureScreen from '../screens/ai/AIFeatureScreen';
-import AIImageScreen from '../screens/ai/AIImageScreen';
-import AIVideoScreen from '../screens/ai/AIVideoScreen';
-import DigitalHumanScreen from '../screens/ai/DigitalHumanScreen';
-import AICopyScreen from '../screens/ai/AICopyScreen';
-import AIEditScreen from '../screens/ai/AIEditScreen';
-import VoiceCloneScreen from '../screens/ai/VoiceCloneScreen';
-import DashboardScreen from '../screens/DashboardScreen';
-import AIScreen from '../screens/AIScreen';
-import CRMScreen from '../screens/CRMScreen';
-import MarketingScreen from '../screens/MarketingScreen';
+import ShareScreen from '../screens/ShareScreen';
 import AccountOverviewScreen from '../screens/AccountOverviewScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import StaffManagementScreen from '../screens/StaffManagementScreen';
-import MediaFactoryScreen from '../screens/MediaFactoryScreen';
+import AICreateCenterScreen from '../screens/AICreateCenterScreen';
 
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
@@ -95,21 +83,11 @@ const SCREEN_TITLES: Record<string, string> = {
   Materials: '素材库',
   Messages: '消息',
   Referral: '转介绍',
-  AIFeature: 'AI创作',
-  AIImage: '图片生成',
-  AIVideo: '视频生成',
-  DigitalHuman: '数字人视频',
-  AICopy: 'AI文案',
-  AIEdit: 'AI剪辑',
-  VoiceClone: '声音克隆',
-  Dashboard: '数据大盘',
-  AIAssistant: 'AI助手',
-  CRM: '客户管理',
-  Marketing: '营销中心',
+  AICreateCenter: 'AI创作中心',
   AccountOverview: '账号总览',
   Subscription: '订阅管理',
   StaffManagement: '员工管理',
-  MediaFactory: '内容工厂',
+  AccountManagement: '账号管理',
 };
 
 // Tab导航组件
@@ -157,7 +135,7 @@ const MainTabs = () => {
       />
       <MainTab.Screen
         name="Create"
-        component={CreateScreen}
+        component={AICreateCenterScreen}
         options={{ tabBarLabel: 'AI创作' }}
       />
       <MainTab.Screen

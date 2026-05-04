@@ -21,11 +21,11 @@ interface FeatureItem {
 }
 
 const FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'newspaper-outline', color: '#2563EB', route: 'Create' },
+  { id: 'ai', title: 'AI创作中心', icon: 'sparkles-outline', color: '#2563EB', route: 'AICreateCenter' },
   { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', route: 'Acquisition' },
   { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Share' },
-  { id: 'factory', title: '内容工厂', icon: 'images-outline', color: '#06B6D4', route: 'MediaFactory' },
+  { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', route: 'Materials' },
   { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', route: 'Statistics' },
 ];
 
@@ -184,32 +184,6 @@ export default function HomeScreen() {
               <Text style={styles.featureTitle}>{item.title}</Text>
             </TouchableOpacity>
           ))}
-        </View>
-
-        {/* 快捷入口 */}
-        <Text style={styles.sectionTitle}>快捷入口</Text>
-        <View style={styles.quickRow}>
-          <TouchableOpacity
-            style={styles.quickItem}
-            activeOpacity={0.7}
-            onPress={() => navigateTo('Messages')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#3B82F6' }]}>
-              <Ionicons name="mail-outline" size={24} color="#FFFFFF" />
-            </View>
-            <Text style={styles.quickTitle}>消息</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.quickItem}
-            activeOpacity={0.7}
-            onPress={() => navigateTo('AccountManagement')}
-          >
-            <View style={[styles.quickIconBox, { backgroundColor: '#8B5CF6' }]}>
-              <Ionicons name="link-outline" size={24} color="#FFFFFF" />
-            </View>
-            <Text style={styles.quickTitle}>矩阵账号</Text>
-          </TouchableOpacity>
         </View>
 
         {/* 底部留白 */}
