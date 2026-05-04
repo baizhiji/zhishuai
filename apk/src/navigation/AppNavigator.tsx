@@ -21,6 +21,7 @@ import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import MediaOperationScreen from '../screens/MediaOperationScreen';
 import AccountManagementScreen from '../screens/AccountManagementScreen';
 import MaterialsScreen from '../screens/MaterialsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
@@ -43,6 +44,7 @@ export type RootStackParamList = {
   Login: undefined;
   MainTabs: undefined;
   Settings: undefined;
+  MediaOperation: undefined;
   AccountManagement: undefined;
   AccountOverview: undefined;
   Subscription: undefined;
@@ -66,6 +68,7 @@ export type RootStackParamList = {
   AIEdit: undefined;
   VoiceClone: undefined;
   MediaFactory: undefined;
+  MediaOperation: undefined;
 };
 
 export type MainTabParamList = {
@@ -87,6 +90,7 @@ const SCREEN_TITLES: Record<string, string> = {
   AccountOverview: '账号总览',
   Subscription: '订阅管理',
   StaffManagement: '员工管理',
+  MediaOperation: '自媒体运营',
   AccountManagement: '账号管理',
 };
 
@@ -247,7 +251,11 @@ const AppNavigator = () => {
           <RootStack.Screen
             name="Referral"
             component={ReferralScreen}
-            options={{ title: '转介绍' }}
+          />
+          <RootStack.Screen
+            name="MediaOperation"
+            component={MediaOperationScreen}
+            options={{ title: '自媒体运营' }}
           />
           <RootStack.Screen
             name="AccountManagement"

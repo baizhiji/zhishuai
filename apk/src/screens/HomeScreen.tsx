@@ -21,7 +21,7 @@ interface FeatureItem {
 }
 
 const FEATURES: FeatureItem[] = [
-  { id: 'ai', title: 'AI创作中心', icon: 'sparkles-outline', color: '#2563EB', route: 'AICreateCenter' },
+  { id: 'media', title: '自媒体运营', icon: 'videocam-outline', color: '#2563EB', route: 'MediaOperation' },
   { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', route: 'Acquisition' },
   { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', route: 'Share' },
