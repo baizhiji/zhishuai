@@ -307,16 +307,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
