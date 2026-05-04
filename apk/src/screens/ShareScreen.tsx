@@ -1,433 +1,534 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, Share } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  FlatList,
+  Modal,
+  Image,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PageHeader from '../components/PageHeader';
 
-// 推荐记录类型
-interface Referral {
+// 平台类型
+type Platform = 'douyin' | 'kuaishou' | 'xiaohongshu' | 'video';
+
+// 推荐码类型
+interface ReferralCode {
   id: string;
-  referrer: string;
-  referred: string;
+  title: string;
+  videoUrl: string;
+  videoThumbnail: string;
+  platforms: Platform[];
   code: string;
-  time: string;
-  status: 'success' | 'pending' | 'expired';
-  phone: string;
+  scanCount: number;
+  publishCount: number;
+  createdAt: string;
 }
 
-// 二维码类型
-interface QRCode {
-  id: string;
-  name: string;
-  url: string;
-  scans: number;
-  createdAt: string;
-  channel: 'wechat' | 'douyin' | 'xiaohongshu' | 'other';
-}
+// 平台配置
+const platformConfig: Record<Platform, { name: string; color: string; icon: string }> = {
+  douyin: { name: '抖音', color: '#1E1E1E', icon: 'musical-notes' },
+  kuaishou: { name: '快手', color: '#FF4906', icon: 'play-circle' },
+  xiaohongshu: { name: '小红书', color: '#FF2442', icon: 'heart' },
+  video: { name: '视频号', color: '#07C160', icon: 'videocam' },
+};
+
+// 模拟数据
+const mockReferralCodes: ReferralCode[] = [
+  {
+    id: '1',
+    title: '夏季穿搭分享',
+    videoUrl: 'https://example.com/video1.mp4',
+    videoThumbnail: 'https://picsum.photos/200',
+    platforms: ['douyin', 'xiaohongshu'],
+    code: 'ZS2024ABC001',
+    scanCount: 156,
+    publishCount: 89,
+    createdAt: '2024-03-25',
+  },
+  {
+    id: '2',
+    title: '美食制作教程',
+    videoUrl: 'https://example.com/video2.mp4',
+    videoThumbnail: 'https://picsum.photos/201',
+    platforms: ['kuaishou', 'video'],
+    code: 'ZS2024DEF002',
+    scanCount: 234,
+    publishCount: 145,
+    createdAt: '2024-03-24',
+  },
+  {
+    id: '3',
+    title: '健身打卡挑战',
+    videoUrl: 'https://example.com/video3.mp4',
+    videoThumbnail: 'https://picsum.photos/202',
+    platforms: ['douyin', 'kuaishou', 'xiaohongshu', 'video'],
+    code: 'ZS2024GHI003',
+    scanCount: 567,
+    publishCount: 423,
+    createdAt: '2024-03-23',
+  },
+];
 
 // 统计数据
 const stats = {
-  totalReferrals: 156,
-  activeUsers: 128,
-  conversions: 128,
-  scanRate: 82,
+  totalScans: 957,
+  totalPublish: 657,
+  activeCodes: 12,
+  conversionRate: '68.6%',
 };
 
-// 渠道分布
-const channelData = [
-  { channel: '抖音', count: 45, rate: 28.8, color: '#ff4757' },
-  { channel: '微信', count: 67, rate: 42.9, color: '#07c160' },
-  { channel: '小红书', count: 28, rate: 17.9, color: '#ff6b9d' },
-  { channel: '其他', count: 16, rate: 10.3, color: '#64748b' },
-];
-
-// 模拟推荐数据
-const mockReferrals: Referral[] = [
-  { id: '1', referrer: '张三', referred: '李四', code: 'ZHISHUAI2024001', time: '2024-03-25 14:30', status: 'success', phone: '138****1234' },
-  { id: '2', referrer: '张三', referred: '王五', code: 'ZHISHUAI2024002', time: '2024-03-24 11:20', status: 'success', phone: '139****5678' },
-  { id: '3', referrer: '李四', referred: '赵六', code: 'ZHISHUAI2024003', time: '2024-03-23 09:15', status: 'pending', phone: '137****9012' },
-  { id: '4', referrer: '王五', referred: '钱七', code: 'ZHISHUAI2024004', time: '2024-03-22 16:45', status: 'success', phone: '136****3456' },
-  { id: '5', referrer: '李四', referred: '孙八', code: 'ZHISHUAI2024005', time: '2024-03-21 10:00', status: 'expired', phone: '135****7890' },
-];
-
-// 模拟二维码数据
-const mockQRCodes: QRCode[] = [
-  { id: '1', name: '产品推广二维码', url: 'https://zhishuai.com/r/abc123', scans: 1256, createdAt: '2024-03-20', channel: 'wechat' },
-  { id: '2', name: '活动邀请二维码', url: 'https://zhishuai.com/r/def456', scans: 856, createdAt: '2024-03-18', channel: 'douyin' },
-  { id: '3', name: '会员招募二维码', url: 'https://zhishuai.com/r/ghi789', scans: 423, createdAt: '2024-03-15', channel: 'xiaohongshu' },
-];
-
 export default function ShareScreen() {
-  const [activeTab, setActiveTab] = useState<'stats' | 'referrals' | 'qrcode'>('stats');
-  const [referrals, setReferrals] = useState<Referral[]>(mockReferrals);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
-  const [selectedQR, setSelectedQR] = useState<QRCode | null>(null);
-  const [myReferralCode] = useState('ZHISHUAI2024');
+  const [activeTab, setActiveTab] = useState<'my' | 'codes' | 'data'>('my');
+  const [referralCodes, setReferralCodes] = useState<ReferralCode[]>(mockReferralCodes);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [selectedCode, setSelectedCode] = useState<ReferralCode | null>(null);
+  
+  // 创建表单
   const [form, setForm] = useState({
-    name: '',
-    channel: 'wechat' as QRCode['channel'],
+    title: '',
+    videoUrl: '',
+    platforms: [] as Platform[],
   });
 
-  // 获取状态配置
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'success': return { bg: '#dcfce7', text: '#166534' };
-      case 'pending': return { bg: '#fef3c7', text: '#92400e' };
-      case 'expired': return { bg: '#f1f5f9', text: '#64748b' };
-      default: return { bg: '#f1f5f9', text: '#64748b' };
-    }
+  // 我的推荐码
+  const myReferralCode = 'ZS2024USER001';
+
+  // 选择平台
+  const togglePlatform = (platform: Platform) => {
+    setForm(prev => ({
+      ...prev,
+      platforms: prev.platforms.includes(platform)
+        ? prev.platforms.filter(p => p !== platform)
+        : [...prev.platforms, platform],
+    }));
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'success': return '成功';
-      case 'pending': return '待激活';
-      case 'expired': return '已失效';
-      default: return status;
+  // 创建推荐码
+  const handleCreateCode = () => {
+    if (!form.title || !form.videoUrl) {
+      Alert.alert('提示', '请填写视频标题和链接');
+      return;
     }
+    if (form.platforms.length === 0) {
+      Alert.alert('提示', '请选择至少一个发布平台');
+      return;
+    }
+
+    const newCode: ReferralCode = {
+      id: Date.now().toString(),
+      title: form.title,
+      videoUrl: form.videoUrl,
+      videoThumbnail: 'https://picsum.photos/200?' + Date.now(),
+      platforms: form.platforms,
+      code: `ZS2024${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
+      scanCount: 0,
+      publishCount: 0,
+      createdAt: new Date().toLocaleDateString(),
+    };
+
+    setReferralCodes([newCode, ...referralCodes]);
+    setShowCreateModal(false);
+    setForm({ title: '', videoUrl: '', platforms: [] });
+    Alert.alert('成功', '推荐码创建成功');
   };
 
-  // 获取渠道信息
-  const getChannelInfo = (channel: string) => {
-    switch (channel) {
-      case 'wechat': return { name: '微信', icon: 'chatbubble' as const, color: '#07c160' };
-      case 'douyin': return { name: '抖音', icon: 'logo-octocat' as const, color: '#ff4757' };
-      case 'xiaohongshu': return { name: '小红书', icon: 'book' as const, color: '#ff6b9d' };
-      default: return { name: '其他', icon: 'globe' as const, color: '#64748b' };
-    }
+  // 查看二维码
+  const handleViewCode = (code: ReferralCode) => {
+    setSelectedCode(code);
+    setShowCodeModal(true);
   };
 
   // 复制推荐码
-  const handleCopyCode = (code: string) => {
-    Alert.alert('成功', `推荐码 ${code} 已复制到剪贴板`);
+  const handleCopyCode = () => {
+    Alert.alert('成功', `推荐码 ${selectedCode?.code} 已复制`);
   };
 
   // 分享推荐码
-  const handleShareCode = async (code: string) => {
-    try {
-      await Share.share({
-        message: `邀请码: ${code}\n注册即享好礼！点击链接注册: https://zhishuai.com/register?code=${code}`,
-      });
-    } catch (error) {
-      console.error('分享失败:', error);
-    }
-  };
-
-  // 创建二维码
-  const handleCreateQR = () => {
-    if (!form.name) {
-      Alert.alert('提示', '请输入二维码名称');
-      return;
-    }
-    const newQR: QRCode = {
-      id: Date.now().toString(),
-      name: form.name,
-      url: `https://zhishuai.com/r/${Math.random().toString(36).substr(2, 6)}`,
-      scans: 0,
-      createdAt: new Date().toLocaleDateString(),
-      channel: form.channel,
-    };
-    mockQRCodes.unshift(newQR);
-    setShowAddModal(false);
-    setForm({ name: '', channel: 'wechat' });
-    Alert.alert('成功', '二维码已生成');
-  };
-
-  // 分享二维码链接
-  const handleShareQR = async () => {
-    if (!selectedQR) return;
-    try {
-      await Share.share({
-        message: `扫码注册: ${selectedQR.url}`,
-      });
-    } catch (error) {
-      console.error('分享失败:', error);
-    }
+  const handleShareCode = () => {
+    Alert.alert('分享', '打开分享面板');
   };
 
   return (
     <View style={styles.container}>
       <PageHeader title="推荐分享" />
-
-      {/* Tab栏 */}
+      
+      {/* Tab切换 */}
       <View style={styles.tabBar}>
-        {[
-          { key: 'stats', icon: 'stats-chart', label: '数据' },
-          { key: 'referrals', icon: 'people', label: '推荐' },
-          { key: 'qrcode', icon: 'qr-code', label: '二维码' },
-        ].map(tab => (
-          <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key as any)}>
-            <Ionicons name={tab.icon as any} size={18} color={activeTab === tab.key ? '#4F46E5' : '#94a3b8'} />
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'my' && styles.tabActive]}
+          onPress={() => setActiveTab('my')}
+        >
+          <Text style={[styles.tabText, activeTab === 'my' && styles.tabTextActive]}>我的推荐码</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'codes' && styles.tabActive]}
+          onPress={() => setActiveTab('codes')}
+        >
+          <Text style={[styles.tabText, activeTab === 'codes' && styles.tabTextActive]}>推荐码管理</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'data' && styles.tabActive]}
+          onPress={() => setActiveTab('data')}
+        >
+          <Text style={[styles.tabText, activeTab === 'data' && styles.tabTextActive]}>数据统计</Text>
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 数据统计 */}
-        {activeTab === 'stats' && (
-          <>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* 我的推荐码 Tab */}
+        {activeTab === 'my' && (
+          <View style={styles.section}>
+            {/* 统计数据 */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.totalScans}</Text>
+                <Text style={styles.statLabel}>扫码次数</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.totalPublish}</Text>
+                <Text style={styles.statLabel}>发布次数</Text>
+              </View>
+            </View>
+            <View style={styles.statsGrid}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.activeCodes}</Text>
+                <Text style={styles.statLabel}>活跃码数</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.conversionRate}</Text>
+                <Text style={styles.statLabel}>转化率</Text>
+              </View>
+            </View>
+
             {/* 我的推荐码 */}
             <View style={styles.myCodeCard}>
-              <Text style={styles.myCodeLabel}>我的推荐码</Text>
-              <Text style={styles.myCodeValue}>{myReferralCode}</Text>
+              <Text style={styles.sectionTitle}>我的推荐码</Text>
+              <View style={styles.codeDisplay}>
+                <Text style={styles.codeText}>{myReferralCode}</Text>
+                <TouchableOpacity style={styles.copyBtn} onPress={handleCopyCode}>
+                  <Ionicons name="copy-outline" size={20} color="#4F46E5" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.codeTip}>分享此推荐码，其他人扫码可一键发布您的视频</Text>
+              
+              {/* 操作按钮 */}
               <View style={styles.codeActions}>
-                <TouchableOpacity style={styles.codeBtn} onPress={() => handleCopyCode(myReferralCode)}>
-                  <Ionicons name="copy-outline" size={16} color="#4F46E5" />
-                  <Text style={styles.codeBtnText}>复制</Text>
+                <TouchableOpacity style={styles.codeActionBtn} onPress={handleShareCode}>
+                  <Ionicons name="share-social-outline" size={22} color="#4F46E5" />
+                  <Text style={styles.codeActionText}>分享推荐码</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.codeBtn, styles.shareBtn]} onPress={() => handleShareCode(myReferralCode)}>
-                  <Ionicons name="share-outline" size={16} color="#fff" />
-                  <Text style={[styles.codeBtnText, { color: '#fff' }]}>分享</Text>
+                <TouchableOpacity 
+                  style={[styles.codeActionBtn, styles.createBtn]}
+                  onPress={() => setShowCreateModal(true)}
+                >
+                  <Ionicons name="add-circle-outline" size={22} color="#fff" />
+                  <Text style={[styles.codeActionText, { color: '#fff' }]}>创建推荐码</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
-                  <Ionicons name="people" size={18} color="#1890ff" />
+            {/* 使用说明 */}
+            <View style={styles.guideCard}>
+              <Text style={styles.guideTitle}>使用说明</Text>
+              <View style={styles.guideItem}>
+                <View style={[styles.guideStep, { backgroundColor: '#4F46E5' }]}>
+                  <Text style={styles.guideStepText}>1</Text>
                 </View>
-                <Text style={styles.statValue}>{stats.totalReferrals}</Text>
-                <Text style={styles.statLabel}>总推荐数</Text>
+                <Text style={styles.guideContent}>选择您发布的短视频，生成专属推荐码</Text>
               </View>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#dcfce7' }]}>
-                  <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
+              <View style={styles.guideItem}>
+                <View style={[styles.guideStep, { backgroundColor: '#8B5CF6' }]}>
+                  <Text style={styles.guideStepText}>2</Text>
                 </View>
-                <Text style={styles.statValue}>{stats.conversions}</Text>
-                <Text style={styles.statLabel}>成功转化</Text>
+                <Text style={styles.guideContent}>分享推荐码给好友或客户</Text>
+              </View>
+              <View style={styles.guideItem}>
+                <View style={[styles.guideStep, { backgroundColor: '#10B981' }]}>
+                  <Text style={styles.guideStepText}>3</Text>
+                </View>
+                <Text style={styles.guideContent}>其他人扫码后一键发布到指定平台</Text>
               </View>
             </View>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
-                  <Ionicons name="person" size={18} color="#f59e0b" />
+          </View>
+        )}
+
+        {/* 推荐码管理 Tab */}
+        {activeTab === 'codes' && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>推荐码列表</Text>
+              <TouchableOpacity 
+                style={styles.addBtn}
+                onPress={() => setShowCreateModal(true)}
+              >
+                <Ionicons name="add" size={20} color="#fff" />
+                <Text style={styles.addBtnText}>新建</Text>
+              </TouchableOpacity>
+            </View>
+
+            {referralCodes.map(code => (
+              <TouchableOpacity 
+                key={code.id} 
+                style={styles.codeCard}
+                onPress={() => handleViewCode(code)}
+              >
+                <Image 
+                  source={{ uri: code.videoThumbnail }} 
+                  style={styles.videoThumb}
+                />
+                <View style={styles.codeInfo}>
+                  <Text style={styles.codeTitle}>{code.title}</Text>
+                  <Text style={styles.codeNumber}>编号: {code.code}</Text>
+                  <View style={styles.platformTags}>
+                    {code.platforms.map(p => (
+                      <View 
+                        key={p} 
+                        style={[styles.platformTag, { backgroundColor: platformConfig[p].color }]}
+                      >
+                        <Text style={styles.platformTagText}>{platformConfig[p].name}</Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-                <Text style={styles.statValue}>{stats.activeUsers}</Text>
-                <Text style={styles.statLabel}>活跃用户</Text>
-              </View>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#f3e8ff' }]}>
-                  <Ionicons name="scan" size={18} color="#9333ea" />
+                <View style={styles.codeStats}>
+                  <View style={styles.codeStatItem}>
+                    <Text style={styles.codeStatValue}>{code.scanCount}</Text>
+                    <Text style={styles.codeStatLabel}>扫码</Text>
+                  </View>
+                  <View style={styles.codeStatItem}>
+                    <Text style={styles.codeStatValue}>{code.publishCount}</Text>
+                    <Text style={styles.codeStatLabel}>发布</Text>
+                  </View>
                 </View>
-                <Text style={styles.statValue}>{stats.scanRate}%</Text>
-                <Text style={styles.statLabel}>扫码率</Text>
+                <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {/* 数据统计 Tab */}
+        {activeTab === 'data' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>数据概览</Text>
+            
+            {/* 趋势数据 */}
+            <View style={styles.trendCard}>
+              <Text style={styles.trendTitle}>今日数据</Text>
+              <View style={styles.trendGrid}>
+                <View style={styles.trendItem}>
+                  <Text style={styles.trendValue}>23</Text>
+                  <Text style={styles.trendLabel}>扫码</Text>
+                  <View style={[styles.trendBadge, { backgroundColor: '#FEE2E2' }]}>
+                    <Ionicons name="arrow-up" size={12} color="#EF4444" />
+                    <Text style={[styles.trendBadgeText, { color: '#EF4444' }]}>12%</Text>
+                  </View>
+                </View>
+                <View style={styles.trendItem}>
+                  <Text style={styles.trendValue}>18</Text>
+                  <Text style={styles.trendLabel}>发布</Text>
+                  <View style={[styles.trendBadge, { backgroundColor: '#D1FAE5' }]}>
+                    <Ionicons name="arrow-up" size={12} color="#10B981" />
+                    <Text style={[styles.trendBadgeText, { color: '#10B981' }]}>8%</Text>
+                  </View>
+                </View>
               </View>
             </View>
 
-            {/* 渠道分布 */}
-            <Text style={styles.sectionTitle}>渠道分布</Text>
-            <View style={styles.channelCard}>
-              {channelData.map((item, index) => (
-                <View key={index} style={styles.channelItem}>
-                  <View style={[styles.channelDot, { backgroundColor: item.color }]} />
-                  <Text style={styles.channelName}>{item.channel}</Text>
-                  <Text style={styles.channelCount}>{item.count}人</Text>
-                  <Text style={styles.channelRate}>{item.rate}%</Text>
+            {/* 平台分布 */}
+            <View style={styles.platformStatsCard}>
+              <Text style={styles.platformStatsTitle}>平台发布分布</Text>
+              {Object.entries(platformConfig).map(([key, config]) => {
+                const count = referralCodes.reduce((sum, code) => 
+                  code.platforms.includes(key as Platform) ? sum + code.publishCount : sum, 0);
+                const total = referralCodes.reduce((sum, code) => sum + code.publishCount, 0);
+                const percentage = total > 0 ? (count / total * 100).toFixed(1) : '0';
+                
+                return (
+                  <View key={key} style={styles.platformStatItem}>
+                    <View style={styles.platformStatHeader}>
+                      <View style={[styles.platformDot, { backgroundColor: config.color }]} />
+                      <Text style={styles.platformStatName}>{config.name}</Text>
+                      <Text style={styles.platformStatCount}>{count} 次</Text>
+                    </View>
+                    <View style={styles.platformProgressBg}>
+                      <View 
+                        style={[
+                          styles.platformProgress, 
+                          { width: `${percentage}%`, backgroundColor: config.color }
+                        ]} 
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* 推荐记录 */}
+            <View style={styles.recordCard}>
+              <Text style={styles.recordTitle}>最近推荐</Text>
+              {referralCodes.slice(0, 3).map((code, index) => (
+                <View key={code.id} style={styles.recordItem}>
+                  <View style={styles.recordLeft}>
+                    <Text style={styles.recordName}>{code.title}</Text>
+                    <Text style={styles.recordTime}>{code.createdAt}</Text>
+                  </View>
+                  <View style={styles.recordRight}>
+                    <Text style={styles.recordScan}>{code.scanCount} 扫码</Text>
+                    <Text style={styles.recordPublish}>{code.publishCount} 发布</Text>
+                  </View>
                 </View>
               ))}
             </View>
-
-            {/* 最近推荐 */}
-            <Text style={styles.sectionTitle}>最近推荐</Text>
-            {referrals.slice(0, 3).map(ref => (
-              <View key={ref.id} style={styles.referralCard}>
-                <View style={styles.referralHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{ref.referrer[0]}</Text>
-                  </View>
-                  <View style={styles.referralInfo}>
-                    <Text style={styles.referralName}>{ref.referrer} → {ref.referred}</Text>
-                    <Text style={styles.referralCode}>{ref.code}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusConfig(ref.status).bg }]}>
-                    <Text style={[styles.statusText, { color: getStatusConfig(ref.status).text }]}>{getStatusText(ref.status)}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </>
+          </View>
         )}
 
-        {/* 推荐记录 */}
-        {activeTab === 'referrals' && (
-          <>
-            <Text style={styles.sectionTitle}>推荐记录 ({referrals.length})</Text>
-            {referrals.map(ref => (
-              <View key={ref.id} style={styles.referralCard}>
-                <View style={styles.referralHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{ref.referrer[0]}</Text>
-                  </View>
-                  <View style={styles.referralInfo}>
-                    <Text style={styles.referralName}>{ref.referrer} → {ref.referred}</Text>
-                    <Text style={styles.referralCode}>{ref.code}</Text>
-                    <Text style={styles.referralPhone}>{ref.phone}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusConfig(ref.status).bg }]}>
-                    <Text style={[styles.statusText, { color: getStatusConfig(ref.status).text }]}>{getStatusText(ref.status)}</Text>
-                  </View>
-                </View>
-                <View style={styles.referralFooter}>
-                  <Text style={styles.referralTime}>{ref.time}</Text>
-                  <View style={styles.referralActions}>
-                    <TouchableOpacity style={styles.refActionBtn} onPress={() => handleCopyCode(ref.code)}>
-                      <Ionicons name="copy-outline" size={14} color="#64748b" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.refActionBtn} onPress={() => handleShareCode(ref.code)}>
-                      <Ionicons name="share-outline" size={14} color="#64748b" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            ))}
-          </>
-        )}
-
-        {/* 二维码管理 */}
-        {activeTab === 'qrcode' && (
-          <>
-            <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
-              <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.addBtnText}>生成二维码</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.sectionTitle}>二维码列表 ({mockQRCodes.length})</Text>
-            {mockQRCodes.map(qr => {
-              const channelInfo = getChannelInfo(qr.channel);
-              return (
-                <TouchableOpacity key={qr.id} style={styles.qrCard} onPress={() => { setSelectedQR(qr); setShowShareModal(true); }}>
-                  <View style={styles.qrHeader}>
-                    <View style={[styles.qrIcon, { backgroundColor: channelInfo.color + '20' }]}>
-                      <Ionicons name="qr-code" size={24} color={channelInfo.color} />
-                    </View>
-                    <View style={styles.qrInfo}>
-                      <Text style={styles.qrName}>{qr.name}</Text>
-                      <Text style={styles.qrUrl} numberOfLines={1}>{qr.url}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.qrFooter}>
-                    <View style={styles.qrMeta}>
-                      <Ionicons name="scan-outline" size={14} color="#64748b" />
-                      <Text style={styles.qrScans}>{qr.scans} 次扫码</Text>
-                    </View>
-                    <View style={[styles.channelBadge, { backgroundColor: channelInfo.color + '20' }]}>
-                      <Ionicons name={channelInfo.icon} size={12} color={channelInfo.color} />
-                      <Text style={[styles.channelText, { color: channelInfo.color }]}>{channelInfo.name}</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </>
-        )}
-
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* 创建二维码弹窗 */}
-      <Modal visible={showAddModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>生成二维码</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color="#64748b" />
+      {/* 创建推荐码弹窗 */}
+      <Modal visible={showCreateModal} transparent animationType="slide">
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.content}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>创建推荐码</Text>
+              <TouchableOpacity onPress={() => setShowCreateModal(false)}>
+                <Ionicons name="close" size={24} color="#1e293b" />
               </TouchableOpacity>
             </View>
+
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>二维码名称 *</Text>
-              <TextInput style={styles.input} placeholder="例如：产品推广二维码" placeholderTextColor="#94a3b8" value={form.name} onChangeText={t => setForm({ ...form, name: t })} />
+              <View style={modalStyles.form}>
+                <View style={modalStyles.field}>
+                  <Text style={modalStyles.label}>视频标题</Text>
+                  <TextInput
+                    style={modalStyles.input}
+                    placeholder="输入视频标题"
+                    placeholderTextColor="#94a3b8"
+                    value={form.title}
+                    onChangeText={text => setForm(prev => ({ ...prev, title: text }))}
+                  />
+                </View>
 
-              <Text style={styles.inputLabel}>推广渠道 *</Text>
-              <View style={styles.channelSelect}>
-                {[
-                  { key: 'wechat', label: '微信', icon: 'chatbubble' as const, color: '#07c160' },
-                  { key: 'douyin', label: '抖音', icon: 'logo-octocat' as const, color: '#ff4757' },
-                  { key: 'xiaohongshu', label: '小红书', icon: 'book' as const, color: '#ff6b9d' },
-                  { key: 'other', label: '其他', icon: 'globe' as const, color: '#64748b' },
-                ].map(item => (
-                  <TouchableOpacity key={item.key} style={[styles.channelOption, form.channel === item.key && { borderColor: item.color, backgroundColor: item.color + '10' }]} onPress={() => setForm({ ...form, channel: item.key as QRCode['channel'] })}>
-                    <Ionicons name={item.icon} size={20} color={form.channel === item.key ? item.color : '#64748b'} />
-                    <Text style={[styles.channelOptionText, form.channel === item.key && { color: item.color }]}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
+                <View style={modalStyles.field}>
+                  <Text style={modalStyles.label}>视频链接</Text>
+                  <TextInput
+                    style={modalStyles.input}
+                    placeholder="输入视频链接"
+                    placeholderTextColor="#94a3b8"
+                    value={form.videoUrl}
+                    onChangeText={text => setForm(prev => ({ ...prev, videoUrl: text }))}
+                  />
+                </View>
+
+                <View style={modalStyles.field}>
+                  <Text style={modalStyles.label}>发布平台</Text>
+                  <View style={modalStyles.platformGrid}>
+                    {Object.entries(platformConfig).map(([key, config]) => (
+                      <TouchableOpacity
+                        key={key}
+                        style={[
+                          modalStyles.platformOption,
+                          form.platforms.includes(key as Platform) && { 
+                            borderColor: config.color,
+                            backgroundColor: config.color + '15',
+                          }
+                        ]}
+                        onPress={() => togglePlatform(key as Platform)}
+                      >
+                        <Ionicons 
+                          name={config.icon as any} 
+                          size={24} 
+                          color={form.platforms.includes(key as Platform) ? config.color : '#64748b'} 
+                        />
+                        <Text style={[
+                          modalStyles.platformName,
+                          form.platforms.includes(key as Platform) && { color: config.color }
+                        ]}>
+                          {config.name}
+                        </Text>
+                        {form.platforms.includes(key as Platform) && (
+                          <View style={[styles.platformCheck, { backgroundColor: config.color }]}>
+                            <Ionicons name="checkmark" size={12} color="#fff" />
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                <TouchableOpacity style={modalStyles.submitBtn} onPress={handleCreateCode}>
+                  <Text style={modalStyles.submitText}>创建推荐码</Text>
+                </TouchableOpacity>
               </View>
-
-              <Text style={styles.inputLabel}>跳转链接</Text>
-              <TextInput style={styles.input} placeholder="输入跳转链接（可选）" placeholderTextColor="#94a3b8" />
-
-              <TouchableOpacity style={styles.submitBtn} onPress={handleCreateQR}>
-                <Ionicons name="qr-code" size={18} color="#fff" />
-                <Text style={styles.submitBtnText}>生成二维码</Text>
-              </TouchableOpacity>
-              <View style={{ height: 40 }} />
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* 二维码详情弹窗 */}
-      <Modal visible={showShareModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>二维码详情</Text>
-              <TouchableOpacity onPress={() => setShowShareModal(false)}>
-                <Ionicons name="close" size={24} color="#64748b" />
+      {/* 二维码弹窗 */}
+      <Modal visible={showCodeModal} transparent animationType="slide">
+        <View style={modalStyles.overlay}>
+          <View style={modalStyles.content}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>推荐码详情</Text>
+              <TouchableOpacity onPress={() => setShowCodeModal(false)}>
+                <Ionicons name="close" size={24} color="#1e293b" />
               </TouchableOpacity>
             </View>
-            {selectedQR && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.qrDetailHeader}>
-                  <View style={styles.qrPreview}>
-                    <Ionicons name="qr-code" size={120} color="#1e293b" />
+
+            {selectedCode && (
+              <View style={modalStyles.codeDetail}>
+                <View style={styles.qrCodePlaceholder}>
+                  <Ionicons name="qr-code" size={200} color="#1e293b" />
+                </View>
+                
+                <Text style={modalStyles.codeLabel}>推荐码</Text>
+                <Text style={modalStyles.codeValue}>{selectedCode.code}</Text>
+
+                <View style={styles.platformTags} style={{ flexDirection: 'row', gap: 8, marginVertical: 12 }}>
+                  {selectedCode.platforms.map(p => (
+                    <View 
+                      key={p} 
+                      style={[styles.platformTag, { backgroundColor: platformConfig[p].color }]}
+                    >
+                      <Text style={styles.platformTagText}>{platformConfig[p].name}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={styles.codeStatsRow}>
+                  <View style={styles.codeStatBox}>
+                    <Text style={styles.codeStatBoxValue}>{selectedCode.scanCount}</Text>
+                    <Text style={styles.codeStatBoxLabel}>扫码次数</Text>
                   </View>
-                  <Text style={styles.qrDetailName}>{selectedQR.name}</Text>
-                  {(() => {
-                    const channelInfo = getChannelInfo(selectedQR.channel);
-                    return (
-                      <View style={[styles.channelBadge, { backgroundColor: channelInfo.color + '20' }]}>
-                        <Ionicons name={channelInfo.icon} size={14} color={channelInfo.color} />
-                        <Text style={[styles.channelText, { color: channelInfo.color }]}>{channelInfo.name}</Text>
-                      </View>
-                    );
-                  })()}
-                </View>
-
-                <View style={styles.qrDetailSection}>
-                  <Text style={styles.detailLabel}>推广链接</Text>
-                  <View style={styles.urlRow}>
-                    <Text style={styles.detailValue} numberOfLines={1}>{selectedQR.url}</Text>
-                    <TouchableOpacity onPress={() => handleCopyCode(selectedQR.url)}>
-                      <Ionicons name="copy-outline" size={18} color="#4F46E5" />
-                    </TouchableOpacity>
+                  <View style={styles.codeStatBox}>
+                    <Text style={styles.codeStatBoxValue}>{selectedCode.publishCount}</Text>
+                    <Text style={styles.codeStatBoxLabel}>发布次数</Text>
                   </View>
                 </View>
 
-                <View style={styles.qrDetailSection}>
-                  <Text style={styles.detailLabel}>扫码次数</Text>
-                  <Text style={styles.detailValue}>{selectedQR.scans} 次</Text>
+                <View style={modalStyles.codeActions}>
+                  <TouchableOpacity style={styles.codeActionBtn} onPress={handleCopyCode}>
+                    <Ionicons name="copy-outline" size={20} color="#4F46E5" />
+                    <Text style={styles.codeActionText}>复制</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.codeActionBtn} onPress={handleShareCode}>
+                    <Ionicons name="share-outline" size={20} color="#4F46E5" />
+                    <Text style={styles.codeActionText}>分享</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.codeActionBtn, { backgroundColor: '#10B981' }]}>
+                    <Ionicons name="download-outline" size={20} color="#fff" />
+                    <Text style={[styles.codeActionText, { color: '#fff' }]}>下载</Text>
+                  </TouchableOpacity>
                 </View>
-
-                <View style={styles.qrDetailSection}>
-                  <Text style={styles.detailLabel}>创建时间</Text>
-                  <Text style={styles.detailValue}>{selectedQR.createdAt}</Text>
-                </View>
-
-                <TouchableOpacity style={styles.shareBtnLarge} onPress={handleShareQR}>
-                  <Ionicons name="share-outline" size={20} color="#fff" />
-                  <Text style={styles.shareBtnText}>分享二维码</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.downloadBtn}>
-                  <Ionicons name="download-outline" size={20} color="#4F46E5" />
-                  <Text style={styles.downloadBtnText}>下载二维码</Text>
-                </TouchableOpacity>
-
-                <View style={{ height: 40 }} />
-              </ScrollView>
+              </View>
             )}
           </View>
         </View>
@@ -437,79 +538,516 @@ export default function ShareScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6, gap: 4 },
-  tabActive: { backgroundColor: '#eef2ff', borderRadius: 8 },
-  tabText: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
-  tabTextActive: { color: '#4F46E5', fontWeight: '600' },
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: '#334155', marginBottom: 12, marginTop: 8 },
-  myCodeCard: { backgroundColor: '#4F46E5', borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 16 },
-  myCodeLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 8 },
-  myCodeValue: { fontSize: 24, fontWeight: '700', color: '#fff', letterSpacing: 2, marginBottom: 16 },
-  codeActions: { flexDirection: 'row', gap: 12 },
-  codeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, gap: 6 },
-  codeBtnText: { fontSize: 14, fontWeight: '500', color: '#4F46E5' },
-  shareBtn: { backgroundColor: 'rgba(255,255,255,0.2)' },
-  statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center' },
-  statIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statValue: { fontSize: 20, fontWeight: '700', color: '#1e293b' },
-  statLabel: { fontSize: 11, color: '#64748b', marginTop: 4 },
-  channelCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 16 },
-  channelItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  channelDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-  channelName: { flex: 1, fontSize: 13, color: '#1e293b' },
-  channelCount: { fontSize: 13, fontWeight: '600', color: '#1e293b', marginRight: 8 },
-  channelRate: { fontSize: 12, color: '#64748b', width: 45 },
-  referralCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
-  referralHeader: { flexDirection: 'row', alignItems: 'flex-start' },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 16, fontWeight: '600', color: '#4F46E5' },
-  referralInfo: { flex: 1, marginLeft: 12 },
-  referralName: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
-  referralCode: { fontSize: 12, color: '#4F46E5', marginTop: 2 },
-  referralPhone: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 12, fontWeight: '500' },
-  referralFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  referralTime: { fontSize: 12, color: '#94a3b8' },
-  referralActions: { flexDirection: 'row', gap: 12 },
-  refActionBtn: { padding: 4 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, gap: 8, marginBottom: 16 },
-  addBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
-  qrCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
-  qrHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  qrIcon: { width: 50, height: 50, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  qrInfo: { flex: 1, marginLeft: 12 },
-  qrName: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
-  qrUrl: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  qrFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  qrMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  qrScans: { fontSize: 12, color: '#64748b' },
-  channelBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, gap: 4 },
-  channelText: { fontSize: 12, fontWeight: '500' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%', paddingBottom: 40 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  modalTitle: { fontSize: 17, fontWeight: '600', color: '#1e293b' },
-  inputLabel: { fontSize: 13, fontWeight: '500', color: '#374151', marginBottom: 6, marginTop: 12 },
-  input: { backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, fontSize: 14, color: '#1e293b', borderWidth: 1, borderColor: '#e5e7eb' },
-  channelSelect: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  channelOption: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 10, backgroundColor: '#f9fafb', borderWidth: 2, borderColor: '#e5e7eb', gap: 8 },
-  channelOptionText: { fontSize: 13, color: '#64748b' },
-  submitBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, marginTop: 20, gap: 8 },
-  submitBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
-  qrDetailHeader: { alignItems: 'center', paddingVertical: 20 },
-  qrPreview: { width: 150, height: 150, backgroundColor: '#fff', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' },
-  qrDetailName: { fontSize: 18, fontWeight: '600', color: '#1e293b', marginBottom: 8 },
-  qrDetailSection: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  detailLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 4 },
-  detailValue: { fontSize: 14, color: '#1e293b' },
-  urlRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  shareBtnLarge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, marginHorizontal: 16, marginTop: 20, gap: 8 },
-  shareBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
-  downloadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', borderRadius: 10, padding: 14, marginHorizontal: 16, marginTop: 12, gap: 8, borderWidth: 1, borderColor: '#4F46E5' },
-  downloadBtnText: { fontSize: 15, fontWeight: '600', color: '#4F46E5' },
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#4F46E5',
+  },
+  tabText: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  tabTextActive: {
+    color: '#4F46E5',
+    fontWeight: '600',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  section: {
+    padding: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 4,
+  },
+  addBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // 统计卡片
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  statLabel: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  // 我的码卡片
+  myCodeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  codeDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 8,
+    padding: 14,
+  },
+  codeText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: 2,
+  },
+  copyBtn: {
+    padding: 8,
+  },
+  codeTip: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 12,
+  },
+  codeActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  codeActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#4F46E5',
+    gap: 6,
+  },
+  createBtn: {
+    backgroundColor: '#4F46E5',
+    borderColor: '#4F46E5',
+  },
+  codeActionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4F46E5',
+  },
+  // 使用说明
+  guideCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+  },
+  guideTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  guideItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  guideStep: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  guideStepText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  guideContent: {
+    flex: 1,
+    fontSize: 14,
+    color: '#475569',
+  },
+  // 推荐码卡片
+  codeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  videoThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  codeInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  codeTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  codeNumber: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginBottom: 6,
+  },
+  platformTags: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  platformTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  platformTagText: {
+    color: '#fff',
+    fontSize: 11,
+  },
+  codeStats: {
+    flexDirection: 'row',
+    gap: 16,
+    marginRight: 8,
+  },
+  codeStatItem: {
+    alignItems: 'center',
+  },
+  codeStatValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  codeStatLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+  },
+  // 趋势数据
+  trendCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  trendTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  trendGrid: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  trendItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  trendValue: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  trendLabel: {
+    fontSize: 13,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  trendBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 2,
+  },
+  trendBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // 平台分布
+  platformStatsCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  platformStatsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  platformStatItem: {
+    marginBottom: 14,
+  },
+  platformStatHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  platformDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  platformStatName: {
+    flex: 1,
+    fontSize: 14,
+    color: '#475569',
+  },
+  platformStatCount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  platformProgressBg: {
+    height: 6,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 3,
+  },
+  platformProgress: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  // 推荐记录
+  recordCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  recordTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  recordItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  recordLeft: {},
+  recordName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1e293b',
+  },
+  recordTime: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  recordRight: {
+    alignItems: 'flex-end',
+  },
+  recordScan: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  recordPublish: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#10B981',
+    marginTop: 2,
+  },
+  // 二维码弹窗
+  qrCodePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  codeStatsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 16,
+  },
+  codeStatBox: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    padding: 14,
+    alignItems: 'center',
+  },
+  codeStatBoxValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#4F46E5',
+  },
+  codeStatBoxLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  platformCheck: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  content: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
+    maxHeight: '90%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  form: {
+    padding: 20,
+  },
+  field: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  platformGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  platformOption: {
+    width: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+  },
+  platformName: {
+    fontSize: 14,
+    color: '#64748b',
+    marginLeft: 10,
+  },
+  submitBtn: {
+    backgroundColor: '#4F46E5',
+    borderRadius: 10,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  submitText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  codeDetail: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  codeLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 8,
+  },
+  codeValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: 2,
+    marginVertical: 8,
+  },
+  codeActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
 });

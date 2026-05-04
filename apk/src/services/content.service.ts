@@ -170,12 +170,56 @@ export const viralElementOptions = [
   { label: '节奏变化', value: 'rhythm' },
 ]
 
-// 数字人选项
+// 数字人选项（带缩略图）
 export const digitalHumanOptions = [
-  { label: '商务男1', value: 'system_male_1', type: '系统自带' },
-  { label: '商务女1', value: 'system_female_1', type: '系统自带' },
-  { label: '活泼男1', value: 'system_male_2', type: '系统自带' },
-  { label: '活泼女1', value: 'system_female_2', type: '系统自带' },
+  { 
+    label: '商务男1', 
+    value: 'system_male_1', 
+    type: '系统自带',
+    thumbnail: 'https://img.icons8.com/color/96/user-male--v1.png'
+  },
+  { 
+    label: '商务女1', 
+    value: 'system_female_1', 
+    type: '系统自带',
+    thumbnail: 'https://img.icons8.com/color/96/user-female--v1.png'
+  },
+  { 
+    label: '活泼男1', 
+    value: 'system_male_2', 
+    type: '系统自带',
+    thumbnail: 'https://img.icons8.com/color/96/user-male--v1.png'
+  },
+  { 
+    label: '活泼女1', 
+    value: 'system_female_2', 
+    type: '系统自带',
+    thumbnail: 'https://img.icons8.com/color/96/user-female--v1.png'
+  },
+  { 
+    label: '专业男1', 
+    value: 'pro_male_1', 
+    type: '专业版',
+    thumbnail: 'https://img.icons8.com/color/96/businessman.png'
+  },
+  { 
+    label: '专业女1', 
+    value: 'pro_female_1', 
+    type: '专业版',
+    thumbnail: 'https://img.icons8.com/color/96/businesswoman.png'
+  },
+  { 
+    label: '年轻女1', 
+    value: 'young_female_1', 
+    type: '年轻系列',
+    thumbnail: 'https://img.icons8.com/color/96/girl.png'
+  },
+  { 
+    label: '阳光男1', 
+    value: 'sunny_male_1', 
+    type: '阳光系列',
+    thumbnail: 'https://img.icons8.com/color/96/smiling-man.png'
+  },
 ]
 
 // 生成内容请求参数

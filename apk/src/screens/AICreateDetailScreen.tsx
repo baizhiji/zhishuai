@@ -463,11 +463,12 @@ export default function AICreateDetailScreen() {
         <Text style={styles.fieldLabel}>视频链接</Text>
         <TextInput
           style={styles.input}
-          placeholder="输入短视频链接（抖音、快手、B站等）"
+          placeholder="输入短视频链接（抖音、快手、小红书、B站等）"
           placeholderTextColor="#94a3b8"
           value={videoUrl}
           onChangeText={setVideoUrl}
         />
+        <Text style={styles.fieldTip}>支持抖音、快手、小红书、视频号、B站等平台链接</Text>
       </View>
 
       {/* 分析维度 */}
@@ -502,12 +503,12 @@ export default function AICreateDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 内容描述 */}
+      {/* 内容描述 - 用于AI生成类似视频 */}
       <View style={styles.field}>
-        <Text style={styles.fieldLabel}>内容描述</Text>
+        <Text style={styles.fieldLabel}>内容描述（选填）</Text>
         <TextInput
           style={styles.textArea}
-          placeholder="输入要生成的爆款视频描述..."
+          placeholder="输入要生成的视频描述，AI将基于解析结果生成类似视频..."
           placeholderTextColor="#94a3b8"
           value={description}
           onChangeText={setDescription}
@@ -515,6 +516,39 @@ export default function AICreateDetailScreen() {
           numberOfLines={3}
           textAlignVertical="top"
         />
+      </View>
+
+      {/* 功能操作按钮 */}
+      <View style={styles.actionButtonsRow}>
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.downloadButton]}
+          onPress={() => {
+            if (!videoUrl.trim()) {
+              Alert.alert('提示', '请先输入视频链接');
+              return;
+            }
+            // 下载视频功能
+            Alert.alert('下载视频', '正在解析视频，请稍候...');
+          }}
+        >
+          <Ionicons name="download-outline" size={20} color="#fff" />
+          <Text style={styles.actionButtonText}>解析下载</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={[styles.actionButton, styles.generateSimilarButton]}
+          onPress={() => {
+            if (!videoUrl.trim()) {
+              Alert.alert('提示', '请先输入视频链接');
+              return;
+            }
+            // AI生成类似视频
+            Alert.alert('AI生成', '正在基于解析结果生成类似视频...');
+          }}
+        >
+          <Ionicons name="sparkles-outline" size={20} color="#fff" />
+          <Text style={styles.actionButtonText}>AI生成类似视频</Text>
+        </TouchableOpacity>
       </View>
     </>
   );
@@ -529,9 +563,17 @@ export default function AICreateDetailScreen() {
           style={styles.selector}
           onPress={() => setShowDigitalHumanPicker(true)}
         >
-          <Text style={styles.selectorText}>
-            {digitalHumanOptions.find(d => d.value === digitalHumanId)?.label}
-          </Text>
+          <View style={styles.digitalHumanPreview}>
+            {digitalHumanOptions.find(d => d.value === digitalHumanId)?.thumbnail && (
+              <Image 
+                source={{ uri: digitalHumanOptions.find(d => d.value === digitalHumanId)?.thumbnail }} 
+                style={styles.digitalHumanThumbnail}
+              />
+            )}
+            <Text style={styles.selectorText}>
+              {digitalHumanOptions.find(d => d.value === digitalHumanId)?.label}
+            </Text>
+          </View>
           <Ionicons name="chevron-down" size={20} color="#64748b" />
         </TouchableOpacity>
       </View>
@@ -758,14 +800,49 @@ export default function AICreateDetailScreen() {
         setBgm
       )}
       
-      {renderOptionPicker(
-        showDigitalHumanPicker,
-        () => setShowDigitalHumanPicker(false),
-        '选择数字人',
-        digitalHumanOptions,
-        digitalHumanId,
-        setDigitalHumanId
-      )}
+      {/* 数字人选择器（带缩略图） */}
+      <Modal visible={showDigitalHumanPicker} transparent animationType="slide">
+        <View style={pickerStyles.overlay}>
+          <View style={pickerStyles.content}>
+            <View style={pickerStyles.header}>
+              <Text style={pickerStyles.title}>选择数字人</Text>
+              <TouchableOpacity onPress={() => setShowDigitalHumanPicker(false)}>
+                <Ionicons name="close" size={24} color="#1e293b" />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={digitalHumanOptions}
+              keyExtractor={item => item.value}
+              numColumns={2}
+              columnWrapperStyle={styles.digitalHumanRow}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.digitalHumanCard,
+                    digitalHumanId === item.value && styles.digitalHumanCardSelected
+                  ]}
+                  onPress={() => {
+                    setDigitalHumanId(item.value);
+                    setShowDigitalHumanPicker(false);
+                  }}
+                >
+                  <Image 
+                    source={{ uri: item.thumbnail }} 
+                    style={styles.digitalHumanCardThumbnail}
+                  />
+                  <Text style={styles.digitalHumanCardLabel}>{item.label}</Text>
+                  <Text style={styles.digitalHumanCardType}>{item.type}</Text>
+                  {digitalHumanId === item.value && (
+                    <View style={styles.digitalHumanCardCheck}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4F46E5" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -902,6 +979,91 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: '#64748b',
+  },
+  // 视频解析相关
+  fieldTip: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 6,
+  },
+  actionButtonsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 6,
+  },
+  downloadButton: {
+    backgroundColor: '#10B981',
+  },
+  generateSimilarButton: {
+    backgroundColor: '#8B5CF6',
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  // 数字人相关
+  digitalHumanPreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  digitalHumanThumbnail: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+  },
+  digitalHumanRow: {
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  digitalHumanCard: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 12,
+  },
+  digitalHumanCardSelected: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+  },
+  digitalHumanCardThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#f1f5f9',
+    marginBottom: 8,
+  },
+  digitalHumanCardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  digitalHumanCardType: {
+    fontSize: 11,
+    color: '#94a3b8',
+  },
+  digitalHumanCardCheck: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 });
 
