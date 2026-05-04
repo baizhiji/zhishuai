@@ -102,6 +102,7 @@ export default function MediaOperationScreen() {
             />
           </TouchableOpacity>
         ))}
+        </View>
       </ScrollView>
     </View>
   );
