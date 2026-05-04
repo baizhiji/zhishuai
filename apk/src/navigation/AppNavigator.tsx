@@ -57,9 +57,6 @@ export type RootStackParamList = {
   Statistics: undefined;
   Recruitment: undefined;
   Acquisition: undefined;
-  Dashboard: undefined;
-  AIAssistant: undefined;
-  CRM: undefined;
   Marketing: undefined;
   AIFeature: { category?: string };
   AIImage: undefined;
@@ -297,21 +294,6 @@ const AppNavigator = () => {
             name="VoiceClone"
             component={VoiceCloneScreen}
             options={{ title: '声音克隆' }}
-          />
-          <RootStack.Screen
-            name="Dashboard"
-            component={DashboardScreen}
-            options={{ title: '数据大盘' }}
-          />
-          <RootStack.Screen
-            name="AIAssistant"
-            component={AIScreen}
-            options={{ title: 'AI助手' }}
-          />
-          <RootStack.Screen
-            name="CRM"
-            component={CRMScreen}
-            options={{ title: '客户管理' }}
           />
           <RootStack.Screen
             name="Marketing"
