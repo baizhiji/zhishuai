@@ -57,7 +57,6 @@ export type RootStackParamList = {
   Statistics: undefined;
   Recruitment: undefined;
   Acquisition: undefined;
-  Marketing: undefined;
   AIFeature: { category?: string };
   AIImage: undefined;
   AIVideo: { category?: string };
@@ -297,8 +296,6 @@ const AppNavigator = () => {
           />
           <RootStack.Screen
             name="Marketing"
-            component={MarketingScreen}
-            options={{ title: '营销中心' }}
           />
           <RootStack.Screen
             name="AccountOverview"
