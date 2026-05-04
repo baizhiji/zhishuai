@@ -34,6 +34,7 @@ import AccountOverviewScreen from '../screens/AccountOverviewScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
 import StaffManagementScreen from '../screens/StaffManagementScreen';
 import AICreateCenterScreen from '../screens/AICreateCenterScreen';
+import AICreateDetailScreen from '../screens/AICreateDetailScreen';
 
 import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, AIEditScreen, DigitalHumanScreen, VoiceCloneScreen } from '../screens/ai';
 // 导入Auth
@@ -64,6 +65,8 @@ export type RootStackParamList = {
   AICopy: undefined;
   AIEdit: undefined;
   VoiceClone: undefined;
+  AICreateDetail: { category: string };
+  AICreateCenter: undefined;
 };
 
 export type MainTabParamList = {
@@ -306,6 +309,11 @@ const AppNavigator = () => {
             name="StaffManagement"
             component={StaffManagementScreen}
             options={{ title: '员工管理' }}
+          />
+          <RootStack.Screen
+            name="AICreateDetail"
+            component={AICreateDetailScreen}
+            options={{ headerShown: false }}
           />
         </RootStack.Navigator>
       </NavigationContainer>
