@@ -16,7 +16,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 import { contentService, ContentCategory, GeneratedContent } from '../../services/content.service';
 
 interface AIFeatureTemplateProps {
