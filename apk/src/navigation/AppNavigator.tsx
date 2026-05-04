@@ -293,9 +293,6 @@ const AppNavigator = () => {
             options={{ title: '声音克隆' }}
           />
           <RootStack.Screen
-            name="Marketing"
-          />
-          <RootStack.Screen
             name="AccountOverview"
             component={AccountOverviewScreen}
             options={{ title: '账号总览' }}
@@ -309,9 +306,6 @@ const AppNavigator = () => {
             name="StaffManagement"
             component={StaffManagementScreen}
             options={{ title: '员工管理' }}
-          />
-          <RootStack.Screen
-            options={{ title: '内容工厂' }}
           />
         </RootStack.Navigator>
       </NavigationContainer>
