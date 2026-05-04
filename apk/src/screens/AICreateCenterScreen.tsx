@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import PageHeader from '../components/PageHeader';
 
 // 导入服务
 import { ContentCategory } from '../services/content.service';
@@ -96,44 +97,28 @@ const CONTENT_TYPES = [
 export default function AICreateCenterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  // 渲染头部
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-        <Ionicons name="arrow-back" size={24} color="#1e293b" />
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>AI创作中心</Text>
-      <View style={{ width: 40 }} />
-    </View>
-  );
-
-  // 渲染创作类型选择
-  const renderTypeGrid = () => (
-    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-      <View style={styles.typeGrid}>
-        {CONTENT_TYPES.map(type => (
-          <TouchableOpacity
-            key={type.id}
-            style={styles.typeCard}
-            onPress={() => navigation.navigate('AICreateDetail', { category: type.id })}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.typeIcon, { backgroundColor: type.color + '15' }]}>
-              <Ionicons name={type.icon as any} size={28} color={type.color} />
-            </View>
-            <Text style={styles.typeName}>{type.name}</Text>
-            <Text style={styles.typeDesc}>{type.desc}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      <View style={{ height: 100 }} />
-    </ScrollView>
-  );
-
   return (
     <View style={styles.container}>
-      {renderHeader()}
-      {renderTypeGrid()}
+      <PageHeader title="AI创作中心" showBack={false} />
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <View style={styles.typeGrid}>
+          {CONTENT_TYPES.map(type => (
+            <TouchableOpacity
+              key={type.id}
+              style={styles.typeCard}
+              onPress={() => navigation.navigate('AICreateDetail', { category: type.id })}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.typeIcon, { backgroundColor: type.color + '15' }]}>
+                <Ionicons name={type.icon as any} size={28} color={type.color} />
+              </View>
+              <Text style={styles.typeName}>{type.name}</Text>
+              <Text style={styles.typeDesc}>{type.desc}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={{ height: 100 }} />
+      </ScrollView>
     </View>
   );
 }
@@ -143,29 +128,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  backBtn: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 12,
   },
   typeGrid: {
     flexDirection: 'row',

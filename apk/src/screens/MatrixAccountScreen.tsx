@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
+import PageHeader from '../components/PageHeader';
 
 interface Account {
   id: string;
@@ -96,17 +97,8 @@ export default function MatrixAccountScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* 头部 */}
-      <View style={[styles.header, { backgroundColor: theme.card }]}>
-        <TouchableOpacity onPress={() => {}} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>矩阵账号</Text>
-        <TouchableOpacity onPress={() => Alert.alert('提示', '添加账号功能')} style={styles.addBtn}>
-          <Ionicons name="add" size={24} color="#4F46E5" />
-        </TouchableOpacity>
-      </View>
-
+      <PageHeader title="矩阵账号" />
+      
       <FlatList
         data={accounts}
         keyExtractor={item => item.id}
@@ -143,27 +135,6 @@ export default function MatrixAccountScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  backBtn: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  addBtn: {
-    padding: 8,
   },
   listContent: {
     padding: 16,

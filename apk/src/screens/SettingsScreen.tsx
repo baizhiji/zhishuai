@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useAppNavigation } from '../context/NavigationContext';
+import PageHeader from '../components/PageHeader';
 
 interface SettingItem {
   id: string;
@@ -142,10 +143,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* 头部 */}
-      <View style={[styles.header, { backgroundColor: theme.header }]}>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>设置</Text>
-      </View>
+      <PageHeader title="设置" />
 
       {/* 用户信息卡片 */}
       <View style={[styles.userCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -257,19 +255,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
     margin: 16,
+    marginTop: 8,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,

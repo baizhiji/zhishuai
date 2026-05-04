@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ContentCategory } from '../services/content.service';
+import PageHeader from '../components/PageHeader';
 
 interface PublishedContent {
   id: string;
@@ -201,15 +202,8 @@ export default function DataListScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* 头部 */}
-      <View style={[styles.header, { backgroundColor: theme.card }]}>
-        <TouchableOpacity onPress={() => {}} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>数据列表</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
+      <PageHeader title="数据列表" />
+      
       {/* Tab切换 */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
@@ -246,24 +240,6 @@ export default function DataListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  backBtn: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
   },
   tabContainer: {
     flexDirection: 'row',

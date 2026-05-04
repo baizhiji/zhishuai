@@ -199,13 +199,9 @@ const AppNavigator = () => {
         <NavigationContainer ref={navigationRef}>
           <RootStack.Navigator
             initialRouteName={initialRoute as any}
-            screenOptions={({ route }) => ({
-              headerStyle: { backgroundColor: '#EFF6FF' },
-              headerTintColor: '#1E3A5F',
-              headerTitleStyle: { fontWeight: '600' },
-              headerTitle: SCREEN_TITLES[route.name] || '',
-              headerShadowVisible: false,
-            })}
+            screenOptions={{
+              headerShown: false, // 统一禁用header，由各页面组件控制
+            }}
           >
             <RootStack.Screen
               name="MainTabs"

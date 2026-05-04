@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import PageHeader from '../components/PageHeader';
 
 export default function RecruitmentScreen() {
   const navigation = useNavigation();
@@ -24,13 +25,7 @@ export default function RecruitmentScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#1e293b" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>招聘助手</Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <PageHeader title="招聘助手" />
 
       <View style={styles.tabBar}>
         <TouchableOpacity style={[styles.tab, activeTab === 'list' && styles.tabActive]} onPress={() => setActiveTab('list')}>
@@ -85,10 +80,7 @@ export default function RecruitmentScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingTop: 48, paddingBottom: 10, backgroundColor: '#fff' },
-  backBtn: { padding: 6 },
-  headerTitle: { fontSize: 16, fontWeight: '600', color: '#1e293b' },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8 },
+  tabBar: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, gap: 4 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#4F46E5' },
   tabText: { fontSize: 13, color: '#94a3b8' },

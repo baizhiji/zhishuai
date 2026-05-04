@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
+import PageHeader from '../components/PageHeader';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -70,15 +71,13 @@ export default function MediaOperationScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background }]}
-      contentContainerStyle={styles.contentContainer}
-    >
-      {/* 标题 */}
-      <Text style={[styles.title, { color: theme.text }]}>自媒体运营</Text>
-      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-        选择操作类型
-      </Text>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <PageHeader title="自媒体运营" showBack={false} />
+      
+      <ScrollView
+        style={[styles.scrollView, { backgroundColor: theme.background }]}
+        contentContainerStyle={styles.contentContainer}
+      >
 
       {/* 操作列表 */}
       <View style={styles.grid}>
@@ -103,8 +102,8 @@ export default function MediaOperationScreen() {
             />
           </TouchableOpacity>
         ))}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -112,17 +111,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  scrollView: {
+    flex: 1,
+  },
   contentContainer: {
     padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 14,
-    marginBottom: 24,
+    paddingTop: 8,
   },
   grid: {
     gap: 12,

@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ContentCategory } from '../services/content.service';
+import PageHeader from '../components/PageHeader';
 
 interface Material {
   id: string;
@@ -166,15 +167,8 @@ export default function PublishCenterScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* 头部 */}
-      <View style={[styles.header, { backgroundColor: theme.card }]}>
-        <TouchableOpacity onPress={() => {}} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>发布中心</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
+      <PageHeader title="发布中心" />
+      
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* 选择素材 */}
         <View style={styles.section}>
@@ -308,21 +302,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  content: {
+    flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 50,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    paddingTop: 16,
   },
-  backBtn: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
   },
