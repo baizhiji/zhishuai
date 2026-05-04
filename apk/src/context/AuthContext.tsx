@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const checkAuthStatus = async () => {
       try {
         // 优先从本地存储获取用户信息
-        const localUser = Storage.getUserInfo();
+        const localUser = TokenStorage.getUserInfo();
         if (localUser) {
           setUser(localUser);
           setIsLoading(false);
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
 
         // 没有本地用户信息，检查是否有token
-        const token = Storage.getToken();
+        const token = TokenStorage.getToken();
         if (token) {
           // 有token但没有用户信息，尝试从API获取（带超时）
           try {
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } catch (e) {
             // API获取失败，清除token
             console.log('获取用户信息失败，使用游客模式');
-            Storage.clearToken();
+            TokenStorage.clearToken();
           }
         }
       } catch (error) {
@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    Storage.clearAll();
+    TokenStorage.clearAll();
     setUser(null);
   };
 
