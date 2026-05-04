@@ -64,8 +64,6 @@ export type RootStackParamList = {
   AICopy: undefined;
   AIEdit: undefined;
   VoiceClone: undefined;
-  MediaFactory: undefined;
-  MediaOperation: undefined;
 };
 
 export type MainTabParamList = {
@@ -313,8 +311,6 @@ const AppNavigator = () => {
             options={{ title: '员工管理' }}
           />
           <RootStack.Screen
-            name="MediaFactory"
-            component={MediaFactoryScreen}
             options={{ title: '内容工厂' }}
           />
         </RootStack.Navigator>
