@@ -35,7 +35,7 @@ import SubscriptionScreen from '../screens/SubscriptionScreen';
 import StaffManagementScreen from '../screens/StaffManagementScreen';
 import AICreateCenterScreen from '../screens/AICreateCenterScreen';
 
-import { AIFeatureScreen, AIImageScreen, AIVideoScreen, DigitalHumanScreen, VoiceCloneScreen } from '../screens/ai';
+import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, DigitalHumanScreen, VoiceCloneScreen } from '../screens/ai';
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
 import { Storage } from '../utils/tokenStorage';
