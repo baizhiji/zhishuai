@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   FlatList,
   Switch,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import PageHeader from '../components/PageHeader';
+import { matrixService } from '../services/matrix.service';
 
 interface Account {
   id: string;
   platform: string;
   accountName: string;
-  avatar: string;
+  avatar?: string;
   fans: number;
   status: 'active' | 'inactive' | 'expired';
   lastSync: string;
@@ -32,22 +31,39 @@ const PLATFORM_CONFIG: Record<string, { name: string; color: string; icon: strin
   weibo: { name: '微博', color: '#ff8200', icon: 'cloud' },
 };
 
-const MOCK_ACCOUNTS: Account[] = [
-  { id: '1', platform: 'douyin', accountName: '智枢AI官方', avatar: '', fans: 12580, status: 'active', lastSync: '2024-03-25 10:30', autoPublish: true },
-  { id: '2', platform: 'xiaohongshu', accountName: '智枢AI助手', avatar: '', fans: 8642, status: 'active', lastSync: '2024-03-24 15:20', autoPublish: true },
-  { id: '3', platform: 'weixin', accountName: '智枢AI视频号', avatar: '', fans: 5320, status: 'inactive', lastSync: '2024-03-23 09:15', autoPublish: false },
-  { id: '4', platform: 'kuaishou', accountName: '智枢科技', avatar: '', fans: 3260, status: 'active', lastSync: '2024-03-25 08:00', autoPublish: true },
-  { id: '5', platform: 'weibo', accountName: '智枢AI', avatar: '', fans: 1580, status: 'active', lastSync: '2024-03-24 12:00', autoPublish: false },
-];
-
 export default function MatrixAccountScreen() {
   const { theme } = useTheme();
-  const [accounts, setAccounts] = useState<Account[]>(MOCK_ACCOUNTS);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleAutoPublish = (id: string) => {
-    setAccounts(prev => prev.map(acc => 
-      acc.id === id ? { ...acc, autoPublish: !acc.autoPublish } : acc
-    ));
+  useEffect(() => {
+    loadAccounts();
+  }, []);
+
+  const loadAccounts = async () => {
+    try {
+      setLoading(true);
+      const data = await matrixService.getAccounts();
+      setAccounts(data);
+    } catch (error) {
+      console.error('加载账号失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleAutoPublish = async (id: string) => {
+    const account = accounts.find(a => a.id === id);
+    if (!account) return;
+    
+    try {
+      await matrixService.updateAccount(id, { autoPublish: !account.autoPublish });
+      setAccounts(prev => prev.map(acc => 
+        acc.id === id ? { ...acc, autoPublish: !acc.autoPublish } : acc
+      ));
+    } catch (error) {
+      console.error('更新失败:', error);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -127,7 +143,21 @@ export default function MatrixAccountScreen() {
             </View>
           </View>
         }
+        ListEmptyComponent={
+          loading ? null : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="folder-open-outline" size={64} color="#cbd5e1" />
+              <Text style={styles.emptyText}>暂无账号</Text>
+              <Text style={styles.emptySubtext}>点击右上角添加账号</Text>
+            </View>
+          )
+        }
       />
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+        </View>
+      )}
     </View>
   );
 }
@@ -182,6 +212,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 1,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#64748b',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#94a3b8',
+    marginTop: 8,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   platformBadge: {
     width: 44,

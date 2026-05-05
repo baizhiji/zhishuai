@@ -48,12 +48,12 @@ const createMockResponse = (token: string, user: UserInfo): LoginResponse => ({
 });
 
 class AuthService {
+  // 是否使用Mock API（设置为false使用真实API）
+  private useMock = false;
+
   // 用户登录
   async login(params: LoginParams): Promise<LoginResponse> {
-    // 检查是否为Mock模式（开发环境）
-    const isDevMode = __DEV__;
-    
-    if (isDevMode) {
+    if (this.useMock) {
       // Mock登录验证
       const mockUser = MOCK_USERS.find(
         u => u.phone === params.phone && u.password === params.password

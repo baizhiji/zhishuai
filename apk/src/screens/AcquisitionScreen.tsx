@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PageHeader from '../components/PageHeader';
+import { useAuth } from '../context/AuthContext';
+import acquisitionService from '../services/acquisition.service';
 
 // 获客任务类型
 interface Task {
@@ -72,47 +74,84 @@ const mockLeads: Lead[] = [
 ];
 
 export default function AcquisitionScreen() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'stats' | 'tasks' | 'leads'>('stats');
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({ discover: 0, sent: 0, scanned: 0, converted: 0 });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showLeadModal, setShowLeadModal] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
   const [form, setForm] = useState({
     name: '',
-    channel: 'douyin' as Task['channel'],
+    channel: 'douyin',
     content: '',
     targetCount: '',
   });
 
+  // 加载数据
+  const loadData = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const [tasksData, leadsData, statsData] = await Promise.all([
+        acquisitionService.getTasks(user.id),
+        acquisitionService.getLeads(user.id),
+        acquisitionService.getStats(user.id),
+      ]);
+      setTasks(tasksData);
+      setLeads(leadsData);
+      setStats(statsData);
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
   // 创建获客任务
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!form.name || !form.content || !form.targetCount) {
       Alert.alert('提示', '请填写完整信息');
       return;
     }
-    const newTask: Task = {
-      id: Date.now().toString(),
-      name: form.name,
-      channel: form.channel,
-      status: 'running',
-      progress: 0,
-      sent: 0,
-      scanned: 0,
-      converted: 0,
-      startTime: new Date().toLocaleString(),
-    };
-    setTasks([newTask, ...tasks]);
-    setShowAddModal(false);
-    setForm({ name: '', channel: 'douyin', content: '', targetCount: '' });
-    Alert.alert('成功', '获客任务已创建');
+    try {
+      const newTask = await acquisitionService.createTask(user!.id, {
+        name: form.name,
+        channel: form.channel,
+        content: form.content,
+        targetCount: parseInt(form.targetCount),
+      });
+      setTasks([newTask, ...tasks]);
+      setShowAddModal(false);
+      setForm({ name: '', channel: 'douyin', content: '', targetCount: '' });
+      Alert.alert('成功', '获客任务已创建');
+    } catch (error) {
+      Alert.alert('错误', '创建任务失败');
+    }
   };
 
   // 更新线索状态
-  const updateLeadStatus = (id: string, status: Lead['status']) => {
-    setLeads(leads.map(l => l.id === id ? { ...l, status } : l));
-    Alert.alert('成功', `线索状态已更新`);
-    setShowLeadModal(false);
+  const updateLeadStatus = async (id: string, status: string) => {
+    try {
+      await acquisitionService.updateLeadStatus(id, status);
+      setLeads(leads.map(l => l.id === id ? { ...l, status } : l));
+      Alert.alert('成功', `线索状态已更新`);
+      setShowLeadModal(false);
+    } catch (error) {
+      Alert.alert('错误', '更新状态失败');
+    }
   };
 
   // 获取渠道信息
@@ -169,7 +208,7 @@ export default function AcquisitionScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         {/* 数据统计 */}
         {activeTab === 'stats' && (
           <>

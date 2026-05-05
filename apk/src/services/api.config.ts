@@ -1,7 +1,10 @@
 // API 配置
 export const API_CONFIG = {
-  // 开发环境使用本地Mock，实际部署时替换为真实API地址
-  BASE_URL: 'https://api.zhishuai.com/v1',
+  // 后端服务地址（开发环境）
+  BASE_URL: 'http://192.168.1.6:3001/api',
+  
+  // 启用开发模式（使用真实API）
+  DEV_MODE: true,
   
   // 超时设置（毫秒）
   TIMEOUT: 30000,

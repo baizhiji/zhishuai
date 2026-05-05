@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, FlatList, Modal } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, FlatList, Modal, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PageHeader from '../components/PageHeader';
+import { recruitmentService, RecruitmentStats, RecruitmentPost, Candidate } from '../services/recruitment.service';
 
 // 职位类型
 interface JobPosition {
@@ -63,11 +64,14 @@ const stats = {
 export default function RecruitmentScreen() {
   const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState<'stats' | 'jobs' | 'resumes' | 'interviews'>('stats');
-  const [jobs, setJobs] = useState<JobPosition[]>(mockJobs);
-  const [resumes, setResumes] = useState<Resume[]>(mockResumes);
+  const [jobs, setJobs] = useState<RecruitmentPost[]>([]);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [stats, setStats] = useState<RecruitmentStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showResumeModal, setShowResumeModal] = useState(false);
-  const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
+  const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [form, setForm] = useState({
     title: '',
     department: '技术部',
@@ -80,32 +84,73 @@ export default function RecruitmentScreen() {
     requirements: '',
   });
 
+  // 加载数据
+  const loadData = useCallback(async (showRefresh = false) => {
+    try {
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
+      
+      const [statsData, postsData, candidatesData] = await Promise.all([
+        recruitmentService.getStats(),
+        recruitmentService.getPosts(),
+        recruitmentService.getCandidates(),
+      ]);
+      
+      setStats(statsData);
+      setJobs(postsData);
+      setCandidates(candidatesData);
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
   // 发布职位
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!form.title || !form.location || !form.salaryMin || !form.salaryMax) {
       Alert.alert('提示', '请填写必填项');
       return;
     }
-    const newJob: JobPosition = {
-      id: Date.now().toString(),
-      ...form,
-      salaryMin: parseInt(form.salaryMin),
-      salaryMax: parseInt(form.salaryMax),
-      status: 'active',
-      createdAt: new Date().toLocaleDateString(),
-      applicants: 0,
-    };
-    setJobs([newJob, ...jobs]);
-    setShowAddModal(false);
-    setForm({ title: '', department: '技术部', location: '', salaryMin: '', salaryMax: '', experience: '1-3年', education: '本科', description: '', requirements: '' });
-    Alert.alert('成功', '职位发布成功');
+    try {
+      setLoading(true);
+      await recruitmentService.createPost({
+        title: form.title,
+        department: form.department,
+        location: form.location,
+        salaryMin: parseInt(form.salaryMin),
+        salaryMax: parseInt(form.salaryMax),
+        experience: form.experience,
+        education: form.education,
+        description: form.description,
+        requirements: form.requirements,
+      });
+      await loadData();
+      setShowAddModal(false);
+      setForm({ title: '', department: '技术部', location: '', salaryMin: '', salaryMax: '', experience: '1-3年', education: '本科', description: '', requirements: '' });
+      Alert.alert('成功', '职位发布成功');
+    } catch (error) {
+      Alert.alert('错误', '发布失败');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 更新简历状态
-  const updateResumeStatus = (id: string, status: Resume['status']) => {
-    setResumes(resumes.map(r => r.id === id ? { ...r, status } : r));
-    Alert.alert('成功', `已将简历状态更新为${status === 'pending' ? '待处理' : status === 'reviewed' ? '已查看' : status === 'interview' ? '面试' : status === 'rejected' ? '不合适' : '已入职'}`);
-    setShowResumeModal(false);
+  const updateResumeStatus = async (id: string, status: Candidate['status']) => {
+    try {
+      await recruitmentService.updateCandidateStatus(id, status);
+      await loadData();
+      Alert.alert('成功', '简历状态已更新');
+      setShowResumeModal(false);
+    } catch (error) {
+      Alert.alert('错误', '更新失败');
+    }
   };
 
   // 获取状态颜色

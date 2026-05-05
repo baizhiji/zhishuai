@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,13 @@ import {
   FlatList,
   Modal,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import PageHeader from '../components/PageHeader';
+import * as shareService from '../services/share.service';
+import { useAuth } from '../context/AuthContext';
 
 // 平台类型
 type Platform = 'douyin' | 'kuaishou' | 'xiaohongshu' | 'video';
@@ -85,10 +89,11 @@ const stats = {
 
 export default function ShareScreen() {
   const [activeTab, setActiveTab] = useState<'my' | 'codes' | 'data'>('my');
-  const [referralCodes, setReferralCodes] = useState<ReferralCode[]>(mockReferralCodes);
+  const [referralCodes, setReferralCodes] = useState<ReferralCode[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [selectedCode, setSelectedCode] = useState<ReferralCode | null>(null);
+  const [loading, setLoading] = useState(false);
   
   // 创建表单
   const [form, setForm] = useState({
@@ -99,6 +104,23 @@ export default function ShareScreen() {
 
   // 我的推荐码
   const myReferralCode = 'ZS2024USER001';
+
+  // 加载推荐码列表
+  const loadReferralCodes = async () => {
+    setLoading(true);
+    try {
+      const data = await shareService.getReferralCodes();
+      setReferralCodes(data);
+    } catch (error) {
+      console.error('加载推荐码失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReferralCodes();
+  }, []);
 
   // 选择平台
   const togglePlatform = (platform: Platform) => {
@@ -111,7 +133,7 @@ export default function ShareScreen() {
   };
 
   // 创建推荐码
-  const handleCreateCode = () => {
+  const handleCreateCode = async () => {
     if (!form.title || !form.videoUrl) {
       Alert.alert('提示', '请填写视频标题和链接');
       return;
@@ -121,22 +143,19 @@ export default function ShareScreen() {
       return;
     }
 
-    const newCode: ReferralCode = {
-      id: Date.now().toString(),
-      title: form.title,
-      videoUrl: form.videoUrl,
-      videoThumbnail: 'https://picsum.photos/200?' + Date.now(),
-      platforms: form.platforms,
-      code: `ZS2024${Math.random().toString(36).substr(2, 6).toUpperCase()}`,
-      scanCount: 0,
-      publishCount: 0,
-      createdAt: new Date().toLocaleDateString(),
-    };
-
-    setReferralCodes([newCode, ...referralCodes]);
-    setShowCreateModal(false);
-    setForm({ title: '', videoUrl: '', platforms: [] });
-    Alert.alert('成功', '推荐码创建成功');
+    try {
+      await shareService.createReferralCode({
+        title: form.title,
+        videoUrl: form.videoUrl,
+        platforms: form.platforms,
+      });
+      await loadReferralCodes();
+      setShowCreateModal(false);
+      setForm({ title: '', videoUrl: '', platforms: [] });
+      Alert.alert('成功', '推荐码创建成功');
+    } catch (error) {
+      Alert.alert('错误', '创建推荐码失败');
+    }
   };
 
   // 查看二维码
