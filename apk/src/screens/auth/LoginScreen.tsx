@@ -140,7 +140,6 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
           <Text style={styles.appName}>智枢AI</Text>
-          <Text style={styles.companyName}>上海百智集网络科技有限公司</Text>
           <Text style={styles.appSlogan}>用AI赋能企业，让商业更智能</Text>
         </View>
 
