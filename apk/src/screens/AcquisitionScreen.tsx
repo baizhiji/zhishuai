@@ -198,7 +198,7 @@ export default function AcquisitionScreen() {
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
                 <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
-                  <Ionicons name="qr-scanner" size={18} color="#f59e0b" />
+                  <Ionicons name="qr-code" size={18} color="#f59e0b" />
                 </View>
                 <Text style={styles.statValue}>{stats.scanned > 9999 ? (stats.scanned / 1000).toFixed(1) + 'k' : stats.scanned}</Text>
                 <Text style={styles.statLabel}>扫码次数</Text>
