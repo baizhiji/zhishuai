@@ -406,8 +406,7 @@ export default function AICreateDetailScreen() {
     <>
       {/* 统一文件上传入口（文档/图片/视频） */}
       <View style={styles.field}>
-        <Text style={styles.fieldLabel}>添加参考文件</Text>
-        <Text style={styles.fieldTip}>上传文档、图片或视频作为AI创作的参考</Text>
+        <Text style={styles.fieldLabel}>添加参考</Text>
         
         {/* 已上传文件列表 */}
         {uploadedFiles.length > 0 && (
@@ -420,26 +419,25 @@ export default function AICreateDetailScreen() {
               >
                 <Ionicons
                   name={file.type === 'document' ? 'document-text' : file.type === 'image' ? 'image' : 'videocam'}
-                  size={20}
+                  size={16}
                   color="#4F46E5"
                 />
                 <Text style={styles.uploadedFileName} numberOfLines={1}>
                   {file.name}
                 </Text>
-                <Ionicons name="close-circle" size={18} color="#ef4444" />
+                <Ionicons name="close" size={14} color="#ef4444" />
               </TouchableOpacity>
             ))}
           </View>
         )}
         
-        {/* 上传按钮 */}
+        {/* 上传按钮 - 风格与其他选择器一致 */}
         <TouchableOpacity
-          style={styles.uploadButton}
+          style={styles.uploadSelector}
           onPress={showUploadOptions}
         >
-          <Ionicons name="cloud-upload-outline" size={24} color="#4F46E5" />
-          <Text style={styles.uploadButtonText}>点击上传文件</Text>
-          <Text style={styles.uploadButtonHint}>支持文档、图片、视频</Text>
+          <Ionicons name="add-circle-outline" size={22} color="#4F46E5" />
+          <Text style={styles.uploadSelectorText}>上传文档/图片/视频</Text>
         </TouchableOpacity>
       </View>
 
@@ -1221,43 +1219,38 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   uploadedFilesContainer: {
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: 8,
+    gap: 6,
   },
   uploadedFileItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EEF2FF',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 10,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 8,
   },
   uploadedFileName: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     color: '#4F46E5',
   },
-  uploadButton: {
+  uploadSelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
-    borderRadius: 12,
-    paddingVertical: 20,
-    borderWidth: 2,
-    borderColor: '#4F46E5',
-    borderStyle: 'dashed',
-    gap: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
   },
-  uploadButtonText: {
-    fontSize: 15,
-    fontWeight: '500',
+  uploadSelectorText: {
+    fontSize: 14,
     color: '#4F46E5',
-  },
-  uploadButtonHint: {
-    fontSize: 12,
-    color: '#94a3b8',
+    fontWeight: '500',
   },
 });
 
