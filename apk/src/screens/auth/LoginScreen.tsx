@@ -68,8 +68,7 @@ export default function LoginScreen() {
       const response = await authService.login({ phone, password });
       // 使用AuthContext更新用户状态
       if (response?.user) {
-        // 触发AuthContext状态更新
-        await authService.getUserInfo();
+        setUser(response.user);
       }
       Alert.alert('成功', '登录成功！', [
         { text: '确定', onPress: () => navigation.replace('MainTabs') }
@@ -134,10 +133,13 @@ export default function LoginScreen() {
       >
         {/* Logo区域 */}
         <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Ionicons name="logo-google-playstore" size={48} color="#3B82F6" />
-          </View>
+          <Image
+            source={require('../../../assets/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.appName}>智枢AI</Text>
+          <Text style={styles.companyName}>上海百智集网络科技有限公司</Text>
           <Text style={styles.appSlogan}>用AI赋能企业，让商业更智能</Text>
         </View>
 
@@ -315,24 +317,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 120,
+    height: 120,
     marginBottom: 16,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
   },
   appName: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#1E3A5F',
+    marginBottom: 4,
+  },
+  companyName: {
+    fontSize: 12,
+    color: '#64748B',
     marginBottom: 8,
   },
   appSlogan: {
