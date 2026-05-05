@@ -14,7 +14,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
+  ActionSheetIOS,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import * as VideoPicker from 'expo-video-thumbnails';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -99,6 +103,15 @@ export default function AICreateDetailScreen() {
   // 数字人字段
   const [digitalHumanId, setDigitalHumanId] = useState('system_male_1');
   
+  // 统一文件上传状态（文档/图片/视频）
+  const [uploadedFiles, setUploadedFiles] = useState<{
+    type: 'document' | 'image' | 'video';
+    uri: string;
+    name: string;
+    size?: number;
+  }[]>([]);
+  const [showUploadMenu, setShowUploadMenu] = useState(false);
+  
   // 生成状态
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
@@ -111,6 +124,99 @@ export default function AICreateDetailScreen() {
   const [showVoiceoverPicker, setShowVoiceoverPicker] = useState(false);
   const [showBgmPicker, setShowBgmPicker] = useState(false);
   const [showDigitalHumanPicker, setShowDigitalHumanPicker] = useState(false);
+
+  // 统一文件上传处理
+  const handleUploadFile = useCallback(async (type: 'document' | 'image' | 'video') => {
+    try {
+      if (type === 'document') {
+        // 选择文档
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
+          copyToCacheDirectory: true,
+        });
+        
+        if (!result.canceled && result.assets[0]) {
+          const file = result.assets[0];
+          setUploadedFiles(prev => [...prev, {
+            type: 'document',
+            uri: file.uri,
+            name: file.name,
+            size: file.size,
+          }]);
+          Alert.alert('成功', `已添加文档：${file.name}`);
+        }
+      } else if (type === 'image') {
+        // 选择图片
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          quality: 0.8,
+        });
+        
+        if (!result.canceled && result.assets[0]) {
+          const asset = result.assets[0];
+          setUploadedFiles(prev => [...prev, {
+            type: 'image',
+            uri: asset.uri,
+            name: `图片_${Date.now()}.jpg`,
+          }]);
+          Alert.alert('成功', '已添加图片');
+        }
+      } else if (type === 'video') {
+        // 选择视频
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+          quality: 0.5,
+          videoMaxDuration: 300,
+        });
+        
+        if (!result.canceled && result.assets[0]) {
+          const asset = result.assets[0];
+          setUploadedFiles(prev => [...prev, {
+            type: 'video',
+            uri: asset.uri,
+            name: `视频_${Date.now()}.mp4`,
+          }]);
+          Alert.alert('成功', '已添加视频');
+        }
+      }
+    } catch (error) {
+      console.error('上传失败:', error);
+      Alert.alert('错误', '文件上传失败，请重试');
+    }
+  }, []);
+
+  // 显示上传选项菜单
+  const showUploadOptions = useCallback(() => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: ['取消', '上传文档', '上传图片', '上传视频'],
+        cancelButtonIndex: 0,
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 1) handleUploadFile('document');
+        else if (buttonIndex === 2) handleUploadFile('image');
+        else if (buttonIndex === 3) handleUploadFile('video');
+      }
+    );
+  }, [handleUploadFile]);
+
+  // 删除已上传文件
+  const handleRemoveFile = useCallback((index: number) => {
+    Alert.alert(
+      '确认删除',
+      '确定要删除这个文件吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '删除',
+          style: 'destructive',
+          onPress: () => {
+            setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+          },
+        },
+      ]
+    );
+  }, []);
 
   // 处理生成
   const handleGenerate = useCallback(async () => {
@@ -298,16 +404,58 @@ export default function AICreateDetailScreen() {
   // 渲染通用字段
   const renderCommonFields = () => (
     <>
+      {/* 统一文件上传入口（文档/图片/视频） */}
+      <View style={styles.field}>
+        <Text style={styles.fieldLabel}>添加参考文件</Text>
+        <Text style={styles.fieldTip}>上传文档、图片或视频作为AI创作的参考</Text>
+        
+        {/* 已上传文件列表 */}
+        {uploadedFiles.length > 0 && (
+          <View style={styles.uploadedFilesContainer}>
+            {uploadedFiles.map((file, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.uploadedFileItem}
+                onPress={() => handleRemoveFile(index)}
+              >
+                <Ionicons
+                  name={file.type === 'document' ? 'document-text' : file.type === 'image' ? 'image' : 'videocam'}
+                  size={20}
+                  color="#4F46E5"
+                />
+                <Text style={styles.uploadedFileName} numberOfLines={1}>
+                  {file.name}
+                </Text>
+                <Ionicons name="close-circle" size={18} color="#ef4444" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+        
+        {/* 上传按钮 */}
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={showUploadOptions}
+        >
+          <Ionicons name="cloud-upload-outline" size={24} color="#4F46E5" />
+          <Text style={styles.uploadButtonText}>点击上传文件</Text>
+          <Text style={styles.uploadButtonHint}>支持文档、图片、视频</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* 内容描述 */}
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>
           {category === ContentCategory.IMAGE_TO_TEXT ? '图片描述' : '内容描述'}
+          {uploadedFiles.length > 0 && <Text style={styles.optionalLabel}>（参考文件已上传）</Text>}
         </Text>
         <TextInput
           style={styles.textArea}
           placeholder={category === ContentCategory.IMAGE_TO_TEXT 
-            ? '描述图片内容或上传图片...'
-            : '输入要生成的内容描述、产品描述或参数...'}
+            ? '描述图片内容或从上传的图片/视频中提取...'
+            : uploadedFiles.length > 0
+              ? '输入要生成的内容描述，或由AI根据上传文件自动生成...'
+              : '输入要生成的内容描述、产品描述或参数...'}
           placeholderTextColor="#94a3b8"
           value={description}
           onChangeText={setDescription}
@@ -1064,6 +1212,52 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
+  },
+  // 上传文件相关样式
+  optionalLabel: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: 'normal',
+    marginLeft: 8,
+  },
+  uploadedFilesContainer: {
+    marginBottom: 12,
+    gap: 8,
+  },
+  uploadedFileItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  uploadedFileName: {
+    flex: 1,
+    fontSize: 13,
+    color: '#4F46E5',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    borderRadius: 12,
+    paddingVertical: 20,
+    borderWidth: 2,
+    borderColor: '#4F46E5',
+    borderStyle: 'dashed',
+    gap: 10,
+  },
+  uploadButtonText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#4F46E5',
+  },
+  uploadButtonHint: {
+    fontSize: 12,
+    color: '#94a3b8',
   },
 });
 
