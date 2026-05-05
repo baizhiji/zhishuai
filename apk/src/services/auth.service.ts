@@ -35,9 +35,48 @@ export interface LoginResponse {
   user: UserInfo;
 }
 
+// Mock测试账号
+const MOCK_USERS = [
+  { phone: '13800138000', password: '123456', name: '测试用户', role: 'admin' as const },
+  { phone: '13800138001', password: '123456', name: '管理员', role: 'admin' as const },
+];
+
 class AuthService {
   // 用户登录
   async login(params: LoginParams): Promise<LoginResponse> {
+    // 检查是否为Mock模式（开发环境）
+    const isDevMode = __DEV__;
+    
+    if (isDevMode) {
+      // Mock登录验证
+      const mockUser = MOCK_USERS.find(
+        u => u.phone === params.phone && u.password === params.password
+      );
+      
+      if (mockUser) {
+        const userInfo: UserInfo = {
+          id: 'mock_' + Date.now(),
+          name: mockUser.name,
+          phone: mockUser.phone,
+          role: mockUser.role,
+          status: 'active',
+          expireTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        };
+        
+        const mockToken = 'mock_token_' + Date.now();
+        
+        // 保存Token和用户信息
+        TokenStorage.setToken(mockToken);
+        TokenStorage.setUserInfo(userInfo);
+        
+        console.log('Mock登录成功:', userInfo);
+        
+        return { token: mockToken, user: userInfo };
+      } else {
+        throw new Error('手机号或密码错误');
+      }
+    }
+    
     try {
       const response = await apiClient.post<LoginResponse>(
         API_ENDPOINTS.LOGIN,
