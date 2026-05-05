@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
-import { verifyToken } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 // 获取通知列表
-router.get('/', verifyToken, async (req: Request, res: Response) => {
+router.get('/', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
-  const userId = (req as any).user.id;
+  const userId = (req as any).userId;
   const { type, page = '1', pageSize = '20' } = req.query;
   
   const pageNum = parseInt(page as string);
@@ -29,7 +29,6 @@ router.get('/', verifyToken, async (req: Request, res: Response) => {
       prisma.notification.count({ where }),
     ]);
 
-    // 更新未读数量
     const unreadCount = await prisma.notification.count({
       where: { userId, isRead: false },
     });
@@ -52,9 +51,9 @@ router.get('/', verifyToken, async (req: Request, res: Response) => {
 });
 
 // 获取未读数量
-router.get('/unread-count', verifyToken, async (req: Request, res: Response) => {
+router.get('/unread-count', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
-  const userId = (req as any).user.id;
+  const userId = (req as any).userId;
 
   try {
     const count = await prisma.notification.count({
@@ -69,9 +68,9 @@ router.get('/unread-count', verifyToken, async (req: Request, res: Response) => 
 });
 
 // 标记已读
-router.put('/:id/read', verifyToken, async (req: Request, res: Response) => {
+router.put('/:id/read', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
-  const userId = (req as any).user.id;
+  const userId = (req as any).userId;
   const { id } = req.params;
 
   try {
@@ -88,9 +87,9 @@ router.put('/:id/read', verifyToken, async (req: Request, res: Response) => {
 });
 
 // 标记全部已读
-router.put('/read-all', verifyToken, async (req: Request, res: Response) => {
+router.put('/read-all', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
-  const userId = (req as any).user.id;
+  const userId = (req as any).userId;
 
   try {
     await prisma.notification.updateMany({
@@ -106,9 +105,9 @@ router.put('/read-all', verifyToken, async (req: Request, res: Response) => {
 });
 
 // 删除通知
-router.delete('/:id', verifyToken, async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
-  const userId = (req as any).user.id;
+  const userId = (req as any).userId;
   const { id } = req.params;
 
   try {
