@@ -19,20 +19,92 @@ export const STORAGE_KEYS = {
 // 同步存储（使用全局变量，快速访问）
 const syncStorage: Record<string, string> = {};
 
+// AsyncStorage 是否可用
+let storageAvailable = true;
+
 // 初始化同步存储
 export const initSyncStorage = async () => {
   try {
+    if (!AsyncStorage || typeof AsyncStorage.getItem !== 'function') {
+      console.log('AsyncStorage 不可用，使用内存存储');
+      storageAvailable = false;
+      return;
+    }
+    
     // 从 AsyncStorage 加载数据到同步存储
     const keys = Object.values(STORAGE_KEYS);
     const pairs = await AsyncStorage.multiGet(keys);
     pairs.forEach(([key, value]) => {
-      if (value !== null) {
+      if (value !== null && key) {
         syncStorage[key] = value;
       }
     });
     console.log('同步存储初始化完成');
   } catch (error) {
     console.log('同步存储初始化失败，使用内存存储:', error);
+    storageAvailable = false;
+  }
+};
+
+// 获取未读消息数量
+export const getUnreadCount = (): number => {
+  try {
+    const notifications = syncStorage[STORAGE_KEYS.NOTIFICATIONS];
+    if (!notifications) return 0;
+    const list = JSON.parse(notifications);
+    return Array.isArray(list) ? list.filter((n: any) => !n.read).length : 0;
+  } catch {
+    return 0;
+  }
+};
+
+// 获取消息列表
+export const getNotifications = (): any[] => {
+  try {
+    const notifications = syncStorage[STORAGE_KEYS.NOTIFICATIONS];
+    if (!notifications) return [];
+    return JSON.parse(notifications);
+  } catch {
+    return [];
+  }
+};
+
+// 设置消息列表
+export const setNotifications = (list: any[]): void => {
+  try {
+    const jsonValue = JSON.stringify(list);
+    syncStorage[STORAGE_KEYS.NOTIFICATIONS] = jsonValue;
+    if (storageAvailable) {
+      AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, jsonValue).catch(() => {});
+    }
+  } catch {}
+};
+
+// 标记消息已读
+export const markAsRead = (id: string): void => {
+  try {
+    const list = getNotifications();
+    const updated = list.map((n: any) => 
+      n.id === id ? { ...n, read: true } : n
+    );
+    setNotifications(updated);
+  } catch {}
+};
+
+// 标记所有消息已读
+export const markAllAsRead = (): void => {
+  try {
+    const list = getNotifications();
+    const updated = list.map((n: any) => ({ ...n, read: true }));
+    setNotifications(updated);
+  } catch {}
+};
+
+// 清除所有消息
+export const clearNotifications = (): void => {
+  syncStorage[STORAGE_KEYS.NOTIFICATIONS] = '[]';
+  if (storageAvailable) {
+    AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, '[]').catch(() => {});
   }
 };
 
@@ -46,18 +118,17 @@ export const Storage = {
   // 同步设置
   set(key: string, value: string): void {
     syncStorage[key] = value;
-    // 异步保存到 AsyncStorage
-    AsyncStorage.setItem(key, value).catch(err => {
-      console.log('AsyncStorage 保存失败:', err);
-    });
+    if (storageAvailable) {
+      AsyncStorage.setItem(key, value).catch(() => {});
+    }
   },
 
   // 同步删除
   remove(key: string): void {
     delete syncStorage[key];
-    AsyncStorage.removeItem(key).catch(err => {
-      console.log('AsyncStorage 删除失败:', err);
-    });
+    if (storageAvailable) {
+      AsyncStorage.removeItem(key).catch(() => {});
+    }
   },
 
   // 清除所有
@@ -65,18 +136,21 @@ export const Storage = {
     Object.keys(syncStorage).forEach(key => {
       delete syncStorage[key];
     });
-    AsyncStorage.clear().catch(err => {
-      console.log('AsyncStorage 清除失败:', err);
-    });
+    if (storageAvailable) {
+      AsyncStorage.clear().catch(() => {});
+    }
   },
 
   // 异步获取
   async getAsync<T>(key: string): Promise<T | null> {
     try {
+      if (!storageAvailable) {
+        const value = syncStorage[key];
+        return value ? JSON.parse(value) : null;
+      }
       const value = await AsyncStorage.getItem(key);
       return value ? JSON.parse(value) : null;
-    } catch (error) {
-      console.log('AsyncStorage 获取失败:', error);
+    } catch {
       return null;
     }
   },
@@ -86,10 +160,10 @@ export const Storage = {
     try {
       const jsonValue = JSON.stringify(value);
       syncStorage[key] = jsonValue;
-      await AsyncStorage.setItem(key, jsonValue);
-    } catch (error) {
-      console.log('AsyncStorage 保存失败:', error);
-    }
+      if (storageAvailable) {
+        await AsyncStorage.setItem(key, jsonValue);
+      }
+    } catch {}
   },
 };
 
@@ -111,7 +185,6 @@ export const Cache = {
     );
     if (!item) return null;
     if (Date.now() > item.expireTime) {
-      // 缓存已过期
       await this.remove(key);
       return null;
     }
@@ -120,14 +193,21 @@ export const Cache = {
 
   // 删除缓存
   async remove(key: string): Promise<void> {
-    await AsyncStorage.removeItem(`${STORAGE_KEYS.CACHE_DATA}_${key}`);
+    if (storageAvailable) {
+      await AsyncStorage.removeItem(`${STORAGE_KEYS.CACHE_DATA}_${key}`);
+    }
   },
 
   // 清除所有缓存
   async clear(): Promise<void> {
-    const keys = await AsyncStorage.getAllKeys();
-    const cacheKeys = keys.filter(k => k.startsWith(STORAGE_KEYS.CACHE_DATA));
-    await AsyncStorage.multiRemove(cacheKeys);
+    if (!storageAvailable) return;
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const cacheKeys = keys.filter(k => k?.startsWith(STORAGE_KEYS.CACHE_DATA || ''));
+      if (cacheKeys.length > 0) {
+        await AsyncStorage.multiRemove(cacheKeys);
+      }
+    } catch {}
   },
 };
 
@@ -159,7 +239,6 @@ export const OfflineQueue = {
 
     for (const operation of queue) {
       try {
-        // 根据操作类型执行请求
         switch (operation.type) {
           case 'CREATE':
             await apiClient.post(operation.payload.endpoint, operation.payload.data);
@@ -172,13 +251,12 @@ export const OfflineQueue = {
             break;
         }
         success++;
-      } catch (error) {
+      } catch {
         failed++;
         failedOps.push(operation);
       }
     }
 
-    // 保存失败的操作
     await Storage.setAsync(STORAGE_KEYS.OFFLINE_QUEUE, failedOps);
     return { success, failed };
   },
@@ -186,13 +264,11 @@ export const OfflineQueue = {
 
 // 设置管理
 export const Settings = {
-  // 获取设置
   async get<T>(key: string, defaultValue: T): Promise<T> {
     const value = await Storage.getAsync<T>(`${STORAGE_KEYS.SETTINGS}_${key}`);
     return value ?? defaultValue;
   },
 
-  // 设置值
   async set<T>(key: string, value: T): Promise<void> {
     await Storage.setAsync(`${STORAGE_KEYS.SETTINGS}_${key}`, value);
   },

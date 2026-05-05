@@ -4,7 +4,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { initNotifications, setBadgeNumber } from './src/services/notification.service';
+import { initNotifications } from './src/services/notification.service';
 import { initSyncStorage, getUnreadCount } from './src/utils/storage';
 
 // 启动画面组件
@@ -21,9 +21,9 @@ function AppLoader({ children }: { children: React.ReactNode }) {
         // 初始化通知服务
         await initNotifications();
         
-        // 更新角标
-        const unreadCount = await getUnreadCount();
-        await setBadgeNumber(unreadCount);
+        // 获取未读数量（用于后续显示）
+        const unreadCount = getUnreadCount();
+        console.log('未读消息数量:', unreadCount);
         
         console.log('应用初始化完成');
       } catch (error) {
@@ -48,7 +48,7 @@ function AppLoader({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
-  const { theme, isDark } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <>
