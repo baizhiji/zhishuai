@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
+import { Storage, STORAGE_KEYS } from '../utils/storage';
 
 // 主题颜色定义
 export const lightTheme = {
@@ -15,6 +16,12 @@ export const lightTheme = {
   warning: '#F59E0B',
   error: '#EF4444',
   statusBar: 'dark-content' as const,
+  // 额外颜色
+  inputBg: '#F8FAFC',
+  shadow: '#94A3B8',
+  overlay: 'rgba(0,0,0,0.5)',
+  tabBar: '#FFFFFF',
+  tabBarInactive: '#94A3B8',
 };
 
 export const darkTheme = {
@@ -30,6 +37,12 @@ export const darkTheme = {
   warning: '#FBBF24',
   error: '#F87171',
   statusBar: 'light-content' as const,
+  // 额外颜色
+  inputBg: '#1E293B',
+  shadow: '#000000',
+  overlay: 'rgba(0,0,0,0.7)',
+  tabBar: '#1E293B',
+  tabBarInactive: '#64748B',
 };
 
 export type Theme = typeof lightTheme;
@@ -40,71 +53,66 @@ interface ThemeContextType {
   themeMode: ThemeMode;
   isDark: boolean;
   setThemeMode: (mode: ThemeMode) => void;
+  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// 简单的本地存储
-const THEME_KEY = '@theme_mode';
-
-const getStoredTheme = (): ThemeMode => {
-  try {
-    // 在React Native中，我们使用AsyncStorage
-    // 这里简化处理，默认使用system
-    return 'system';
-  } catch {
-    return 'system';
-  }
-};
-
-const setStoredTheme = (mode: ThemeMode) => {
-  try {
-    // 在React Native中，我们使用AsyncStorage
-    // 这里简化处理
-    console.log('Theme set to:', mode);
-  } catch {
-    console.log('Failed to store theme');
-  }
-};
-
-interface ThemeProviderProps {
-  children: ReactNode;
-}
-
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [themeMode, setThemeModeState] = useState<ThemeMode>(getStoredTheme);
+  const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // 从本地存储加载主题
+  // 从本地存储加载主题设置
   useEffect(() => {
-    // 可以在此处从AsyncStorage加载主题
+    const loadTheme = async () => {
+      try {
+        const storedMode = Storage.get(STORAGE_KEYS.THEME_MODE);
+        if (storedMode && ['light', 'dark', 'system'].includes(storedMode)) {
+          setThemeModeState(storedMode as ThemeMode);
+        }
+      } catch (error) {
+        console.log('加载主题设置失败:', error);
+      }
+      setIsLoaded(true);
+    };
+    loadTheme();
   }, []);
 
-  const setThemeMode = (mode: ThemeMode) => {
+  const setThemeMode = async (mode: ThemeMode) => {
     setThemeModeState(mode);
-    setStoredTheme(mode);
+    Storage.set(STORAGE_KEYS.THEME_MODE, mode);
+  };
+
+  const toggleTheme = () => {
+    const newMode = themeMode === 'light' ? 'dark' : themeMode === 'dark' ? 'system' : 'light';
+    setThemeMode(newMode);
   };
 
   // 根据模式和系统主题确定实际主题
-  const isDark = themeMode === 'system' 
-    ? systemColorScheme === 'dark' 
+  const isDark = themeMode === 'system'
+    ? systemColorScheme === 'dark'
     : themeMode === 'dark';
 
   const theme = isDark ? darkTheme : lightTheme;
 
+  // 未加载时不渲染，避免闪烁
+  if (!isLoaded) {
+    return null;
+  }
+
   return (
-    <ThemeContext.Provider value={{ theme, themeMode, isDark, setThemeMode }}>
+    <ThemeContext.Provider value={{ theme, themeMode, isDark, setThemeMode, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 };
 
-export const useTheme = (): ThemeContextType => {
+// Hook
+export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
     throw new Error('useTheme must be used within ThemeProvider');
   }
   return context;
 };
-
-export default ThemeContext;

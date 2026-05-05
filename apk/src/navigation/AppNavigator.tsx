@@ -25,6 +25,7 @@ import MediaOperationScreen from '../screens/MediaOperationScreen';
 import AccountManagementScreen from '../screens/AccountManagementScreen';
 import MaterialsScreen from '../screens/MaterialsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
+import NotificationsScreen from '../screens/NotificationsScreen';
 import ReferralScreen from '../screens/ReferralScreen';
 import StatisticsScreen from '../screens/StatisticsScreen';
 import RecruitmentScreen from '../screens/RecruitmentScreen';
@@ -56,6 +57,7 @@ export type RootStackParamList = {
   StaffManagement: undefined;
   Materials: undefined;
   Messages: undefined;
+  Notifications: undefined;
   Referral: undefined;
   Share: undefined;
   Statistics: undefined;
@@ -227,6 +229,11 @@ const AppNavigator = () => {
             name="Messages"
             component={MessagesScreen}
             options={{ title: '消息' }}
+          />
+          <RootStack.Screen
+            name="Notifications"
+            component={NotificationsScreen}
+            options={{ title: '通知', headerShown: false }}
           />
           <RootStack.Screen
             name="Share"
