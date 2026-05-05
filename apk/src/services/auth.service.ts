@@ -41,6 +41,12 @@ const MOCK_USERS = [
   { phone: '13800138001', password: '123456', name: '管理员', role: 'admin' as const },
 ];
 
+// Mock登录响应数据格式（匹配API返回格式）
+const createMockResponse = (token: string, user: UserInfo): LoginResponse => ({
+  token,
+  user,
+});
+
 class AuthService {
   // 用户登录
   async login(params: LoginParams): Promise<LoginResponse> {
@@ -71,7 +77,8 @@ class AuthService {
         
         console.log('Mock登录成功:', userInfo);
         
-        return { token: mockToken, user: userInfo };
+        // 直接返回 { token, user } 格式
+        return createMockResponse(mockToken, userInfo);
       } else {
         throw new Error('手机号或密码错误');
       }

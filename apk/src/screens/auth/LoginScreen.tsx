@@ -67,11 +67,12 @@ export default function LoginScreen() {
     try {
       const response = await authService.login({ phone, password });
       // 使用AuthContext更新用户状态
-      if (setUser && response?.data?.user) {
-        setUser(response.data.user);
+      if (response?.user) {
+        // 触发AuthContext状态更新
+        await authService.getUserInfo();
       }
       Alert.alert('成功', '登录成功！', [
-        { text: '确定', onPress: () => navigation.replace('Main') }
+        { text: '确定', onPress: () => navigation.replace('MainTabs') }
       ]);
     } catch (error: any) {
       Alert.alert('登录失败', error.message || '请检查账号密码是否正确');
