@@ -4,7 +4,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://myadmin:Hao@20061218@sh-postgres-jtrtrpfu.sql.tencentcdb.com:23406/postgres'
+      url: 'postgresql://myadmin:Hao-20061218@sh-postgres-jtrtrpfu.sql.tencentcdb.com:23406/postgres'
     }
   }
 });
