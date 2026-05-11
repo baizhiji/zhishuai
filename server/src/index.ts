@@ -11,6 +11,7 @@ import publishRoutes from './routes/publish';
 import notificationsRoutes from './routes/notifications';
 import crmRoutes from './routes/crm';
 import statisticsRoutes from './routes/statistics';
+import aiChatRoutes from './routes/ai-chat';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -37,6 +38,7 @@ app.use('/api/publish', publishRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/statistics', statisticsRoutes);
+app.use('/api/ai-chat', aiChatRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

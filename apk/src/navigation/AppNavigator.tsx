@@ -40,7 +40,7 @@ import MatrixAccountScreen from '../screens/MatrixAccountScreen';
 import PublishCenterScreen from '../screens/PublishCenterScreen';
 import DataListScreen from '../screens/DataListScreen';
 
-import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, AIEditScreen, DigitalHumanScreen, VoiceCloneScreen } from '../screens/ai';
+import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, AIEditScreen, DigitalHumanScreen, VoiceCloneScreen, AIChatScreen } from '../screens/ai';
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
 import { Storage } from '../utils/tokenStorage';
@@ -70,6 +70,7 @@ export type RootStackParamList = {
   AICopy: undefined;
   AIEdit: undefined;
   VoiceClone: undefined;
+  AIChat: undefined;
   AICreateDetail: { category: string };
   AICreateCenter: undefined;
   MatrixAccount: undefined;
@@ -145,8 +146,8 @@ const MainTabs = () => {
       />
       <MainTab.Screen
         name="Create"
-        component={AICreateCenterScreen}
-        options={{ tabBarLabel: 'AI创作' }}
+        component={AIChatScreen}
+        options={{ tabBarLabel: 'AI助手' }}
       />
       <MainTab.Screen
         name="Profile"
@@ -298,6 +299,11 @@ const AppNavigator = () => {
             name="AIEdit"
             component={AIEditScreen}
             options={{ title: 'AI剪辑' }}
+          />
+          <RootStack.Screen
+            name="AIChat"
+            component={AIChatScreen}
+            options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="VoiceClone"
