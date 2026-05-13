@@ -49,7 +49,7 @@ const createMockResponse = (token: string, user: UserInfo): LoginResponse => ({
 
 class AuthService {
   // 是否使用Mock API（设置为false使用真实API）
-  private useMock = false;
+  private useMock = true;
 
   // 用户登录
   async login(params: LoginParams): Promise<LoginResponse> {
