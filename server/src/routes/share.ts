@@ -5,20 +5,20 @@ import { authMiddleware } from '../middleware/auth';
 const router = Router();
 const prisma = new PrismaClient();
 
-// 获取推荐码列表
+// 获取分享码列表
 router.get('/codes', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { page = 1, pageSize = 10 } = req.query;
 
-    const codes = await prisma.shareCode.findMany({
+    const codes = await prisma.shareQrCode.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       skip: (Number(page) - 1) * Number(pageSize),
       take: Number(pageSize),
     });
 
-    const total = await prisma.shareCode.count({ where: { userId } });
+    const total = await prisma.shareQrCode.count({ where: { userId } });
 
     res.json({
       success: true,
@@ -29,22 +29,18 @@ router.get('/codes', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 创建推荐码
+// 创建分享码
 router.post('/codes', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { title, videoUrl, platforms } = req.body;
 
-    // 生成唯一推荐码
-    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
-
-    const shareCode = await prisma.shareCode.create({
+    const shareCode = await prisma.shareQrCode.create({
       data: {
         userId,
         title,
         videoUrl,
         platforms: platforms || [],
-        code,
         scanCount: 0,
         publishCount: 0,
       },
@@ -56,13 +52,13 @@ router.post('/codes', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 删除推荐码
+// 删除分享码
 router.delete('/codes/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    await prisma.shareCode.delete({ where: { id, userId } });
+    await prisma.shareQrCode.delete({ where: { id, userId } });
 
     res.json({ success: true, message: '删除成功' });
   } catch (error: any) {
@@ -70,21 +66,21 @@ router.delete('/codes/:id', authMiddleware, async (req: Request, res: Response) 
   }
 });
 
-// 获取推荐记录
+// 获取分享记录
 router.get('/records', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { page = 1, pageSize = 20 } = req.query;
 
     const records = await prisma.shareRecord.findMany({
-      where: { shareCode: { userId } },
+      where: { qrCode: { userId } },
       orderBy: { createdAt: 'desc' },
       skip: (Number(page) - 1) * Number(pageSize),
       take: Number(pageSize),
-      include: { shareCode: { select: { title: true } } },
+      include: { qrCode: { select: { title: true } } },
     });
 
-    const total = await prisma.shareRecord.count({ where: { shareCode: { userId } } });
+    const total = await prisma.shareRecord.count({ where: { qrCode: { userId } } });
 
     res.json({
       success: true,
@@ -100,12 +96,12 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
 
-    const codeCount = await prisma.shareCode.count({ where: { userId } });
-    const totalScans = await prisma.shareCode.aggregate({
+    const codeCount = await prisma.shareQrCode.count({ where: { userId } });
+    const totalScans = await prisma.shareQrCode.aggregate({
       where: { userId },
       _sum: { scanCount: true },
     });
-    const totalPublishes = await prisma.shareCode.aggregate({
+    const totalPublishes = await prisma.shareQrCode.aggregate({
       where: { userId },
       _sum: { publishCount: true },
     });

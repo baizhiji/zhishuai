@@ -32,6 +32,7 @@ model User {
   publishedContents    PublishedContent[]
   notifications       Notification[]
   crmCustomers        CrmCustomer[]
+  recruitmentResumes  RecruitmentResume[]
 }
 
 model RecruitmentPost {
@@ -243,6 +244,22 @@ model Setting {
   value       String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
+
   @@unique([userId, key])
+}
+
+model RecruitmentResume {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId       String
+  name        String
+  phone       String
+  email       String?
+  resumeUrl   String?
+  coverLetter String?
+  status      String    @default("pending")
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

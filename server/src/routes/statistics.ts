@@ -19,7 +19,7 @@ router.get('/overview', async (req, res) => {
       prisma.material.count({ where: { userId: userId as string } }),
       prisma.recruitmentPost.count({ where: { userId: userId as string } }),
       prisma.acquisitionTask.count({ where: { userId: userId as string } }),
-      prisma.shareCode.count({ where: { userId: userId as string } }),
+      prisma.shareQrCode.count({ where: { userId: userId as string } }),
     ]);
     
     res.json({

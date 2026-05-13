@@ -14,14 +14,14 @@ router.get('/jobs', authMiddleware, async (req: Request, res: Response) => {
     const where: any = { userId };
     if (status) where.status = status;
 
-    const jobs = await prisma.recruitmentJob.findMany({
+    const jobs = await prisma.recruitmentPost.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       skip: (Number(page) - 1) * Number(pageSize),
       take: Number(pageSize),
     });
 
-    const total = await prisma.recruitmentJob.count({ where });
+    const total = await prisma.recruitmentPost.count({ where });
 
     res.json({
       success: true,
@@ -54,7 +54,7 @@ router.post('/jobs', authMiddleware, async (req: Request, res: Response) => {
       recruiterPhone,
     } = req.body;
 
-    const job = await prisma.recruitmentJob.create({
+    const job = await prisma.recruitmentPost.create({
       data: {
         userId,
         title,
@@ -84,7 +84,7 @@ router.put('/jobs/:id', authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    const job = await prisma.recruitmentJob.update({
+    const job = await prisma.recruitmentPost.update({
       where: { id, userId },
       data: updateData,
     });
@@ -101,7 +101,7 @@ router.delete('/jobs/:id', authMiddleware, async (req: Request, res: Response) =
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    await prisma.recruitmentJob.delete({ where: { id, userId } });
+    await prisma.recruitmentPost.delete({ where: { id, userId } });
 
     res.json({ success: true, message: '删除成功' });
   } catch (error: any) {
@@ -201,8 +201,8 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
 
-    const jobCount = await prisma.recruitmentJob.count({ where: { userId } });
-    const activeJobCount = await prisma.recruitmentJob.count({ where: { userId, status: 'active' } });
+    const jobCount = await prisma.recruitmentPost.count({ where: { userId } });
+    const activeJobCount = await prisma.recruitmentPost.count({ where: { userId, status: 'active' } });
     const resumeCount = await prisma.recruitmentResume.count({ where: { userId } });
     const newResumeCount = await prisma.recruitmentResume.count({
       where: { userId, status: 'pending', createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
