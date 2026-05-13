@@ -26,6 +26,8 @@ const FEATURES: FeatureItem[] = [
   { id: 'recruitment', title: '招聘助手', icon: 'people', color: '#FFFFFF', bgColor: '#8B5CF6', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up', color: '#FFFFFF', bgColor: '#10B981', route: 'Acquisition' },
   { id: 'share', title: '推荐分享', icon: 'share-social', color: '#FFFFFF', bgColor: '#F97316', route: 'Share' },
+  { id: 'materials', title: '素材库', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' },
 ];
 
 export default function HomeScreen() {
