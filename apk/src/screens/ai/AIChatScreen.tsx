@@ -359,8 +359,6 @@ const QUICK_ACTIONS = [
 请描述您的数字人视频需求，我来为您生成完整方案！` },
 ]
 
-请根据您描述的情况，选择最相关的维度进行深度分析，并给出可落地的解决方案。` },
-]
 
 interface Props {
   navigation?: any
