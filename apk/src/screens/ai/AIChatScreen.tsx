@@ -22,6 +22,13 @@ import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { aiChatService, RECOMMENDED_MODELS } from '../../services/ai-chat.service'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { 
+  aiModelRouter, 
+  analyzeAndSelectModel, 
+  getTaskTypeName, 
+  getTaskTypeIcon,
+  type TaskType 
+} from '../../services/ai-model-router'
 
 // 对话消息类型
 export interface ChatMessage {
@@ -111,7 +118,7 @@ const extractVideoUrls = (content: string): string[] => {
   return [...new Set(urls)]
 }
 
-// AI模型配置 - 混合最佳方案
+// AI模型配置 - 全部12个模型
 export const AI_MODELS = {
   // 默认智能模型（自动选择时使用）
   auto: {
@@ -122,8 +129,11 @@ export const AI_MODELS = {
     color: '#6366F1',
     description: '根据内容自动选择最佳模型',
   },
-  // 日常对话 - 腾讯云混元
-  daily: {
+  
+  // ===== 腾讯云TokenHub =====
+  
+  // 1. 混元日常 - 日常对话
+  hunyuan_instruct: {
     id: 'hunyuan-2.0-instruct-20251111',
     name: '混元日常',
     provider: 'tencent',
@@ -131,35 +141,35 @@ export const AI_MODELS = {
     color: '#3B82F6',
     description: '日常对话、智能问答',
   },
-  // 专业长文本 - Kimi
-  longText: {
+  // 2. 混元思考 - 复杂推理
+  hunyuan_thinking: {
+    id: 'hunyuan-2.0-thinking-20251109',
+    name: '混元思考',
+    provider: 'tencent',
+    icon: 'bulb-outline',
+    color: '#8B5CF6',
+    description: '复杂推理、数学问题',
+  },
+  // 3. Kimi长文 - 超长文本
+  kimi_k2: {
     id: 'kimi-k2.6',
     name: 'Kimi长文',
     provider: 'tencent',
     icon: 'document-text-outline',
-    color: '#8B5CF6',
+    color: '#10B981',
     description: '超长文本、报告生成',
   },
-  // 专业文案 - 阿里千问
-  copywriting: {
-    id: 'qwen-plus',
-    name: '千问专业',
-    provider: 'aliyun',
-    icon: 'create-outline',
-    color: '#10B981',
-    description: '专业文案、营销内容',
-  },
-  // 深度推理 - DeepSeek R1
-  reasoning: {
-    id: 'deepseek-r1-0528',
-    name: 'DeepSeek思考',
-    provider: 'aliyun',
-    icon: 'bulb-outline',
+  // 4. GLM-5 Agent - Agent任务
+  glm_5: {
+    id: 'glm-5',
+    name: 'GLM-5 Agent',
+    provider: 'tencent',
+    icon: 'cog-outline',
     color: '#F59E0B',
-    description: '深度思考、复杂推理',
+    description: 'Agent任务、代码生成',
   },
-  // 图片理解 - GLM多模态
-  vision: {
+  // 5. GLM视觉 - 图片理解
+  glm_5v: {
     id: 'glm-5v-turbo',
     name: 'GLM视觉',
     provider: 'tencent',
@@ -167,8 +177,8 @@ export const AI_MODELS = {
     color: '#EC4899',
     description: '图片理解、图表分析',
   },
-  // 视频理解 - 腾讯视频理解
-  video: {
+  // 6. 视频解析 - 视频理解
+  youtu_vita: {
     id: 'youtu-vita',
     name: '视频解析',
     provider: 'tencent',
@@ -176,43 +186,129 @@ export const AI_MODELS = {
     color: '#EF4444',
     description: '视频理解、内容提取',
   },
+  // 7. 图片生成
+  hy_image: {
+    id: 'HY-Image-V3.0',
+    name: '图片生成',
+    provider: 'tencent',
+    icon: 'images-outline',
+    color: '#6366F1',
+    description: '高质量图像生成',
+  },
+  // 8. 数字人
+  digital_human: {
+    id: 'YT-Video-HumanActor',
+    name: '数字人口播',
+    provider: 'tencent',
+    icon: 'person-outline',
+    color: '#14B8A6',
+    description: '数字人口播视频',
+  },
+  
+  // ===== 阿里云百炼 =====
+  
+  // 9. 千问快速 - 日常对话
+  qwen_turbo: {
+    id: 'qwen-turbo',
+    name: '千问快速',
+    provider: 'aliyun',
+    icon: 'chatbubbles-outline',
+    color: '#3B82F6',
+    description: '日常对话、快速响应',
+  },
+  // 10. 千问专业 - 专业文案
+  qwen_plus: {
+    id: 'qwen-plus',
+    name: '千问专业',
+    provider: 'aliyun',
+    icon: 'create-outline',
+    color: '#10B981',
+    description: '专业文案、营销内容',
+  },
+  // 11. 千问长文 - 超长文本
+  qwen_long: {
+    id: 'qwen-long',
+    name: '千问长文',
+    provider: 'aliyun',
+    icon: 'document-text-outline',
+    color: '#8B5CF6',
+    description: '超长文本处理',
+  },
+  // 12. DeepSeek思考 - 深度推理
+  deepseek_r1: {
+    id: 'deepseek-r1-0528',
+    name: 'DeepSeek思考',
+    provider: 'aliyun',
+    icon: 'bulb-outline',
+    color: '#F59E0B',
+    description: '深度思考、复杂推理',
+  },
 }
 
-// 自动选择模型的关键词匹配规则
-const MODEL_SELECTION_RULES = [
-  // 深度推理 - 需要深入分析的问题
-  { keywords: ['分析', '思考', '推理', '为什么', '原因', '原理', '探讨', '研究', '评估', '对比', '比较'], model: 'reasoning' as const },
-  // 长文本 - 报告、方案、规划类
-  { keywords: ['报告', '方案', '规划', '总结', '摘要', '大纲', '策划', '计划书', '设计', '研究'], model: 'longText' as const },
-  // 文案创作 - 营销、推广、内容创作类
-  { keywords: ['文案', '营销', '推广', '宣传', '广告', '软文', '脚本', '剧本', '故事', '创作', '写', '生成'], model: 'copywriting' as const },
-  // 图片理解
-  { keywords: ['图片', '照片', '图', '看图', '识别', '这是什么'], model: 'vision' as const },
-  // 视频理解
-  { keywords: ['视频', '短视频', '影片', '抖音', '快手', 'B站'], model: 'video' as const },
-  // 默认日常对话
-  { keywords: [], model: 'daily' as const },
-]
+// 使用智能模型调度选择模型
+export const autoSelectModel = (content: string): string => {
+  if (!content) return 'hunyuan_instruct'
+  
+  // 使用智能分析选择模型
+  const result = analyzeAndSelectModel(content)
+  return result.modelKey
+}
 
-// 根据内容自动选择模型
-export const autoSelectModel = (content: string): keyof typeof AI_MODELS => {
-  if (!content) return 'daily'
+// 获取模型显示信息
+export const getModelDisplayInfo = (modelKey: string): { name: string; icon: string; color: string } => {
+  const modelInfo = aiModelRouter.getModelInfo(modelKey)
+  const taskType = aiModelRouter.analyzeTask('')
   
-  // 检查是否有图片/视频附件意图
-  if (content.match(/图片|照片|图|看图|识别图片|上传图/)) return 'vision'
-  if (content.match(/视频|影片|短视频|上传视频/)) return 'video'
-  
-  // 检查关键词匹配
-  for (const rule of MODEL_SELECTION_RULES) {
-    if (rule.keywords.length === 0) continue // 跳过默认规则
-    for (const keyword of rule.keywords) {
-      if (content.includes(keyword)) {
-        return rule.model
-      }
-    }
+  // 模型到图标的映射
+  const iconMap: Record<string, string> = {
+    hunyuan_instruct: 'chatbubbles-outline',
+    hunyuan_thinking: 'bulb-outline',
+    kimi_k2: 'document-text-outline',
+    glm_5: 'cog-outline',
+    glm_5v: 'image-outline',
+    youtu_vita: 'videocam-outline',
+    hy_image: 'images-outline',
+    digital_human: 'person-outline',
+    qwen_turbo: 'chatbubbles-outline',
+    qwen_plus: 'create-outline',
+    qwen_long: 'document-text-outline',
+    deepseek_r1: 'bulb-outline',
   }
   
-  return 'daily'
+  // 模型到颜色的映射
+  const colorMap: Record<string, string> = {
+    hunyuan_instruct: '#3B82F6', // 蓝色
+    hunyuan_thinking: '#8B5CF6', // 紫色
+    kimi_k2: '#10B981', // 绿色
+    glm_5: '#F59E0B', // 橙色
+    glm_5v: '#EC4899', // 粉色
+    youtu_vita: '#EF4444', // 红色
+    hy_image: '#6366F1', // 靛蓝
+    digital_human: '#14B8A6', // 青色
+    qwen_turbo: '#3B82F6', // 蓝色
+    qwen_plus: '#10B981', // 绿色
+    qwen_long: '#8B5CF6', // 紫色
+    deepseek_r1: '#F59E0B', // 橙色
+  }
+  
+  return {
+    name: modelInfo?.name || modelKey,
+    icon: iconMap[modelKey] || 'chatbubbles-outline',
+    color: colorMap[modelKey] || '#3B82F6',
+  }
+}
+
+// 获取模型任务类型描述
+export const getModelTaskHint = (content: string): { taskType: TaskType; hint: string } => {
+  if (!content) {
+    return { taskType: 'chat', hint: '日常对话' }
+  }
+  
+  const result = analyzeAndSelectModel(content)
+  return {
+    taskType: result.taskType,
+    hint: getTaskTypeName(result.taskType),
+  }
 }
 
 // 预设快捷功能 - 6大核心能力

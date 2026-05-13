@@ -1,9 +1,15 @@
 /**
  * AI对话路由 - 支持混合最佳方案
  * 腾讯云TokenHub + 阿里云百炼
+ * 包含智能模型调度、高并发降级
  */
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
+import { 
+  aiModelRouter, 
+  analyzeAndSelectModel, 
+  getAllModelsList 
+} from '../services/ai-model-router';
 
 const router = Router();
 
@@ -113,11 +119,11 @@ interface ChatMessage {
   content: string;
 }
 
-// 发送对话消息
+// 发送对话消息 - 使用智能模型调度
 router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { messages, model, stream = false } = req.body;
+    const { messages, modelKey, stream = false, preferProvider } = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       res.status(400).json({ error: '消息不能为空' });
@@ -131,15 +137,33 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
     let processedMessages = [...messages];
     
     // 如果是诊断需求，注入系统提示词
-    if (isDiagnosisRequest && !messages.some(m => m.role === 'system')) {
+    if (isDiagnosisRequest && !messages.some((m: any) => m.role === 'system')) {
       processedMessages = [
         { role: 'system', content: DIAGNOSIS_SYSTEM_PROMPT },
         ...messages
       ];
     }
 
-    // 根据模型选择调用哪个服务商
-    const { provider, modelId, apiKey } = resolveModel(model, isDiagnosisRequest);
+    // 使用智能模型调度选择模型
+    const lastMessage = messages[messages.length - 1]?.content || '';
+    const selection = analyzeAndSelectModel(lastMessage, preferProvider);
+    
+    let { modelKey: selectedModelKey, provider, modelId } = selection;
+    
+    // 如果指定了模型，优先使用指定的模型
+    if (modelKey && modelKey !== 'auto') {
+      selectedModelKey = modelKey;
+      const modelInfo = aiModelRouter.getModelInfo(modelKey);
+      if (modelInfo) {
+        provider = modelInfo.provider as 'aliyun' | 'tencent';
+        modelId = modelInfo.id;
+      }
+    }
+
+    // 获取API Key
+    const apiKey = provider === 'aliyun' 
+      ? process.env.DASHSCOPE_API_KEY 
+      : process.env.TENCENT_TOKENHUB_API_KEY;
 
     if (!apiKey) {
       res.status(400).json({ 
@@ -150,35 +174,102 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    // 构建请求
-    const response = await callAIProvider(provider, modelId, processedMessages, apiKey, stream);
+    // 增加并发计数
+    aiModelRouter.incrementConcurrent(selectedModelKey);
 
-    if (stream) {
-      // 流式响应
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      
-      for await (const chunk of response) {
-        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
-      }
-      res.write('data: [DONE]\n\n');
-      res.end();
-    } else {
-      // 非流式响应
-      const assistantMessage = response;
-      
-      // 保存对话历史到数据库（可选）
-      // await saveChatHistory(userId, messages, assistantMessage);
-      
-      res.json({
-        success: true,
-        data: {
-          message: assistantMessage,
-          model: modelId,
-          provider: provider === 'aliyun' ? 'aliyun' : 'tencent',
+    try {
+      // 构建请求
+      const response = await callAIProvider(provider, modelId, processedMessages, apiKey, stream);
+
+      if (stream) {
+        // 流式响应
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        
+        for await (const chunk of response as AsyncIterable<string>) {
+          res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
-      });
+        res.write('data: [DONE]\n\n');
+        res.end();
+      } else {
+        // 非流式响应
+        const assistantMessage = response as string;
+        
+        res.json({
+          success: true,
+          data: {
+            message: assistantMessage,
+            modelKey: selectedModelKey,
+            modelId: modelId,
+            modelName: selection.modelName,
+            provider: provider,
+            taskType: selection.taskType,
+            isFallback: selection.isFallback,
+          }
+        });
+      }
+    } catch (error: any) {
+      // 如果失败，尝试降级到备用模型
+      console.error(`模型 ${selectedModelKey} 调用失败，尝试降级...`, error.message);
+      
+      const fallback = aiModelRouter.getFallbackModel(selectedModelKey);
+      if (fallback) {
+        console.log(`降级到备用模型: ${fallback.modelKey}`);
+        
+        const fallbackApiKey = fallback.provider === 'aliyun'
+          ? process.env.DASHSCOPE_API_KEY
+          : process.env.TENCENT_TOKENHUB_API_KEY;
+        
+        if (fallbackApiKey) {
+          aiModelRouter.incrementConcurrent(fallback.modelKey);
+          
+          try {
+            const fallbackResponse = await callAIProvider(
+              fallback.provider as 'aliyun' | 'tencent',
+              aiModelRouter.getModelInfo(fallback.modelKey)?.id || fallback.modelKey,
+              processedMessages,
+              fallbackApiKey,
+              stream
+            );
+            
+            if (stream) {
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+              
+              for await (const chunk of fallbackResponse as AsyncIterable<string>) {
+                res.write(`data: ${JSON.stringify({ content: chunk, fallback: true })}\n\n`);
+              }
+              res.write('data: [DONE]\n\n');
+              res.end();
+            } else {
+              res.json({
+                success: true,
+                data: {
+                  message: fallbackResponse,
+                  modelKey: fallback.modelKey,
+                  modelId: aiModelRouter.getModelInfo(fallback.modelKey)?.id,
+                  provider: fallback.provider,
+                  isFallback: true,
+                }
+              });
+            }
+            
+            aiModelRouter.decrementConcurrent(fallback.modelKey);
+            return;
+          } catch (fallbackError: any) {
+            console.error(`备用模型也失败了:`, fallbackError.message);
+          }
+          
+          aiModelRouter.decrementConcurrent(fallback.modelKey);
+        }
+      }
+      
+      throw error;
+    } finally {
+      // 减少并发计数
+      aiModelRouter.decrementConcurrent(selectedModelKey);
     }
   } catch (error: any) {
     console.error('AI对话错误:', error);
@@ -191,102 +282,50 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
 
 // 获取支持的模型列表
 router.get('/models', authMiddleware, (req: Request, res: Response) => {
+  const modelsList = getAllModelsList();
+  
+  // 合并并格式化模型列表
   const allModels = [
-    // 阿里云百炼
-    {
-      id: 'qwen-turbo',
-      name: 'qwen-turbo',
+    // 阿里云百炼 - 4个模型
+    ...modelsList.aliyun.map(model => ({
+      key: model.key,
+      id: model.id,
+      name: model.name,
       provider: 'aliyun',
       providerName: '阿里云百炼',
-      type: 'text',
-      description: '日常对话、快速响应',
-    },
-    {
-      id: 'qwen-plus',
-      name: 'qwen-plus',
-      provider: 'aliyun',
-      providerName: '阿里云百炼',
-      type: 'text',
-      description: '专业文案、长文本生成',
-    },
-    {
-      id: 'deepseek-r1-0528',
-      name: 'DeepSeek R1',
-      provider: 'aliyun',
-      providerName: '阿里云百炼',
-      type: 'reasoning',
-      description: '深度思考、复杂推理',
-    },
-    // 腾讯云TokenHub
-    {
-      id: 'hunyuan-2.0-instruct-20251111',
-      name: '混元指令版',
+      type: model.type,
+      description: model.description,
+      maxTokens: model.maxTokens,
+      priority: model.priority,
+      cost: model.cost,
+    })),
+    // 腾讯云TokenHub - 8个模型
+    ...modelsList.tencent.map(model => ({
+      key: model.key,
+      id: model.id,
+      name: model.name,
       provider: 'tencent',
       providerName: '腾讯云TokenHub',
-      type: 'text',
-      description: '日常对话、智能问答',
-    },
-    {
-      id: 'hunyuan-2.0-thinking-20251109',
-      name: '混元思考版',
-      provider: 'tencent',
-      providerName: '腾讯云TokenHub',
-      type: 'reasoning',
-      description: '复杂推理、数学问题',
-    },
-    {
-      id: 'kimi-k2.6',
-      name: 'Kimi K2.6',
-      provider: 'tencent',
-      providerName: '腾讯云TokenHub',
-      type: 'text',
-      description: '超长文本、报告生成',
-    },
-    {
-      id: 'glm-5',
-      name: 'GLM-5',
-      provider: 'tencent',
-      providerName: '腾讯云TokenHub',
-      type: 'agent',
-      description: 'Agent任务、代码生成',
-    },
-    {
-      id: 'glm-5v-turbo',
-      name: 'GLM-5V Turbo',
-      provider: 'tencent',
-      providerName: '腾讯云TokenHub',
-      type: 'vision',
-      description: '图片理解、多模态',
-    },
-    {
-      id: 'youtu-vita',
-      name: 'youtu-vita',
-      provider: 'tencent',
-      providerName: '腾讯云TokenHub',
-      type: 'video',
-      description: '视频理解、视频分析',
-    },
-    {
-      id: 'HY-Image-V3.0',
-      name: 'HY-Image-V3.0',
-      provider: 'tencent',
-      providerName: '腾讯云TokenHub',
-      type: 'image',
-      description: '高质量图像生成',
-    },
-    {
-      id: 'YT-Video-HumanActor',
-      name: '数字人视频',
-      provider: 'tencent',
-      providerName: '腾讯云TokenHub',
-      type: 'digital_human',
-      description: '数字人口播视频',
-    },
+      type: model.type,
+      description: model.description,
+      maxTokens: model.maxTokens,
+      priority: model.priority,
+      cost: model.cost,
+    })),
   ];
 
   res.json({
     success: true,
     data: allModels,
+  });
+});
+
+// 获取模型调度统计
+router.get('/models/stats', authMiddleware, (req: Request, res: Response) => {
+  const stats = aiModelRouter.getStats();
+  res.json({
+    success: true,
+    data: stats,
   });
 });
 

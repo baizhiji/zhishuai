@@ -51,7 +51,7 @@ export default function APIConfigPage() {
   const [editingProvider, setEditingProvider] = useState<APIProvider | null>(null)
   const [selectedModels, setSelectedModels] = useState<string[]>([])
 
-  // 初始服务商数据
+  // 初始服务商数据 - 默认启用全部模型
   const [providers, setProviders] = useState<APIProvider[]>([
     {
       id: 'aliyun',
@@ -60,7 +60,7 @@ export default function APIConfigPage() {
       apiKey: '',
       baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       status: 'inactive',
-      enabledModels: ['qwen-turbo', 'qwen-plus', 'deepseek-r1-0528'],
+      enabledModels: ['qwen-turbo', 'qwen-plus', 'qwen-long', 'deepseek-r1-0528'], // 全部4个模型
     },
     {
       id: 'tencent',
@@ -69,7 +69,16 @@ export default function APIConfigPage() {
       apiKey: '',
       baseUrl: 'https://tokenhub.cloud.tencent.com',
       status: 'inactive',
-      enabledModels: ['hunyuan-2.0-instruct-20251111', 'glm-5v-turbo', 'youtu-vita', 'HY-Image-V3.0'],
+      enabledModels: [
+        'hunyuan-2.0-instruct-20251111', 
+        'hunyuan-2.0-thinking-20251109',
+        'kimi-k2.6',
+        'glm-5',
+        'glm-5v-turbo', 
+        'youtu-vita', 
+        'HY-Image-V3.0',
+        'YT-Video-HumanActor',
+      ], // 全部8个模型
     },
   ])
 
