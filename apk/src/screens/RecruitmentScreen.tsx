@@ -224,7 +224,7 @@ export default function RecruitmentScreen() {
 
             <Text style={styles.sectionTitle}>待处理简历 ({candidates.filter(r => r.status === 'pending').length})</Text>
             {candidates.filter(r => r.status === 'pending').slice(0, 3).map(resume => (
-              <TouchableOpacity key={resume.id} style={styles.resumeCard} onPress={() => { setSelectedResume(resume); setShowResumeModal(true); }}>
+              <TouchableOpacity key={resume.id} style={styles.resumeCard} onPress={() => { setSelectedCandidate(resume); setShowResumeModal(true); }}>
                 <View style={styles.resumeHeader}>
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>{resume.name[0]}</Text>
@@ -290,7 +290,7 @@ export default function RecruitmentScreen() {
           <>
             <Text style={styles.sectionTitle}>简历列表 ({candidates.length})</Text>
             {candidates.map(resume => (
-              <TouchableOpacity key={resume.id} style={styles.resumeCard} onPress={() => { setSelectedResume(resume); setShowResumeModal(true); }}>
+              <TouchableOpacity key={resume.id} style={styles.resumeCard} onPress={() => { setSelectedCandidate(resume); setShowResumeModal(true); }}>
                 <View style={styles.resumeHeader}>
                   <View style={styles.avatar}>
                     <Text style={styles.avatarText}>{resume.name[0]}</Text>
@@ -449,45 +449,45 @@ export default function RecruitmentScreen() {
                 <Ionicons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
-            {selectedResume && (
+            {selectedCandidate && (
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.resumeDetailHeader}>
                   <View style={styles.avatarLarge}>
-                    <Text style={styles.avatarTextLarge}>{selectedResume.name[0]}</Text>
+                    <Text style={styles.avatarTextLarge}>{selectedCandidate.name[0]}</Text>
                   </View>
-                  <Text style={styles.resumeDetailName}>{selectedResume.name}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedResume.status).bg }]}>
-                    <Text style={[styles.statusText, { color: getStatusColor(selectedResume.status).text }]}>{getStatusText(selectedResume.status)}</Text>
+                  <Text style={styles.resumeDetailName}>{selectedCandidate.name}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(selectedCandidate.status).bg }]}>
+                    <Text style={[styles.statusText, { color: getStatusColor(selectedCandidate.status).text }]}>{getStatusText(selectedCandidate.status)}</Text>
                   </View>
                 </View>
 
                 <View style={styles.resumeDetailSection}>
                   <Text style={styles.detailLabel}>应聘职位</Text>
-                  <Text style={styles.detailValue}>{selectedResume.position}</Text>
+                  <Text style={styles.detailValue}>{selectedCandidate.position}</Text>
                 </View>
 
                 <View style={styles.resumeDetailSection}>
                   <Text style={styles.detailLabel}>联系方式</Text>
-                  <Text style={styles.detailValue}>{selectedResume.phone}</Text>
-                  <Text style={styles.detailValue}>{selectedResume.email}</Text>
+                  <Text style={styles.detailValue}>{selectedCandidate.phone}</Text>
+                  <Text style={styles.detailValue}>{selectedCandidate.email}</Text>
                 </View>
 
                 <View style={styles.resumeDetailSection}>
                   <Text style={styles.detailLabel}>基本信息</Text>
-                  <Text style={styles.detailValue}>{selectedResume.experience} | {selectedResume.education}</Text>
+                  <Text style={styles.detailValue}>{selectedCandidate.experience} | {selectedCandidate.education}</Text>
                 </View>
 
                 <View style={styles.resumeDetailSection}>
                   <Text style={styles.detailLabel}>匹配度</Text>
-                  <View style={[styles.matchBadgeLarge, { backgroundColor: selectedResume.matchScore >= 90 ? '#dcfce7' : selectedResume.matchScore >= 80 ? '#dbeafe' : '#fef3c7' }]}>
-                    <Text style={[styles.matchScoreLarge, { color: selectedResume.matchScore >= 90 ? '#166534' : selectedResume.matchScore >= 80 ? '#1e40af' : '#92400e' }]}>{selectedResume.matchScore}%</Text>
+                  <View style={[styles.matchBadgeLarge, { backgroundColor: selectedCandidate.matchScore >= 90 ? '#dcfce7' : selectedCandidate.matchScore >= 80 ? '#dbeafe' : '#fef3c7' }]}>
+                    <Text style={[styles.matchScoreLarge, { color: selectedCandidate.matchScore >= 90 ? '#166534' : selectedCandidate.matchScore >= 80 ? '#1e40af' : '#92400e' }]}>{selectedCandidate.matchScore}%</Text>
                   </View>
                 </View>
 
                 <View style={styles.resumeDetailSection}>
                   <Text style={styles.detailLabel}>技能标签</Text>
                   <View style={styles.skillsRow}>
-                    {selectedResume.skills.map((skill, i) => (
+                    {selectedCandidate.skills.map((skill, i) => (
                       <Text key={i} style={styles.skillTag}>{skill}</Text>
                     ))}
                   </View>
@@ -495,20 +495,20 @@ export default function RecruitmentScreen() {
 
                 <View style={styles.resumeDetailSection}>
                   <Text style={styles.detailLabel}>来源</Text>
-                  <Text style={styles.detailValue}>{selectedResume.source}</Text>
+                  <Text style={styles.detailValue}>{selectedCandidate.source}</Text>
                 </View>
 
                 <Text style={styles.actionTitle}>处理简历</Text>
                 <View style={styles.actionRow}>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dbeafe' }]} onPress={() => updateResumeStatus(selectedResume.id, 'interview')}>
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dbeafe' }]} onPress={() => updateResumeStatus(selectedCandidate.id, 'interview')}>
                     <Ionicons name="calendar" size={18} color="#1e40af" />
                     <Text style={[styles.actionBtnText, { color: '#1e40af' }]}>安排面试</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dcfce7' }]} onPress={() => updateResumeStatus(selectedResume.id, 'reviewed')}>
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dcfce7' }]} onPress={() => updateResumeStatus(selectedCandidate.id, 'reviewed')}>
                     <Ionicons name="checkmark-circle" size={18} color="#166534" />
                     <Text style={[styles.actionBtnText, { color: '#166534' }]}>已查看</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#fee2e2' }]} onPress={() => updateResumeStatus(selectedResume.id, 'rejected')}>
+                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#fee2e2' }]} onPress={() => updateResumeStatus(selectedCandidate.id, 'rejected')}>
                     <Ionicons name="close-circle" size={18} color="#dc2626" />
                     <Text style={[styles.actionBtnText, { color: '#dc2626' }]}>不合适</Text>
                   </TouchableOpacity>
