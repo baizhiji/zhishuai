@@ -222,8 +222,8 @@ export default function RecruitmentScreen() {
               </View>
             </View>
 
-            <Text style={styles.sectionTitle}>待处理简历 ({resumes.filter(r => r.status === 'pending').length})</Text>
-            {resumes.filter(r => r.status === 'pending').slice(0, 3).map(resume => (
+            <Text style={styles.sectionTitle}>待处理简历 ({candidates.filter(r => r.status === 'pending').length})</Text>
+            {candidates.filter(r => r.status === 'pending').slice(0, 3).map(resume => (
               <TouchableOpacity key={resume.id} style={styles.resumeCard} onPress={() => { setSelectedResume(resume); setShowResumeModal(true); }}>
                 <View style={styles.resumeHeader}>
                   <View style={styles.avatar}>
@@ -288,8 +288,8 @@ export default function RecruitmentScreen() {
         {/* 简历列表 */}
         {activeTab === 'resumes' && (
           <>
-            <Text style={styles.sectionTitle}>简历列表 ({resumes.length})</Text>
-            {resumes.map(resume => (
+            <Text style={styles.sectionTitle}>简历列表 ({candidates.length})</Text>
+            {candidates.map(resume => (
               <TouchableOpacity key={resume.id} style={styles.resumeCard} onPress={() => { setSelectedResume(resume); setShowResumeModal(true); }}>
                 <View style={styles.resumeHeader}>
                   <View style={styles.avatar}>
