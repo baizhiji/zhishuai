@@ -51,22 +51,19 @@ const mockResumes: Resume[] = [
   { id: '3', name: '张伟', position: '产品经理', phone: '137****9012', email: 'zhangwei@example.com', experience: '4年', education: '本科', matchScore: 82, status: 'reviewed', source: '智联招聘', applyDate: '2024-03-23', skills: ['产品规划', '需求分析'] },
 ];
 
-// 统计数据
-const stats = {
-  totalJobs: 89,
-  activeJobs: 45,
-  totalResumes: 2340,
-  newResumes: 156,
-  totalInterviews: 234,
-  pendingInterviews: 23,
-};
-
 export default function RecruitmentScreen() {
   const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState<'stats' | 'jobs' | 'resumes' | 'interviews'>('stats');
   const [jobs, setJobs] = useState<RecruitmentPost[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [stats, setStats] = useState<RecruitmentStats | null>(null);
+  const [stats, setStats] = useState<RecruitmentStats>({
+    totalJobs: 0,
+    activeJobs: 0,
+    totalResumes: 0,
+    newResumes: 0,
+    totalInterviews: 0,
+    pendingInterviews: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
