@@ -594,8 +594,8 @@ export default function AIChatScreen({ navigation }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedModel, setSelectedModel] = useState<keyof typeof AI_MODELS>('daily')
-  const [autoModel, setAutoModel] = useState<keyof typeof AI_MODELS>('daily')
+  const [selectedModel, setSelectedModel] = useState<keyof typeof AI_MODELS>('hunyuan_instruct')
+  const [autoModel, setAutoModel] = useState<keyof typeof AI_MODELS>('hunyuan_instruct')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [showThinking, setShowThinking] = useState(false)
   const [attachments, setAttachments] = useState<{ type: 'image' | 'video'; uri: string }[]>([])
@@ -678,7 +678,7 @@ export default function AIChatScreen({ navigation }: Props) {
     const suggestedModel = autoSelectModel(contentToAnalyze)
     
     // 决定使用哪个模型：用户手动选择优先，否则使用自动选择的
-    const modelToUse = selectedModel === 'daily' && contentToAnalyze.length > 10 
+    const modelToUse = selectedModel === 'hunyuan_instruct' && contentToAnalyze.length > 10 
       ? suggestedModel 
       : selectedModel
     
@@ -780,13 +780,13 @@ export default function AIChatScreen({ navigation }: Props) {
     let responseContent = ''
     let thinking = ''
 
-    if (selectedModel === 'reasoning') {
+    if (selectedModel === 'hunyuan_thinking') {
       thinking = '让我仔细分析这个问题...\n\n1. 首先理解用户的需求\n2. 梳理关键信息点\n3. 构建回答框架\n4. 补充细节内容\n\n基于以上分析，我来给出回答：'
       
       responseContent = `【深度思考模式】\n\n${thinking}\n\n这是一个很好的问题！经过深入分析，我的回答如下：\n\n**核心观点：**\n1. 首先...（需要根据您的具体问题具体分析）\n2. 其次...（考虑多个维度的因素）\n3. 最后...（给出实际可行的建议）\n\n**建议：**\n根据您描述的情况，我建议您可以尝试...\n\n如需进一步深入分析，请提供更多细节！`
-    } else if (selectedModel === 'vision') {
+    } else if (selectedModel === 'glm_5v') {
       responseContent = `我已经收到您上传的图片，让我分析一下：\n\n**图片内容识别：**\n- 图片类型：支持JPEG/PNG格式\n- 图片尺寸：已记录\n\n**详细分析：**\n${userMessage.attachments?.length ? '图片已上传成功，可以进行详细分析' : '请上传图片，我将为您提供详细的图片理解和分析'}\n\n**建议：**\n如需特定分析（如OCR识别、物体检测、场景理解等），请告诉我具体需求！`
-    } else if (selectedModel === 'video') {
+    } else if (selectedModel === 'youtu_vita') {
       responseContent = `视频解析功能已准备就绪：\n\n**支持的分析类型：**\n- 🎬 视频内容摘要\n- 📝 关键帧提取\n- 🗣️ 语音转文字\n- 🎯 场景识别\n- 📊 数据可视化\n\n**使用方法：**\n1. 点击输入框旁边的 📎 按钮\n2. 选择视频文件\n3. 描述您想了解的内容\n\n请上传视频，我将为您提供详细解析！`
     } else {
       responseContent = `收到您的消息！\n\n**当前使用模型：** ${model.name}\n**服务商：** ${model.provider === 'tencent' ? '腾讯云TokenHub' : '阿里云百炼'}\n\n您提到了："${userMessage.content.slice(0, 50)}${userMessage.content.length > 50 ? '...' : ''}"\n\n我可以帮您：\n- 详细解答相关问题\n- 提供专业建议和方案\n- 生成相关内容和文案\n\n请告诉我更多细节，我可以给出更精准的回答！`
@@ -800,7 +800,7 @@ export default function AIChatScreen({ navigation }: Props) {
       content: responseContent,
       timestamp: Date.now(),
       model: model.name,
-      thinking: selectedModel === 'reasoning' ? thinking : undefined,
+      thinking: selectedModel === 'hunyuan_thinking' ? thinking : undefined,
     }
 
     setMessages(prev => [...prev, assistantMessage])
@@ -1089,7 +1089,7 @@ export default function AIChatScreen({ navigation }: Props) {
         }
       ]}>
         {/* 自动模型选择提示 */}
-        {inputText.length > 10 && selectedModel === 'daily' && (
+        {inputText.length > 10 && selectedModel === 'hunyuan_instruct' && (
           <View style={styles.autoModelHint}>
             <Ionicons name="flash" size={14} color="#6366F1" />
             <Text style={styles.autoModelHintText}>
