@@ -930,11 +930,6 @@ export default function AIChatScreen({ navigation }: Props) {
             />
           </TouchableOpacity>
         </View>
-        
-        {/* 提示信息 */}
-        <Text style={styles.hint}>
-          智能选择最佳模型 · 直接说出需求即可
-        </Text>
       </View>
     </KeyboardAvoidingView>
   )
