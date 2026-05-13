@@ -43,7 +43,34 @@ interface PublishTask {
   title: string;
   accounts: { id: string; name: string; platform: string }[];
   status: 'pending' | 'publishing' | 'published' | 'failed';
+  publishType: 'immediate' | 'scheduled' | 'continuous';
+  scheduledAt?: string;
   createdAt: string;
+  completedAt?: string;
+}
+
+// 定时任务接口
+interface ScheduledTask {
+  id: string;
+  materialId: string;
+  title: string;
+  accounts: { id: string; name: string; platform: string }[];
+  scheduledAt: string;
+  status: 'scheduled' | 'published' | 'failed';
+}
+
+// 连续发布任务接口
+interface ContinuousTask {
+  id: string;
+  materialIds: string[];
+  titles: string[];
+  accounts: { id: string; name: string; platform: string }[];
+  startDate: string;
+  days: number;
+  dailyTime: string;
+  status: 'pending' | 'running' | 'completed' | 'paused';
+  publishedCount: number;
+  totalCount: number;
 }
 
 // 平台配置
@@ -94,6 +121,21 @@ export default function PublishCenterScreen() {
   const [matrixAccounts] = useState<MatrixAccount[]>(MOCK_MATRIX_ACCOUNTS);
   const [materials] = useState<Material[]>(MOCK_MATERIALS);
   const [tasks, setTasks] = useState<PublishTask[]>([]);
+  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
+  const [continuousTasks, setContinuousTasks] = useState<ContinuousTask[]>([]);
+  
+  // 发布模式：immediate=立即发布, scheduled=定时发布, continuous=连续发布
+  const [publishMode, setPublishMode] = useState<'immediate' | 'scheduled' | 'continuous'>('immediate');
+  
+  // 定时发布状态
+  const [scheduledDate, setScheduledDate] = useState<Date>(new Date(Date.now() + 86400000)); // 明天
+  const [scheduledTime, setScheduledTime] = useState<string>('10:00');
+  
+  // 连续发布状态
+  const [continuousDays, setContinuousDays] = useState<number>(7);
+  const [continuousTime, setContinuousTime] = useState<string>('10:00');
+  const [selectedMaterialsForContinuous, setSelectedMaterialsForContinuous] = useState<string[]>([]);
+  const [showContinuousMaterialPicker, setShowContinuousMaterialPicker] = useState(false);
   
   // 选择状态
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
@@ -103,6 +145,7 @@ export default function PublishCenterScreen() {
   // 弹窗状态
   const [showMaterialPicker, setShowMaterialPicker] = useState(false);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [showPublishModeModal, setShowPublishModeModal] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
   // 根据选择的平台获取对应的矩阵账号
@@ -137,6 +180,26 @@ export default function PublishCenterScreen() {
     return PLATFORMS.find(p => p.id === platformId) || { name: platformId, color: '#64748b', icon: 'help-circle' };
   };
 
+  // 格式化日期
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // 获取连续发布的日期列表
+  const getContinuousDates = () => {
+    const dates = [];
+    const start = new Date();
+    for (let i = 0; i < continuousDays; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      dates.push(formatDate(d));
+    }
+    return dates;
+  };
+
   // 发布内容
   const handlePublish = async () => {
     if (!selectedMaterial) {
@@ -159,13 +222,35 @@ export default function PublishCenterScreen() {
       return { id: account.id, name: account.accountName, platform: account.platform };
     });
 
-    // 创建发布任务
+    // 根据发布模式创建任务
+    if (publishMode === 'scheduled') {
+      // 定时发布
+      const scheduledAt = `${formatDate(scheduledDate)} ${scheduledTime}`;
+      const newScheduledTask: ScheduledTask = {
+        id: `scheduled_${Date.now()}`,
+        materialId: selectedMaterial.id,
+        title: selectedMaterial.title,
+        accounts: selectedAccountDetails,
+        scheduledAt,
+        status: 'scheduled',
+      };
+      setScheduledTasks(prev => [newScheduledTask, ...prev]);
+      Alert.alert('成功', `内容已设置定时发布\n发布时间：${scheduledAt}`);
+      setPublishing(false);
+      setSelectedMaterial(null);
+      setSelectedPlatform(null);
+      setSelectedAccounts([]);
+      return;
+    }
+
+    // 立即发布
     const newTask: PublishTask = {
       id: `task_${Date.now()}`,
       materialId: selectedMaterial.id,
       title: selectedMaterial.title,
       accounts: selectedAccountDetails,
       status: 'publishing',
+      publishType: publishMode,
       createdAt: new Date().toLocaleTimeString('zh-CN'),
     };
 
@@ -174,7 +259,7 @@ export default function PublishCenterScreen() {
     // 模拟发布过程
     setTimeout(() => {
       setTasks(prev => prev.map(t => 
-        t.id === newTask.id ? { ...t, status: 'published' } : t
+        t.id === newTask.id ? { ...t, status: 'published', completedAt: new Date().toLocaleTimeString('zh-CN') } : t
       ));
       setPublishing(false);
       setSelectedMaterial(null);
@@ -182,6 +267,47 @@ export default function PublishCenterScreen() {
       setSelectedAccounts([]);
       Alert.alert('成功', `内容已成功发布到 ${selectedAccountDetails.length} 个账号`);
     }, 2000);
+  };
+
+  // 创建连续发布任务
+  const handleCreateContinuousTask = () => {
+    if (selectedMaterialsForContinuous.length === 0) {
+      Alert.alert('提示', '请选择要连续发布的素材');
+      return;
+    }
+    if (!selectedPlatform) {
+      Alert.alert('提示', '请选择发布平台');
+      return;
+    }
+    if (selectedAccounts.length === 0) {
+      Alert.alert('提示', '请选择至少一个发布账号');
+      return;
+    }
+
+    const selectedAccountDetails = selectedAccounts.map(id => {
+      const account = matrixAccounts.find(a => a.id === id)!;
+      return { id: account.id, name: account.accountName, platform: account.platform };
+    });
+
+    const continuousMaterials = selectedMaterialsForContinuous.map(id => materials.find(m => m.id === id)!);
+    
+    const newContinuousTask: ContinuousTask = {
+      id: `continuous_${Date.now()}`,
+      materialIds: selectedMaterialsForContinuous,
+      titles: continuousMaterials.map(m => m.title),
+      accounts: selectedAccountDetails,
+      startDate: formatDate(new Date()),
+      days: continuousDays,
+      dailyTime: continuousTime,
+      status: 'pending',
+      publishedCount: 0,
+      totalCount: continuousDays,
+    };
+
+    setContinuousTasks(prev => [newContinuousTask, ...prev]);
+    Alert.alert('成功', `已创建连续发布任务\n发布天数：${continuousDays}天\n每天发布时间：${continuousTime}\n素材数量：${selectedMaterialsForContinuous.length}个`);
+    setSelectedMaterialsForContinuous([]);
+    setShowContinuousMaterialPicker(false);
   };
 
   // 获取状态配置
@@ -341,6 +467,99 @@ export default function PublishCenterScreen() {
     );
   };
 
+  // 渲染连续发布素材选择弹窗
+  const renderContinuousMaterialPicker = () => (
+    <Modal visible={showContinuousMaterialPicker} transparent animationType="slide">
+      <View style={pickerStyles.overlay}>
+        <View style={[pickerStyles.content, { maxHeight: '70%' }]}>
+          <View style={pickerStyles.header}>
+            <View style={pickerStyles.headerLeft}>
+              <Ionicons name="repeat" size={24} color="#4F46E5" />
+              <Text style={[pickerStyles.title, { marginLeft: 10 }]}>选择连续发布的素材</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowContinuousMaterialPicker(false)}>
+              <Ionicons name="close" size={24} color="#1e293b" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={pickerStyles.selectAllRow}>
+            <TouchableOpacity
+              style={[
+                pickerStyles.selectAllBtn,
+                selectedMaterialsForContinuous.length === materials.length && pickerStyles.selectAllBtnActive
+              ]}
+              onPress={() => {
+                if (selectedMaterialsForContinuous.length === materials.length) {
+                  setSelectedMaterialsForContinuous([]);
+                } else {
+                  setSelectedMaterialsForContinuous(materials.map(m => m.id));
+                }
+              }}
+            >
+              <Text style={[
+                pickerStyles.selectAllText,
+                selectedMaterialsForContinuous.length === materials.length && pickerStyles.selectAllTextActive
+              ]}>
+                {selectedMaterialsForContinuous.length === materials.length ? '取消全选' : '全选'}
+              </Text>
+            </TouchableOpacity>
+            <Text style={pickerStyles.selectedCount}>
+              已选 {selectedMaterialsForContinuous.length}/{materials.length} 个
+            </Text>
+          </View>
+          
+          <FlatList
+            data={materials}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  pickerStyles.materialItem,
+                  selectedMaterialsForContinuous.includes(item.id) && pickerStyles.materialItemSelected
+                ]}
+                onPress={() => {
+                  setSelectedMaterialsForContinuous(prev => 
+                    prev.includes(item.id)
+                      ? prev.filter(id => id !== item.id)
+                      : [...prev, item.id]
+                  );
+                }}
+              >
+                <View style={pickerStyles.materialInfo}>
+                  <Text style={pickerStyles.materialTitle}>{item.title}</Text>
+                  <Text style={pickerStyles.materialCategory}>
+                    {CATEGORY_NAMES[item.category] || item.category}
+                  </Text>
+                </View>
+                <View style={[
+                  pickerStyles.checkbox,
+                  selectedMaterialsForContinuous.includes(item.id) && pickerStyles.checkboxSelected
+                ]}>
+                  {selectedMaterialsForContinuous.includes(item.id) && (
+                    <Ionicons name="checkmark" size={14} color="#fff" />
+                  )}
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+          
+          <TouchableOpacity
+            style={[
+              pickerStyles.confirmBtn,
+              selectedMaterialsForContinuous.length === 0 && pickerStyles.confirmBtnDisabled
+            ]}
+            onPress={() => setShowContinuousMaterialPicker(false)}
+            disabled={selectedMaterialsForContinuous.length === 0}
+          >
+            <Text style={pickerStyles.confirmBtnText}>
+              确定 ({selectedMaterialsForContinuous.length}个素材)
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <PageHeader title="发布中心" />
@@ -459,27 +678,197 @@ export default function PublishCenterScreen() {
           </View>
         )}
 
-        {/* 立即发布按钮 */}
-        <TouchableOpacity
-          style={[
-            styles.publishBtn,
-            (!selectedMaterial || !selectedPlatform || selectedAccounts.length === 0 || publishing) && styles.publishBtnDisabled
-          ]}
-          onPress={handlePublish}
-          disabled={!selectedMaterial || !selectedPlatform || selectedAccounts.length === 0 || publishing}
-        >
-          {publishing ? (
-            <>
-              <Ionicons name="sync" size={20} color="#fff" />
+        {/* 发布模式选择 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>发布模式</Text>
+          <View style={styles.publishModeGrid}>
+            <TouchableOpacity
+              style={[
+                styles.publishModeItem,
+                publishMode === 'immediate' && styles.publishModeItemActive
+              ]}
+              onPress={() => setPublishMode('immediate')}
+            >
+              <Ionicons 
+                name="flash" 
+                size={24} 
+                color={publishMode === 'immediate' ? '#4F46E5' : '#64748b'} 
+              />
+              <Text style={[
+                styles.publishModeText,
+                publishMode === 'immediate' && styles.publishModeTextActive
+              ]}>
+                立即发布
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.publishModeItem,
+                publishMode === 'scheduled' && styles.publishModeItemActive
+              ]}
+              onPress={() => setPublishMode('scheduled')}
+            >
+              <Ionicons 
+                name="time-outline" 
+                size={24} 
+                color={publishMode === 'scheduled' ? '#4F46E5' : '#64748b'} 
+              />
+              <Text style={[
+                styles.publishModeText,
+                publishMode === 'scheduled' && styles.publishModeTextActive
+              ]}>
+                定时发布
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[
+                styles.publishModeItem,
+                publishMode === 'continuous' && styles.publishModeItemActive
+              ]}
+              onPress={() => setPublishMode('continuous')}
+            >
+              <Ionicons 
+                name="repeat" 
+                size={24} 
+                color={publishMode === 'continuous' ? '#4F46E5' : '#64748b'} 
+              />
+              <Text style={[
+                styles.publishModeText,
+                publishMode === 'continuous' && styles.publishModeTextActive
+              ]}>
+                连续发布
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 定时发布选项 */}
+        {publishMode === 'scheduled' && (
+          <View style={styles.scheduledOptions}>
+            <Text style={styles.optionLabel}>选择发布日期和时间</Text>
+            <View style={styles.dateTimeRow}>
+              <View style={styles.dateInput}>
+                <Ionicons name="calendar-outline" size={20} color="#64748b" />
+                <Text style={styles.dateText}>{formatDate(scheduledDate)}</Text>
+              </View>
+              <View style={styles.timeInput}>
+                <Ionicons name="time-outline" size={20} color="#64748b" />
+                <Text style={styles.timeText}>{scheduledTime}</Text>
+              </View>
+            </View>
+            <Text style={styles.optionHint}>
+              选择明天及之后的日期进行定时发布
+            </Text>
+          </View>
+        )}
+
+        {/* 连续发布选项 */}
+        {publishMode === 'continuous' && (
+          <View style={styles.continuousOptions}>
+            <Text style={styles.optionLabel}>连续发布设置</Text>
+            
+            {/* 选择素材 */}
+            <TouchableOpacity
+              style={styles.continuousMaterialSelector}
+              onPress={() => setShowContinuousMaterialPicker(true)}
+            >
+              <Text style={styles.continuousMaterialText}>
+                {selectedMaterialsForContinuous.length > 0 
+                  ? `已选择 ${selectedMaterialsForContinuous.length} 个素材`
+                  : '点击选择要连续发布的素材'}
+              </Text>
+              <Ionicons name="chevron-forward" size={20} color="#64748b" />
+            </TouchableOpacity>
+            
+            {/* 发布天数 */}
+            <View style={styles.continuousDaysRow}>
+              <Text style={styles.continuousDaysLabel}>发布天数</Text>
+              <View style={styles.daysSelector}>
+                <TouchableOpacity 
+                  style={styles.daysBtn}
+                  onPress={() => setContinuousDays(Math.max(1, continuousDays - 1))}
+                >
+                  <Ionicons name="remove" size={20} color="#4F46E5" />
+                </TouchableOpacity>
+                <Text style={styles.daysValue}>{continuousDays} 天</Text>
+                <TouchableOpacity 
+                  style={styles.daysBtn}
+                  onPress={() => setContinuousDays(Math.min(30, continuousDays + 1))}
+                >
+                  <Ionicons name="add" size={20} color="#4F46E5" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            {/* 每天发布时间 */}
+            <View style={styles.continuousTimeRow}>
+              <Text style={styles.continuousTimeLabel}>每天发布时间</Text>
+              <View style={styles.continuousTimeInput}>
+                <Ionicons name="time-outline" size={20} color="#64748b" />
+                <Text style={styles.continuousTimeText}>{continuousTime}</Text>
+              </View>
+            </View>
+            
+            {/* 预览发布计划 */}
+            {selectedMaterialsForContinuous.length > 0 && (
+              <View style={styles.previewPlan}>
+                <Text style={styles.previewPlanTitle}>发布计划预览</Text>
+                {getContinuousDates().slice(0, 3).map((date, index) => (
+                  <View key={date} style={styles.previewPlanItem}>
+                    <Text style={styles.previewPlanDate}>第{index + 1}天 {date}</Text>
+                    <Text style={styles.previewPlanTime}>{continuousTime}</Text>
+                  </View>
+                ))}
+                {continuousDays > 3 && (
+                  <Text style={styles.previewPlanMore}>
+                    ... 还有 {continuousDays - 3} 天
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* 发布按钮 */}
+        {publishMode === 'continuous' ? (
+          <TouchableOpacity
+            style={[
+              styles.publishBtn,
+              styles.continuousPublishBtn,
+              (selectedMaterialsForContinuous.length === 0 || !selectedPlatform || selectedAccounts.length === 0) && styles.publishBtnDisabled
+            ]}
+            onPress={handleCreateContinuousTask}
+            disabled={selectedMaterialsForContinuous.length === 0 || !selectedPlatform || selectedAccounts.length === 0}
+          >
+            <Ionicons name="repeat" size={20} color="#fff" />
+            <Text style={styles.publishBtnText}>创建连续发布任务</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.publishBtn,
+              (!selectedMaterial || !selectedPlatform || selectedAccounts.length === 0 || publishing) && styles.publishBtnDisabled
+            ]}
+            onPress={handlePublish}
+            disabled={!selectedMaterial || !selectedPlatform || selectedAccounts.length === 0 || publishing}
+          >
+            {publishing ? (
+              <>
+                <Ionicons name="sync" size={20} color="#fff" />
               <Text style={styles.publishBtnText}>发布中...</Text>
             </>
           ) : (
             <>
-              <Ionicons name="rocket-outline" size={20} color="#fff" />
-              <Text style={styles.publishBtnText}>立即发布</Text>
+              <Ionicons name={publishMode === 'scheduled' ? 'time-outline' : 'rocket-outline'} size={20} color="#fff" />
+              <Text style={styles.publishBtnText}>
+                {publishMode === 'scheduled' ? '设置定时发布' : '立即发布'}
+              </Text>
             </>
           )}
         </TouchableOpacity>
+        )}
 
         {/* 发布历史 */}
         {tasks.length > 0 && (
@@ -514,6 +903,7 @@ export default function PublishCenterScreen() {
       {/* 弹窗 */}
       {renderMaterialPicker()}
       {renderAccountPicker()}
+      {renderContinuousMaterialPicker()}
     </View>
   );
 }
@@ -736,6 +1126,195 @@ const styles = StyleSheet.create({
   taskTime: {
     fontSize: 11,
     color: '#94a3b8',
+  },
+  // 发布模式选择
+  publishModeGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  publishModeItem: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  publishModeItemActive: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+  },
+  publishModeText: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 8,
+  },
+  publishModeTextActive: {
+    color: '#4F46E5',
+    fontWeight: '600',
+  },
+  // 定时发布选项
+  scheduledOptions: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  optionLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  dateTimeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  dateInput: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  timeInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  optionHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 8,
+  },
+  // 连续发布选项
+  continuousOptions: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  continuousMaterialSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  continuousMaterialText: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  continuousDaysRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  continuousDaysLabel: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  daysSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  daysBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  daysValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    minWidth: 60,
+    textAlign: 'center',
+  },
+  continuousTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  continuousTimeLabel: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  continuousTimeInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  continuousTimeText: {
+    fontSize: 14,
+    color: '#1e293b',
+  },
+  previewPlan: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  previewPlanTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  previewPlanItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  previewPlanDate: {
+    fontSize: 13,
+    color: '#1e293b',
+  },
+  previewPlanTime: {
+    fontSize: 13,
+    color: '#4F46E5',
+  },
+  previewPlanMore: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  continuousPublishBtn: {
+    marginTop: 16,
   },
 });
 

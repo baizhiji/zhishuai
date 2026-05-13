@@ -21,6 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { aiChatService, RECOMMENDED_MODELS } from '../../services/ai-chat.service'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 
 // 对话消息类型
 export interface ChatMessage {
@@ -31,6 +32,83 @@ export interface ChatMessage {
   model?: string
   thinking?: string  // 思考过程（类似DeepSeek）
   attachments?: { type: 'image' | 'video'; uri: string }[]
+}
+
+// 素材库保存函数
+const saveToMaterialLibrary = async (
+  content: string,
+  category: string,
+  title: string,
+  url?: string,
+  thumbnail?: string
+) => {
+  try {
+    const newMaterial = {
+      id: `material_${Date.now()}`,
+      title: title,
+      category: category,
+      content: content,
+      thumbnail: thumbnail,
+      url: url,
+      status: 'unused' as const,
+      createTime: new Date().toLocaleString('zh-CN'),
+      tags: ['AI生成', category],
+      isFavorite: false,
+    }
+    
+    // 获取现有素材
+    const existingMaterials = await AsyncStorage.getItem('materials')
+    const materials = existingMaterials ? JSON.parse(existingMaterials) : []
+    
+    // 添加新素材
+    materials.unshift(newMaterial)
+    
+    // 保存回存储
+    await AsyncStorage.setItem('materials', JSON.stringify(materials))
+    
+    return true
+  } catch (error) {
+    console.error('保存到素材库失败:', error)
+    return false
+  }
+}
+
+// 从AI响应中提取图片URL
+const extractImageUrls = (content: string): string[] => {
+  const imagePatterns = [
+    /https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp)/gi,
+    /https?:\/\/[^\s]+image[^\s]*\.(?:jpg|jpeg|png|gif|webp)/gi,
+    /https?:\/\/picsum\.photos[^\s]*/gi,
+    /https?:\/\/via\.placeholder\.com[^\s]*/gi,
+  ]
+  
+  const urls: string[] = []
+  imagePatterns.forEach(pattern => {
+    const matches = content.match(pattern)
+    if (matches) {
+      urls.push(...matches)
+    }
+  })
+  
+  return [...new Set(urls)] // 去重
+}
+
+// 从AI响应中提取视频URL
+const extractVideoUrls = (content: string): string[] => {
+  const videoPatterns = [
+    /https?:\/\/[^\s]+\.(?:mp4|avi|mov|wmv|flv|webm)/gi,
+    /https?:\/\/[^\s]+video[^\s]*\.(?:mp4|avi|mov|wmv|flv|webm)/gi,
+  ]
+  
+  const urls: string[] = []
+  videoPatterns.forEach(pattern => {
+    const matches = content.match(pattern)
+    if (matches) {
+      urls.push(...matches)
+    }
+  })
+  
+  return [...new Set(urls)]
 }
 
 // AI模型配置 - 混合最佳方案
@@ -551,6 +629,36 @@ export default function AIChatScreen({ navigation }: Props) {
         }
 
         setMessages(prev => [...prev, assistantMessage])
+        
+        // 自动保存图片到素材库
+        const imageUrls = extractImageUrls(response.message)
+        if (imageUrls.length > 0) {
+          for (const url of imageUrls) {
+            await saveToMaterialLibrary(
+              url,
+              'image',
+              `AI生成图片_${new Date().toLocaleDateString('zh-CN')}`,
+              url,
+              url
+            )
+          }
+          Alert.alert('提示', `已自动保存 ${imageUrls.length} 张图片到素材库`)
+        }
+        
+        // 自动保存视频到素材库
+        const videoUrls = extractVideoUrls(response.message)
+        if (videoUrls.length > 0) {
+          for (const url of videoUrls) {
+            await saveToMaterialLibrary(
+              url,
+              'shortVideo',
+              `AI生成视频_${new Date().toLocaleDateString('zh-CN')}`,
+              url,
+              undefined
+            )
+          }
+          Alert.alert('提示', `已自动保存 ${videoUrls.length} 个视频到素材库`)
+        }
       } catch (apiError: any) {
         // API未配置或失败时使用降级响应
         console.log('AI服务调用失败，使用降级响应:', apiError.message)
@@ -600,6 +708,34 @@ export default function AIChatScreen({ navigation }: Props) {
     }
 
     setMessages(prev => [...prev, assistantMessage])
+    
+    // 检查是否包含图片URL并保存
+    const imageUrls = extractImageUrls(responseContent)
+    if (imageUrls.length > 0) {
+      for (const url of imageUrls) {
+        await saveToMaterialLibrary(
+          url,
+          'image',
+          `AI生成图片_${new Date().toLocaleDateString('zh-CN')}`,
+          url,
+          url
+        )
+      }
+    }
+    
+    // 检查是否包含视频URL并保存
+    const videoUrls = extractVideoUrls(responseContent)
+    if (videoUrls.length > 0) {
+      for (const url of videoUrls) {
+        await saveToMaterialLibrary(
+          url,
+          'shortVideo',
+          `AI生成视频_${new Date().toLocaleDateString('zh-CN')}`,
+          url,
+          undefined
+        )
+      }
+    }
   }
 
   // 快捷功能点击
