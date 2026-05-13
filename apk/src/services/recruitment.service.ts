@@ -1,6 +1,15 @@
 // 招聘助手服务
 import { apiClient } from './api.client';
 
+export interface RecruitmentStats {
+  totalJobs: number;
+  activeJobs: number;
+  totalResumes: number;
+  newResumes: number;
+  totalInterviews: number;
+  pendingInterviews: number;
+}
+
 export interface RecruitmentPost {
   id: string;
   title: string;

@@ -146,8 +146,8 @@ const MainTabs = () => {
       />
       <MainTab.Screen
         name="Create"
-        component={AIChatScreen}
-        options={{ tabBarLabel: 'AI助手' }}
+        component={AICreateCenterScreen}
+        options={{ tabBarLabel: 'AI创作' }}
       />
       <MainTab.Screen
         name="Profile"
@@ -324,6 +324,11 @@ const AppNavigator = () => {
             name="StaffManagement"
             component={StaffManagementScreen}
             options={{ title: '员工管理' }}
+          />
+          <RootStack.Screen
+            name="AICreateCenter"
+            component={AICreateCenterScreen}
+            options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="AICreateDetail"
