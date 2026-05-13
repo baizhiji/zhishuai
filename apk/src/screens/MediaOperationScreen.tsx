@@ -59,8 +59,8 @@ export default function MediaOperationScreen() {
 
   const handlePress = (item: OperationItem) => {
     if (item.route === 'AICreateCenter') {
-      // AI创作中心使用Tab切换
-      navigation.navigate('MainTabs', { screen: 'Create' });
+      // 跳转到AI创作中心
+      navigation.navigate('AICreateCenter');
     } else if (item.route === 'AccountManagement') {
       navigation.navigate('MatrixAccount');
     } else if (item.route === 'PublishCenter') {

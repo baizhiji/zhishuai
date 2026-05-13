@@ -22,12 +22,10 @@ interface FeatureItem {
 }
 
 const FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'videocam-outline', color: '#2563EB', bgColor: '#DBEAFE', route: 'MediaOperation' },
-  { id: 'recruitment', title: '招聘助手', icon: 'briefcase-outline', color: '#6366F1', bgColor: '#E0E7FF', route: 'Recruitment' },
-  { id: 'acquisition', title: '智能获客', icon: 'trending-up-outline', color: '#10B981', bgColor: '#DCFCE7', route: 'Acquisition' },
-  { id: 'share', title: '推荐分享', icon: 'share-social-outline', color: '#F97316', bgColor: '#FFEDD5', route: 'Share' },
-  { id: 'materials', title: '素材库', icon: 'images-outline', color: '#06B6D4', bgColor: '#CFFAFE', route: 'Materials' },
-  { id: 'analytics', title: '数据统计', icon: 'stats-chart-outline', color: '#4F46E5', bgColor: '#E0E7FF', route: 'Statistics' },
+  { id: 'media', title: '自媒体运营', icon: 'videocam', color: '#FFFFFF', bgColor: '#3B82F6', route: 'MediaOperation' },
+  { id: 'recruitment', title: '招聘助手', icon: 'people', color: '#FFFFFF', bgColor: '#8B5CF6', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up', color: '#FFFFFF', bgColor: '#10B981', route: 'Acquisition' },
+  { id: 'share', title: '推荐分享', icon: 'share-social', color: '#FFFFFF', bgColor: '#F97316', route: 'Share' },
 ];
 
 export default function HomeScreen() {
@@ -166,20 +164,20 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 功能中心 - 改用3列紧凑布局 */}
+        {/* 功能中心 - 一行两个大图标 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
         <View style={styles.featureGrid}>
           {FEATURES.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={styles.featureItem}
-              activeOpacity={0.7}
+              style={[styles.featureItem, { backgroundColor: item.bgColor }]}
+              activeOpacity={0.8}
               onPress={() => navigateTo(item.route)}
             >
-              <View style={[styles.featureIconBox, { backgroundColor: item.bgColor }]}>
-                <Ionicons name={item.icon} size={24} color={item.color} />
+              <View style={styles.featureIconBox}>
+                <Ionicons name={item.icon as any} size={32} color={item.color} />
               </View>
-              <Text style={styles.featureTitle}>{item.title}</Text>
+              <Text style={[styles.featureTitle, { color: item.color }]}>{item.title}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -326,29 +324,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   featureItem: {
-    width: '31%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    marginBottom: 10,
+    width: '48%',
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginBottom: 12,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   featureIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   featureTitle: {
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '500',
     color: '#334155',
     textAlign: 'center',

@@ -129,12 +129,13 @@ const MainTabs = () => {
         tabBarStyle: {
           backgroundColor: theme.card,
           borderTopColor: theme.border,
-          height: 60,
-          paddingBottom: 8,
+          height: 70,
+          paddingBottom: 10,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 13,
+          fontWeight: '600',
         },
         headerShown: false,
       })}
@@ -146,8 +147,8 @@ const MainTabs = () => {
       />
       <MainTab.Screen
         name="Create"
-        component={AICreateCenterScreen}
-        options={{ tabBarLabel: 'AI创作' }}
+        component={AIChatScreen}
+        options={{ tabBarLabel: 'AI助手' }}
       />
       <MainTab.Screen
         name="Profile"
