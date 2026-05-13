@@ -16,6 +16,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Keyboard,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -34,6 +35,15 @@ export interface ChatMessage {
 
 // AI模型配置 - 混合最佳方案
 export const AI_MODELS = {
+  // 默认智能模型（自动选择时使用）
+  auto: {
+    id: 'auto',
+    name: '智能选择',
+    provider: 'auto',
+    icon: 'flash-outline',
+    color: '#6366F1',
+    description: '根据内容自动选择最佳模型',
+  },
   // 日常对话 - 腾讯云混元
   daily: {
     id: 'hunyuan-2.0-instruct-20251111',
@@ -88,6 +98,43 @@ export const AI_MODELS = {
     color: '#EF4444',
     description: '视频理解、内容提取',
   },
+}
+
+// 自动选择模型的关键词匹配规则
+const MODEL_SELECTION_RULES = [
+  // 深度推理 - 需要深入分析的问题
+  { keywords: ['分析', '思考', '推理', '为什么', '原因', '原理', '探讨', '研究', '评估', '对比', '比较'], model: 'reasoning' as const },
+  // 长文本 - 报告、方案、规划类
+  { keywords: ['报告', '方案', '规划', '总结', '摘要', '大纲', '策划', '计划书', '设计', '研究'], model: 'longText' as const },
+  // 文案创作 - 营销、推广、内容创作类
+  { keywords: ['文案', '营销', '推广', '宣传', '广告', '软文', '脚本', '剧本', '故事', '创作', '写', '生成'], model: 'copywriting' as const },
+  // 图片理解
+  { keywords: ['图片', '照片', '图', '看图', '识别', '这是什么'], model: 'vision' as const },
+  // 视频理解
+  { keywords: ['视频', '短视频', '影片', '抖音', '快手', 'B站'], model: 'video' as const },
+  // 默认日常对话
+  { keywords: [], model: 'daily' as const },
+]
+
+// 根据内容自动选择模型
+export const autoSelectModel = (content: string): keyof typeof AI_MODELS => {
+  if (!content) return 'daily'
+  
+  // 检查是否有图片/视频附件意图
+  if (content.match(/图片|照片|图|看图|识别图片|上传图/)) return 'vision'
+  if (content.match(/视频|影片|短视频|上传视频/)) return 'video'
+  
+  // 检查关键词匹配
+  for (const rule of MODEL_SELECTION_RULES) {
+    if (rule.keywords.length === 0) continue // 跳过默认规则
+    for (const keyword of rule.keywords) {
+      if (content.includes(keyword)) {
+        return rule.model
+      }
+    }
+  }
+  
+  return 'daily'
 }
 
 // 预设快捷功能 - 6大核心能力
@@ -367,15 +414,53 @@ interface Props {
 export default function AIChatScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets()
   const scrollViewRef = useRef<ScrollView>(null)
+  const inputRef = useRef<TextInput>(null)
   
   // 状态
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputText, setInputText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [selectedModel, setSelectedModel] = useState<keyof typeof AI_MODELS>('daily')
+  const [autoModel, setAutoModel] = useState<keyof typeof AI_MODELS>('daily')
   const [showModelPicker, setShowModelPicker] = useState(false)
   const [showThinking, setShowThinking] = useState(false)
   const [attachments, setAttachments] = useState<{ type: 'image' | 'video'; uri: string }[]>([])
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
+
+  // 监听键盘事件
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates.height)
+        // 滚动到底部
+        setTimeout(() => {
+          scrollViewRef.current?.scrollToEnd({ animated: true })
+        }, 100)
+      }
+    )
+    const hideSubscription = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0)
+      }
+    )
+
+    return () => {
+      showSubscription.remove()
+      hideSubscription.remove()
+    }
+  }, [])
+
+  // 输入变化时自动选择模型
+  const handleInputChange = (text: string) => {
+    setInputText(text)
+    // 当输入超过10个字符时，自动分析并选择最佳模型
+    if (text.length > 10) {
+      const suggestedModel = autoSelectModel(text)
+      setAutoModel(suggestedModel)
+    }
+  }
 
   // 初始化欢迎消息
   useEffect(() => {
@@ -395,7 +480,7 @@ export default function AIChatScreen({ navigation }: Props) {
 🎬 短视频制作 - 脚本/分镜/爆款方案
 🧑‍💼 数字人视频 - 口播/字幕/完整方案
 
-直接说出你的需求，我来帮你完成~`,
+💡 智能选择：我会自动根据您输入的内容选择最佳模型，无需手动切换~`,
           timestamp: Date.now(),
           model: AI_MODELS.daily.name,
         },
@@ -414,10 +499,19 @@ export default function AIChatScreen({ navigation }: Props) {
   const handleSend = async () => {
     if (!inputText.trim() && attachments.length === 0) return
     
+    // 根据输入内容自动选择最佳模型
+    const contentToAnalyze = inputText.trim()
+    const suggestedModel = autoSelectModel(contentToAnalyze)
+    
+    // 决定使用哪个模型：用户手动选择优先，否则使用自动选择的
+    const modelToUse = selectedModel === 'daily' && contentToAnalyze.length > 10 
+      ? suggestedModel 
+      : selectedModel
+    
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
-      content: inputText.trim(),
+      content: contentToAnalyze,
       timestamp: Date.now(),
       attachments: attachments.length > 0 ? [...attachments] : undefined,
     }
@@ -430,7 +524,7 @@ export default function AIChatScreen({ navigation }: Props) {
 
     // 调用真实AI API
     try {
-      const model = AI_MODELS[selectedModel]
+      const model = AI_MODELS[modelToUse]
       
       // 构建消息历史
       const chatHistory = messages
@@ -547,6 +641,7 @@ export default function AIChatScreen({ navigation }: Props) {
     <KeyboardAvoidingView 
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       {/* 顶部导航 */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -753,8 +848,24 @@ export default function AIChatScreen({ navigation }: Props) {
         )}
       </ScrollView>
 
-      {/* 输入区域 */}
-      <View style={[styles.inputContainer, { paddingBottom: insets.bottom + 10 }]}>
+      {/* 输入区域 - 根据键盘高度动态调整 */}
+      <View style={[
+        styles.inputContainer, 
+        { 
+          paddingBottom: keyboardHeight > 0 ? 10 : insets.bottom + 10,
+          marginBottom: keyboardHeight > 0 ? keyboardHeight - insets.bottom : 0,
+        }
+      ]}>
+        {/* 自动模型选择提示 */}
+        {inputText.length > 10 && selectedModel === 'daily' && (
+          <View style={styles.autoModelHint}>
+            <Ionicons name="flash" size={14} color="#6366F1" />
+            <Text style={styles.autoModelHintText}>
+              将使用 {AI_MODELS[autoModel].name} 模型回答
+            </Text>
+          </View>
+        )}
+        
         {/* 附件预览 */}
         {attachments.length > 0 && (
           <View style={styles.attachmentBar}>
@@ -787,13 +898,20 @@ export default function AIChatScreen({ navigation }: Props) {
           
           {/* 输入框 */}
           <TextInput
+            ref={inputRef}
             style={styles.input}
             placeholder="输入消息..."
             placeholderTextColor="#94A3B8"
             value={inputText}
-            onChangeText={setInputText}
+            onChangeText={handleInputChange}
             multiline
             maxLength={2000}
+            onFocus={() => {
+              // 输入框获得焦点时，延迟滚动到底部
+              setTimeout(() => {
+                scrollViewRef.current?.scrollToEnd({ animated: true })
+              }, 300)
+            }}
           />
           
           {/* 发送按钮 */}
@@ -815,7 +933,7 @@ export default function AIChatScreen({ navigation }: Props) {
         
         {/* 提示信息 */}
         <Text style={styles.hint}>
-          {currentModel.description} · 按Enter发送，Shift+Enter换行
+          智能选择最佳模型 · 直接说出需求即可
         </Text>
       </View>
     </KeyboardAvoidingView>
@@ -1118,5 +1236,22 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     textAlign: 'center',
     marginTop: 8,
+  },
+  // 自动模型选择提示
+  autoModelHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 4,
+  },
+  autoModelHintText: {
+    fontSize: 12,
+    color: '#6366F1',
+    fontWeight: '500',
   },
 })
