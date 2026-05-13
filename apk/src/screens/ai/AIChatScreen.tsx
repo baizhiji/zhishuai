@@ -656,7 +656,7 @@ export default function AIChatScreen({ navigation }: Props) {
 
 💡 智能选择：我会自动根据您输入的内容选择最佳模型，无需手动切换~`,
           timestamp: Date.now(),
-          model: AI_MODELS.daily.name,
+          model: AI_MODELS.hunyuan_instruct.name,
         },
       ])
     }
