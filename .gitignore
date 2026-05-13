@@ -12,6 +12,7 @@
 !/server
 !/docs
 !/shared
+!/.github
 !/package.json
 !/README.md
 

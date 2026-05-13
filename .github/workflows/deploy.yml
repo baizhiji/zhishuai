@@ -1,0 +1,55 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        run: |
+          cd server
+          npm install
+          
+      - name: Generate Prisma Client
+        run: |
+          cd server
+          npx prisma generate
+          
+      - name: Deploy to server
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        run: |
+          # Install sshpass
+          apt-get update && apt-get install -y sshpass
+          
+          # Stop current service
+          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "pkill -f tsx || true; pkill -f node || true"
+          
+          # Sync files
+          sshpass -p '$SERVER_PASSWORD' rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' -e "ssh -o StrictHostKeyChecking=no" ./server/ $SERVER_USER@$SERVER_IP:/home/ubuntu/zhishuai-server/
+          
+          # Install dependencies and restart
+          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /home/ubuntu/zhishuai-server && npm install && npx prisma generate && (nohup npx tsx src/index.ts > /tmp/server.log 2>&1 &)"
+          
+      - name: Verify deployment
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          sleep 10
+          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP "curl -s http://localhost:3000/api/health"
