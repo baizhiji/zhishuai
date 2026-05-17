@@ -21,9 +21,7 @@
       }
     },
     "extra": {
-      "eas": {
-        "projectId": "1accc12f-c4d9-4e51-834f-353caebe4a11"
-      }
+      "eas": {}
     },
     "newArchEnabled": false
   }
