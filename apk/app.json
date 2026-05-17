@@ -1,37 +1,27 @@
 {
   "expo": {
     "name": "智枢AI",
-    "slug": "zhishuai-app",
+    "slug": "zhishuai",
     "version": "1.0.0",
-    "sdkVersion": "55.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": false,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#3B82F6"
-    },
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.zhishuai.app"
-    },
+    "description": "智枢AI SaaS多租户超级应用",
+    "owner": "baizhiji",
+    "privacy": "public",
+    "platforms": [
+      "android"
+    ],
     "android": {
+      "package": "com.baizhiji.zhishuai",
+      "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#3B82F6"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.zhishuai.app",
-      "permissions": [
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.SCHEDULE_EXACT_ALARM"
-      ]
+        "backgroundColor": "#ffffff"
+      }
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "extra": {
+      "eas": {
+        "projectId": "1accc12f-c4d9-4e51-834f-353caebe4a11"
+      }
+    },
+    "newArchEnabled": false
   }
 }
