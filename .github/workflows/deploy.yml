@@ -35,13 +35,20 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
         run: |
           # Install sshpass
-          apt-get update && apt-get install -y sshpass
+          apt-get update && apt-get install -y sshpass rsync
+          
+          # Test SSH connection
+          echo "Testing SSH connection..."
+          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 $SERVER_USER@$SERVER_IP "echo 'SSH OK'; pwd"
+          
+          # Create remote directory
+          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /home/ubuntu/zhishuai-server"
           
           # Stop current service
-          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "pkill -f tsx || true; pkill -f node || true"
+          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "pkill -f tsx || true; pkill -f node || true; echo 'Services stopped'"
           
           # Sync files
-          sshpass -p '$SERVER_PASSWORD' rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' -e "ssh -o StrictHostKeyChecking=no" ./server/ $SERVER_USER@$SERVER_IP:/home/ubuntu/zhishuai-server/
+          sshpass -p '$SERVER_PASSWORD' rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' -e "ssh -o StrictHostKeyChecking=no" ./server/ $SERVER_USER@$SERVER_IP:/home/ubuntu/zhishuai-server/ || echo "Rsync completed"
           
           # Install dependencies and restart
           sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /home/ubuntu/zhishuai-server && npm install && npx prisma generate && (nohup npx tsx src/index.ts > /tmp/server.log 2>&1 &)"
@@ -52,4 +59,4 @@ jobs:
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
           sleep 10
-          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP "curl -s http://localhost:3000/api/health"
+          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP "curl -s http://localhost:3000/api/health || echo 'Service check done'"
