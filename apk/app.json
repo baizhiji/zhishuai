@@ -9,6 +9,9 @@
     "platforms": [
       "android"
     ],
+    "cli": {
+      "appVersionSource": "remote"
+    },
     "android": {
       "package": "com.baizhiji.zhishuai",
       "versionCode": 1,
