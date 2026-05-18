@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { homeService, authService, TodayStats, ReferralStats } from '../services';
+import { featureService, FeatureSwitch, FEATURE_ROUTES, FEATURE_ICONS, FEATURE_COLORS } from '../services/feature.service';
 import { useAppNavigation } from '../context/NavigationContext';
 
 interface FeatureItem {
@@ -21,7 +22,8 @@ interface FeatureItem {
   route: string;
 }
 
-const FEATURES: FeatureItem[] = [
+// 默认功能配置（后备方案）
+const DEFAULT_FEATURES: FeatureItem[] = [
   { id: 'media', title: '自媒体运营', icon: 'videocam', color: '#FFFFFF', bgColor: '#3B82F6', route: 'MediaOperation' },
   { id: 'recruitment', title: '招聘助手', icon: 'people', color: '#FFFFFF', bgColor: '#8B5CF6', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up', color: '#FFFFFF', bgColor: '#10B981', route: 'Acquisition' },
@@ -37,10 +39,46 @@ export default function HomeScreen() {
   const [expiryDate, setExpiryDate] = useState('');
   const [todayStats, setTodayStats] = useState<TodayStats | null>(null);
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
+  const [features, setFeatures] = useState<FeatureItem[]>(DEFAULT_FEATURES);
+  const [featuresLoading, setFeaturesLoading] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  // 加载功能开关
+  const loadFeatures = async () => {
+    try {
+      const user = authService.getCurrentUser();
+      if (user?.id) {
+        const userFeatures = await featureService.getUserFeatures(user.id);
+        if (userFeatures && userFeatures.length > 0) {
+          const featureItems = userFeatures
+            .filter(f => f.enabled)
+            .map(f => ({
+              id: f.code,
+              title: f.name,
+              icon: (FEATURE_ICONS[f.code] || 'apps') as keyof typeof Ionicons.glyphMap,
+              color: '#FFFFFF',
+              bgColor: FEATURE_COLORS[f.code] || '#6366F1',
+              route: FEATURE_ROUTES[f.code] || 'Home',
+            }));
+          
+          // 添加素材库和数据统计（固定功能）
+          featureItems.push(
+            { id: 'materials', title: '素材库', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
+            { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' }
+          );
+          
+          setFeatures(featureItems);
+        }
+      }
+    } catch (error) {
+      console.error('加载功能开关失败:', error);
+    } finally {
+      setFeaturesLoading(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -49,6 +87,7 @@ export default function HomeScreen() {
         loadUserInfo(),
         homeService.getTodayStats(),
         homeService.getReferralStats(),
+        loadFeatures(),
       ]);
 
       if (userInfo) {
@@ -169,7 +208,7 @@ export default function HomeScreen() {
         {/* 功能中心 - 一行两个大图标 */}
         <Text style={styles.sectionTitle}>功能中心</Text>
         <View style={styles.featureGrid}>
-          {FEATURES.map((item) => (
+          {features.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[styles.featureItem, { backgroundColor: item.bgColor }]}

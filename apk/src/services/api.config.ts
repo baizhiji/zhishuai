@@ -75,4 +75,9 @@ export const API_ENDPOINTS = {
   
   // 通知
   NOTIFICATIONS: '/notifications',
+
+  // 功能开关
+  FEATURES: '/features',
+  FEATURES_AVAILABLE: '/features/available',
+  FEATURE_DETAIL: '/features/:featureCode',
 };

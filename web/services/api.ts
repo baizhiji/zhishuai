@@ -374,6 +374,195 @@ export const settingsApi = {
   }
 };
 
+// ==================== 功能开关相关 ====================
+
+// 功能开关类型
+export interface FeatureSwitch {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  enabled: boolean;
+  sortOrder: number;
+  subFeatures: SubFeatureSwitch[];
+}
+
+export interface SubFeatureSwitch {
+  id: string;
+  featureCode: string;
+  code: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  sortOrder: number;
+}
+
+// 代理商类型
+export interface Agent {
+  id: string;
+  userId: string;
+  name: string;
+  level: string;
+  region?: string;
+  commissionRate: number;
+  status: string;
+  balance: number;
+  totalRevenue: number;
+  createdAt: string;
+  user?: {
+    phone: string;
+    name?: string;
+    avatar?: string;
+  };
+  _count?: {
+    customers: number;
+  };
+}
+
+// 贴牌配置类型
+export interface BrandingConfig {
+  id: string;
+  userId: string;
+  appName: string;
+  logo?: string;
+  favicon?: string;
+  themeColor: string;
+  primaryColor: string;
+  secondaryColor: string;
+  welcomeText?: string;
+  description?: string;
+}
+
+// 功能开关 API
+export const featureApi = {
+  // 获取所有功能开关（Admin）
+  getFeatures: () => {
+    return request.get<ApiResponse<FeatureSwitch[]>>('/admin/features');
+  },
+
+  // 更新功能开关（Admin）
+  updateFeature: (code: string, data: Partial<FeatureSwitch>) => {
+    return request.put<ApiResponse<FeatureSwitch>>(`/admin/features/${code}`, data);
+  },
+
+  // 更新子功能开关（Admin）
+  updateSubFeature: (featureCode: string, subCode: string, data: Partial<SubFeatureSwitch>) => {
+    return request.put<ApiResponse<SubFeatureSwitch>>(`/admin/features/${featureCode}/sub/${subCode}`, data);
+  },
+
+  // 初始化功能开关（Admin）
+  initFeatures: () => {
+    return request.post<ApiResponse<FeatureSwitch[]>>('/admin/features/admin/init');
+  },
+
+  // 获取用户功能开关状态（Customer / APK）
+  getUserFeatures: (userId: string) => {
+    return request.get<ApiResponse<FeatureSwitch[]>>('/features', { params: { userId } });
+  },
+
+  // 获取用户可用功能（简化版，供APK首页）
+  getAvailableFeatures: (userId: string) => {
+    return request.get<ApiResponse<{ code: string; name: string; icon?: string; description?: string }[]>>('/features/available', { params: { userId } });
+  },
+
+  // 设置用户功能开关
+  setUserFeature: (userId: string, featureCode: string, enabled: boolean) => {
+    return request.put<ApiResponse<any>>(`/features/${featureCode}`, { enabled }, { params: { userId } });
+  },
+
+  // 批量设置用户功能开关
+  setUserFeatures: (userId: string, features: { featureCode: string; enabled: boolean }[]) => {
+    return request.put<ApiResponse<any[]>>('/features', { userId, features });
+  },
+
+  // 重置用户功能开关
+  resetUserFeature: (userId: string, featureCode: string) => {
+    return request.delete<ApiResponse<void>>(`/features/${featureCode}`, { params: { userId } });
+  },
+
+  // 重置所有用户功能开关
+  resetAllUserFeatures: (userId: string) => {
+    return request.delete<ApiResponse<void>>('/features', { data: { userId } });
+  }
+};
+
+// 代理商 API
+export const agentApi = {
+  // 获取代理商列表（Admin）
+  getAgents: (params?: { status?: string; level?: string; page?: number; pageSize?: number }) => {
+    return request.get<ApiResponse<{ data: Agent[]; pagination: any }>>('/admin/agents', { params });
+  },
+
+  // 获取代理商详情（Admin）
+  getAgent: (id: string) => {
+    return request.get<ApiResponse<Agent>>(`/admin/agents/${id}`);
+  },
+
+  // 创建代理商（Admin）
+  createAgent: (data: { phone: string; password: string; name?: string; level?: string; region?: string; commissionRate?: number; parentId?: string }) => {
+    return request.post<ApiResponse<Agent>>('/admin/agents', data);
+  },
+
+  // 更新代理商（Admin）
+  updateAgent: (id: string, data: Partial<Agent>) => {
+    return request.put<ApiResponse<Agent>>(`/admin/agents/${id}`, data);
+  },
+
+  // 冻结/解冻代理商（Admin）
+  toggleAgentStatus: (id: string, status: 'active' | 'frozen') => {
+    return request.patch<ApiResponse<Agent>>(`/admin/agents/${id}/status`, { status });
+  },
+
+  // 删除代理商（Admin）
+  deleteAgent: (id: string) => {
+    return request.delete<ApiResponse<void>>(`/admin/agents/${id}`);
+  },
+
+  // 获取代理商客户列表（Agent）
+  getAgentCustomers: (agentId: string, params?: { status?: string; page?: number; pageSize?: number }) => {
+    return request.get<ApiResponse<{ data: any[]; pagination: any }>>(`/admin/agents/${agentId}/customers`, { params });
+  },
+
+  // 设置客户功能开关（Agent）
+  setCustomerFeature: (agentId: string, customerId: string, featureCode: string, enabled: boolean) => {
+    return request.put<ApiResponse<any>>(`/admin/agents/${agentId}/customer/${customerId}/features`, { featureCode, enabled });
+  },
+
+  // 批量设置客户功能开关（Agent）
+  batchSetCustomerFeatures: (agentId: string, customerIds: string[], features: { featureCode: string; enabled: boolean }[]) => {
+    return request.put<ApiResponse<any>>(`/admin/agents/${agentId}/customers/features`, { customerIds, features });
+  },
+
+  // 获取代理商业绩统计
+  getAgentStats: (agentId: string, period?: 'daily' | 'weekly' | 'monthly') => {
+    return request.get<ApiResponse<any>>(`/admin/agents/${agentId}/stats`, { params: { period } });
+  }
+};
+
+// 贴牌配置 API
+export const brandingApi = {
+  // 获取贴牌配置
+  getBranding: (userId: string) => {
+    return request.get<ApiResponse<BrandingConfig>>('/admin/branding', { params: { userId } });
+  },
+
+  // 更新贴牌配置
+  updateBranding: (userId: string, data: Partial<BrandingConfig>) => {
+    return request.put<ApiResponse<BrandingConfig>>(`/admin/branding/${userId}`, data);
+  },
+
+  // 上传LOGO
+  uploadLogo: (userId: string, logo: string) => {
+    return request.post<ApiResponse<BrandingConfig>>(`/admin/branding/${userId}/logo`, { logo });
+  },
+
+  // 获取默认贴牌配置（Admin）
+  getDefaultBranding: () => {
+    return request.get<ApiResponse<BrandingConfig>>('/admin/branding/default');
+  }
+};
+
 // ==================== 导出所有API ====================
 
 export default {
@@ -387,5 +576,8 @@ export default {
   referral: referralApi,
   order: orderApi,
   user: userApi,
-  settings: settingsApi
+  settings: settingsApi,
+  features: featureApi,
+  agents: agentApi,
+  branding: brandingApi
 };

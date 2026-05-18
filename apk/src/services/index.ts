@@ -62,3 +62,13 @@ export {
   type PlanInfo,
   type StaffInfo,
 } from './account.service';
+export {
+  featureService,
+  getDefaultFeatures,
+  FEATURE_CODES,
+  FEATURE_ROUTES,
+  FEATURE_ICONS,
+  FEATURE_COLORS,
+  type FeatureSwitch,
+  type SubFeatureSwitch,
+} from './feature.service';

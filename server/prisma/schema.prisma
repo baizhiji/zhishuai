@@ -15,7 +15,7 @@ model User {
   password      String
   name          String?
   avatar        String?
-  role          String    @default("user") // admin, user
+  role          String    @default("user") // admin, agent, user
   status        String    @default("active") // active, inactive
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -33,6 +33,19 @@ model User {
   notifications       Notification[]
   crmCustomers        CrmCustomer[]
   recruitmentResumes  RecruitmentResume[]
+  
+  // 功能开关关联
+  featureSwitches    UserFeatureSwitch[]
+  
+  // 代理商关联
+  agent              Agent?
+  agentRelation      UserAgentRelation?
+  
+  // 贴牌配置关联
+  brandingConfig     BrandingConfig?
+  
+  // 操作日志
+  adminLogs          AdminLog[]
 }
 
 model RecruitmentPost {
@@ -262,4 +275,138 @@ model RecruitmentResume {
   notes       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// ============================================
+// 功能开关系统
+// ============================================
+
+// 功能开关定义表（系统级）
+model FeatureSwitch {
+  id          String    @id @default(uuid())
+  code        String    @unique  // 功能代码：media, recruitment, acquisition, share, referral
+  name        String              // 功能名称：自媒体运营, 招聘助手, 智能获客, 推荐分享, 转介绍
+  description String?             // 功能描述
+  icon        String?             // 图标
+  enabled     Boolean   @default(true)  // 默认开启
+  sortOrder   Int       @default(0)     // 排序
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 子功能开关
+  subFeatures FeatureSubSwitch[]
+}
+
+// 子功能开关定义表
+model FeatureSubSwitch {
+  id          String    @id @default(uuid())
+  featureCode String              // 关联功能代码
+  code        String              // 子功能代码
+  name        String              // 子功能名称
+  description String?             // 描述
+  enabled     Boolean   @default(true)  // 默认开启
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  feature     FeatureSwitch @relation(fields: [featureCode], references: [code])
+  
+  @@unique([featureCode, code])
+}
+
+// 用户功能开关表（租户级覆盖）
+model UserFeatureSwitch {
+  id          String    @id @default(uuid())
+  userId      String              // 用户ID
+  featureCode String              // 功能代码
+  enabled     Boolean             // 是否开启
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([userId, featureCode])
+}
+
+// 代理商表
+model Agent {
+  id            String    @id @default(uuid())
+  userId        String    @unique  // 关联的用户ID
+  name          String              // 代理商名称
+  level         String    @default("district")  // 级别: country, province, city, district
+  region        String?             // 区域
+  commissionRate Decimal   @default(0.3)  // 分成比例
+  status        String    @default("active")  // active, frozen
+  balance       Decimal   @default(0)  // 账户余额
+  totalRevenue  Decimal   @default(0)  // 累计收益
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // 关联的用户
+  user          User      @relation(fields: [userId], references: [id])
+  
+  // 下级代理
+  parentId      String?
+  parent        Agent?    @relation("AgentHierarchy", fields: [parentId], references: [id])
+  children      Agent[]   @relation("AgentHierarchy")
+  
+  // 关联客户
+  customers     User[]    @relation("AgentCustomers")
+}
+
+// 用户与代理商关联表
+model UserAgentRelation {
+  id          String    @id @default(uuid())
+  userId      String
+  agentId     String
+  createdAt   DateTime  @default(now())
+  
+  user        User      @relation(fields: [userId], references: [id])
+  agent       Agent     @relation(fields: [agentId], references: [id])
+  
+  @@unique([userId])
+}
+
+// 贴牌配置表
+model BrandingConfig {
+  id          String    @id @default(uuid())
+  userId      String    @unique  // 租户用户ID
+  appName     String    @default("智枢AI")  // APP名称
+  logo        String?             // LOGO URL
+  favicon     String?             // favicon
+  themeColor  String    @default("#1890ff")  // 主题色
+  primaryColor String    @default("#1890ff")  // 主色
+  secondaryColor String  @default("#52c41a")  // 次色
+  welcomeText String?             // 欢迎语
+  description String?             // 描述
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 代理商业绩统计表
+model AgentStats {
+  id          String    @id @default(uuid())
+  agentId     String
+  period      String              // 统计周期: daily, weekly, monthly
+  periodStart DateTime            // 周期开始时间
+  periodEnd   DateTime            // 周期结束时间
+  newCustomers Int       @default(0)  // 新增客户
+  activeCustomers Int   @default(0)  // 活跃客户
+  totalRevenue Decimal   @default(0)  // 收益
+  commission  Decimal   @default(0)  // 佣金
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([agentId, period, periodStart])
+}
+
+// 操作日志表
+model AdminLog {
+  id          String    @id @default(uuid())
+  userId      String              // 操作人ID
+  userName    String?             // 操作人名称
+  action      String              // 操作类型
+  target      String?             // 操作对象
+  detail      String?             // 详情
+  ip          String?             // IP地址
+  userAgent   String?             // 浏览器UA
+  createdAt   DateTime  @default(now())
 }

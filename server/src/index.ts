@@ -12,6 +12,10 @@ import notificationsRoutes from './routes/notifications';
 import crmRoutes from './routes/crm';
 import statisticsRoutes from './routes/statistics';
 import aiChatRoutes from './routes/ai-chat';
+import adminFeaturesRoutes from './routes/admin-features';
+import adminAgentsRoutes from './routes/admin-agents';
+import adminBrandingRoutes from './routes/admin-branding';
+import userFeaturesRoutes from './routes/user-features';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -39,6 +43,14 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
+
+// Admin 功能开关管理
+app.use('/api/admin', adminFeaturesRoutes);
+app.use('/api/admin', adminAgentsRoutes);
+app.use('/api/admin', adminBrandingRoutes);
+
+// 用户功能开关（Customer / APK 使用）
+app.use('/api/features', userFeaturesRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
