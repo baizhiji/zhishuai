@@ -5,9 +5,29 @@ export interface User {
   nickname: string;
   avatar?: string;
   role: 'admin' | 'agent' | 'customer';
+  actualRole: 'admin' | 'agent' | 'customer'; // 实际角色（不变）
   agentName?: string; // 所属代理商
   features: string[]; // 已开通功能
+  isAdmin?: boolean; // 是否是管理员账号
 }
+
+// 角色类型
+export type UserRole = 'admin' | 'agent' | 'customer';
+
+// 角色信息
+export interface RoleInfo {
+  role: UserRole;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+// 可用角色列表
+export const ROLE_LIST: RoleInfo[] = [
+  { role: 'admin', name: '管理员', description: '开发者总后台', icon: 'shield-checkmark' },
+  { role: 'agent', name: '代理商', description: '区域代理后台', icon: 'business' },
+  { role: 'customer', name: '终端客户', description: '客户后台', icon: 'person' },
+];
 
 // 功能模块
 export interface Feature {

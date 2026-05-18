@@ -4,6 +4,7 @@
 // 全局Token变量
 (global as any).userToken = null;
 (global as any).userInfo = null;
+(global as any).viewingRole = null;
 
 // 本地存储
 (global as any).localStorage = {};
@@ -44,10 +45,26 @@ class TokenStorage {
     (global as any).userInfo = null;
   }
 
+  // 获取当前视角角色
+  static getViewingRole(): any {
+    return (global as any).viewingRole;
+  }
+
+  // 设置当前视角角色
+  static setViewingRole(role: string): void {
+    (global as any).viewingRole = role;
+  }
+
+  // 清除视角角色
+  static clearViewingRole(): void {
+    (global as any).viewingRole = null;
+  }
+
   // 清除所有登录数据
   static clearAll(): void {
     this.clearToken();
     this.clearUserInfo();
+    this.clearViewingRole();
   }
 
   // 获取本地存储数据

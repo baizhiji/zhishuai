@@ -14,7 +14,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useAppNavigation } from '../context/NavigationContext';
+import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/PageHeader';
+import RoleSwitcher from '../components/RoleSwitcher';
 
 interface SettingItem {
   id: string;
@@ -34,9 +36,11 @@ interface SettingSection {
 export default function SettingsScreen() {
   const { theme, themeMode, setThemeMode, isDark } = useTheme();
   const { navigate } = useAppNavigation();
+  const { user, isAdmin, logout } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [sound, setSound] = useState(false);
   const [darkModeModalVisible, setDarkModeModalVisible] = useState(false);
+  const [roleSwitcherVisible, setRoleSwitcherVisible] = useState(false);
 
   const handleToggle = (id: string, value: boolean) => {
     if (id === 'notifications') {
@@ -66,11 +70,13 @@ export default function SettingsScreen() {
         '确定要退出当前账号吗？',
         [
           { text: '取消', style: 'cancel' },
-          { text: '确定', style: 'destructive', onPress: () => {} },
+          { text: '确定', style: 'destructive', onPress: () => logout() },
         ]
       );
     } else if (item.type === 'navigate' && item.id === 'matrix') {
       navigate?.('AccountManagement');
+    } else if (item.type === 'action' && item.id === 'roleSwitch') {
+      setRoleSwitcherVisible(true);
     } else {
       Alert.alert(item.title, `跳转到${item.title}页面`);
     }
@@ -166,6 +172,30 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* 管理员角色切换入口 */}
+        {isAdmin && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>角色视角</Text>
+            <View style={[styles.sectionContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <TouchableOpacity
+                style={styles.settingItem}
+                onPress={() => setRoleSwitcherVisible(true)}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: '#FF6B6B15' }]}>
+                  <Ionicons name="swap-horizontal" size={20} color="#FF6B6B" />
+                </View>
+                <View style={styles.itemContent}>
+                  <Text style={[styles.itemTitle, { color: theme.text }]}>切换角色视角</Text>
+                  <Text style={[styles.itemSubtitle, { color: theme.textSecondary }]}>
+                    当前：{user?.viewingRole === 'admin' ? '管理员' : user?.viewingRole === 'agent' ? '代理商' : '客户'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* 设置项 */}
         {[
           {
@@ -247,6 +277,12 @@ export default function SettingsScreen() {
           </View>
         </Pressable>
       </Modal>
+
+      {/* 角色切换弹窗 */}
+      <RoleSwitcher 
+        visible={roleSwitcherVisible} 
+        onClose={() => setRoleSwitcherVisible(false)} 
+      />
     </View>
   );
 }

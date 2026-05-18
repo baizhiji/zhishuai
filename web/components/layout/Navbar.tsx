@@ -11,6 +11,8 @@ import {
   Button,
   theme,
   Image,
+  Modal,
+  Radio,
 } from 'antd'
 import {
   HomeOutlined,
@@ -29,6 +31,7 @@ import {
   ThunderboltOutlined,
   AppstoreOutlined,
   FileTextOutlined,
+  SwapOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -37,6 +40,13 @@ const { useToken } = theme
 
 // 角色类型
 type Role = 'admin' | 'agent' | 'customer'
+
+// 角色选项
+const roleOptions = [
+  { value: 'admin' as Role, label: '开发者总后台', icon: '👑' },
+  { value: 'agent' as Role, label: '区域代理后台', icon: '🏢' },
+  { value: 'customer' as Role, label: '终端客户后台', icon: '👤' },
+]
 
 interface NavigationItem {
   key: string
@@ -263,13 +273,57 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { token } = useToken()
-  const { user, logout } = useAuth()
+  const { user, logout, isAdmin } = useAuth()
 
   // Logo 图片加载状态
   const [logoError, setLogoError] = useState(false)
 
-  // 开发阶段默认为customer角色
-  const [currentRole, setCurrentRole] = useState<Role>(user?.role || 'customer')
+  // 角色切换弹窗状态
+  const [roleModalVisible, setRoleModalVisible] = useState(false)
+
+  // 从 localStorage 读取保存的角色，如果没有则使用用户实际角色
+  const getSavedRole = (): Role => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('viewing_role')
+      if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
+        return saved as Role
+      }
+    }
+    return user?.role as Role || 'customer'
+  }
+
+  // 当前查看的角色（用于界面展示）
+  const [currentRole, setCurrentRole] = useState<Role>(getSavedRole)
+
+  // 监听用户角色变化，同步到 currentRole
+  useEffect(() => {
+    if (user?.role) {
+      const savedRole = getSavedRole()
+      // 只有当保存的角色不存在时才使用用户实际角色
+      if (!localStorage.getItem('viewing_role')) {
+        setCurrentRole(user.role as Role)
+      } else {
+        setCurrentRole(savedRole)
+      }
+    }
+  }, [user?.role])
+
+  // 切换角色
+  const handleRoleSwitch = (role: Role) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('viewing_role', role)
+    }
+    setCurrentRole(role)
+    setRoleModalVisible(false)
+    // 根据角色跳转到对应页面
+    if (role === 'admin') {
+      router.push('/admin/tenants')
+    } else if (role === 'agent') {
+      router.push('/agent/tenants')
+    } else {
+      router.push('/')
+    }
+  }
 
   // 使用 useMemo 缓存导航菜单项，避免每次渲染都创建新引用
   const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole])
@@ -312,18 +366,23 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       icon: <SettingOutlined />,
       onClick: () => router.push('/settings'),
     },
-    ...(currentRole === 'customer' ? [
-      {
-        key: 'role-switch',
-        label: `切换角色 (${currentRole})`,
-        icon: <TeamOutlined />,
-        children: [
-          { key: 'role-admin', label: 'Admin (开发者)', onClick: () => setCurrentRole('admin') },
-          { key: 'role-agent', label: 'Agent (代理)', onClick: () => setCurrentRole('agent') },
-          { key: 'role-customer', label: 'Customer (客户)', onClick: () => setCurrentRole('customer') },
-        ],
-      },
-    ] : []),
+    // 管理员可以切换到任意角色
+    {
+      key: 'role-switch',
+      label: '切换角色视角',
+      icon: <SwapOutlined />,
+      children: roleOptions.map(opt => ({
+        key: `role-${opt.value}`,
+        label: (
+          <Space>
+            <span>{opt.icon}</span>
+            <span>{opt.label}</span>
+            {currentRole === opt.value && <span style={{ color: '#52c41a' }}>当前</span>}
+          </Space>
+        ),
+        onClick: () => handleRoleSwitch(opt.value),
+      })),
+    },
     {
       type: 'divider' as const,
     },
@@ -335,6 +394,16 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
       onClick: logout,
     },
   ]
+
+  // 获取角色显示文本
+  const getRoleDisplayText = (role: Role) => {
+    switch (role) {
+      case 'admin': return '开发者总后台'
+      case 'agent': return '区域代理'
+      case 'customer': return '终端客户'
+      default: return '未知角色'
+    }
+  }
 
   return (
     <Layout className="min-h-screen">
@@ -419,8 +488,18 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
         >
           <div className="flex items-center gap-4">
             <span className="text-sm" style={{ color: token.colorTextSecondary }}>
-              当前角色：{currentRole === 'admin' ? '开发者总后台' : currentRole === 'agent' ? '区域代理' : '终端客户'}
+              当前角色：{getRoleDisplayText(currentRole)}
             </span>
+            {isAdmin && (
+              <Button
+                type="link"
+                icon={<SwapOutlined />}
+                size="small"
+                onClick={() => setRoleModalVisible(true)}
+              >
+                切换
+              </Button>
+            )}
           </div>
 
           {/* 用户信息 */}
@@ -459,6 +538,48 @@ export default function Navbar({ children }: { children: React.ReactNode }) {
           </div>
         </Content>
       </Layout>
+
+      {/* 角色切换弹窗 */}
+      <Modal
+        title="切换角色视角"
+        open={roleModalVisible}
+        onCancel={() => setRoleModalVisible(false)}
+        footer={null}
+        width={400}
+      >
+        <div className="py-4">
+          <p className="text-gray-500 mb-4">
+            当前账号角色：<strong>{user?.role === 'admin' ? '管理员' : user?.role === 'agent' ? '代理商' : '客户'}</strong>
+          </p>
+          <Radio.Group
+            value={currentRole}
+            onChange={(e) => handleRoleSwitch(e.target.value)}
+            className="flex flex-col gap-3"
+          >
+            {roleOptions.map((opt) => (
+              <Radio.Button
+                key={opt.value}
+                value={opt.value}
+                className="!h-auto !px-4 !py-3 !flex !items-center"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  textAlign: 'left',
+                  borderRadius: 8,
+                }}
+              >
+                <Space>
+                  <span className="text-xl">{opt.icon}</span>
+                  <span className="font-medium">{opt.label}</span>
+                  {currentRole === opt.value && (
+                    <span className="text-green-500 text-sm">(当前)</span>
+                  )}
+                </Space>
+              </Radio.Button>
+            ))}
+          </Radio.Group>
+        </div>
+      </Modal>
     </Layout>
   )
 }
