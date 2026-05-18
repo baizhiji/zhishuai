@@ -501,3 +501,97 @@ model SmsConfig {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+// 社交平台账号表 - 存储各平台的授权账号
+model SocialAccount {
+  id            String    @id @default(uuid())
+  userId        String                      // 用户ID
+  agentId       String?                     // 代理商ID
+  platform      String                      // 平台: douyin, kuaishou, xiaohongshu, weibo, zhihu, bilibili, boss, zhipin, lagou, liepin
+  accountId     String?                     // 平台账号ID
+  accountName   String?                     // 平台账号名称
+  avatar        String?                     // 头像
+  cookies       String?                     // 登录cookies（加密存储）
+  headers       String?                     // 请求头（加密存储）
+  accessToken   String?                     // OAuth access token
+  refreshToken  String?                     // OAuth refresh token
+  tokenExpiry   DateTime?                   // Token过期时间
+  status        String    @default("active") // active, inactive, expired, error
+  lastSyncAt    DateTime?                   // 最后同步时间
+  syncError     String?                     // 同步错误信息
+  config        Json?                       // 平台特定配置
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, platform])
+  @@index([agentId])
+}
+
+// 自动化任务表
+model AutomationTask {
+  id            String    @id @default(uuid())
+  userId        String                      // 用户ID
+  agentId       String?                     // 代理商ID
+  name          String                      // 任务名称
+  type          String                      // 任务类型: publish, auto_reply, recruit, acquire
+  platform      String                      // 平台
+  accountId     String                      // 使用的账号ID
+  config        Json                        // 任务配置
+  schedule      Json?                       // 定时配置
+  enabled       Boolean   @default(true)    // 是否启用
+  status        String    @default("idle") // idle, running, paused, error
+  lastRunAt     DateTime?                   // 最后运行时间
+  nextRunAt     DateTime?                   // 下次运行时间
+  runCount      Int      @default(0)        // 运行次数
+  successCount  Int      @default(0)       // 成功次数
+  failCount     Int      @default(0)        // 失败次数
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, type])
+  @@index([status, enabled])
+}
+
+// 任务执行记录表
+model TaskExecution {
+  id            String    @id @default(uuid())
+  taskId        String                      // 任务ID
+  userId        String                      // 用户ID
+  platform      String                      // 平台
+  action        String                      // 执行动作
+  status        String    @default("pending") // pending, running, success, failed, cancelled
+  startTime     DateTime?                   // 开始时间
+  endTime       DateTime?                   // 结束时间
+  duration      Int?                        // 耗时(ms)
+  input         Json?                       // 输入数据
+  output        Json?                       // 输出数据
+  error         String?                     // 错误信息
+  screenshots   String?                     // 截图URLs (JSON array)
+  logs          String?                     // 执行日志 (JSON array)
+  createdAt     DateTime  @default(now())
+  
+  @@index([taskId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+// OAuth授权会话表 - 用于扫码授权
+model OAuthSession {
+  id            String    @id @default(uuid())
+  userId        String                      // 用户ID
+  platform      String                      // 平台
+  sessionId     String    @unique            // 会话ID
+  state         String                      // OAuth state
+  redirectUrl   String?                     // 回调URL
+  qrcodeUrl     String?                     // 二维码URL
+  status        String    @default("pending") // pending, scanning, confirmed, expired, failed
+  cookies       String?                     // 授权后cookies
+  accountInfo   Json?                       // 账号信息
+  expiresAt     DateTime                    // 过期时间
+  completedAt   DateTime?                   // 完成时间
+  error         String?                     // 错误信息
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId, platform])
+  @@index([status, expiresAt])
+}

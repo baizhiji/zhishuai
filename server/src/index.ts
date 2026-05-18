@@ -18,6 +18,7 @@ import adminBrandingRoutes from './routes/admin-branding';
 import userFeaturesRoutes from './routes/user-features';
 import adminApiProvidersRoutes from './routes/admin-api-providers';
 import smsRoutes from './routes/sms';
+import oauthRoutes from './routes/oauth';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -57,6 +58,9 @@ app.use('/api/features', userFeaturesRoutes);
 
 // 短信服务
 app.use('/api/sms', smsRoutes);
+
+// OAuth 授权
+app.use('/api/oauth', oauthRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
