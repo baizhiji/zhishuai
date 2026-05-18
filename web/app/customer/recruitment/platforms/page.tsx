@@ -3,13 +3,11 @@
 import { useState } from 'react';
 import { Card, Row, Col, Button, Modal, QRCode, Spin, message, Empty, Tabs, Tag, Space, Typography } from 'antd';
 import { 
-  PlatformBoss, 
-  PlatformZhilian, 
-  Platform51job, 
-  PlatformLagou,
   EnvironmentOutlined,
   CheckCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  UserOutlined,
+  WeiboSquareFilled
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -34,28 +32,28 @@ const platforms: Platform[] = [
   {
     id: 'boss',
     name: 'Boss直聘',
-    icon: <PlatformBoss style={{ fontSize: 32 }} />,
+    icon: <span style={{ fontSize: 32, color: '#00C777' }}>B</span>,
     color: '#00C777',
     authUrl: '/api/oauth/boss/initiate',
   },
   {
     id: 'zhilian',
     name: '智联招聘',
-    icon: <PlatformZhilian style={{ fontSize: 32 }} />,
+    icon: <span style={{ fontSize: 32, color: '#0066CC' }}>Z</span>,
     color: '#0066CC',
     authUrl: '/api/oauth/zhilian/initiate',
   },
   {
     id: '51job',
     name: '前程无忧',
-    icon: <Platform51job style={{ fontSize: 32 }} />,
+    icon: <span style={{ fontSize: 32, color: '#FF6000' }}>5</span>,
     color: '#FF6000',
     authUrl: '/api/oauth/51job/initiate',
   },
   {
     id: 'lagou',
     name: '拉勾招聘',
-    icon: <PlatformLagou style={{ fontSize: 32 }} />,
+    icon: <span style={{ fontSize: 32, color: '#1DC6B1' }}>L</span>,
     color: '#1DC6B1',
     authUrl: '/api/oauth/lagou/initiate',
   },
