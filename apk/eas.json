@@ -10,14 +10,12 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk",
-        "gradleArgs": "--no-daemon"
+        "buildType": "apk"
       }
     },
     "production": {
       "android": {
-        "buildType": "apk",
-        "gradleArgs": "--no-daemon"
+        "buildType": "apk"
       }
     }
   }
