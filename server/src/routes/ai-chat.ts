@@ -786,4 +786,156 @@ router.post('/video', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// ============ 对话会话管理 ============
+
+// 获取会话列表
+router.get('/conversations', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { limit = 50, offset = 0 } = req.query;
+
+    const result = await getConversationList(userId, Number(limit), Number(offset));
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('获取会话列表错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取会话详情
+router.get('/conversations/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    const conversation = await getConversationDetail(id, userId);
+
+    if (!conversation) {
+      res.status(404).json({ error: '会话不存在' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: conversation,
+    });
+  } catch (error: any) {
+    console.error('获取会话详情错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 删除会话
+router.delete('/conversations/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    const success = await deleteConversation(id, userId);
+
+    if (!success) {
+      res.status(404).json({ error: '会话不存在' });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('删除会话错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 清空所有会话
+router.delete('/conversations', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    await clearAllConversations(userId);
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('清空会话错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 更新会话标题
+router.patch('/conversations/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+    const { title } = req.body;
+
+    if (!title) {
+      res.status(400).json({ error: '标题不能为空' });
+      return;
+    }
+
+    await updateConversationTitle(id, userId, title);
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('更新会话标题错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取AI模型列表
+router.get('/models', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const models = [
+      { id: 'qwen-plus', name: '通义千问 Plus', provider: 'aliyun', type: 'chat' },
+      { id: 'qwen-max', name: '通义千问 Max', provider: 'aliyun', type: 'chat' },
+      { id: 'qwen-vl-plus', name: '通义千问 VL Plus', provider: 'aliyun', type: 'vision' },
+      { id: 'qwen-audio-turbo', name: '通义千问 音频', provider: 'aliyun', type: 'audio' },
+      { id: 'deepseek-chat', name: 'DeepSeek V3', provider: 'aliyun', type: 'chat' },
+      { id: 'deepseek-reasoner', name: 'DeepSeek R1', provider: 'aliyun', type: 'reasoning' },
+    ];
+
+    res.json({
+      success: true,
+      data: models,
+    });
+  } catch (error: any) {
+    console.error('获取模型列表错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 保存聊天消息
+router.post('/messages', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { conversationId, role, content, model, provider, tokens, latency, metadata } = req.body;
+
+    if (!role || !content) {
+      res.status(400).json({ error: '角色和内容不能为空' });
+      return;
+    }
+
+    const result = await saveMessage({
+      userId,
+      conversationId,
+      role,
+      content,
+      model,
+      provider,
+      tokens,
+      latency,
+      metadata,
+    });
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('保存消息错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

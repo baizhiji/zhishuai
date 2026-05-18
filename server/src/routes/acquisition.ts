@@ -1,6 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import {
+  generateAcquisitionStrategy,
+  generateContentIdeas,
+  analyzeLeadQuality,
+  generateFollowUpMessage,
+  createAcquisitionAutomation,
+  updateAcquisitionAutomation,
+  getAcquisitionAutomations,
+  batchAnalyzeLeads,
+} from '../services/acquisition-ai.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -155,6 +165,10 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
       where: { userId, createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
     });
 
+    // 获取自动化统计
+    const automationCount = await prisma.acquisitionAutomation.count({ where: { userId } });
+    const activeAutomationCount = await prisma.acquisitionAutomation.count({ where: { userId, status: 'running' } });
+
     res.json({
       success: true,
       data: {
@@ -162,9 +176,245 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         activeTasks: activeTaskCount,
         totalLeads: leadCount,
         newLeads: newLeadCount,
+        totalAutomations: automationCount,
+        activeAutomations: activeAutomationCount,
       },
     });
   } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ AI 智能获客功能 ============
+
+// AI 生成获客策略
+router.post('/ai/strategy', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'AI服务未配置' });
+      return;
+    }
+
+    const { productInfo, targetAudience } = req.body;
+    if (!productInfo || !targetAudience) {
+      res.status(400).json({ error: '产品信息和目标受众不能为空' });
+      return;
+    }
+
+    const strategy = await generateAcquisitionStrategy(productInfo, targetAudience, apiKey);
+
+    res.json({
+      success: true,
+      data: strategy,
+    });
+  } catch (error: any) {
+    console.error('生成获客策略错误:', error);
+    res.status(500).json({ error: error.message || '策略生成失败' });
+  }
+});
+
+// AI 生成内容创意
+router.post('/ai/content-ideas', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'AI服务未配置' });
+      return;
+    }
+
+    const { productInfo, platform } = req.body;
+    if (!productInfo) {
+      res.status(400).json({ error: '产品信息不能为空' });
+      return;
+    }
+
+    const ideas = await generateContentIdeas(productInfo, platform || '全平台', apiKey);
+
+    res.json({
+      success: true,
+      data: ideas,
+    });
+  } catch (error: any) {
+    console.error('生成内容创意错误:', error);
+    res.status(500).json({ error: error.message || '内容生成失败' });
+  }
+});
+
+// AI 分析线索质量
+router.post('/ai/analyze-lead/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'AI服务未配置' });
+      return;
+    }
+
+    const userId = (req as any).userId;
+    const { id } = req.params;
+    const { targetProfile } = req.body;
+
+    const lead = await prisma.acquisitionLead.findFirst({
+      where: { id, userId },
+    });
+
+    if (!lead) {
+      res.status(404).json({ error: '线索不存在' });
+      return;
+    }
+
+    const analysis = await analyzeLeadQuality(lead, targetProfile || {}, apiKey);
+
+    // 更新线索
+    await prisma.acquisitionLead.update({
+      where: { id },
+      data: {
+        aiScore: analysis.score,
+        aiQuality: analysis.quality,
+        aiInsights: analysis.insights,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: analysis,
+    });
+  } catch (error: any) {
+    console.error('分析线索错误:', error);
+    res.status(500).json({ error: error.message || '分析失败' });
+  }
+});
+
+// AI 生成跟进话术
+router.post('/ai/followup-message/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'AI服务未配置' });
+      return;
+    }
+
+    const userId = (req as any).userId;
+    const { id } = req.params;
+    const { productInfo } = req.body;
+
+    const lead = await prisma.acquisitionLead.findFirst({
+      where: { id, userId },
+    });
+
+    if (!lead) {
+      res.status(404).json({ error: '线索不存在' });
+      return;
+    }
+
+    const followup = await generateFollowUpMessage(
+      lead,
+      productInfo || '智枢AI产品',
+      apiKey
+    );
+
+    res.json({
+      success: true,
+      data: followup,
+    });
+  } catch (error: any) {
+    console.error('生成跟进话术错误:', error);
+    res.status(500).json({ error: error.message || '生成失败' });
+  }
+});
+
+// 创建获客自动化
+router.post('/ai/automation', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { name, platform, targetCount, productInfo, targetAudience, schedule } = req.body;
+
+    if (!name || !platform || !productInfo) {
+      res.status(400).json({ error: '缺少必填参数' });
+      return;
+    }
+
+    const automation = await createAcquisitionAutomation(userId, {
+      name,
+      platform,
+      targetCount: targetCount || 100,
+      productInfo,
+      targetAudience: targetAudience || '通用',
+      schedule,
+    });
+
+    res.json({
+      success: true,
+      data: automation,
+    });
+  } catch (error: any) {
+    console.error('创建自动化任务错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取自动化列表
+router.get('/ai/automations', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { status } = req.query;
+
+    const automations = await getAcquisitionAutomations(userId, status as string);
+
+    res.json({
+      success: true,
+      data: automations,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 更新自动化状态
+router.put('/ai/automation/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+    const { status, currentLeads, notes } = req.body;
+
+    const automation = await updateAcquisitionAutomation(id, userId, {
+      status,
+      currentLeads,
+      notes,
+    });
+
+    res.json({
+      success: true,
+      data: automation,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 批量分析线索
+router.post('/ai/batch-analyze', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const apiKey = process.env.DASHSCOPE_API_KEY;
+    if (!apiKey) {
+      res.status(400).json({ error: 'AI服务未配置' });
+      return;
+    }
+
+    const userId = (req as any).userId;
+    const { targetProfile } = req.body;
+
+    const results = await batchAnalyzeLeads(userId, apiKey, targetProfile);
+
+    res.json({
+      success: true,
+      data: {
+        total: results.length,
+        results,
+      },
+    });
+  } catch (error: any) {
+    console.error('批量分析错误:', error);
     res.status(500).json({ error: error.message });
   }
 });
