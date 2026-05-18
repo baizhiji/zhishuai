@@ -51,6 +51,9 @@ model User {
   
   // 操作日志
   adminLogs          AdminLog[]
+  
+  // 员工管理
+  employees          Employee[]
 }
 
 model RecruitmentPost {
@@ -762,4 +765,42 @@ model RecruitmentProcess {
   @@index([userId, stage])
   @@index([resumeId])
   @@index([jobId])
+}
+
+// ============================================
+// 员工管理（子账号）
+// ============================================
+
+// 员工表
+model Employee {
+  id            String    @id @default(uuid())
+  userId        String                      // 主账号ID（老板/管理员）
+  name          String                      // 员工姓名
+  phone         String    @unique           // 登录手机号
+  password      String                      // 密码（加密）
+  email         String?                     // 邮箱
+  avatar        String?                     // 头像
+  role          String    @default("staff")  // staff, manager, admin
+  permissions   Json?                       // 权限列表
+  status        String    @default("active") // active, disabled
+  lastLoginAt   DateTime?                   // 最后登录时间
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // 关联主账号
+  owner         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([phone])
+}
+
+// 员工登录日志
+model EmployeeLoginLog {
+  id            String    @id @default(uuid())
+  employeeId    String                      // 员工ID
+  ip            String?                     // IP地址
+  userAgent     String?                     // 浏览器UA
+  status        String    @default("success") // success, failed
+  errorMsg      String?                     // 错误信息
+  createdAt     DateTime  @default(now())
 }

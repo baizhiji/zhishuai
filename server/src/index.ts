@@ -24,6 +24,10 @@ import contentPublishRoutes from './routes/content-publish';
 import agentRoutes from './routes/agent';
 import scheduleRoutes from './routes/schedule';
 import hotTopicsRoutes from './routes/hot-topics';
+import versionRoutes from './routes/version';
+import adminLogsRoutes from './routes/admin-logs';
+import employeeRoutes from './routes/employee';
+import reportRoutes from './routes/report';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -70,6 +74,15 @@ app.use('/api/schedule', scheduleRoutes);
 // 热点话题
 app.use('/api/hot-topics', hotTopicsRoutes);
 
+// 版本管理 & 系统公告
+app.use('/api/version', versionRoutes);
+
+// 操作日志
+app.use('/api/admin', adminLogsRoutes);
+
+// 员工管理
+app.use('/api/employee', employeeRoutes);
+
 // 短信服务
 app.use('/api/sms', smsRoutes);
 
@@ -81,6 +94,9 @@ app.use('/api/social', socialAccountRoutes);
 
 // 内容发布
 app.use('/api/content', contentPublishRoutes);
+
+// 数据报表导出
+app.use('/api/report', reportRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {
