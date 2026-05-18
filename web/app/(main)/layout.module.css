@@ -1,0 +1,96 @@
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  margin-right: 48px;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.menu {
+  flex: 1;
+  border: none;
+  background: transparent;
+}
+
+.actions {
+  margin-left: auto;
+}
+
+.content {
+  flex: 1;
+}
+
+.footer {
+  background: #001529;
+  color: #fff;
+  padding: 48px 24px 24px;
+}
+
+.footerContent {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 48px;
+  max-width: 1200px;
+  margin: 0 auto 24px;
+}
+
+.footerSection h4 {
+  color: #fff;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.footerSection ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footerSection li {
+  margin-bottom: 8px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.footerSection a {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.footerSection a:hover {
+  color: #1890ff;
+}
+
+.copyright {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.45);
+}
+
+@media (max-width: 768px) {
+  .footerContent {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

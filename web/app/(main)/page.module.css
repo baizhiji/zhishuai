@@ -1,0 +1,161 @@
+.home {
+  background: #f5f7fa;
+}
+
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.heroContent {
+  max-width: 800px;
+  margin: 0 auto 48px;
+}
+
+.heroTitle {
+  color: #fff !important;
+  font-size: 48px;
+  margin-bottom: 24px;
+}
+
+.highlight {
+  color: #ffd700;
+}
+
+.heroDesc {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  margin-bottom: 32px;
+}
+
+.heroButtons {
+  display: flex;
+  justify-content: center;
+}
+
+.heroStats {
+  max-width: 900px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(10px);
+}
+
+/* Features Section */
+.features {
+  padding: 80px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.sectionHeader {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.sectionHeader h2 {
+  margin-bottom: 8px;
+}
+
+.featureCard {
+  height: 100%;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.featureCard:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.featureIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+
+/* How It Works Section */
+.howItWorks {
+  background: #fff;
+  padding: 80px 24px;
+}
+
+.howItWorks .sectionHeader {
+  max-width: 1200px;
+  margin: 0 auto 48px;
+}
+
+.stepCard {
+  text-align: center;
+  padding: 24px;
+}
+
+.stepNumber {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+/* Tech Stack Section */
+.techStack {
+  padding: 80px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.techCard {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.techCard span {
+  display: block;
+  margin-top: 16px;
+  font-size: 16px;
+  color: #595959;
+}
+
+/* CTA Section */
+.cta {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.cta h2 {
+  color: #fff !important;
+  margin-bottom: 16px;
+}
+
+.cta p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 32px;
+  }
+
+  .heroStats {
+    display: none;
+  }
+}
