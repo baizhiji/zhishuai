@@ -46,3 +46,10 @@ backend/logs
 shared/node_modules
 shared/.env*
 shared/dist
+
+# 7. server目录下的忽略项
+server/node_modules
+server/.env*
+server/dist
+server/logs
+server/.pnpm-debug.log*
