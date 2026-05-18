@@ -189,6 +189,192 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
+// 发送重置密码验证码
+router.post('/send-reset-code', async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({ error: '请输入手机号' });
+    }
+
+    // 检查用户是否存在
+    const user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      return res.status(400).json({ error: '该手机号未注册' });
+    }
+
+    // 手机号格式验证
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ error: '请输入正确的手机号' });
+    }
+
+    // 检查发送频率（60秒内只能发送一次）
+    const recentCode = await prisma.smsLog.findFirst({
+      where: {
+        phone,
+        type: 'reset_password',
+        createdAt: { gte: new Date(Date.now() - 60 * 1000) },
+      },
+    });
+
+    if (recentCode) {
+      return res.status(400).json({ error: '发送太频繁，请稍后再试' });
+    }
+
+    // 获取短信配置
+    const smsConfig = await prisma.smsConfig.findFirst({
+      where: { enabled: true },
+      orderBy: { isDefault: 'desc' },
+    });
+
+    if (!smsConfig) {
+      // 开发模式
+      const code = generateCode();
+      console.log(`开发模式：重置密码验证码 ${code}`);
+      
+      await prisma.smsLog.create({
+        data: {
+          phone,
+          type: 'reset_password',
+          code,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          status: 'sent',
+          ip: req.ip,
+          provider: 'development',
+        },
+      });
+      
+      return res.json({ success: true, message: '验证码已发送', code });
+    }
+
+    // 生成验证码
+    const code = generateCode();
+
+    // 发送短信
+    const result = await sendSms({
+      provider: smsConfig.provider as 'aliyun' | 'tencent',
+      phone,
+      code,
+      signName: smsConfig.signName,
+      templateCode: smsConfig.templateCode,
+      accessKeyId: smsConfig.accessKeyId,
+      accessKeySecret: smsConfig.accessKeySecret,
+    });
+
+    // 记录发送日志
+    await prisma.smsLog.create({
+      data: {
+        phone,
+        type: 'reset_password',
+        code,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        status: result.success ? 'sent' : 'failed',
+        errorMsg: result.error || null,
+        ip: req.ip,
+        provider: smsConfig.provider,
+      },
+    });
+
+    if (result.success) {
+      if (process.env.NODE_ENV === 'development') {
+        return res.json({ success: true, message: '验证码已发送', code });
+      }
+      return res.json({ success: true, message: '验证码已发送' });
+    } else {
+      return res.status(500).json({ error: result.error || '发送失败' });
+    }
+  } catch (error: any) {
+    console.error('发送重置密码验证码失败:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 重置密码
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { phone, code, newPassword } = req.body;
+    
+    if (!phone || !code || !newPassword) {
+      return res.status(400).json({ error: '请填写完整信息' });
+    }
+
+    // 查找用户
+    const user = await prisma.user.findUnique({ where: { phone } });
+    if (!user) {
+      return res.status(400).json({ error: '该手机号未注册' });
+    }
+
+    // 获取短信配置
+    const smsConfig = await prisma.smsConfig.findFirst({
+      where: { enabled: true },
+    });
+
+    // 验证验证码
+    const smsLog = await prisma.smsLog.findFirst({
+      where: {
+        phone,
+        type: 'reset_password',
+        code,
+        expiresAt: { gt: new Date() },
+        used: false,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 如果没有配置短信或验证失败但有开发模式验证码
+    if (!smsLog) {
+      // 检查是否有有效的开发模式验证码
+      const devSmsLog = await prisma.smsLog.findFirst({
+        where: {
+          phone,
+          type: 'reset_password',
+          code,
+          expiresAt: { gt: new Date() },
+          used: false,
+          provider: 'development',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!devSmsLog) {
+        return res.status(400).json({ error: '验证码错误或已过期' });
+      }
+
+      // 更新密码
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashPassword(newPassword) },
+      });
+
+      // 标记验证码已使用
+      await prisma.smsLog.update({
+        where: { id: devSmsLog.id },
+        data: { used: true, usedAt: new Date(), status: 'verified' },
+      });
+
+      return res.json({ success: true, message: '密码重置成功' });
+    }
+
+    // 标记验证码已使用
+    await prisma.smsLog.update({
+      where: { id: smsLog.id },
+      data: { used: true, usedAt: new Date(), status: 'verified', userId: user.id },
+    });
+
+    // 更新密码
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: hashPassword(newPassword) },
+    });
+
+    res.json({ success: true, message: '密码重置成功' });
+  } catch (error: any) {
+    console.error('重置密码失败:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 登录
 router.post('/login', async (req: Request, res: Response) => {
   try {

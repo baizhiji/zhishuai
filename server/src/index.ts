@@ -28,6 +28,8 @@ import versionRoutes from './routes/version';
 import adminLogsRoutes from './routes/admin-logs';
 import employeeRoutes from './routes/employee';
 import reportRoutes from './routes/report';
+import ticketRoutes from './routes/ticket';
+import settlementRoutes from './routes/settlement';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -97,6 +99,12 @@ app.use('/api/content', contentPublishRoutes);
 
 // 数据报表导出
 app.use('/api/report', reportRoutes);
+
+// 工单系统
+app.use('/api/tickets', ticketRoutes);
+
+// 代理分成结算
+app.use('/api/settlement', settlementRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

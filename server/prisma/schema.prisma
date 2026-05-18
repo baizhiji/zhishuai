@@ -804,3 +804,69 @@ model EmployeeLoginLog {
   errorMsg      String?                     // 错误信息
   createdAt     DateTime  @default(now())
 }
+
+// ============================================
+// 工单系统
+// ============================================
+
+// 工单表
+model Ticket {
+  id            String    @id @default(uuid())
+  ticketNo      String    @unique           // 工单编号
+  userId        String                      // 创建用户ID
+  agentId       String?                     // 代理商ID (处理人)
+  category      String                      // 类别: upgrade, downgrade, refund, consult, complaint, other
+  priority      String    @default("normal") // priority: low, normal, high, urgent
+  title         String                      // 标题
+  content       String                      // 内容
+  attachments   Json?                       // 附件列表
+  status        String    @default("pending") // pending, processing, resolved, closed, rejected
+  assigneeId    String?                     // 处理人ID
+  assigneeName  String?                     // 处理人名称
+  responses     TicketResponse[]             // 回复列表
+  closedAt      DateTime?                   // 关闭时间
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, createdAt])
+  @@index([agentId, status])
+  @@index([status, createdAt])
+}
+
+// 工单回复表
+model TicketResponse {
+  id            String    @id @default(uuid())
+  ticketId      String                      // 工单ID
+  userId        String                      // 回复人ID
+  userName      String                      // 回复人名称
+  userRole      String                      // 回复人角色: user, agent, admin
+  content       String                      // 回复内容
+  attachments   Json?                       // 附件
+  isInternal    Boolean   @default(false)  // 是否内部回复（用户不可见）
+  createdAt     DateTime  @default(now())
+  
+  // 关联工单
+  ticket        Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  
+  @@index([ticketId, createdAt])
+}
+
+// ============================================
+// 系统公告
+// ============================================
+
+// 公告表
+model Announcement {
+  id            String    @id @default(uuid())
+  title         String                      // 标题
+  content       String                      // 内容 (富文本)
+  type          String    @default("info")  // 类型: info, warning, important
+  target        String    @default("all")   // 目标: all, agent, user
+  agentId       String?                     // 指定代理商
+  status        String    @default("draft") // 状态: draft, published, closed
+  publishedAt   DateTime?                   // 发布时间
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([status, publishedAt])
+}
