@@ -1,13 +1,12 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Table,
   Button,
   Tag,
   Space,
   Input,
-  Select,
   Modal,
   Form,
   Card,
@@ -16,47 +15,41 @@ import {
   Statistic,
   Popconfirm,
   Typography,
-  Badge,
-  Switch,
   Spin,
   Empty,
   message,
+  Divider,
+  Descriptions,
+  Checkbox,
 } from 'antd'
 import {
-  SearchOutlined,
   LockOutlined,
   UnlockOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  TeamOutlined,
   PlusOutlined,
-  SettingOutlined,
   ReloadOutlined,
+  UserOutlined,
+  TeamOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
+import { request } from '@/lib/request'
+import type { ApiResponse } from '@/types/api'
 
-const { Title, Text } = Typography
-const { Search } = Input
-const { Option } = Select
+const { Title, Text, Paragraph } = Typography
 
 interface Customer {
   id: string
   name: string
   phone: string
   status: 'active' | 'frozen'
-  features: {
-    media: boolean
-    recruitment: boolean
-    acquisition: boolean
-    sharing: boolean
-    referral: boolean
-  }
+  features: string[]
   createdAt: string
   expireAt: string
-  users: number
-  published: number
-  acquired: number
+  users?: number
+  published?: number
+  acquired?: number
+  userId?: string
+  balance?: number
 }
 
 // 到期时间选项
@@ -70,282 +63,268 @@ const expireOptions = [
   { value: -1, label: '永久' },
 ]
 
-// Mock 数据
-const mockCustomers: Customer[] = [
-  {
-    id: '1',
-    name: '张三',
-    phone: '138****1001',
-    status: 'active',
-    features: { media: true, recruitment: true, acquisition: true, sharing: true, referral: true },
-    createdAt: '2024-01-10',
-    expireAt: '2025-01-10',
-    users: 45,
-    published: 1200,
-    acquired: 380,
-  },
-  {
-    id: '2',
-    name: '李四',
-    phone: '139****2002',
-    status: 'active',
-    features: { media: true, recruitment: true, acquisition: false, sharing: true, referral: false },
-    createdAt: '2024-02-15',
-    expireAt: '2025-02-15',
-    users: 20,
-    published: 580,
-    acquired: 0,
-  },
-  {
-    id: '3',
-    name: '王五',
-    phone: '137****3003',
-    status: 'frozen',
-    features: { media: true, recruitment: false, acquisition: false, sharing: false, referral: false },
-    createdAt: '2024-03-20',
-    expireAt: '2024-06-20',
-    users: 5,
-    published: 45,
-    acquired: 0,
-  },
+// 功能列表
+const allFeatures = [
+  { key: 'media', name: '自媒体运营' },
+  { key: 'recruitment', name: '招聘助手' },
+  { key: 'acquisition', name: '智能获客' },
+  { key: 'referral', name: '转介绍' },
+  { key: 'share', name: '推荐分享' }
 ]
 
-export default function AgentCustomersPage() {
+export default function AgentTenantsPage() {
   const [loading, setLoading] = useState(true)
   const [customers, setCustomers] = useState<Customer[]>([])
   const [searchText, setSearchText] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [editVisible, setEditVisible] = useState(false)
-  const [featureVisible, setFeatureVisible] = useState(false)
   const [createVisible, setCreateVisible] = useState(false)
-  const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
+  const [featureVisible, setFeatureVisible] = useState(false)
+  const [detailVisible, setDetailVisible] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([])
   const [form] = Form.useForm()
   const [createForm] = Form.useForm()
-  const [featureForm] = Form.useForm()
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    total: 0
+  })
 
-  // 模拟加载数据
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCustomers(mockCustomers)
+  // 加载客户列表
+  const loadCustomers = async () => {
+    try {
+      setLoading(true)
+      const res = await request.get<ApiResponse<{ data: Customer[]; pagination: any }>>('/admin/customers', {
+        params: {
+          page: pagination.page,
+          pageSize: pagination.pageSize,
+          keyword: searchText
+        }
+      })
+      if (res.data) {
+        const customersData = res.data.data.map((c: any) => ({
+          id: c.id,
+          name: c.name || c.user?.name || '未知',
+          phone: c.user?.phone || '',
+          status: c.status === 'frozen' ? 'frozen' : 'active',
+          features: c.features || [],
+          createdAt: c.user?.createdAt ? dayjs(c.user.createdAt).format('YYYY-MM-DD') : '',
+          expireAt: c.expireAt || '',
+          users: c._count?.users || 0,
+          userId: c.userId
+        }))
+        setCustomers(customersData)
+        if (res.data.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: res.data.pagination?.total || 0
+          }))
+        }
+      }
+    } catch (error: any) {
+      message.error('加载客户列表失败: ' + (error.message || '未知错误'))
+      // 如果API不存在，使用空数据
+      setCustomers([])
+    } finally {
       setLoading(false)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [])
+    }
+  }
 
+  useEffect(() => {
+    loadCustomers()
+  }, [pagination.page, pagination.pageSize])
+
+  // 搜索
+  const handleSearch = (value: string) => {
+    setSearchText(value)
+    setPagination(prev => ({ ...prev, page: 1 }))
+    loadCustomers()
+  }
+
+  // 搜索过滤
   const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
-      const matchSearch =
-        !searchText || c.name.toLowerCase().includes(searchText.toLowerCase()) || c.phone.includes(searchText)
-      const matchStatus = statusFilter === 'all' || c.status === statusFilter
-      return matchSearch && matchStatus
-    })
-  }, [customers, searchText, statusFilter])
-
-  const handleToggleStatus = (customer: Customer) => {
-    setCustomers((prev) =>
-      prev.map((c) => (c.id === customer.id ? { ...c, status: c.status === 'active' ? 'frozen' : 'active' } : c))
+    return customers.filter(c => 
+      !searchText || 
+      c.name.toLowerCase().includes(searchText.toLowerCase()) ||
+      c.phone.includes(searchText)
     )
-    message.success(`${customer.name} 已${customer.status === 'active' ? '冻结' : '解冻'}`)
+  }, [customers, searchText])
+
+  // 创建客户
+  const handleCreate = async () => {
+    try {
+      const values = await createForm.validateFields()
+      const { expireMonths, ...rest } = values
+      
+      await request.post('/admin/customers', {
+        ...rest,
+        password: '123456',
+        expireMonths
+      })
+      
+      message.success(`已开通客户账号：${values.name}，登录账号：${values.phone}，初始密码：123456`)
+      setCreateVisible(false)
+      createForm.resetFields()
+      loadCustomers()
+    } catch (error: any) {
+      if (!error.errorFields) {
+        message.error('创建客户失败: ' + (error.message || '未知错误'))
+      }
+    }
   }
 
-  const handleEdit = (customer: Customer) => {
-    setEditCustomer(customer)
-    form.setFieldsValue(customer)
-    setEditVisible(true)
+  // 冻结/解冻
+  const handleToggleStatus = async (customer: Customer) => {
+    try {
+      const newStatus = customer.status === 'active' ? 'frozen' : 'active'
+      await request.put(`/admin/customers/${customer.id}`, { status: newStatus })
+      message.success(`${customer.name} 已${newStatus === 'active' ? '解冻' : '冻结'}`)
+      loadCustomers()
+    } catch (error: any) {
+      message.error('操作失败: ' + (error.message || '未知错误'))
+    }
   }
 
-  const handleSave = () => {
-    form.validateFields().then((values) => {
-      setCustomers((prev) => prev.map((c) => (c.id === editCustomer?.id ? { ...c, ...values } : c)))
-      message.success('信息已更新')
-      setEditVisible(false)
-    })
+  // 删除客户
+  const handleDelete = async (customer: Customer) => {
+    try {
+      await request.delete(`/admin/customers/${customer.id}`)
+      message.success('删除成功')
+      loadCustomers()
+    } catch (error: any) {
+      message.error('删除失败: ' + (error.message || '未知错误'))
+    }
   }
 
-  const handleDelete = (customer: Customer) => {
-    setCustomers((prev) => prev.filter((c) => c.id !== customer.id))
-    message.success(`${customer.name} 已删除`)
+  // 查看详情
+  const handleViewDetail = (customer: Customer) => {
+    setSelectedCustomer(customer)
+    setDetailVisible(true)
   }
 
+  // 打开功能设置
   const handleOpenFeatures = (customer: Customer) => {
-    setEditCustomer(customer)
-    featureForm.setFieldsValue({
-      name: customer.name,
-      phone: customer.phone,
-      features: customer.features
-    })
+    setSelectedCustomer(customer)
+    setSelectedFeatures(customer.features || [])
     setFeatureVisible(true)
   }
 
-  const handleSaveFeatures = () => {
-    featureForm.validateFields().then((values) => {
-      setCustomers((prev) => 
-        prev.map((c) => c.id === editCustomer?.id ? { ...c, features: values.features } : c)
-      )
-      message.success('功能权限已更新')
-      setFeatureVisible(false)
-    })
-  }
-
-  const handleOpenCreateModal = () => {
-    createForm.resetFields()
-    createForm.setFieldsValue({
-      status: 'active',
-      expireMonths: 12,
-    })
-    setCreateVisible(true)
-  }
-
-  const handleCreate = () => {
-    createForm.validateFields().then((values) => {
-      const expireValue = values.expireMonths
-      const expireAt = expireValue === -1 ? '2099-12-31' : dayjs().add(expireValue, 'month').format('YYYY-MM-DD')
+  // 保存功能设置
+  const handleSaveFeatures = async () => {
+    try {
+      if (!selectedCustomer) return
       
-      const newCustomer: Customer = {
-        id: Date.now().toString(),
-        name: values.name,
-        phone: values.phone,
-        status: values.status,
-        features: {
-          media: true,
-          recruitment: false,
-          acquisition: false,
-          sharing: false,
-          referral: false,
-        },
-        createdAt: dayjs().format('YYYY-MM-DD'),
-        expireAt,
-        users: 0,
-        published: 0,
-        acquired: 0,
-      }
-      setCustomers((prev) => [newCustomer, ...prev])
-      message.success(`已成功开通：${values.name}，登录账号：${values.phone}，初始密码：123456`)
-      setCreateVisible(false)
-    })
+      await request.put(`/admin/customers/${selectedCustomer.id}/features`, {
+        features: selectedFeatures
+      })
+      
+      message.success('功能开关已更新')
+      setFeatureVisible(false)
+      loadCustomers()
+    } catch (error: any) {
+      message.error('保存失败: ' + (error.message || '未知错误'))
+    }
   }
 
-  const handleRefresh = () => {
-    setLoading(true)
-    setTimeout(() => {
-      setCustomers(mockCustomers)
-      setLoading(false)
-      message.success('数据已刷新')
-    }, 500)
-  }
+  // 获取功能标签
+  const getFeatureTags = (features: string[]) => (
+    <Space size={4} wrap>
+      {allFeatures.map(f => (
+        <Tag 
+          key={f.key} 
+          color={features?.includes?.(f.key) ? 'blue' : 'default'}
+        >
+          {f.name}
+        </Tag>
+      ))}
+    </Space>
+  )
 
   const columns: ColumnsType<Customer> = [
     {
-      title: '用户信息',
-      key: 'user',
+      title: '客户',
+      key: 'customer',
       render: (_, record) => (
         <Space>
-          <TeamOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+          <TeamOutlined style={{ fontSize: 20, color: '#722ed1' }} />
           <div>
-            <div style={{ fontWeight: 600, color: '#262626' }}>{record.name}</div>
+            <div style={{ fontWeight: 500 }}>{record.name}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
           </div>
         </Space>
-      ),
+      )
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
-      render: (status: string) => (
-        <Badge
-          status={status === 'active' ? 'success' : 'error'}
-          text={status === 'active' ? '正常' : '已冻结'}
-        />
-      ),
-    },
-    {
-      title: '功能权限',
+      title: '开通功能',
+      dataIndex: 'features',
       key: 'features',
-      width: 220,
-      render: (_, record) => (
-        <Space size={4} wrap>
-          {record.features.media && <Tag color="cyan">自媒体</Tag>}
-          {record.features.recruitment && <Tag color="purple">招聘</Tag>}
-          {record.features.acquisition && <Tag color="orange">获客</Tag>}
-          {record.features.sharing && <Tag color="green">分享</Tag>}
-          {record.features.referral && <Tag color="gold">转介</Tag>}
-          {!record.features.media && !record.features.recruitment && !record.features.acquisition && 
-           !record.features.sharing && !record.features.referral && (
-            <Text type="secondary" style={{ fontSize: 12 }}>暂无权限</Text>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: '数据统计',
-      key: 'data',
-      width: 160,
-      render: (_, record) => (
-        <Space direction="vertical" size={2}>
-          <Text type="secondary" style={{ fontSize: 12 }}>用户: <span style={{ color: '#1890ff' }}>{record.users}</span></Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>发布: <span style={{ color: '#52c41a' }}>{record.published}</span></Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>获客: <span style={{ color: '#faad14' }}>{record.acquired}</span></Text>
-        </Space>
-      ),
+      width: 350,
+      render: (features: string[]) => getFeatureTags(features)
     },
     {
       title: '到期时间',
       dataIndex: 'expireAt',
       key: 'expireAt',
       width: 120,
+      render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD') : '永久'
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string) => (
+        <Tag color={status === 'active' ? 'green' : 'orange'}>
+          {status === 'active' ? '正常' : '已冻结'}
+        </Tag>
+      )
     },
     {
       title: '操作',
       key: 'action',
-      width: 240,
+      width: 200,
       render: (_, record) => (
         <Space size={4}>
           <Button
-            type={record.status === 'active' ? 'default' : 'primary'}
+            type="text"
             size="small"
             icon={record.status === 'active' ? <LockOutlined /> : <UnlockOutlined />}
             onClick={() => handleToggleStatus(record)}
-            style={record.status === 'active' ? {} : { background: '#52c41a', borderColor: '#52c41a' }}
           >
             {record.status === 'active' ? '冻结' : '解冻'}
           </Button>
           <Button
-            type="primary"
-            ghost
+            type="text"
             size="small"
             icon={<SettingOutlined />}
             onClick={() => handleOpenFeatures(record)}
           >
             功能
           </Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
+          <Button
+            type="text"
+            size="small"
+            icon={<UserOutlined />}
+            onClick={() => handleViewDetail(record)}
+          >
+            详情
           </Button>
           <Popconfirm
-            title="确认删除"
-            description={`确定要删除 ${record.name} 吗？此操作不可恢复。`}
+            title="确定删除该客户？"
             onConfirm={() => handleDelete(record)}
-            okText="确认"
-            cancelText="取消"
-            okButtonProps={{ danger: true }}
           >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+            <Button type="text" size="small" danger>
               删除
             </Button>
           </Popconfirm>
         </Space>
-      ),
-    },
+      )
+    }
   ]
 
   const stats = useMemo(() => {
     const total = customers.length
-    const active = customers.filter((c) => c.status === 'active').length
-    const frozen = customers.filter((c) => c.status === 'frozen').length
-    const totalUsers = customers.reduce((sum, c) => sum + c.users, 0)
-    return { total, active, frozen, totalUsers }
+    const active = customers.filter(c => c.status === 'active').length
+    const totalUsers = customers.reduce((sum, c) => sum + (c.users || 0), 0)
+    return { total, active, totalUsers }
   }, [customers])
 
   return (
@@ -353,12 +332,26 @@ export default function AgentCustomersPage() {
       {/* 页面标题 */}
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <Title level={3} style={{ margin: 0 }}>终端客户管理</Title>
-          <Text type="secondary">管理终端客户账号，设置功能权限、冻结/解冻</Text>
+          <Title level={3} style={{ margin: 0 }}>客户管理</Title>
+          <Text type="secondary">管理名下客户账号，设置功能开关</Text>
         </div>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh}>刷新</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>
+          <Input.Search 
+            placeholder="搜索客户名称/手机号" 
+            onSearch={handleSearch}
+            style={{ width: 200 }}
+            allowClear
+          />
+          <Button icon={<ReloadOutlined />} onClick={loadCustomers}>刷新</Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => {
+              createForm.resetFields()
+              createForm.setFieldsValue({ expireMonths: 12 })
+              setCreateVisible(true)
+            }}
+          >
             开通客户
           </Button>
         </Space>
@@ -366,43 +359,33 @@ export default function AgentCustomersPage() {
 
       {/* 统计卡片 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
+        <Col span={8}>
           <Card loading={loading}>
             <Statistic 
               title="客户总数" 
               value={stats.total} 
-              prefix={<TeamOutlined style={{ color: '#1890ff' }} />} 
-              valueStyle={{ color: '#1890ff' }}
+              prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
+              valueStyle={{ color: '#722ed1' }}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card loading={loading}>
             <Statistic 
               title="正常" 
               value={stats.active} 
               valueStyle={{ color: '#52c41a' }}
-              suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>户</span>}
+              suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>个</span>}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={8}>
           <Card loading={loading}>
             <Statistic 
-              title="已冻结" 
-              value={stats.frozen} 
-              valueStyle={{ color: '#ff4d4f' }}
-              suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>户</span>}
-            />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card loading={loading}>
-            <Statistic 
-              title="总用户数" 
+              title="子账号总数" 
               value={stats.totalUsers} 
-              prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
-              valueStyle={{ color: '#722ed1' }}
+              prefix={<UserOutlined style={{ color: '#1890ff' }} />}
+              valueStyle={{ color: '#1890ff' }}
             />
           </Card>
         </Col>
@@ -410,33 +393,20 @@ export default function AgentCustomersPage() {
 
       {/* 数据表格 */}
       <Card>
-        <div style={{ marginBottom: 16 }}>
-          <Space wrap>
-            <Input.Search 
-              placeholder="搜索姓名或手机号" 
-              onChange={(e) => setSearchText(e.target.value)} 
-              style={{ width: 220 }}
-              allowClear
-              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
-            />
-            <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 120 }}>
-              <Option value="all">全部状态</Option>
-              <Option value="active">正常</Option>
-              <Option value="frozen">已冻结</Option>
-            </Select>
-          </Space>
-        </div>
-
         <Spin spinning={loading}>
-          <Table 
-            columns={columns} 
-            dataSource={filteredCustomers} 
-            rowKey="id" 
+          <Table
+            rowKey="id"
+            columns={columns}
+            dataSource={filteredCustomers}
             pagination={{ 
-              pageSize: 10,
+              current: pagination.page,
+              pageSize: pagination.pageSize,
+              total: pagination.total,
               showSizeChanger: true,
-              showQuickJumper: true,
               showTotal: (total) => `共 ${total} 条记录`,
+              onChange: (page, pageSize) => {
+                setPagination({ page, pageSize, total })
+              }
             }}
             locale={{
               emptyText: (
@@ -444,12 +414,12 @@ export default function AgentCustomersPage() {
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description={
                     <span>
-                      {searchText || statusFilter !== 'all' ? '未找到匹配的客户' : '暂无客户数据'}
+                      {searchText ? '未找到匹配的客户' : '暂无客户数据'}
                     </span>
                   }
                 >
-                  {!searchText && statusFilter === 'all' && (
-                    <Button type="primary" onClick={handleOpenCreateModal}>开通第一个客户</Button>
+                  {!searchText && (
+                    <Button type="primary" onClick={() => setCreateVisible(true)}>开通第一个客户</Button>
                   )}
                 </Empty>
               )
@@ -458,20 +428,21 @@ export default function AgentCustomersPage() {
         </Spin>
       </Card>
 
-      {/* 编辑基本信息 */}
+      {/* 开通客户弹窗 */}
       <Modal
-        title="编辑客户信息"
-        open={editVisible}
-        onOk={handleSave}
-        onCancel={() => setEditVisible(false)}
-        okText="保存"
+        title="开通客户"
+        open={createVisible}
+        onOk={handleCreate}
+        onCancel={() => setCreateVisible(false)}
+        okText="确认开通"
         cancelText="取消"
+        width={500}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
-            <Input placeholder="请输入用户名" />
+        <Form form={createForm} layout="vertical">
+          <Form.Item name="name" label="客户名称" rules={[{ required: true, message: '请输入客户名称' }]}>
+            <Input placeholder="请输入客户名称" />
           </Form.Item>
-          <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号码' }]}>
+          <Form.Item name="phone" label="手机号码（登录账号）" rules={[{ required: true, message: '请输入手机号码' }]}>
             <Input placeholder="请输入手机号码" />
           </Form.Item>
           <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true, message: '请选择有效时间' }]}>
@@ -481,148 +452,79 @@ export default function AgentCustomersPage() {
               ))}
             </Select>
           </Form.Item>
+          <Card size="small" style={{ background: '#f5f5f5' }}>
+            <Text type="secondary">
+              <UserOutlined /> 登录账号：手机号码<br />
+              <LockOutlined /> 初始密码：123456（客户自行修改）
+            </Text>
+          </Card>
         </Form>
       </Modal>
 
-      {/* 设置功能权限 */}
+      {/* 功能设置弹窗 */}
       <Modal
-        title="功能权限设置"
+        title="设置客户功能开关"
         open={featureVisible}
         onOk={handleSaveFeatures}
         onCancel={() => setFeatureVisible(false)}
         okText="保存"
         cancelText="取消"
-        width={500}
       >
-        <Form form={featureForm} layout="vertical">
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="name" label="客户姓名">
-                <Input disabled />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="phone" label="手机号">
-                <Input disabled />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="features" label="功能权限" style={{ marginBottom: 0 }}>
-            <Card size="small">
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                  <Space>
-                    <Tag color="cyan">自媒体</Tag>
-                    <Text>自媒体运营</Text>
-                  </Space>
-                  <Form.Item name={['features', 'media']} valuePropName="checked" noStyle>
-                    <Switch />
-                  </Form.Item>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                  <Space>
-                    <Tag color="purple">招聘</Tag>
-                    <Text>招聘助手</Text>
-                  </Space>
-                  <Form.Item name={['features', 'recruitment']} valuePropName="checked" noStyle>
-                    <Switch />
-                  </Form.Item>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                  <Space>
-                    <Tag color="orange">获客</Tag>
-                    <Text>智能获客</Text>
-                  </Space>
-                  <Form.Item name={['features', 'acquisition']} valuePropName="checked" noStyle>
-                    <Switch />
-                  </Form.Item>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                  <Space>
-                    <Tag color="green">分享</Tag>
-                    <Text>推荐分享</Text>
-                  </Space>
-                  <Form.Item name={['features', 'sharing']} valuePropName="checked" noStyle>
-                    <Switch />
-                  </Form.Item>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
-                  <Space>
-                    <Tag color="gold">转介</Tag>
-                    <Text>转介绍</Text>
-                  </Space>
-                  <Form.Item name={['features', 'referral']} valuePropName="checked" noStyle>
-                    <Switch />
-                  </Form.Item>
-                </div>
-              </Space>
-            </Card>
-          </Form.Item>
-        </Form>
+        {selectedCustomer && (
+          <>
+            <Descriptions column={2} size="small" style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="客户名称">{selectedCustomer.name}</Descriptions.Item>
+              <Descriptions.Item label="手机号码">{selectedCustomer.phone}</Descriptions.Item>
+            </Descriptions>
+            <Divider>选择该客户可使用的功能</Divider>
+            <Checkbox.Group
+              value={selectedFeatures}
+              onChange={(values) => setSelectedFeatures(values as string[])}
+              style={{ width: '100%' }}
+            >
+              <Row gutter={[16, 16]}>
+                {allFeatures.map(f => (
+                  <Col span={12} key={f.key}>
+                    <Checkbox value={f.key}>{f.name}</Checkbox>
+                  </Col>
+                ))}
+              </Row>
+            </Checkbox.Group>
+          </>
+        )}
       </Modal>
 
-      {/* 开通客户 */}
+      {/* 详情弹窗 */}
       <Modal
-        title="开通终端客户"
-        open={createVisible}
-        onOk={handleCreate}
-        onCancel={() => setCreateVisible(false)}
-        okText="确认开通"
-        cancelText="取消"
-        width={500}
+        title="客户详情"
+        open={detailVisible}
+        onCancel={() => setDetailVisible(false)}
+        footer={[<Button key="close" onClick={() => setDetailVisible(false)}>关闭</Button>]}
+        width={600}
       >
-        <Form form={createForm} layout="vertical">
-          <Form.Item
-            name="name"
-            label="用户名"
-            rules={[
-              { required: true, message: '请输入用户名' },
-              { min: 2, max: 20, message: '用户名长度2-20个字符' }
-            ]}
-          >
-            <Input placeholder="请输入用户名" />
-          </Form.Item>
-
-          <Form.Item
-            name="phone"
-            label="手机号码（登录账号）"
-            rules={[
-              { required: true, message: '请输入手机号码' },
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' }
-            ]}
-          >
-            <Input placeholder="请输入11位手机号码" maxLength={11} />
-          </Form.Item>
-
-          <Form.Item
-            name="expireMonths"
-            label="有效时间"
-            rules={[{ required: true, message: '请选择有效时间' }]}
-          >
-            <Select placeholder="请选择">
-              {expireOptions.map(opt => (
-                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item name="status" label="初始状态" initialValue="active">
-            <Select>
-              <Option value="active">正常</Option>
-              <Option value="frozen">冻结</Option>
-            </Select>
-          </Form.Item>
-
-          <Card size="small" style={{ background: '#f6ffed', border: '1px solid #b7eb8f' }}>
-            <Space>
-              <Tag color="green">提示</Tag>
-              <Text type="secondary">
-                登录账号：手机号码<br />
-                初始密码：<span style={{ color: '#faad14' }}>123456</span>（用户自行修改）
-              </Text>
-            </Space>
-          </Card>
-        </Form>
+        {selectedCustomer && (
+          <Descriptions column={2} bordered size="small">
+            <Descriptions.Item label="客户名称" span={2}>
+              <Space>
+                <TeamOutlined style={{ color: '#722ed1' }} />
+                {selectedCustomer.name}
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="手机号码">{selectedCustomer.phone}</Descriptions.Item>
+            <Descriptions.Item label="状态">
+              <Tag color={selectedCustomer.status === 'active' ? 'green' : 'orange'}>
+                {selectedCustomer.status === 'active' ? '正常' : '已冻结'}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="创建时间">{selectedCustomer.createdAt}</Descriptions.Item>
+            <Descriptions.Item label="到期时间">
+              {selectedCustomer.expireAt ? dayjs(selectedCustomer.expireAt).format('YYYY-MM-DD') : '永久'}
+            </Descriptions.Item>
+            <Descriptions.Item label="开通功能" span={2}>
+              {getFeatureTags(selectedCustomer.features)}
+            </Descriptions.Item>
+          </Descriptions>
+        )}
       </Modal>
     </div>
   )

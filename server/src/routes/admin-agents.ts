@@ -418,4 +418,183 @@ router.put('/agents/:id/customers/features', async (req, res) => {
   }
 });
 
+// 获取所有客户列表（Admin）
+router.get('/customers', async (req, res) => {
+  try {
+    const { status, keyword, page = '1', pageSize = '20' } = req.query;
+    const skip = (Number(page) - 1) * Number(pageSize);
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (keyword) {
+      where.OR = [
+        { name: { contains: keyword as string } },
+        { phone: { contains: keyword as string } }
+      ];
+    }
+
+    const [customers, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        include: {
+          agentRelation: {
+            include: {
+              agent: {
+                include: { user: { select: { name: true } } }
+              }
+            }
+          },
+          _count: {
+            select: { accounts: true, publishedContents: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: Number(pageSize)
+      }),
+      prisma.user.count({ where })
+    ]);
+
+    res.json({
+      data: customers,
+      pagination: {
+        page: Number(page),
+        pageSize: Number(pageSize),
+        total,
+        totalPages: Math.ceil(total / Number(pageSize))
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 创建客户
+router.post('/customers', async (req, res) => {
+  try {
+    const { phone, password, name, agentId, expireMonths } = req.body;
+
+    // 检查手机号是否已注册
+    const existingUser = await prisma.user.findUnique({
+      where: { phone }
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: '该手机号已注册' });
+    }
+
+    // 计算到期时间
+    const expireAt = expireMonths === -1 
+      ? new Date('2099-12-31') 
+      : new Date(Date.now() + expireMonths * 30 * 24 * 60 * 60 * 1000);
+
+    // 创建用户（事务）
+    const user = await prisma.$transaction(async (tx) => {
+      const newUser = await tx.user.create({
+        data: {
+          phone,
+          password: hashPassword(password || '123456'),
+          name: name || phone,
+          role: 'customer'
+        }
+      });
+
+      // 如果指定了代理商，建立关联
+      if (agentId) {
+        await tx.userAgentRelation.create({
+          data: {
+            userId: newUser.id,
+            agentId
+          }
+        });
+      }
+
+      return newUser;
+    });
+
+    res.json({ message: '客户创建成功', data: user });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 更新客户
+router.put('/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, status, expireAt } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name }),
+        ...(status !== undefined && { status }),
+        ...(expireAt !== undefined && { expireAt: new Date(expireAt) })
+      }
+    });
+
+    res.json({ data: user });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 冻结/解冻客户
+router.patch('/customers/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const user = await prisma.user.update({
+      where: { id },
+      data: { status: status === 'frozen' ? 'inactive' : 'active' }
+    });
+
+    res.json({ data: user });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 删除客户
+router.delete('/customers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 删除客户关联数据
+    await prisma.$transaction([
+      prisma.userAgentRelation.deleteMany({ where: { userId: id } }),
+      prisma.userFeatureSwitch.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } })
+    ]);
+
+    res.json({ message: '客户已删除' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 设置客户功能开关
+router.put('/customers/:id/features', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { features } = req.body;
+
+    // 批量更新功能开关
+    for (const featureCode of features) {
+      await prisma.userFeatureSwitch.upsert({
+        where: {
+          userId_featureCode: { userId: id, featureCode }
+        },
+        update: { enabled: true },
+        create: { userId: id, featureCode, enabled: true }
+      });
+    }
+
+    res.json({ message: '功能开关已更新' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
