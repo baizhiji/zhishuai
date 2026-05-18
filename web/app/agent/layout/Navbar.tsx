@@ -8,7 +8,11 @@ import {
   UserOutlined,
   BarChartOutlined,
   WarningOutlined,
-  GlobalOutlined,
+  CustomerServiceOutlined,
+  RobotOutlined,
+  DollarOutlined,
+  SettingOutlined,
+  ToolOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -16,40 +20,57 @@ const { Sider } = Layout;
 
 const AgentNavbar: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState('');
-  const [openKeys, setOpenKeys] = useState<string[]>([]);
   const router = useRouter();
   const pathname = usePathname();
 
   const menuItems = [
     {
-      key: 'analytics',
+      key: 'dashboard',
       icon: <DashboardOutlined />,
-      label: '数据大盘',
-      path: '/agent/analytics',
+      label: '数据总览',
+      path: '/agent/dashboard',
     },
     {
-      key: 'tenants',
+      key: 'customers',
       icon: <TeamOutlined />,
-      label: '终端客户',
-      path: '/agent/tenants',
+      label: '客户管理',
+      path: '/agent/customers',
     },
     {
-      key: 'referrals',
-      icon: <BarChartOutlined />,
-      label: '推荐数据',
-      path: '/agent/referrals',
+      key: 'features',
+      icon: <SettingOutlined />,
+      label: '功能开关',
+      path: '/agent/features',
     },
     {
-      key: 'usage',
-      icon: <BarChartOutlined />,
-      label: '使用报表',
-      path: '/agent/usage',
+      key: 'settlement',
+      icon: <DollarOutlined />,
+      label: '分成结算',
+      path: '/agent/settlement',
     },
     {
       key: 'tickets',
       icon: <WarningOutlined />,
       label: '工单处理',
       path: '/agent/tickets',
+    },
+    {
+      key: 'ai-chat',
+      icon: <RobotOutlined />,
+      label: 'AI对话',
+      path: '/agent/ai-chat',
+    },
+    {
+      key: 'recruitment',
+      icon: <CustomerServiceOutlined />,
+      label: '智能招聘',
+      path: '/agent/recruitment',
+    },
+    {
+      key: 'acquisition',
+      icon: <UserOutlined />,
+      label: '智能获客',
+      path: '/agent/acquisition',
     },
   ];
 
@@ -88,7 +109,7 @@ const AgentNavbar: React.FC = () => {
         fontWeight: 'bold',
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
-        🏢 代理商后台
+        智枢AI 代理后台
       </div>
       <Menu
         theme="dark"

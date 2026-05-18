@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, Badge } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -12,6 +12,13 @@ import {
   ToolOutlined,
   FileTextOutlined,
   ApiOutlined,
+  MailOutlined,
+  MobileOutlined,
+  NotificationOutlined,
+  RiseOutlined,
+  CloudServerOutlined,
+  TableOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -24,14 +31,14 @@ const AdminNavbar: React.FC = () => {
 
   const menuItems = [
     {
-      key: 'analytics',
+      key: 'dashboard',
       icon: <DashboardOutlined />,
       label: '数据大盘',
-      path: '/admin/analytics',
+      path: '/admin/dashboard',
     },
     {
       key: 'tenants',
-      icon: <UserOutlined />,
+      icon: <TeamOutlined />,
       label: '租户管理',
       path: '/admin/tenants',
     },
@@ -41,12 +48,17 @@ const AdminNavbar: React.FC = () => {
       label: '代理商管理',
       path: '/admin/agents',
     },
-
     {
-      key: 'branding',
-      icon: <BgColorsOutlined />,
-      label: '贴牌配置',
-      path: '/admin/branding',
+      key: 'performance',
+      icon: <RiseOutlined />,
+      label: '代理商业绩',
+      path: '/admin/performance',
+    },
+    {
+      key: 'report',
+      icon: <TableOutlined />,
+      label: '数据报表',
+      path: '/admin/report',
     },
     {
       key: 'api-providers',
@@ -55,10 +67,34 @@ const AdminNavbar: React.FC = () => {
       path: '/admin/api-providers',
     },
     {
-      key: 'config',
-      icon: <ToolOutlined />,
-      label: '系统配置',
-      path: '/admin/config',
+      key: 'api-stats',
+      icon: <CloudServerOutlined />,
+      label: 'API统计',
+      path: '/admin/api-stats',
+    },
+    {
+      key: 'branding',
+      icon: <BgColorsOutlined />,
+      label: '贴牌配置',
+      path: '/admin/branding',
+    },
+    {
+      key: 'sms',
+      icon: <MobileOutlined />,
+      label: '短信配置',
+      path: '/admin/sms',
+    },
+    {
+      key: 'version',
+      icon: <SettingOutlined />,
+      label: '版本管理',
+      path: '/admin/version',
+    },
+    {
+      key: 'announcement',
+      icon: <NotificationOutlined />,
+      label: '系统公告',
+      path: '/admin/announcement',
     },
     {
       key: 'logs',
@@ -103,7 +139,7 @@ const AdminNavbar: React.FC = () => {
         fontWeight: 'bold',
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
-        ⚙️ 总后台
+        智枢AI 总后台
       </div>
       <Menu
         theme="dark"
