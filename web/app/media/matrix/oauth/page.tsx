@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, Tabs, Table, Button, Modal, message, Space, Tag, Spin, QRCode, Descriptions, Typography, Alert } from 'antd';
+import { Card, Tabs, Table, Button, Modal, message, Space, Tag, Spin, Descriptions, Typography, Alert, QRCode, Input } from 'antd';
 import { PlusOutlined, DeleteOutlined, SyncOutlined, CheckCircleOutlined, CloseCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import { request } from '@/utils/api';
+import { request } from '@/utils/request';
 
 const { Title, Text } = Typography;
 
@@ -17,7 +17,7 @@ const PLATFORMS = [
   { code: 'bilibili', name: 'B站', icon: '📺', color: '#fb7299' },
   { code: 'boss', name: 'BOSS直聘', icon: '👔', color: '#15c15a' },
   { code: 'lagou', name: '拉勾网', icon: '🎯', color: '#00b42a' },
-  { code: 'zhipin', name: 'BOSS直聘', icon: '💼', color: '#15c15a' },
+  { code: 'zhipin', name: 'Boss直聘', icon: '💼', color: '#15c15a' },
 ];
 
 export default function OAuthPage() {
@@ -33,7 +33,7 @@ export default function OAuthPage() {
   const loadAccounts = async () => {
     setLoading(true);
     try {
-      const res = await request('/oauth/accounts');
+      const res = await request.get('/oauth/accounts');
       if (res.success) {
         setAccounts(res.data || []);
       }
@@ -60,10 +60,7 @@ export default function OAuthPage() {
   // 创建授权会话
   const createOAuthSession = async (platform: string) => {
     try {
-      const res = await request('/oauth/sessions', {
-        method: 'POST',
-        body: { platform }
-      });
+      const res = await request.post('/oauth/sessions', { platform });
       
       if (res.success) {
         setOauthSession(res.data);
@@ -85,13 +82,10 @@ export default function OAuthPage() {
     const poll = async () => {
       try {
         // 触发授权检查
-        await request('/oauth/authorize', {
-          method: 'POST',
-          body: { sessionId, platform: selectedPlatform }
-        });
+        await request.post('/oauth/authorize', { sessionId, platform: selectedPlatform });
         
         // 获取状态
-        const res = await request(`/oauth/sessions/${sessionId}`);
+        const res = await request.get(`/oauth/sessions/${sessionId}`);
         
         if (res.success) {
           setOauthStatus(res.data.status);
@@ -101,50 +95,28 @@ export default function OAuthPage() {
             setOauthModalVisible(false);
             loadAccounts();
             setPolling(false);
-            return;
           } else if (res.data.status === 'expired') {
-            message.error('授权已过期');
+            message.error('授权已过期，请重新扫码');
             setPolling(false);
-            return;
+          } else {
+            // 继续轮询
+            setTimeout(poll, 2000);
           }
+        } else {
+          setTimeout(poll, 2000);
         }
       } catch (error) {
-        console.error('轮询失败', error);
-      }
-      
-      // 继续轮询
-      if (oauthStatus !== 'confirmed' && oauthStatus !== 'expired') {
-        setTimeout(poll, 3000);
+        setTimeout(poll, 2000);
       }
     };
-    
+
     poll();
   };
 
-  // 取消授权
-  const handleCancelOAuth = async () => {
-    if (oauthSession?.sessionId) {
-      try {
-        await request(`/oauth/sessions/${oauthSession.sessionId}`, {
-          method: 'DELETE'
-        });
-      } catch (error) {
-        console.error('取消授权失败', error);
-      }
-    }
-    setOauthModalVisible(false);
-    setOauthSession(null);
-    setOauthStatus(null);
-    setPolling(false);
-  };
-
   // 删除账号
-  const handleDeleteAccount = async (id: string) => {
+  const handleDelete = async (accountId: string) => {
     try {
-      const res = await request(`/oauth/accounts/${id}`, {
-        method: 'DELETE'
-      });
-      
+      const res = await request.delete(`/oauth/accounts/${accountId}`);
       if (res.success) {
         message.success('删除成功');
         loadAccounts();
@@ -152,28 +124,21 @@ export default function OAuthPage() {
         message.error(res.error || '删除失败');
       }
     } catch (error) {
-      console.error('删除失败', error);
       message.error('删除失败');
     }
   };
 
-  // 刷新账号
-  const handleRefreshAccount = async (id: string) => {
+  // 刷新状态
+  const handleRefresh = async (accountId: string) => {
     try {
-      const res = await request(`/oauth/accounts/${id}/refresh`, {
-        method: 'POST'
-      });
-      
+      const res = await request.post(`/oauth/accounts/${accountId}/refresh`);
       if (res.success) {
-        if (res.data.status === 'active') {
-          message.success('账号状态正常');
-        } else {
-          message.warning('授权已过期，请重新授权');
-        }
+        message.success('刷新成功');
         loadAccounts();
+      } else {
+        message.error(res.error || '刷新失败');
       }
     } catch (error) {
-      console.error('刷新失败', error);
       message.error('刷新失败');
     }
   };
@@ -184,46 +149,37 @@ export default function OAuthPage() {
       title: '平台',
       dataIndex: 'platform',
       key: 'platform',
-      render: (platform: string, record: any) => {
+      render: (platform: string) => {
         const p = PLATFORMS.find(p => p.code === platform);
         return (
           <Space>
-            <span style={{ fontSize: 20 }}>{p?.icon}</span>
+            <span>{p?.icon}</span>
             <span>{p?.name || platform}</span>
           </Space>
         );
       }
     },
     {
-      title: '账号',
-      dataIndex: 'accountName',
-      key: 'accountName',
-      render: (name: string, record: any) => (
-        <Space>
-          {record.avatar && (
-            <img src={record.avatar} alt="" style={{ width: 32, height: 32, borderRadius: '50%' }} />
-          )}
-          <span>{name || '未获取到账号名'}</span>
-        </Space>
-      )
+      title: '账号信息',
+      dataIndex: 'accountInfo',
+      key: 'accountInfo',
+      render: (info: any) => info?.nickname || info?.username || '-'
+    },
+    {
+      title: '头像',
+      dataIndex: 'avatar',
+      key: 'avatar',
+      render: (avatar: string) => avatar ? <img src={avatar} alt="avatar" style={{ width: 40, height: 40, borderRadius: '50%' }} /> : '-'
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => {
-        const statusMap: Record<string, { color: string; text: string; icon: React.ReactNode }> = {
-          active: { color: 'success', text: '正常', icon: <CheckCircleOutlined /> },
-          expired: { color: 'error', text: '已过期', icon: <CloseCircleOutlined /> },
-          frozen: { color: 'warning', text: '已冻结', icon: <ExclamationCircleOutlined /> }
-        };
-        const s = statusMap[status] || statusMap.active;
-        return (
-          <Tag color={s.color} icon={s.icon}>
-            {s.text}
-          </Tag>
-        );
-      }
+      render: (status: string) => (
+        <Tag color={status === 'active' ? 'green' : 'red'}>
+          {status === 'active' ? '正常' : '失效'}
+        </Tag>
+      )
     },
     {
       title: '最后同步',
@@ -236,23 +192,10 @@ export default function OAuthPage() {
       key: 'action',
       render: (_: any, record: any) => (
         <Space>
-          <Button 
-            type="link" 
-            icon={<SyncOutlined spin={loading} />}
-            onClick={() => handleRefreshAccount(record.id)}
-          >
+          <Button size="small" icon={<SyncOutlined />} onClick={() => handleRefresh(record.id)}>
             刷新
           </Button>
-          <Button 
-            type="link" 
-            danger 
-            icon={<DeleteOutlined />}
-            onClick={() => Modal.confirm({
-              title: '确认删除',
-              content: '确定要删除这个授权账号吗？',
-              onOk: () => handleDeleteAccount(record.id)
-            })}
-          >
+          <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record.id)}>
             删除
           </Button>
         </Space>
@@ -260,19 +203,16 @@ export default function OAuthPage() {
     }
   ];
 
-  // 按平台分组
-  const groupedAccounts = PLATFORMS.map(platform => ({
-    ...platform,
-    accounts: accounts.filter(a => a.platform === platform.code)
-  }));
+  // 获取当前平台信息
+  const currentPlatform = PLATFORMS.find(p => p.code === selectedPlatform);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="p-6">
       <Card
         title={
           <Space>
+            <span>🎯</span>
             <span>矩阵账号授权</span>
-            <Text type="secondary">添加各平台账号进行统一管理</Text>
           </Space>
         }
         extra={
@@ -283,7 +223,7 @@ export default function OAuthPage() {
       >
         <Alert
           message="授权说明"
-          description="点击「添加账号」选择平台后，系统会打开授权二维码。请使用对应APP扫码授权。授权成功后，账号将自动同步。"
+          description="点击「添加账号」选择平台后，使用对应APP扫码即可授权。授权成功后，系统将自动管理账号并执行自动化任务。"
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
@@ -294,76 +234,60 @@ export default function OAuthPage() {
           dataSource={accounts}
           rowKey="id"
           loading={loading}
-          locale={{ emptyText: '暂无授权账号，请点击右上角「添加账号」' }}
+          pagination={false}
         />
       </Card>
 
-      {/* 添加账号弹窗 */}
+      {/* 授权弹窗 */}
       <Modal
-        title="添加账号"
+        title={
+          <Space>
+            <span>{currentPlatform?.icon}</span>
+            <span>授权 {currentPlatform?.name}</span>
+          </Space>
+        }
         open={oauthModalVisible}
-        onCancel={handleCancelOAuth}
+        onCancel={() => {
+          setOauthModalVisible(false);
+          setPolling(false);
+        }}
         footer={null}
-        width={600}
+        width={500}
       >
-        {!selectedPlatform ? (
-          <div>
-            <Title level={5}>选择平台</Title>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 16 }}>
-              {PLATFORMS.map(platform => (
-                <Card
-                  key={platform.code}
-                  hoverable
-                  onClick={() => handleOpenOAuth(platform.code)}
-                  style={{ textAlign: 'center' }}
-                  bodyStyle={{ padding: 16 }}
-                >
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>{platform.icon}</div>
-                  <div>{platform.name}</div>
-                </Card>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '20px 0' }}>
-            <Title level={4}>
-              {PLATFORMS.find(p => p.code === selectedPlatform)?.icon}{' '}
-              {PLATFORMS.find(p => p.code === selectedPlatform)?.name} 授权
-            </Title>
-            
-            {oauthSession?.qrcodeUrl ? (
-              <div style={{ margin: '20px 0' }}>
-                <Card bordered={false} style={{ display: 'inline-block', background: '#f5f5f5' }}>
-                  <img src={oauthSession.qrcodeUrl} alt="授权二维码" style={{ width: 200, height: 200 }} />
-                </Card>
-                <div style={{ marginTop: 16 }}>
-                  <Text type="secondary">请使用{PLATFORMS.find(p => p.code === selectedPlatform)?.name}APP扫码授权</Text>
-                </div>
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          {oauthSession?.qrCode ? (
+            <>
+              <QRCode value={oauthSession.qrCode} size={200} />
+              <div style={{ marginTop: 20 }}>
+                {oauthStatus === 'pending' && (
+                  <Space direction="vertical">
+                    <Text>请使用 {currentPlatform?.name} APP 扫码授权</Text>
+                    <Spin />
+                  </Space>
+                )}
+                {oauthStatus === 'scanning' && (
+                  <Text type="warning">已扫码，请在手机上确认授权</Text>
+                )}
+                {oauthStatus === 'confirmed' && (
+                  <Text type="success">授权成功！</Text>
+                )}
+                {oauthStatus === 'expired' && (
+                  <>
+                    <Text type="danger">二维码已过期</Text>
+                    <Button onClick={() => createOAuthSession(selectedPlatform!)} style={{ marginTop: 10 }}>
+                      重新生成二维码
+                    </Button>
+                  </>
+                )}
               </div>
-            ) : (
-              <Spin size="large" tip="正在准备授权..." />
-            )}
-
-            {oauthStatus && (
-              <div style={{ marginTop: 16 }}>
-                {oauthStatus === 'pending' && <Text>等待扫码...</Text>}
-                {oauthStatus === 'scanning' && <Text type="processing">已扫码，等待确认...</Text>}
-                {oauthStatus === 'confirmed' && <Text type="success">授权成功！</Text>}
-                {oauthStatus === 'expired' && <Text type="danger">授权已过期，请重试</Text>}
-              </div>
-            )}
-
-            {polling && (
-              <div style={{ marginTop: 8 }}>
-                <SyncOutlined spin /> 正在检查授权状态...
-              </div>
-            )}
-
-            <div style={{ marginTop: 24 }}>
-              <Button onClick={handleCancelOAuth}>取消</Button>
-            </div>
-          </div>
-        )}
+            </>
+          ) : (
+            <Space direction="vertical">
+              <Spin size="large" />
+              <Text>正在生成授权二维码...</Text>
+            </Space>
+          )}
+        </div>
       </Modal>
     </div>
   );
