@@ -2,23 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/services/api';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
-} from '@/components/ui/table';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
-} from '@/components/ui/dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { RefreshCw, Plus, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Card, Table, Button, Modal, Form, Input, Select, Switch, Space, message, Tag, Popconfirm, Typography, Divider, Alert } from 'antd';
+
+const { Text, Title } = Typography;
+const { TextArea } = Input;
 
 interface ApiProvider {
   id: string;
@@ -34,10 +21,10 @@ interface ApiProvider {
 }
 
 const providerTypes = [
-  { value: 'coze', label: '扣子 (Coze)' },
-  { value: 'volcengine', label: '火山引擎' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'custom', label: '自定义' }
+  { value: 'coze', label: '扣子 (Coze)', color: 'blue' },
+  { value: 'volcengine', label: '火山引擎', color: 'red' },
+  { value: 'openai', label: 'OpenAI', color: 'green' },
+  { value: 'custom', label: '自定义', color: 'default' },
 ];
 
 export default function ApiProvidersPage() {
@@ -45,16 +32,8 @@ export default function ApiProvidersPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<ApiProvider | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'coze',
-    baseUrl: '',
-    apiKey: '',
-    enabled: true,
-    isDefault: false,
-    priority: 0,
-    remark: ''
-  });
+  const [form] = Form.useForm();
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchProviders();
@@ -63,306 +42,195 @@ export default function ApiProvidersPage() {
   const fetchProviders = async () => {
     try {
       setLoading(true);
-      const res = await api.get<{ data: ApiProvider[] }>('/admin/api-providers/providers');
-      setProviders(res.data || []);
-    } catch (error: any) {
-      toast.error(error.message || '获取服务商列表失败');
+      const res = await api.get('/admin/api-providers/providers');
+      if (res.data) {
+        setProviders(res.data);
+      }
+    } catch (error) {
+      console.error('获取API服务商失败:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenDialog = (provider?: ApiProvider) => {
-    if (provider) {
-      setEditingProvider(provider);
-      setFormData({
-        name: provider.name,
-        type: provider.type,
-        baseUrl: provider.baseUrl,
-        apiKey: provider.apiKey, // 显示为 ******
-        enabled: provider.enabled,
-        isDefault: provider.isDefault,
-        priority: provider.priority,
-        remark: provider.remark || ''
-      });
-    } else {
-      setEditingProvider(null);
-      setFormData({
-        name: '',
-        type: 'coze',
-        baseUrl: '',
-        apiKey: '',
-        enabled: true,
-        isDefault: false,
-        priority: 0,
-        remark: ''
-      });
-    }
+  const handleAdd = () => {
+    setEditingProvider(null);
+    form.resetFields();
     setDialogOpen(true);
+  };
+
+  const handleEdit = (record: ApiProvider) => {
+    setEditingProvider(record);
+    form.setFieldsValue(record);
+    setDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/admin/api-providers/providers/${id}`);
+      message.success('删除成功');
+      fetchProviders();
+    } catch (error) {
+      message.error('删除失败');
+    }
+  };
+
+  const handleSetDefault = async (id: string) => {
+    try {
+      await api.put(`/admin/api-providers/providers/${id}`, { isDefault: true });
+      message.success('设置成功');
+      fetchProviders();
+    } catch (error) {
+      message.error('设置失败');
+    }
   };
 
   const handleSubmit = async () => {
     try {
-      if (!formData.name || !formData.baseUrl) {
-        toast.error('请填写必填项');
-        return;
-      }
-
+      const values = await form.validateFields();
+      setSaving(true);
+      
       if (editingProvider) {
-        await api.put(`/admin/api-providers/providers/${editingProvider.id}`, formData);
-        toast.success('更新成功');
+        await api.put(`/admin/api-providers/providers/${editingProvider.id}`, values);
+        message.success('更新成功');
       } else {
-        await api.post('/admin/api-providers/providers', formData);
-        toast.success('创建成功');
+        await api.post('/admin/api-providers/providers', values);
+        message.success('创建成功');
       }
-
+      
       setDialogOpen(false);
       fetchProviders();
-    } catch (error: any) {
-      toast.error(error.message || '操作失败');
+    } catch (error) {
+      message.error('保存失败');
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDelete = async (provider: ApiProvider) => {
-    if (!confirm(`确定要删除服务商「${provider.name}」吗？`)) return;
-
-    try {
-      await api.delete(`/admin/api-providers/providers/${provider.id}`);
-      toast.success('删除成功');
-      fetchProviders();
-    } catch (error: any) {
-      toast.error(error.message || '删除失败');
-    }
-  };
-
-  const handleSetDefault = async (provider: ApiProvider) => {
-    try {
-      await api.put(`/admin/api-providers/providers/${provider.id}`, {
-        ...provider,
-        isDefault: true
-      });
-      toast.success('已设为默认');
-      fetchProviders();
-    } catch (error: any) {
-      toast.error(error.message || '设置失败');
-    }
-  };
+  const columns = [
+    { title: '名称', dataIndex: 'name', key: 'name', width: 120 },
+    { 
+      title: '类型', 
+      dataIndex: 'type', 
+      key: 'type',
+      width: 120,
+      render: (type: string) => {
+        const provider = providerTypes.find(p => p.value === type);
+        return <Tag color={provider?.color}>{provider?.label || type}</Tag>;
+      }
+    },
+    { title: 'Base URL', dataIndex: 'baseUrl', key: 'baseUrl', width: 200, ellipsis: true },
+    { 
+      title: 'API Key', 
+      dataIndex: 'apiKey', 
+      key: 'apiKey',
+      width: 150,
+      ellipsis: true,
+      render: (text: string) => <Text copyable={{ text: text }}>{text ? '******' + text.slice(-4) : '-'}</Text>
+    },
+    { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80 },
+    { 
+      title: '默认', 
+      dataIndex: 'isDefault', 
+      key: 'isDefault',
+      width: 80,
+      render: (isDefault: boolean) => isDefault ? <Tag color="green">默认</Tag> : null
+    },
+    { 
+      title: '状态', 
+      dataIndex: 'enabled', 
+      key: 'enabled',
+      width: 80,
+      render: (enabled: boolean) => <Tag color={enabled ? 'green' : 'red'}>{enabled ? '启用' : '禁用'}</Tag>
+    },
+    { title: '备注', dataIndex: 'remark', key: 'remark', ellipsis: true },
+    {
+      title: '操作',
+      key: 'action',
+      width: 180,
+      render: (_: any, record: ApiProvider) => (
+        <Space size="small">
+          <Button type="link" size="small" onClick={() => handleEdit(record)}>编辑</Button>
+          {!record.isDefault && (
+            <Button type="link" size="small" onClick={() => handleSetDefault(record.id)}>设为默认</Button>
+          )}
+          <Popconfirm title="确定删除？" onConfirm={() => handleDelete(record.id)}>
+            <Button type="link" size="small" danger>删除</Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">API 服务商配置</h1>
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="w-4 h-4 mr-2" />
-          添加服务商
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="w-5 h-5" />
-            服务商列表
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="text-center py-8 text-gray-500">加载中...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>名称</TableHead>
-                  <TableHead>类型</TableHead>
-                  <TableHead>API地址</TableHead>
-                  <TableHead>优先级</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>默认</TableHead>
-                  <TableHead>操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {providers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                      暂无服务商
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  providers.map((provider) => (
-                    <TableRow key={provider.id}>
-                      <TableCell className="font-medium">{provider.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {providerTypes.find(t => t.value === provider.type)?.label || provider.type}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-500 max-w-xs truncate">
-                        {provider.baseUrl}
-                      </TableCell>
-                      <TableCell>{provider.priority}</TableCell>
-                      <TableCell>
-                        {provider.enabled ? (
-                          <Badge className="bg-green-500">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            启用
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            <XCircle className="w-3 h-3 mr-1" />
-                            禁用
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {provider.isDefault && (
-                          <Badge className="bg-blue-500">默认</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleOpenDialog(provider)}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          {!provider.isDefault && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleSetDefault(provider)}
-                            >
-                              设为默认
-                            </Button>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleDelete(provider)}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
+    <div style={{ padding: 24 }}>
+      <Card 
+        title={<Title level={4}>API服务商配置</Title>}
+        extra={
+          <Button type="primary" onClick={handleAdd}>
+            添加服务商
+          </Button>
+        }
+      >
+        <Alert
+          message="配置说明"
+          description="在这里配置AI服务商（如扣子、火山引擎等）的API信息。默认服务商将优先使用。"
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        
+        <Table
+          columns={columns}
+          dataSource={providers}
+          rowKey="id"
+          loading={loading}
+          pagination={{ pageSize: 10 }}
+        />
       </Card>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProvider ? '编辑服务商' : '添加服务商'}
-            </DialogTitle>
-          </DialogHeader>
+      <Modal
+        title={editingProvider ? '编辑服务商' : '添加服务商'}
+        open={dialogOpen}
+        onCancel={() => setDialogOpen(false)}
+        onOk={handleSubmit}
+        confirmLoading={saving}
+        width={600}
+      >
+        <Form form={form} layout="vertical">
+          <Form.Item name="name" label="名称" rules={[{ required: true }]}>
+            <Input placeholder="如：扣子-生产环境" />
+          </Form.Item>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>名称 *</Label>
-              <Input 
-                value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                placeholder="如：扣子官方"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>类型 *</Label>
-              <Select 
-                value={formData.type} 
-                onValueChange={(value) => setFormData({...formData, type: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {providerTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>API地址 *</Label>
-              <Input 
-                value={formData.baseUrl}
-                onChange={(e) => setFormData({...formData, baseUrl: e.target.value})}
-                placeholder="https://api.coze.cn/v1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>API Key {editingProvider ? '(留空则不修改)' : '*'}</Label>
-              <Input 
-                type="password"
-                value={formData.apiKey}
-                onChange={(e) => setFormData({...formData, apiKey: e.target.value})}
-                placeholder={editingProvider ? '******' : '输入API Key'}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>优先级</Label>
-              <Input 
-                type="number"
-                value={formData.priority}
-                onChange={(e) => setFormData({...formData, priority: parseInt(e.target.value) || 0})}
-                placeholder="数字越小优先级越高"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>备注</Label>
-              <Input 
-                value={formData.remark}
-                onChange={(e) => setFormData({...formData, remark: e.target.value})}
-                placeholder="可选备注"
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.enabled}
-                  onChange={(e) => setFormData({...formData, enabled: e.target.checked})}
-                  className="w-4 h-4"
-                />
-                <span>启用</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isDefault}
-                  onChange={(e) => setFormData({...formData, isDefault: e.target.checked})}
-                  className="w-4 h-4"
-                />
-                <span>设为默认</span>
-              </label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleSubmit}>
-              {editingProvider ? '保存' : '创建'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <Form.Item name="type" label="类型" rules={[{ required: true }]}>
+            <Select>
+              {providerTypes.map(p => (
+                <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          
+          <Form.Item name="baseUrl" label="Base URL" rules={[{ required: true }]}>
+            <Input placeholder="如：https://ark.cn-beijing.volces.com/api/v3" />
+          </Form.Item>
+          
+          <Form.Item name="apiKey" label="API Key" rules={[{ required: true }]}>
+            <Input.Password placeholder="输入API Key" />
+          </Form.Item>
+          
+          <Form.Item name="priority" label="优先级" initialValue={100}>
+            <Input type="number" placeholder="数字越小优先级越高" />
+          </Form.Item>
+          
+          <Form.Item name="remark" label="备注">
+            <TextArea rows={2} placeholder="备注信息（可选）" />
+          </Form.Item>
+          
+          <Form.Item name="enabled" label="启用" valuePropName="checked" initialValue={true}>
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }
