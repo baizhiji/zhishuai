@@ -23,6 +23,7 @@
     "extra": {
       "eas": {}
     },
-    "newArchEnabled": false
+    "newArchEnabled": false,
+    "jsEngine": "hermes"
   }
 }
