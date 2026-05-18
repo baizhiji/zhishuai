@@ -77,8 +77,10 @@ const CustomerNavbar: React.FC = () => {
       label: '招聘助手',
       icon: <CustomerServiceOutlined />,
       children: [
+        { key: 'recruit-platforms', label: '平台授权', path: '/customer/recruitment/platforms' },
         { key: 'recruit-post', label: '发布职位', path: '/recruitment/posts' },
         { key: 'recruit-resume', label: '简历管理', path: '/recruitment/resumes' },
+        { key: 'recruit-auto', label: '自动沟通', path: '/recruitment/auto' },
         { key: 'recruit-interview', label: '面试管理', path: '/customer/interview' },
         { key: 'recruit-dashboard', label: '招聘看板', path: '/customer/recruitment-dashboard' },
       ],
