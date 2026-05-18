@@ -39,6 +39,9 @@ model User {
   // 功能开关关联
   featureSwitches    UserFeatureSwitch[]
   
+  // 定时任务关联
+  scheduledTasks     ScheduledTask[]
+  
   // 代理商关联
   agent              Agent?
   agentRelation      UserAgentRelation?
@@ -261,6 +264,37 @@ model PublishedContent {
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+// 定时发布任务
+model ScheduledTask {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // 内容信息
+  title         String
+  content       String
+  images        String[]  // 图片URL列表
+  
+  // 发布目标
+  platform      String    // douyin, kuaishou, xiaohongshu
+  accountId     String    // 社交账号ID
+  
+  // 定时信息
+  scheduledTime DateTime  // 定时发布时间
+  status        String    @default("pending") // pending, running, completed, failed, cancelled
+  
+  // 执行结果
+  result        String?   // 执行结果信息
+  publishedAt   DateTime? // 实际发布时间
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledTime])
 }
 
 model Notification {

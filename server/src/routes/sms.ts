@@ -200,10 +200,9 @@ router.post(
   }
 );
 
-// 获取短信配置（仅管理员）
-router.get('/config', async (req, res) => {
+// 获取所有短信配置列表
+router.get('/configs', async (req, res) => {
   try {
-    // 检查是否为管理员
     if (req.user?.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -212,7 +211,10 @@ router.get('/config', async (req, res) => {
     }
 
     const configs = await prisma.smsConfig.findMany({
-      orderBy: { isDefault: 'desc' },
+      orderBy: [
+        { isDefault: 'desc' },
+        { createdAt: 'desc' },
+      ],
     });
 
     // 隐藏敏感信息
@@ -235,21 +237,57 @@ router.get('/config', async (req, res) => {
   }
 });
 
-// 更新短信配置（仅管理员）
-router.put(
+// 获取单个短信配置
+router.get('/config/:id', async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: '仅管理员可查看',
+      });
+    }
+
+    const config = await prisma.smsConfig.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!config) {
+      return res.status(404).json({
+        success: false,
+        message: '配置不存在',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        ...config,
+        accessKeyId: config.accessKeyId ? '***' + config.accessKeyId.slice(-4) : null,
+        accessKeySecret: config.accessKeySecret ? '***' : null,
+      },
+    });
+  } catch (error: any) {
+    console.error('获取短信配置失败:', error);
+    return res.status(500).json({
+      success: false,
+      message: '服务器错误',
+    });
+  }
+});
+
+// 创建短信配置
+router.post(
   '/config',
   [
+    body('name').notEmpty().withMessage('请输入配置名称'),
     body('provider').isIn(['aliyun', 'tencent']).withMessage('无效的服务商'),
     body('accessKeyId').notEmpty().withMessage('请输入访问密钥ID'),
     body('accessKeySecret').notEmpty().withMessage('请输入访问密钥密钥'),
     body('signName').notEmpty().withMessage('请输入签名'),
     body('templateCode').notEmpty().withMessage('请输入模板CODE'),
-    body('enabled').optional().isBoolean(),
-    body('isDefault').optional().isBoolean(),
   ],
   async (req, res) => {
     try {
-      // 检查是否为管理员
       if (req.user?.role !== 'admin') {
         return res.status(403).json({
           success: false,
@@ -262,7 +300,7 @@ router.put(
         return res.status(400).json({ success: false, errors: errors.array() });
       }
 
-      const { provider, accessKeyId, accessKeySecret, signName, templateCode, enabled, isDefault } = req.body;
+      const { name, provider, accessKeyId, accessKeySecret, signName, templateCode, enabled, isDefault } = req.body;
 
       // 如果设为默认，先取消其他默认
       if (isDefault) {
@@ -272,41 +310,80 @@ router.put(
         });
       }
 
-      // 查找或创建配置
-      const existing = await prisma.smsConfig.findUnique({
-        where: { provider },
+      const config = await prisma.smsConfig.create({
+        data: {
+          name,
+          provider,
+          accessKeyId,
+          accessKeySecret,
+          signName,
+          templateCode,
+          enabled: enabled !== false,
+          isDefault: isDefault || false,
+        },
       });
-
-      let config;
-      if (existing) {
-        config = await prisma.smsConfig.update({
-          where: { provider },
-          data: {
-            accessKeyId,
-            accessKeySecret,
-            signName,
-            templateCode,
-            enabled: enabled !== false,
-            isDefault: isDefault || !existing.enabled,
-          },
-        });
-      } else {
-        config = await prisma.smsConfig.create({
-          data: {
-            provider,
-            accessKeyId,
-            accessKeySecret,
-            signName,
-            templateCode,
-            enabled: enabled !== false,
-            isDefault: isDefault || true,
-          },
-        });
-      }
 
       return res.json({
         success: true,
-        message: '配置成功',
+        message: '创建成功',
+        data: {
+          ...config,
+          accessKeySecret: '***',
+        },
+      });
+    } catch (error: any) {
+      console.error('创建短信配置失败:', error);
+      return res.status(500).json({
+        success: false,
+        message: '服务器错误',
+      });
+    }
+  }
+);
+
+// 更新短信配置
+router.put(
+  '/config/:id',
+  [
+    body('provider').optional().isIn(['aliyun', 'tencent']).withMessage('无效的服务商'),
+  ],
+  async (req, res) => {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: '仅管理员可配置',
+        });
+      }
+
+      const { name, provider, accessKeyId, accessKeySecret, signName, templateCode, enabled, isDefault } = req.body;
+
+      // 如果设为默认，先取消其他默认
+      if (isDefault) {
+        await prisma.smsConfig.updateMany({
+          where: { isDefault: true },
+          data: { isDefault: false },
+        });
+      }
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (provider !== undefined) updateData.provider = provider;
+      if (accessKeyId !== undefined) updateData.accessKeyId = accessKeyId;
+      if (accessKeySecret !== undefined) updateData.accessKeySecret = accessKeySecret;
+      if (signName !== undefined) updateData.signName = signName;
+      if (templateCode !== undefined) updateData.templateCode = templateCode;
+      if (enabled !== undefined) updateData.enabled = enabled;
+      if (isDefault !== undefined) updateData.isDefault = isDefault;
+
+      const config = await prisma.smsConfig.update({
+        where: { id: req.params.id },
+        data: updateData,
+      });
+
+      return res.json({
+        success: true,
+        message: '更新成功',
         data: {
           ...config,
           accessKeySecret: '***',
@@ -322,8 +399,123 @@ router.put(
   }
 );
 
+// 删除短信配置
+router.delete('/config/:id', async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: '仅管理员可删除',
+      });
+    }
+
+    await prisma.smsConfig.delete({
+      where: { id: req.params.id },
+    });
+
+    return res.json({
+      success: true,
+      message: '删除成功',
+    });
+  } catch (error: any) {
+    console.error('删除短信配置失败:', error);
+    return res.status(500).json({
+      success: false,
+      message: '服务器错误',
+    });
+  }
+);
+
+// 设为默认配置
+router.post('/config/:id/default', async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: '仅管理员可操作',
+      });
+    }
+
+    // 取消所有默认
+    await prisma.smsConfig.updateMany({
+      where: { isDefault: true },
+      data: { isDefault: false },
+    });
+
+    // 设置新默认
+    await prisma.smsConfig.update({
+      where: { id: req.params.id },
+      data: { isDefault: true },
+    });
+
+    return res.json({
+      success: true,
+      message: '设置默认成功',
+    });
+  } catch (error: any) {
+    console.error('设置默认配置失败:', error);
+    return res.status(500).json({
+      success: false,
+      message: '服务器错误',
+    });
+  }
+});
+
+// 获取发送日志
+router.get('/logs', async (req, res) => {
+  try {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: '仅管理员可查看',
+      });
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = parseInt(req.query.pageSize as string) || 20;
+    const skip = (page - 1) * pageSize;
+
+    const where: any = {};
+    if (req.query.phone) {
+      where.phone = { contains: req.query.phone as string };
+    }
+    if (req.query.type) {
+      where.type = req.query.type;
+    }
+    if (req.query.status) {
+      where.status = req.query.status;
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.smsLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.smsLog.count({ where }),
+    ]);
+
+    return res.json({
+      success: true,
+      data: {
+        list: logs,
+        total,
+        page,
+        pageSize,
+      },
+    });
+  } catch (error: any) {
+    console.error('获取发送日志失败:', error);
+    return res.status(500).json({
+      success: false,
+      message: '服务器错误',
+    });
+  }
+});
+
 // 测试短信配置
-router.post('/config/test', async (req, res) => {
+router.post('/config/:id/test', async (req, res) => {
   try {
     if (req.user?.role !== 'admin') {
       return res.status(403).json({
@@ -340,15 +532,14 @@ router.post('/config/test', async (req, res) => {
       });
     }
 
-    const smsConfig = await prisma.smsConfig.findFirst({
-      where: { enabled: true },
-      orderBy: { isDefault: 'desc' },
+    const smsConfig = await prisma.smsConfig.findUnique({
+      where: { id: req.params.id },
     });
 
     if (!smsConfig) {
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: '请先配置短信服务',
+        message: '配置不存在',
       });
     }
 

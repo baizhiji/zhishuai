@@ -21,6 +21,9 @@ import smsRoutes from './routes/sms';
 import oauthRoutes from './routes/oauth';
 import socialAccountRoutes from './routes/social-account';
 import contentPublishRoutes from './routes/content-publish';
+import agentRoutes from './routes/agent';
+import scheduleRoutes from './routes/schedule';
+import hotTopicsRoutes from './routes/hot-topics';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -57,6 +60,15 @@ app.use('/api/admin/api-providers', adminApiProvidersRoutes);
 
 // 用户功能开关（Customer / APK 使用）
 app.use('/api/features', userFeaturesRoutes);
+
+// Agent 代理商客户管理
+app.use('/api/agent', agentRoutes);
+
+// 定时发布任务
+app.use('/api/schedule', scheduleRoutes);
+
+// 热点话题
+app.use('/api/hot-topics', hotTopicsRoutes);
 
 // 短信服务
 app.use('/api/sms', smsRoutes);
