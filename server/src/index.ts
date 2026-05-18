@@ -16,6 +16,7 @@ import adminFeaturesRoutes from './routes/admin-features';
 import adminAgentsRoutes from './routes/admin-agents';
 import adminBrandingRoutes from './routes/admin-branding';
 import userFeaturesRoutes from './routes/user-features';
+import adminApiProvidersRoutes from './routes/admin-api-providers';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -48,6 +49,7 @@ app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/admin', adminFeaturesRoutes);
 app.use('/api/admin', adminAgentsRoutes);
 app.use('/api/admin', adminBrandingRoutes);
+app.use('/api/admin/api-providers', adminApiProvidersRoutes);
 
 // 用户功能开关（Customer / APK 使用）
 app.use('/api/features', userFeaturesRoutes);

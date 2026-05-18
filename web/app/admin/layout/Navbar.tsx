@@ -11,6 +11,7 @@ import {
   BarChartOutlined,
   ToolOutlined,
   FileTextOutlined,
+  ApiOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -46,6 +47,12 @@ const AdminNavbar: React.FC = () => {
       icon: <BgColorsOutlined />,
       label: '贴牌配置',
       path: '/admin/branding',
+    },
+    {
+      key: 'api-providers',
+      icon: <ApiOutlined />,
+      label: 'API服务商',
+      path: '/admin/api-providers',
     },
     {
       key: 'config',

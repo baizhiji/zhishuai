@@ -410,3 +410,53 @@ model AdminLog {
   userAgent   String?             // 浏览器UA
   createdAt   DateTime  @default(now())
 }
+
+// API服务商表
+model ApiProvider {
+  id          String    @id @default(uuid())
+  name        String    @unique           // 服务商名称
+  type        String    @default("coze")  // coze, volcengine, openai, custom
+  baseUrl     String                     // API地址
+  apiKey      String                     // API密钥（加密存储）
+  enabled     Boolean   @default(true)    // 是否启用
+  isDefault   Boolean   @default(false)  // 是否默认
+  priority    Int      @default(0)        // 优先级（数字越小优先级越高）
+  config      Json?                      // 其他配置（模型列表等）
+  remark      String?                    // 备注
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// 代理商API配置表（覆盖系统默认配置）
+model AgentApiConfig {
+  id          String    @id @default(uuid())
+  agentId     String    @unique           // 代理商ID（关联User）
+  providerId  String                     // 指定的API服务商ID
+  apiKey      String                     // 代理商自己的API密钥
+  enabled     Boolean   @default(true)    // 是否启用
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([agentId])
+}
+
+// API使用日志表
+model ApiUsageLog {
+  id          String    @id @default(uuid())
+  userId      String                     // 用户ID
+  agentId     String?                    // 代理商ID
+  providerId  String                     // 使用的服务商ID
+  providerName String                    // 服务商名称
+  endpoint    String                     // 调用的端点
+  model       String?                    // 使用的模型
+  requestTokens Int?                    // 请求Token数
+  responseTokens Int?                   // 响应Token数
+  cost        Decimal?   @default(0)     // 费用
+  duration    Int?                       // 耗时(ms)
+  status      String    @default("success") // success, failed
+  errorMsg    String?                    // 错误信息
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([agentId, createdAt])
+}
