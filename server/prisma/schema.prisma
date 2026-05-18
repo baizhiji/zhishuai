@@ -460,3 +460,38 @@ model ApiUsageLog {
   @@index([userId, createdAt])
   @@index([agentId, createdAt])
 }
+
+// 短信发送记录表
+model SmsLog {
+  id          String    @id @default(uuid())
+  phone       String                     // 手机号
+  type        String                     // 类型: register, login, forgot_password, verify
+  code        String                     // 验证码
+  expiresAt   DateTime                   // 过期时间
+  used        Boolean   @default(false)  // 是否已使用
+  usedAt      DateTime?                  // 使用时间
+  ip          String?                    // 请求IP
+  userId      String?                    // 用户ID（登录/注册后）
+  status      String    @default("pending") // pending, sent, verified, expired, failed
+  errorMsg    String?                    // 错误信息
+  provider    String    @default("aliyun") // 短信服务商: aliyun, tencent
+  createdAt   DateTime  @default(now())
+  
+  @@index([phone, createdAt])
+  @@index([code, type])
+}
+
+// 短信配置表
+model SmsConfig {
+  id          String    @id @default(uuid())
+  provider    String    @unique           // 服务商: aliyun, tencent
+  accessKeyId String                     // 访问密钥ID（加密存储）
+  accessKeySecret String                  // 访问密钥密钥（加密存储）
+  signName    String                     // 签名名称
+  templateCode String                    // 模板CODE
+  enabled     Boolean   @default(true)    // 是否启用
+  isDefault   Boolean   @default(false)  // 是否默认
+  config      Json?                      // 其他配置
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

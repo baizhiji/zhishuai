@@ -17,6 +17,7 @@ import adminAgentsRoutes from './routes/admin-agents';
 import adminBrandingRoutes from './routes/admin-branding';
 import userFeaturesRoutes from './routes/user-features';
 import adminApiProvidersRoutes from './routes/admin-api-providers';
+import smsRoutes from './routes/sms';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -53,6 +54,9 @@ app.use('/api/admin/api-providers', adminApiProvidersRoutes);
 
 // 用户功能开关（Customer / APK 使用）
 app.use('/api/features', userFeaturesRoutes);
+
+// 短信服务
+app.use('/api/sms', smsRoutes);
 
 // 健康检查
 app.get('/api/health', (req, res) => {

@@ -1,27 +1,104 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware, generateToken, hashPassword, verifyPassword } from '../middleware/auth';
+import { generateCode, sendSms } from '../services/sms.service';
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// 发送验证码（Mock实现）
+// 发送验证码
 router.post('/send-code', async (req: Request, res: Response) => {
   try {
-    const { phone } = req.body;
+    const { phone, type = 'register' } = req.body;
     
     if (!phone) {
       return res.status(400).json({ error: '请输入手机号' });
     }
 
-    // Mock: 生成6位验证码
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // 实际应该发送短信，这里Mock存储
-    console.log(`验证码 ${code} 已发送到 ${phone}`);
-    
-    res.json({ success: true, message: '验证码已发送', code }); // 开发环境返回验证码
+    // 手机号格式验证
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({ error: '请输入正确的手机号' });
+    }
+
+    // 检查发送频率（60秒内只能发送一次）
+    const recentCode = await prisma.smsLog.findFirst({
+      where: {
+        phone,
+        type,
+        createdAt: { gte: new Date(Date.now() - 60 * 1000) },
+      },
+    });
+
+    if (recentCode) {
+      return res.status(400).json({ error: '发送太频繁，请稍后再试' });
+    }
+
+    // 获取短信配置
+    const smsConfig = await prisma.smsConfig.findFirst({
+      where: { enabled: true },
+      orderBy: { isDefault: 'desc' },
+    });
+
+    if (!smsConfig) {
+      // 如果没有配置短信，使用开发模式（仅返回验证码）
+      const code = generateCode();
+      console.log(`开发模式：验证码 ${code} 已发送到 ${phone}`);
+      
+      // 开发环境也记录到数据库
+      await prisma.smsLog.create({
+        data: {
+          phone,
+          type,
+          code,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+          status: 'sent',
+          ip: req.ip,
+          provider: 'development',
+        },
+      });
+      
+      return res.json({ success: true, message: '验证码已发送', code });
+    }
+
+    // 生成验证码
+    const code = generateCode();
+
+    // 发送短信
+    const result = await sendSms({
+      provider: smsConfig.provider as 'aliyun' | 'tencent',
+      phone,
+      code,
+      signName: smsConfig.signName,
+      templateCode: smsConfig.templateCode,
+      accessKeyId: smsConfig.accessKeyId,
+      accessKeySecret: smsConfig.accessKeySecret,
+    });
+
+    // 记录发送日志
+    await prisma.smsLog.create({
+      data: {
+        phone,
+        type,
+        code,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        status: result.success ? 'sent' : 'failed',
+        errorMsg: result.error || null,
+        ip: req.ip,
+        provider: smsConfig.provider,
+      },
+    });
+
+    if (result.success) {
+      // 开发环境返回验证码方便测试
+      if (process.env.NODE_ENV === 'development') {
+        return res.json({ success: true, message: '验证码已发送', code });
+      }
+      return res.json({ success: true, message: '验证码已发送' });
+    } else {
+      return res.status(500).json({ error: result.error || '发送失败' });
+    }
   } catch (error: any) {
+    console.error('发送验证码失败:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -33,6 +110,38 @@ router.post('/register', async (req: Request, res: Response) => {
     
     if (!phone || !password) {
       return res.status(400).json({ error: '请填写完整信息' });
+    }
+
+    // 如果有验证码配置，验证验证码
+    const smsConfig = await prisma.smsConfig.findFirst({
+      where: { enabled: true },
+    });
+
+    let usedSmsLogId: string | null = null;
+
+    if (smsConfig && code) {
+      const smsLog = await prisma.smsLog.findFirst({
+        where: {
+          phone,
+          type: 'register',
+          code,
+          expiresAt: { gt: new Date() },
+          used: false,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!smsLog) {
+        return res.status(400).json({ error: '验证码错误或已过期' });
+      }
+
+      usedSmsLogId = smsLog.id;
+      
+      // 标记验证码已使用
+      await prisma.smsLog.update({
+        where: { id: smsLog.id },
+        data: { used: true, usedAt: new Date(), status: 'verified' },
+      });
     }
 
     // 检查用户是否已存在
@@ -51,6 +160,14 @@ router.post('/register', async (req: Request, res: Response) => {
         status: 'active',
       },
     });
+
+    // 关联短信记录
+    if (usedSmsLogId) {
+      await prisma.smsLog.update({
+        where: { id: usedSmsLogId },
+        data: { userId: user.id },
+      });
+    }
 
     const token = generateToken(user.id, user.role);
 
