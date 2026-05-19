@@ -27,7 +27,7 @@ export default function AnnouncementManagementPage() {
     try {
       const res = await getAnnouncements({ page, pageSize });
       setAnnouncements(res.data || []);
-      setPagination({ total: res.total || 0, page, pageSize });
+      setPagination({ total: res.data.total || 0, page, pageSize });
     } catch (error) {
       message.error('加载公告列表失败');
     } finally {
