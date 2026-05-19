@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
 import AuthGuard from '@/components/auth/AuthGuard'
@@ -10,7 +10,12 @@ export const metadata: Metadata = {
   description: '一站式智能商业平台，集成自媒体、招聘、获客、推荐分享等全场景功能',
   keywords: 'AI,自媒体,招聘,获客,推荐,智枢AI',
   authors: [{ name: '智枢AI' }],
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({
