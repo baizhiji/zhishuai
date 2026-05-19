@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Layout } from 'antd';
-import Navbar from '@/components/layout/Navbar';
+import Navbar from './layout/Navbar';
 
 const { Content } = Layout;
 
