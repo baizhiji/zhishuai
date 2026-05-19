@@ -139,7 +139,7 @@ export default function BrandingPage() {
             welcomeText: '欢迎使用智枢AI',
           }}
         >
-          <Divider orientation="left" as const>
+          <Divider orientation={"left" as any}>
             <GlobalOutlined /> 基础配置
           </Divider>
 
@@ -170,7 +170,7 @@ export default function BrandingPage() {
             />
           </Form.Item>
 
-          <Divider orientation="left" as const>
+          <Divider orientation={"left" as any}>
             <UploadOutlined /> LOGO配置
           </Divider>
 
@@ -206,7 +206,7 @@ export default function BrandingPage() {
             <Input placeholder="Favicon图标URL" />
           </Form.Item>
 
-          <Divider orientation="left" as const>
+          <Divider orientation={"left" as any}>
             <BgColorsOutlined /> 主题配置
           </Divider>
 

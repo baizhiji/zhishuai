@@ -1,8 +1,8 @@
-import axios from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-const instance = axios.create({
+const instance: AxiosInstance = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
   headers: {
@@ -41,11 +41,16 @@ instance.interceptors.response.use(
 );
 
 export const request = {
-  get: (url: string, params?: any) => instance.get(url, { params }),
-  post: (url: string, data?: any) => instance.post(url, data),
-  put: (url: string, data?: any) => instance.put(url, data),
-  delete: (url: string, data?: any) => instance.delete(url, { data }),
-  patch: (url: string, data?: any) => instance.patch(url, data),
+  get: <T = any, R = any>(url: string, params?: any, config?: AxiosRequestConfig) => 
+    instance.get<T, R>(url, { params, ...config }),
+  post: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+    instance.post<T, R>(url, data, config),
+  put: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+    instance.put<T, R>(url, data, config),
+  delete: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+    instance.delete<T, R>(url, { params: data, ...config }),
+  patch: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
+    instance.patch<T, R>(url, data, config),
 };
 
 export default request;

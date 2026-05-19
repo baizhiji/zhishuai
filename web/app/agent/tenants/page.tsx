@@ -21,6 +21,7 @@ import {
   Divider,
   Descriptions,
   Checkbox,
+  Select,
 } from 'antd'
 import {
   LockOutlined,
@@ -29,6 +30,7 @@ import {
   ReloadOutlined,
   UserOutlined,
   TeamOutlined,
+  SettingOutlined,
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
@@ -112,11 +114,11 @@ export default function AgentTenantsPage() {
           users: c._count?.users || 0,
           userId: c.userId
         }))
-        setCustomers(customersData)
-        if (res.data.pagination) {
+        setCustomers(customersData as any)
+        if ((res.data as any).pagination) {
           setPagination(prev => ({
             ...prev,
-            total: res.data.pagination?.total || 0
+            total: (res.data as any).pagination?.total || 0
           }))
         }
       }
@@ -405,7 +407,7 @@ export default function AgentTenantsPage() {
               showSizeChanger: true,
               showTotal: (total) => `共 ${total} 条记录`,
               onChange: (page, pageSize) => {
-                setPagination({ page, pageSize, total })
+                setPagination({ page, pageSize, total: pagination.total })
               }
             }}
             locale={{
@@ -448,7 +450,7 @@ export default function AgentTenantsPage() {
           <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true, message: '请选择有效时间' }]}>
             <Select placeholder="选择有效时间">
               {expireOptions.map(opt => (
-                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
               ))}
             </Select>
           </Form.Item>

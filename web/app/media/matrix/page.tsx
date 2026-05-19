@@ -241,7 +241,7 @@ export default function MatrixManagementPage() {
           error: { color: 'error', text: '异常' },
         }
         const { color, text } = statusMap[status as keyof typeof statusMap] || statusMap.error
-        return <Badge status={color} text={text} />
+        return <Badge status={color as any} text={text} />
       },
     },
     {

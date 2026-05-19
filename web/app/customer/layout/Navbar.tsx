@@ -165,7 +165,7 @@ const CustomerNavbar: React.FC = () => {
       item.path && pathname.startsWith(item.path)
     );
     if (current) {
-      setSelectedKey(current.key);
+      setSelectedKey(current.key as string);
     }
   }, [pathname]);
 

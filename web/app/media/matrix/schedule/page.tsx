@@ -115,7 +115,7 @@ export default function ScheduledPublishPage() {
 
   const fetchAccounts = async () => {
     try {
-      const res = await getAccounts();
+      const res = await getAccounts("") as any;
       setAccounts(res.data || []);
     } catch (error) {
       console.error('获取账号失败');

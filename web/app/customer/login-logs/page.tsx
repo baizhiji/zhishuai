@@ -268,7 +268,7 @@ export default function LoginLogsPage() {
             <Select.Option value="failed">失败</Select.Option>
           </Select>
           <RangePicker
-            onChange={(dates) => setFilters({ ...filters, dateRange: dates || undefined })}
+            onChange={(dates) => setFilters({ ...filters, dateRange: dates as [any, any] || undefined })}
           />
           <Button type="primary" onClick={fetchLogs}>查询</Button>
         </Space>

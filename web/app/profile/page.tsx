@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthAPI } from '@/services/auth';
 
 export default function ProfilePage() {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [form] = Form.useForm();
@@ -19,7 +19,7 @@ export default function ProfilePage() {
         name: user.name,
         phone: user.phone,
         email: user.email,
-        company: user.company,
+        company: (user as any)?.company,
       });
     }
   }, [user]);
@@ -31,7 +31,6 @@ export default function ProfilePage() {
       if (res.success) {
         message.success('个人信息更新成功');
         // 更新本地用户信息
-        setUser?.({ ...user, ...values });
       }
     } catch (error: any) {
       message.error(error.message || '更新失败');

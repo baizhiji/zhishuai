@@ -487,7 +487,7 @@ export default function AIChatPage() {
                           <Text
                             style={{
                               fontSize: 11,
-                              color: message.role === 'user' ? 'rgba(255,255,255,0.8)' : undefined,
+                              color: 'rgba(255,255,255,0.8)',
                             }}
                           >
                             {formatTime(message.timestamp)}
@@ -510,7 +510,7 @@ export default function AIChatPage() {
                             icon={copiedId === message.id ? <CheckOutlined /> : <CopyOutlined />}
                             onClick={() => handleCopyMessage(message.id, message.content)}
                             style={{
-                              color: message.role === 'user' ? 'rgba(255,255,255,0.8)' : undefined,
+                              color: 'rgba(255,255,255,0.8)',
                             }}
                           >
                             {copiedId === message.id ? '已复制' : '复制'}

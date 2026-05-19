@@ -22,7 +22,7 @@ export default function AgentSettlementPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`/api/settlement/stats?agentId=${user?.agentId || user?.id}`, {
+      const res = await fetch(`/api/settlement/stats?agentId=${(user as any)?.agentId || user?.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       }).then(r => r.json());
       if (res.data) {
@@ -36,7 +36,7 @@ export default function AgentSettlementPage() {
   const fetchRecords = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/settlement/records?agentId=${user?.agentId || user?.id}`, {
+      const res = await fetch(`/api/settlement/records?agentId=${(user as any)?.agentId || user?.id}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
       }).then(r => r.json());
       if (res.data) {
@@ -58,7 +58,7 @@ export default function AgentSettlementPage() {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          agentId: user?.agentId || user?.id,
+          agentId: (user as any)?.agentId || user?.id,
           amount: stats.pendingSettlement,
           bankAccount: values.bankAccount,
           bankName: values.bankName

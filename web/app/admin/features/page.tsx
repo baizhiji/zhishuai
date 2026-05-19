@@ -220,7 +220,7 @@ export default function FeatureConfigPage() {
     try {
       const res = await api.agents.getAgents({ pageSize: 100 });
       if (res.data?.data) {
-        setAgents(res.data.data);
+        setAgents((res.data as any).data as any);
       }
     } catch (error) {
       console.error('获取代理商列表失败:', error);
@@ -233,7 +233,7 @@ export default function FeatureConfigPage() {
       setLoadingCustomers(true);
       const res = await api.agents.getAgentCustomers(agentId, { pageSize: 50 });
       if (res.data?.data) {
-        setAgentCustomers(res.data.data);
+        setAgentCustomers((res.data as any).data as any);
       }
     } catch (error) {
       console.error('获取客户列表失败:', error);

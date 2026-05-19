@@ -81,7 +81,7 @@ export default function AgentPerformancePage() {
         });
       }
     } catch (error) {
-      setAgents(generateMockData());
+      setAgents(generateMockData() as any);
       setStats({
         totalAgents: 12,
         totalCustomers: 456,

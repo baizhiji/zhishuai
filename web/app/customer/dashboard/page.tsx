@@ -195,7 +195,7 @@ export default function CustomerDashboard() {
     }
   };
 
-  const recruitmentProgress: ProgressProps = {
+  const recruitmentProgress: any = {
     steps: [
       { title: '投递', value: 100 },
       { title: '筛选', value: 65 },
