@@ -156,7 +156,7 @@ export default function AdminAgentsPage() {
         }
       })
       if (res.data) {
-        const agentsData = res.data.data.map((agent: any) => ({
+        const agentsData = ((res.data as any).data as any[]).map((agent: any) => ({
           id: agent.id,
           userId: agent.userId,
           name: agent.name || agent.user?.name || '未知',
