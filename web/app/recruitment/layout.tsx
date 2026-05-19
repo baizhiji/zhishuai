@@ -1,4 +1,4 @@
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '../customer/layout/Navbar'
 
 export default function RecruitmentLayout({
   children,
