@@ -101,7 +101,7 @@ export default function AgentTenantsPage() {
         }
       })
       if (res.data) {
-        const customersData = res.data.data.map((c: any) => ({
+        const customersData = ((res.data as any).data as any[]).map((c: any) => ({
           id: c.id,
           name: c.name || c.user?.name || '未知',
           phone: c.user?.phone || '',

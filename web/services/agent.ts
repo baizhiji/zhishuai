@@ -12,9 +12,6 @@ export interface Customer {
     totalLeads: number;
     totalApplications: number;
   };
-
-export const AgentAPI = customerService;
-export default customerService;
 }
 
 export interface FeatureSwitch {
@@ -56,19 +53,14 @@ export const customerService = {
     return request.post(`/api/agent/customers/${id}/unfreeze`);
   },
 
-  // 重置客户密码
-  resetPassword: (id: string, newPassword: string) => {
-    return request.post(`/api/agent/customers/${id}/reset-password`, { newPassword });
+  // 获取统计数据
+  getStats: () => {
+    return request.get('/api/agent/stats');
   },
 
   // 获取功能开关列表
-  getFeatureSwitches: () => {
-    return request.get('/api/user/features');
-  },
-
-  // 获取客户功能开关
-  getCustomerFeatures: (customerId: string) => {
-    return request.get(`/api/user/features/customer/${customerId}`);
+  getFeatureSwitches: (customerId?: string) => {
+    return request.get('/api/user/features', { params: { customerId } });
   },
 
   // 设置客户功能开关
@@ -83,9 +75,6 @@ export const customerService = {
   batchSetCustomerFeatures: (customerId: string, features: Record<string, boolean>) => {
     return request.post(`/api/user/features/customer/${customerId}/batch`, { features });
   },
-
-  // 获取统计数据
-  getStats: () => {
-    return request.get('/api/agent/stats');
-  },
 };
+
+export default customerService;
