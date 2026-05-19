@@ -4,13 +4,8 @@ import React from 'react';
 import { Result, Button, Card } from 'antd';
 import { useRouter } from 'next/navigation';
 
-export default function ErrorPage({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function ErrorPage(props: any) {
+  const { error, reset } = props;
   const router = useRouter();
 
   return (

@@ -39,7 +39,7 @@ import {
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
-import { request } from '@/lib/request'
+import request from '@/lib/request'
 import type { ApiResponse } from '@/types/api'
 
 const { Title, Text } = Typography

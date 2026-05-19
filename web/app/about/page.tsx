@@ -8,7 +8,7 @@ import {
   CustomerServiceOutlined, 
   UsergroupAddOutlined,
   SafetyCertificateOutlined,
-  ThunderboltBoltOutlined,
+  ThunderboltOutlined,
   CheckCircleOutlined,
   EnvironmentOutlined,
   PhoneOutlined,
@@ -24,7 +24,7 @@ export default function AboutPage() {
     { icon: <CustomerServiceOutlined />, title: '智能招聘', desc: 'AI生成JD、智能筛选简历、自动沟通候选人' },
     { icon: <UsergroupAddOutlined />, title: '智能获客', desc: '潜客发现、AI画像分析、自动引流转化' },
     { icon: <SafetyCertificateOutlined />, title: '企业级安全', desc: '数据加密、权限管理、操作审计' },
-    { icon: <ThunderboltBoltOutlined />, title: '高效稳定', desc: '云原生架构、弹性扩展、99.9%可用性' },
+    { icon: <ThunderboltOutlined />, title: '高效稳定', desc: '云原生架构、弹性扩展、99.9%可用性' },
   ];
 
   const stats = [
