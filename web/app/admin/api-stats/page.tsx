@@ -204,8 +204,7 @@ export default function ApiStatsPage() {
       dataIndex: 'successRate',
       key: 'successRate',
       render: (rate: number) => (
-        <Progress,
-  Statistic
+        <Progress
           percent={rate}
           size="small"
           status={rate > 99 ? 'success' : 'active'}
