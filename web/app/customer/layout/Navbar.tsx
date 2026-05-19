@@ -208,7 +208,7 @@ function getOpenKeysForPath(items: NavigationItem[], path: string): string[] {
   return []
 }
 
-export default function Navbar({ children }: { children: React.ReactNode }) {
+export default function Navbar({ children }: { children?: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { token } = useToken()
