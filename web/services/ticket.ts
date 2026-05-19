@@ -81,9 +81,21 @@ export const TicketAPI = {
   },
 };
 
-// 工单类别选项 - 仅保留投诉建议
+// 工单类别选项 - 系统功能申请（按功能模块分类，方便代理商处理权限开通）
 export const ticketCategories = [
-  { value: 'complaint', label: '投诉建议' },
+  // ===== 功能开通申请 =====
+  { value: 'recruitment', label: '招聘助手', description: '职位发布、简历筛选、面试管理、智能沟通' },
+  { value: 'acquisition', label: '智能获客', description: '获客任务、获客看板、数据统计' },
+  { value: 'media', label: '自媒体矩阵', description: '矩阵管理、账号授权、内容发布、自动化运营' },
+  { value: 'digital_human', label: '数字人', description: '数字人视频、口型同步' },
+  { value: 'customer_service', label: '智能客服', description: '客服机器人、常见问题、自动回复' },
+  { value: 'knowledge', label: '知识库', description: '知识库管理、智能问答' },
+  { value: 'material', label: '物料管理', description: '企业物料、图片视频素材' },
+  { value: 'referral', label: '推荐有礼', description: '推荐奖励、佣金结算' },
+  { value: 'api_access', label: 'API接入', description: 'API Key管理、服务商配置' },
+  // ===== 其他问题 =====
+  { value: 'complaint', label: '投诉建议', description: '产品或服务投诉、功能建议' },
+  { value: 'other', label: '其他问题', description: '其他问题或咨询' },
 ];
 
 // 工单优先级选项
