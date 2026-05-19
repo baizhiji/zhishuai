@@ -300,8 +300,8 @@ export default function AdminAgentsPage() {
         setSelectedAgent({
           ...agent,
           ...res.data.data,
-          createTime: res.data.data.user?.createdAt ? dayjs(res.data.data.user.createdAt).format('YYYY-MM-DD') : '',
-          customerCount: res.data.data._count?.customers || 0
+          createTime: (res.data as any).data.user?.createdAt ? dayjs((res.data as any).data.user.createdAt).format('YYYY-MM-DD') : '',
+          customerCount: (res.data as any).data._count?.customers || 0
         })
         setDetailVisible(true)
       }
