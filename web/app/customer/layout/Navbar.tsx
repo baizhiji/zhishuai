@@ -87,10 +87,9 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <TeamOutlined />,
           children: [
             { key: 'recruit-platforms', label: '平台授权', icon: <QrcodeOutlined />, path: '/customer/recruitment/platforms' },
-            { key: 'recruit-auto', label: '自动沟通', icon: <MessageOutlined />, path: '/customer/recruitment/auto' },
+            { key: 'recruit-auto', label: '智能沟通', icon: <MessageOutlined />, path: '/customer/recruitment/auto' },
             { key: 'recruit-publish', label: '职位发布', icon: <ShareAltOutlined />, path: '/recruitment/publish' },
             { key: 'recruit-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/recruitment/screen' },
-            { key: 'recruit-reply', label: '自动回复', icon: <ThunderboltOutlined />, path: '/recruitment/reply' },
             { key: 'recruit-interview', label: '面试管理', icon: <TeamOutlined />, path: '/recruitment/interview' },
             { key: 'recruit-board', label: '招聘看板', icon: <PieChartOutlined />, path: '/recruitment/board' },
           ],
