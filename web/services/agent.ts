@@ -12,6 +12,9 @@ export interface Customer {
     totalLeads: number;
     totalApplications: number;
   };
+
+export const AgentAPI = customerService;
+export default customerService;
 }
 
 export interface FeatureSwitch {

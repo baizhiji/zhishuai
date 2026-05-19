@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Table, Switch, Card, message, Select, Space, Tag, Button, Modal, Tree } from 'antd';
 import { useAuth } from '@/contexts/AuthContext';
-import { AgentAPI } from '@/services/agent';
+import request from '@/lib/request';
 
 const { Option } = Select;
 
@@ -50,7 +50,7 @@ export default function AgentFeaturesPage() {
 
   const fetchCustomers = async () => {
     try {
-      const res = await AgentAPI.getCustomers(user?.id || '');
+      const res = await request.getCustomers(user?.id || '');
       if (res.data) {
         setCustomers(res.data);
       }

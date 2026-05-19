@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/services/api';
+import request from '@/lib/request';
 import { Card, Table, Button, Modal, Form, Input, Select, Switch, Space, message, Tag, Popconfirm, Typography, Divider, Alert } from 'antd';
 
 const { Text, Title } = Typography;
@@ -42,7 +42,7 @@ export default function ApiProvidersPage() {
   const fetchProviders = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/api-providers/providers');
+      const res = await request.get('/admin/api-providers/providers');
       if (res.data) {
         setProviders(res.data);
       }
@@ -67,7 +67,7 @@ export default function ApiProvidersPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await api.delete(`/admin/api-providers/providers/${id}`);
+      await request.delete(`/admin/api-providers/providers/${id}`);
       message.success('删除成功');
       fetchProviders();
     } catch (error) {
@@ -77,7 +77,7 @@ export default function ApiProvidersPage() {
 
   const handleSetDefault = async (id: string) => {
     try {
-      await api.put(`/admin/api-providers/providers/${id}`, { isDefault: true });
+      await request.put(`/admin/api-providers/providers/${id}`, { isDefault: true });
       message.success('设置成功');
       fetchProviders();
     } catch (error) {
@@ -91,10 +91,10 @@ export default function ApiProvidersPage() {
       setSaving(true);
       
       if (editingProvider) {
-        await api.put(`/admin/api-providers/providers/${editingProvider.id}`, values);
+        await request.put(`/admin/api-providers/providers/${editingProvider.id}`, values);
         message.success('更新成功');
       } else {
-        await api.post('/admin/api-providers/providers', values);
+        await request.post('/admin/api-providers/providers', values);
         message.success('创建成功');
       }
       

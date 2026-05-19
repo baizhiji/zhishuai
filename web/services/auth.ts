@@ -87,3 +87,6 @@ export const ForgotPasswordAPI = {
     });
   },
 };
+
+// 别名导出
+export const UserForgotPassword = ForgotPasswordAPI;
