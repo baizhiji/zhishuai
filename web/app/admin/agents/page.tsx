@@ -553,7 +553,7 @@ export default function AdminAgentsPage() {
               showSizeChanger: true,
               showTotal: (total) => `共 ${total} 条记录`,
               onChange: (page, pageSize) => {
-                setPagination({ page, pageSize, total })
+                setPagination({ page, pageSize, total: pagination.total })
               }
             }}
             locale={{
