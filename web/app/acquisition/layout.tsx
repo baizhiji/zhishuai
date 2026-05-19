@@ -1,6 +1,6 @@
-import Navbar from '@/components/layout/Navbar'
+import Navbar from '../customer/layout/Navbar'
 
-export default function AcquisitionLayout({
+export default function Layout({
   children,
 }: {
   children: React.ReactNode
