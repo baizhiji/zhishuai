@@ -173,10 +173,10 @@ export default function AdminAgentsPage() {
           commissionRate: agent.commissionRate
         }))
         setAgents(agentsData as any)
-        if (res.data.pagination) {
+        if ((res.data as any).pagination) {
           setPagination(prev => ({
             ...prev,
-            total: res.data.pagination?.total || 0
+            total: (res.data as any).pagination?.total || 0
           }))
         }
       }
