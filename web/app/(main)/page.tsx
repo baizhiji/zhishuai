@@ -11,7 +11,6 @@ import {
   MessageOutlined,
   FileTextOutlined,
   BarChartOutlined,
-  PlayCircleOutlined,
   SafetyOutlined,
   CloudOutlined,
   ApiOutlined,
