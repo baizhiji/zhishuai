@@ -10,7 +10,7 @@ import {
   MessageOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
-  StarsOutlined,
+  StarOutlined,
   BulbOutlined,
   SettingOutlined,
   PlayCircleOutlined,
@@ -274,7 +274,7 @@ export default function SmartCommunication() {
       render: (name: string, record: ScriptTemplate) => (
         <Space>
           <Text strong>{name}</Text>
-          {record.isAI && <Tag color="purple" icon={<StarsOutlined />}>AI</Tag>}
+          {record.isAI && <Tag color="purple" icon={<StarOutlined />}>AI</Tag>}
         </Space>
       )
     },
@@ -380,7 +380,7 @@ export default function SmartCommunication() {
         description="系统已配置阿里云百炼和腾讯云 TokenHub 模型，可以生成更自然、人性化的话术。点击「AI 生成」体验智能话术创建。"
         type="info"
         showIcon
-        icon={<StarsOutlined />}
+        icon={<StarOutlined />}
         style={{ marginBottom: 24 }}
       />
 
@@ -406,7 +406,7 @@ export default function SmartCommunication() {
                       aiForm.setFieldsValue({ scenario: selectedScenario, style: 'friendly' });
                       setAiGenerateModalVisible(true);
                     }}>
-                      <StarsOutlined /> AI 生成
+                      <StarOutlined /> AI 生成
                     </Button>
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => {
                       setEditingTemplate(null);
@@ -551,7 +551,7 @@ export default function SmartCommunication() {
 
       {/* AI 生成话术弹窗 */}
       <Modal
-        title={<Space><StarsOutlined /> AI 智能生成话术</Space>}
+        title={<Space><StarOutlined /> AI 智能生成话术</Space>}
         open={aiGenerateModalVisible}
         onCancel={() => setAiGenerateModalVisible(false)}
         footer={null}
@@ -590,7 +590,7 @@ export default function SmartCommunication() {
           <div style={{ textAlign: 'center', marginTop: 16 }}>
             <Button 
               type="primary" 
-              icon={<StarsOutlined />} 
+              icon={<StarOutlined />} 
               onClick={handleAIGenerate}
               loading={generatingAI}
               size="large"
