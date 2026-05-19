@@ -32,6 +32,8 @@ import {
   AppstoreOutlined,
   FileTextOutlined,
   SwapOutlined,
+  QrcodeOutlined,
+  MessageOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -89,6 +91,8 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '招聘助手',
           icon: <TeamOutlined />,
           children: [
+            { key: 'recruit-platforms', label: '平台授权', icon: <QrcodeOutlined />, path: '/customer/recruitment/platforms' },
+            { key: 'recruit-auto', label: '自动沟通', icon: <MessageOutlined />, path: '/customer/recruitment/auto' },
             { key: 'recruitment-publish', label: '职位发布', icon: <ShareAltOutlined />, path: '/recruitment/publish' },
             { key: 'recruitment-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/recruitment/screen' },
             { key: 'recruitment-reply', label: '自动回复', icon: <ThunderboltOutlined />, path: '/recruitment/reply' },
