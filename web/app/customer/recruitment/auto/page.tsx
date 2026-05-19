@@ -181,45 +181,37 @@ export default function SmartCommunication() {
     const values = await aiForm.validateFields();
     setGeneratingAI(true);
     
-    // 模拟 AI 生成（实际应调用阿里云百炼/腾讯云模型）
-    setTimeout(() => {
-      const scenario = values.scenario;
-      const style = values.style;
-      const context = values.context;
+    try {
+      // 调用后端 API 生成话术
+      const response = await fetch('/api/ai/generate-script', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scene: values.sceneType,
+          sceneName: values.sceneTypeName,
+          scenePrompt: values.scenePrompt,
+          style: values.style,
+          context: values.context,
+          maxTokens: values.maxTokens || 300,
+        }),
+      });
       
-      // 模拟生成的回复
-      const generatedContent = getSimulatedAIResponse(scenario, style, context);
+      const result = await response.json();
       
-      aiForm.setFieldValue('generatedContent', generatedContent);
+      if (result.success) {
+        aiForm.setFieldValue('generatedContent', result.data.script);
+        message.success('AI 已生成话术，请预览或调整');
+      } else {
+        message.error(result.error || 'AI 生成失败');
+      }
+    } catch (error) {
+      console.error('AI生成失败:', error);
+      message.error('AI 生成失败，请稍后重试');
+    } finally {
       setGeneratingAI(false);
-      message.success('AI 已生成话术，请预览或调整');
-    }, 1500);
-  };
-
-  // 模拟 AI 响应（实际应调用真实 API）
-  const getSimulatedAIResponse = (scenario: string, style: string, context: string): string => {
-    const responses: Record<string, string> = {
-      'recruitment-friendly': `您好！感谢您对我们公司岗位的关注 😊 您的简历我们已经收到了，正在认真审核中...
-
-通常审核需要3-5个工作日，通过初审后我们会第一时间电话联系您！
-
-在这个等待期间，您可以先了解一下我们公司的业务和团队文化，相信会给您带来惊喜~ 🚀
-
-有任何问题随时联系我，祝您一切顺利！`,
-      'recruitment-professional': `您好，感谢您的简历投递。
-
-我们已收到您的申请材料，当前正在进入审核流程。预计3-5个工作日内完成初步筛选，届时将与您联系。
-
-如对岗位有疑问，可随时与我们沟通。`,
-      'social_media-casual': `嗨~ 感谢你的关注！🌟
-
-看到你对我们的内容这么感兴趣，真的超开心的！
-
-有什么想了解的尽管问我呀，我随时在线等你~ 💫`,
-    };
-    
-    const key = `${scenario}-${style}`;
-    return responses[key] || `好的，我来帮您生成关于"${context}"的${STYLE_CONFIG[style as keyof typeof STYLE_CONFIG]?.label}风格话术...`;
+    }
   };
 
   // 保存话术

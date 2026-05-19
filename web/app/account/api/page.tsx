@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, Typography, Table, Tag, Button, Space, Form, Input, Select, Switch, Modal, message, Popconfirm, Tabs, Divider, Alert } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, CheckOutlined, SettingOutlined, GlobalOutlined } from '@ant-design/icons'
+import { Card, Typography, Table, Tag, Button, Space, Form, Input, Select, Switch, Modal, message, Popconfirm, Tabs, Divider, Alert, Descriptions, Badge, Tooltip } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, CheckOutlined, SettingOutlined, GlobalOutlined, RobotOutlined, MessageOutlined, ThunderboltOutlined, SafetyOutlined } from '@ant-design/icons'
 
-const { Title, Text } = Typography
+const { Title, Text, Paragraph } = Typography
 const { TextArea } = Input
 
 // API服务商配置
@@ -19,10 +19,21 @@ interface APIProvider {
   enabledModels: string[]
 }
 
+// AI智能沟通配置
+interface AIChatConfig {
+  enabled: boolean
+  defaultModel: string
+  provider: 'aliyun' | 'tencent'
+  style: 'professional' | 'friendly' | 'lively' | 'concise'
+  temperature: number
+  maxTokens: number
+}
+
 // 支持的模型配置
 const AVAILABLE_MODELS = {
   aliyun: {
     name: '阿里云百炼',
+    icon: '🔷',
     models: [
       { id: 'qwen-turbo', name: 'qwen-turbo', description: '日常对话、快速响应', type: 'text' },
       { id: 'qwen-plus', name: 'qwen-plus', description: '专业文案、长文本生成', type: 'text' },
@@ -32,6 +43,7 @@ const AVAILABLE_MODELS = {
   },
   tencent: {
     name: '腾讯云TokenHub',
+    icon: '🔶',
     models: [
       { id: 'hunyuan-2.0-instruct-20251111', name: '混元指令版', description: '日常对话、智能问答', type: 'text' },
       { id: 'hunyuan-2.0-thinking-20251109', name: '混元思考版', description: '复杂推理、数学问题', type: 'reasoning' },
@@ -45,13 +57,33 @@ const AVAILABLE_MODELS = {
   }
 }
 
+// 人设风格配置
+const STYLE_CONFIG = {
+  professional: { name: '👔 专业严谨', description: '措辞规范，像资深HR', example: '您好，感谢您投递[职位名]岗位...' },
+  friendly: { name: '🤝 亲切友好', description: '像朋友聊天，轻松自然', example: '嗨～看到你的简历啦，很感兴趣...' },
+  lively: { name: '😊 活泼开朗', description: '带表情，语气俏皮', example: '太棒了！你的经历超适合我们~' },
+  concise: { name: '⚡ 简洁干练', description: '直奔主题，高效直接', example: '看了你的简历，符合要求，面谈？' },
+}
+
 export default function APIConfigPage() {
   const [form] = Form.useForm()
+  const [chatConfigForm] = Form.useForm()
   const [editModalVisible, setEditModalVisible] = useState(false)
+  const [chatConfigModalVisible, setChatConfigModalVisible] = useState(false)
   const [editingProvider, setEditingProvider] = useState<APIProvider | null>(null)
   const [selectedModels, setSelectedModels] = useState<string[]>([])
 
-  // 初始服务商数据 - 默认启用全部模型
+  // AI智能沟通配置
+  const [aiChatConfig, setAiChatConfig] = useState<AIChatConfig>({
+    enabled: false,
+    defaultModel: 'qwen-turbo',
+    provider: 'aliyun',
+    style: 'friendly',
+    temperature: 0.7,
+    maxTokens: 500,
+  })
+
+  // 初始服务商数据
   const [providers, setProviders] = useState<APIProvider[]>([
     {
       id: 'aliyun',
@@ -60,7 +92,7 @@ export default function APIConfigPage() {
       apiKey: '',
       baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       status: 'inactive',
-      enabledModels: ['qwen-turbo', 'qwen-plus', 'qwen-long', 'deepseek-r1-0528'], // 全部4个模型
+      enabledModels: ['qwen-turbo', 'qwen-plus', 'qwen-long', 'deepseek-r1-0528'],
     },
     {
       id: 'tencent',
@@ -78,7 +110,7 @@ export default function APIConfigPage() {
         'youtu-vita', 
         'HY-Image-V3.0',
         'YT-Video-HumanActor',
-      ], // 全部8个模型
+      ],
     },
   ])
 
@@ -90,6 +122,7 @@ export default function APIConfigPage() {
       activeProviders: activeProviders.length,
       totalModels,
       status: activeProviders.length > 0 ? '已配置' : '未配置',
+      aiReady: activeProviders.length > 0 && aiChatConfig.enabled,
     }
   }
 
@@ -190,6 +223,18 @@ export default function APIConfigPage() {
     })
   }
 
+  // 保存AI智能沟通配置
+  const handleSaveChatConfig = () => {
+    chatConfigForm.validateFields().then(values => {
+      setAiChatConfig({
+        ...values,
+        enabled: values.enabled,
+      })
+      message.success('AI智能沟通配置已保存')
+      setChatConfigModalVisible(false)
+    })
+  }
+
   // 切换模型选择
   const toggleModel = (modelId: string) => {
     setSelectedModels(prev => 
@@ -254,7 +299,7 @@ export default function APIConfigPage() {
       />
 
       {/* 统计卡片 */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <Card size="small">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">{stats.activeProviders}</div>
@@ -275,7 +320,80 @@ export default function APIConfigPage() {
             <div className="text-gray-500 text-sm">配置状态</div>
           </div>
         </Card>
+        <Card size="small" className={aiChatConfig.enabled ? 'border-green-500' : ''}>
+          <div className="text-center">
+            <div className={`text-2xl font-bold ${aiChatConfig.enabled ? 'text-green-600' : 'text-gray-400'}`}>
+              {aiChatConfig.enabled ? '已启用' : '未启用'}
+            </div>
+            <div className="text-gray-500 text-sm">AI智能沟通</div>
+          </div>
+        </Card>
       </div>
+
+      {/* AI智能沟通配置卡片 */}
+      <Card 
+        title={
+          <Space>
+            <RobotOutlined className="text-blue-500" />
+            <span>AI智能沟通配置</span>
+          </Space>
+        }
+        extra={
+          <Button 
+            type="primary" 
+            icon={<SettingOutlined />}
+            onClick={() => {
+              chatConfigForm.setFieldsValue(aiChatConfig)
+              setChatConfigModalVisible(true)
+            }}
+          >
+            {aiChatConfig.enabled ? '修改配置' : '启用AI智能沟通'}
+          </Button>
+        }
+        style={{ marginBottom: 24 }}
+        className={aiChatConfig.enabled ? 'border-blue-500' : ''}
+      >
+        {aiChatConfig.enabled ? (
+          <div>
+            <Descriptions column={2} size="small">
+              <Descriptions.Item label="服务商">
+                <Tag color={aiChatConfig.provider === 'aliyun' ? 'blue' : 'purple'}>
+                  {AVAILABLE_MODELS[aiChatConfig.provider].icon} {AVAILABLE_MODELS[aiChatConfig.provider].name}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="默认模型">
+                <Tag color="green">{aiChatConfig.defaultModel}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="沟通风格">
+                <Tag color="orange">{STYLE_CONFIG[aiChatConfig.style].name}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="创意参数">
+                <Tag color="cyan">温度 {aiChatConfig.temperature}</Tag>
+              </Descriptions.Item>
+            </Descriptions>
+            <Divider style={{ margin: '12px 0' }} />
+            <Paragraph type="secondary" className="mb-0">
+              <MessageOutlined /> 当前配置将用于：招聘自动沟通、自媒体自动回复、客服自动响应 等场景。
+              <br/>
+              <Text type="secondary" className="text-xs">
+                系统会根据配置的模型和风格，生成自然、人性化的沟通话术。
+              </Text>
+            </Paragraph>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <RobotOutlined className="text-4xl text-gray-300 mb-3" />
+            <Paragraph type="secondary">
+              启用AI智能沟通后，系统将使用大模型自动生成人性化话术，
+              <br/>
+              支持招聘沟通、自媒体回复、客服响应等多种场景。
+            </Paragraph>
+            <Button type="primary" onClick={() => setChatConfigModalVisible(true)}>
+              立即配置
+            </Button>
+          </div>
+        )}
+      </Card>
 
       {/* 服务商列表 */}
       <Card 
@@ -313,7 +431,7 @@ export default function APIConfigPage() {
           items={[
             {
               key: 'aliyun',
-              label: AVAILABLE_MODELS.aliyun.name,
+              label: `${AVAILABLE_MODELS.aliyun.icon} ${AVAILABLE_MODELS.aliyun.name}`,
               children: (
                 <div>
                   {AVAILABLE_MODELS.aliyun.models.map(model => (
@@ -336,7 +454,7 @@ export default function APIConfigPage() {
             },
             {
               key: 'tencent',
-              label: AVAILABLE_MODELS.tencent.name,
+              label: `${AVAILABLE_MODELS.tencent.icon} ${AVAILABLE_MODELS.tencent.name}`,
               children: (
                 <div>
                   {AVAILABLE_MODELS.tencent.models.map(model => (
@@ -403,7 +521,7 @@ export default function APIConfigPage() {
 
           <Form.Item
             name="baseUrl"
-            label="API地址"
+            label="API Base URL"
           >
             <Input disabled />
           </Form.Item>
@@ -411,13 +529,130 @@ export default function APIConfigPage() {
           <Form.Item
             name="status"
             valuePropName="checked"
-            extra="关闭后该服务商的模型将不可用"
           >
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
           </Form.Item>
 
-          {editingProvider?.id === 'aliyun' && renderModelSelector('aliyun')}
-          {editingProvider?.id === 'tencent' && renderModelSelector('tencent')}
+          {editingProvider && renderModelSelector(editingProvider.id as 'aliyun' | 'tencent')}
+        </Form>
+      </Modal>
+
+      {/* AI智能沟通配置弹窗 */}
+      <Modal
+        title={
+          <Space>
+            <RobotOutlined className="text-blue-500" />
+            <span>AI智能沟通配置</span>
+          </Space>
+        }
+        open={chatConfigModalVisible}
+        onOk={handleSaveChatConfig}
+        onCancel={() => setChatConfigModalVisible(false)}
+        width={700}
+        okText="保存配置"
+        cancelText="取消"
+      >
+        <Alert
+          message="AI智能沟通说明"
+          description={
+            <div>
+              <p>• 配置后，系统将使用大模型自动生成人性化沟通话术</p>
+              <p>• 支持招聘沟通、自媒体回复、客服响应等多种场景</p>
+              <p>• 话术会根据配置的"人设风格"自动调整语气和表达方式</p>
+            </div>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+        />
+        
+        <Form
+          form={chatConfigForm}
+          layout="vertical"
+          initialValues={aiChatConfig}
+        >
+          <Form.Item
+            name="enabled"
+            valuePropName="checked"
+            label="启用AI智能沟通"
+          >
+            <Switch checkedChildren="启用" unCheckedChildren="禁用" />
+          </Form.Item>
+
+          <Form.Item
+            name="provider"
+            label="选择AI服务商"
+            rules={[{ required: true, message: '请选择AI服务商' }]}
+          >
+            <Select>
+              <Select.Option value="aliyun">
+                🔷 阿里云百炼（推荐：qwen-plus 生成质量更高）
+              </Select.Option>
+              <Select.Option value="tencent">
+                🔶 腾讯云TokenHub（推荐：混元模型 中文理解更好）
+              </Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="defaultModel"
+            label="默认模型"
+            rules={[{ required: true, message: '请选择默认模型' }]}
+          >
+            <Select placeholder="选择用于生成话术的模型">
+              {aiChatConfig.provider === 'aliyun' ? (
+                <>
+                  <Select.Option value="qwen-turbo">qwen-turbo（快速响应）</Select.Option>
+                  <Select.Option value="qwen-plus">qwen-plus（推荐：质量更高）</Select.Option>
+                  <Select.Option value="qwen-long">qwen-long（超长文本）</Select.Option>
+                </>
+              ) : (
+                <>
+                  <Select.Option value="hunyuan-2.0-instruct-20251111">混元指令版（日常对话）</Select.Option>
+                  <Select.Option value="kimi-k2.6">Kimi K2.6（长文本）</Select.Option>
+                  <Select.Option value="glm-5">GLM-5（Agent任务）</Select.Option>
+                </>
+              )}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="style"
+            label="沟通人设风格"
+          >
+            <Select>
+              {Object.entries(STYLE_CONFIG).map(([key, config]) => (
+                <Select.Option value={key}>
+                  {config.name} - {config.description}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="temperature"
+            label="创意温度 (0.1-1.0)"
+            extra="较低值：保守稳定；较高值：更有创意"
+          >
+            <Select>
+              <Select.Option value={0.3}>0.3（保守稳定）</Select.Option>
+              <Select.Option value={0.5}>0.5（平衡）</Select.Option>
+              <Select.Option value={0.7}>0.7（推荐：自然流畅）</Select.Option>
+              <Select.Option value={0.9}>0.9（创意丰富）</Select.Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="maxTokens"
+            label="最大生成长度"
+          >
+            <Select>
+              <Select.Option value={200}>200字（简短回复）</Select.Option>
+              <Select.Option value={300}>300字（标准话术）</Select.Option>
+              <Select.Option value={500}>500字（详细沟通）</Select.Option>
+              <Select.Option value={800}>800字（长文本）</Select.Option>
+            </Select>
+          </Form.Item>
         </Form>
       </Modal>
     </div>
