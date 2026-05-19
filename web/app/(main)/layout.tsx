@@ -10,7 +10,7 @@ import {
   ToolOutlined,
   QuestionCircleOutlined,
   RobotOutlined,
-  VideoOutlined,
+  PlayCircleOutlined,
   TeamOutlined,
   ShoppingOutlined,
   MessageOutlined,
