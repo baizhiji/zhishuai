@@ -5,7 +5,7 @@ import { Button, Card, Row, Col, Typography, Statistic } from 'antd';
 import {
   RocketOutlined,
   RobotOutlined,
-  VideoOutlined,
+  PlayCircleOutlined,
   TeamOutlined,
   ShoppingOutlined,
   MessageOutlined,
@@ -29,7 +29,7 @@ const features = [
     color: '#1890ff',
   },
   {
-    icon: <VideoOutlined />,
+    icon: <PlayCircleOutlined />,
     title: '矩阵管理',
     description: '一键授权抖音、快手、小红书等多平台账号，统一管理多账号发布',
     color: '#52c41a',
