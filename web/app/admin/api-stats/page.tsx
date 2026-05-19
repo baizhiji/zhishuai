@@ -11,7 +11,8 @@ import {
   Tag,
   Space,
   Typography,
-  Progress
+  Progress,
+  Statistic
 } from 'antd';
 import {
   ApiOutlined,
@@ -203,7 +204,8 @@ export default function ApiStatsPage() {
       dataIndex: 'successRate',
       key: 'successRate',
       render: (rate: number) => (
-        <Progress
+        <Progress,
+  Statistic
           percent={rate}
           size="small"
           status={rate > 99 ? 'success' : 'active'}
