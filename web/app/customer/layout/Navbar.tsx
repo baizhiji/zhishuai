@@ -115,22 +115,10 @@ function getNavigationItems(role: Role): NavigationItem[] {
           ],
         },
         {
-          key: 'employees',
-          label: '员工管理',
-          icon: <TeamOutlined />,
-          path: '/customer/employees',
-        },
-        {
           key: 'tickets',
           label: '工单管理',
           icon: <FileTextOutlined />,
           path: '/customer/tickets',
-        },
-        {
-          key: 'reports',
-          label: '数据报表',
-          icon: <PieChartOutlined />,
-          path: '/analytics/reports',
         },
         {
           key: 'login-logs',

@@ -81,14 +81,9 @@ export const TicketAPI = {
   },
 };
 
-// 工单类别选项
+// 工单类别选项 - 仅保留投诉建议
 export const ticketCategories = [
-  { value: 'upgrade', label: '升级套餐' },
-  { value: 'downgrade', label: '降级套餐' },
-  { value: 'refund', label: '退款申请' },
-  { value: 'consult', label: '功能咨询' },
   { value: 'complaint', label: '投诉建议' },
-  { value: 'other', label: '其他问题' },
 ];
 
 // 工单优先级选项
