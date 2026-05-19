@@ -172,7 +172,7 @@ export default function AdminAgentsPage() {
           expireAt: agent.expireAt || '',
           commissionRate: agent.commissionRate
         }))
-        setAgents(agentsData)
+        setAgents(agentsData as any)
         if (res.data.pagination) {
           setPagination(prev => ({
             ...prev,
