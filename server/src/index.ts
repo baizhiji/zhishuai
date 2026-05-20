@@ -10,7 +10,7 @@ import matrixRoutes from './routes/matrix';
 import publishRoutes from './routes/publish';
 import notificationsRoutes from './routes/notifications';
 import crmRoutes from './routes/crm';
-// import statisticsRoutes from './routes/statistics';
+import statisticsRoutes from './routes/statistics';
 import aiChatRoutes from './routes/ai-chat';
 import adminFeaturesRoutes from './routes/admin-features';
 import adminAgentsRoutes from './routes/admin-agents';
@@ -32,6 +32,7 @@ import ticketRoutes from './routes/ticket';
 import scriptRoutes from './routes/script';
 import digitalHumanRoutes from './routes/digital-human';
 import dashboardStatsRoutes from './routes/dashboard-stats';
+import referralRoutes from './routes/referral';
 // import settlementRoutes from './routes/settlement';
 
 const app = express();
@@ -59,6 +60,8 @@ app.use('/api/publish', publishRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/crm', crmRoutes);
 // app.use('/api/statistics', statisticsRoutes); // temporarily disabled
+app.use('/api/statistics', statisticsRoutes);
+app.use('/api/referral', referralRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/scripts', scriptRoutes);
 app.use('/api/digital-human', digitalHumanRoutes);

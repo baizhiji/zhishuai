@@ -1,7 +1,7 @@
 // API 配置
 export const API_CONFIG = {
-  // 后端服务地址（生产环境）- 香港腾讯云服务器
-  BASE_URL: 'https://baizhiji.net/api',
+  // 后端服务地址（生产环境）- 统一使用实际服务器地址
+  BASE_URL: 'https://api.zhishuai.com/v1',
   
   // 启用生产模式
   DEV_MODE: false,
@@ -13,7 +13,7 @@ export const API_CONFIG = {
   VERSION: 'v1',
 };
 
-// API端点
+// API端点 - 与后端路由完全匹配
 export const API_ENDPOINTS = {
   // 认证
   LOGIN: '/auth/login',
@@ -23,8 +23,8 @@ export const API_ENDPOINTS = {
   SEND_CODE: '/auth/send-code',
   
   // 用户
-  USER_INFO: '/account/profile',
-  UPDATE_USER: '/account/profile',
+  USER_INFO: '/account/',
+  UPDATE_USER: '/account/',
   UPDATE_PASSWORD: '/account/password',
   
   // 素材库
@@ -32,16 +32,8 @@ export const API_ENDPOINTS = {
   MATERIALS_DETAIL: '/materials/:id',
   MATERIALS_DOWNLOAD: '/materials/:id/download',
   
-  // AI生成
-  AI_TEXT: '/ai/generate/text',
-  AI_IMAGE: '/ai/generate/image',
-  AI_VIDEO: '/ai/generate/video',
-  AI_DIGITAL: '/ai/generate/digital',
-  AI_CHAT: '/ai-chat/message',
-  
-  // 内容工厂
-  CONTENT_GENERATE: '/ai/generate/text',
-  CONTENT_BATCH_GENERATE: '/ai/generate/batch',
+  // AI对话
+  AI_CHAT: '/ai-chat/chat',
   
   // 矩阵管理
   MATRIX_ACCOUNTS: '/matrix/accounts',
@@ -53,7 +45,7 @@ export const API_ENDPOINTS = {
   PUBLISH_HISTORY: '/publish/history',
   
   // 招聘助手
-  RECRUITMENT_JOBS: '/recruitment/posts',
+  RECRUITMENT_JOBS: '/recruitment/jobs',
   RECRUITMENT_CANDIDATES: '/recruitment/candidates',
   RECRUITMENT_INTERVIEWS: '/recruitment/interviews',
   
@@ -62,20 +54,13 @@ export const API_ENDPOINTS = {
   ACQUISITION_LEADS: '/acquisition/leads',
   
   // 推荐分享
-  SHARE_QRCODES: '/share/qrcodes',
+  SHARE_QRCODES: '/share/codes',
   SHARE_RECORDS: '/share/records',
-  
-  // 转介绍
-  REFERRAL_STATS: '/referral/stats',
-  REFERRAL_USERS: '/referral/users',
-  
-  // 统计
-  DASHBOARD: '/statistics/dashboard',
-  TREND: '/statistics/trend',
   
   // 通知
   NOTIFICATIONS: '/notifications',
-
+  NOTIFICATION_READ: '/notifications/:id/read',
+  
   // 功能开关
   FEATURES: '/features',
   FEATURES_AVAILABLE: '/features/available',

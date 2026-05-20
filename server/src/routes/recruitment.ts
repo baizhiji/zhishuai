@@ -101,4 +101,74 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// 获取候选人列表 (candidates)
+router.get('/candidates', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { page = 1, pageSize = 10 } = req.query;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
+
+    const candidates = await prisma.candidate.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: Number(pageSize),
+    });
+
+    const total = await prisma.candidate.count({ where: { userId } });
+
+    res.json({ candidates, total, page: Number(page), pageSize: Number(pageSize) });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 面试安排 (interviews)
+router.get('/interviews', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { page = 1, pageSize = 10 } = req.query;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
+
+    // 返回空列表，后续可扩展
+    res.json({
+      interviews: [],
+      total: 0,
+      page: Number(page),
+      pageSize: Number(pageSize),
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 添加 posts 别名路由 (兼容APK端)
+router.get('/posts', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { status, page = 1, pageSize = 10 } = req.query;
+
+    const where: any = { userId };
+    if (status) where.status = status as string;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
+
+    const [jobs, total] = await Promise.all([
+      prisma.recruitmentPost.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: Number(pageSize),
+      }),
+      prisma.recruitmentPost.count({ where }),
+    ]);
+
+    res.json({ jobs, total, page: Number(page), pageSize: Number(pageSize) });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
