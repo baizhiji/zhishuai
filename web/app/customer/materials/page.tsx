@@ -16,7 +16,6 @@ import {
   message,
   Image,
   Popconfirm,
-  Drawer,
 } from 'antd'
 import {
   SearchOutlined,
@@ -81,9 +80,6 @@ export default function MaterialLibraryPage() {
     const categoryMatch =
       filterCategoryState === 'all' || material.category === filterCategoryState
 
-    // 外部传入的分类筛选（如果有的话）
-    const externalCategoryMatch = true
-
     // 状态筛选
     const statusMatch = filterStatus === 'all' || material.status === filterStatus
 
@@ -93,7 +89,7 @@ export default function MaterialLibraryPage() {
       material.title.toLowerCase().includes(searchText.toLowerCase()) ||
       material.content.toLowerCase().includes(searchText.toLowerCase())
 
-    return categoryMatch && statusMatch && searchMatch && externalCategoryMatch
+    return categoryMatch && statusMatch && searchMatch
   })
 
   // 删除素材
@@ -135,15 +131,9 @@ export default function MaterialLibraryPage() {
     setPreviewVisible(true)
   }
 
-  // 选择素材（目前仅预览）
-  const handleSelect = (material: Material) => {
-    setPreviewMaterial(material)
-    setPreviewVisible(true)
-  }
-
   // 获取分类图标
   const getCategoryIcon = (category: ContentCategory) => {
-    const iconMap: Record<ContentCategory, any> = {
+    const iconMap: Record<ContentCategory, React.ReactNode> = {
       [ContentCategory.TITLE]: <FontSizeOutlined />,
       [ContentCategory.TAGS]: <TagsOutlined />,
       [ContentCategory.COPYWRITING]: <FileTextOutlined />,
@@ -229,16 +219,6 @@ export default function MaterialLibraryPage() {
       width: 200,
       render: (_: any, record: Material) => (
         <Space size="small">
-          {onSelectMaterial && (
-            <Button
-              type="link"
-              size="small"
-              icon={<FileTextOutlined />}
-              onClick={() => handleSelect(record)}
-            >
-              使用
-            </Button>
-          )}
           <Button
             type="link"
             size="small"
@@ -275,8 +255,7 @@ export default function MaterialLibraryPage() {
     },
   ]
 
-  // 渲染主页面
-  const renderMainPage = () => (
+  return (
     <div className="p-6">
       {/* 页面头部 */}
       <div className="mb-6">
@@ -341,104 +320,47 @@ export default function MaterialLibraryPage() {
           }}
         />
       </Card>
-    </div>
-  )
 
-  // 渲染抽屉版本（用于在发布时选择素材）
-  const renderDrawer = () => (
-    <Drawer
-      title="选择素材"
-      onClose={onClose}
-      open={visible}
-      width={800}
-    >
-      {/* 筛选栏 */}
-      <div className="mb-4">
-        <Row gutter={16}>
-          <Col span={12}>
-            <Search
-              placeholder="搜索素材标题或内容"
-              allowClear
-              onChange={(e) => setSearchText(e.target.value)}
-            />
-          </Col>
-          <Col span={12}>
-            <Select
-              placeholder="选择分类"
-              value={filterCategory}
-              onChange={() => {}}
-              style={{ width: '100%' }}
-              disabled
-            >
-              <Select.Option value={filterCategory}>
-                {contentCategoryConfig[filterCategory!]?.label}
-              </Select.Option>
-            </Select>
-          </Col>
-        </Row>
-      </div>
-
-      {/* 素材表格 */}
-      <Table
-        columns={columns}
-        dataSource={filteredMaterials}
-        rowKey="id"
-        pagination={{
-          pageSize: 5,
-          size: 'small',
-        }}
-      />
-    </Drawer>
-  )
-
-  // 预览模态框
-  const renderPreviewModal = () => (
-    <Modal
-      title={previewMaterial?.title}
-      open={previewVisible}
-      onCancel={() => setPreviewVisible(false)}
-      footer={[
-        <Button key="copy" icon={<CopyOutlined />} onClick={() => previewMaterial && handleCopy(previewMaterial.content)}>
-          复制
-        </Button>,
-        <Button key="download" icon={<DownloadOutlined />} onClick={() => previewMaterial && handleDownload(previewMaterial)}>
-          下载
-        </Button>,
-        <Button key="close" onClick={() => setPreviewVisible(false)}>
-          关闭
-        </Button>,
-      ]}
-      width={800}
-    >
-      {previewMaterial && (
-        <div>
-          <Space className="mb-4">
-            <Tag color={contentCategoryConfig[previewMaterial.category]?.color}>
-              {contentCategoryConfig[previewMaterial.category]?.label}
-            </Tag>
-            <Tag color={previewMaterial.status === 'used' ? 'green' : 'blue'}>
-              {previewMaterial.status === 'used' ? '已使用' : '未使用'}
-            </Tag>
-          </Space>
-          <div className="mt-4">
-            {contentCategoryConfig[previewMaterial.category]?.type === 'image' ? (
-              <Image src={previewMaterial.content} alt={previewMaterial.title} style={{ maxWidth: '100%' }} />
-            ) : contentCategoryConfig[previewMaterial.category]?.type === 'video' ? (
-              <video src={previewMaterial.content} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
-            ) : (
-              <Paragraph className="whitespace-pre-wrap">{previewMaterial.content}</Paragraph>
-            )}
+      {/* 预览模态框 */}
+      <Modal
+        title={previewMaterial?.title}
+        open={previewVisible}
+        onCancel={() => setPreviewVisible(false)}
+        footer={[
+          <Button key="copy" icon={<CopyOutlined />} onClick={() => previewMaterial && handleCopy(previewMaterial.content)}>
+            复制
+          </Button>,
+          <Button key="download" icon={<DownloadOutlined />} onClick={() => previewMaterial && handleDownload(previewMaterial)}>
+            下载
+          </Button>,
+          <Button key="close" onClick={() => setPreviewVisible(false)}>
+            关闭
+          </Button>,
+        ]}
+        width={800}
+      >
+        {previewMaterial && (
+          <div>
+            <Space className="mb-4">
+              <Tag color={contentCategoryConfig[previewMaterial.category]?.color}>
+                {contentCategoryConfig[previewMaterial.category]?.label}
+              </Tag>
+              <Tag color={previewMaterial.status === 'used' ? 'green' : 'blue'}>
+                {previewMaterial.status === 'used' ? '已使用' : '未使用'}
+              </Tag>
+            </Space>
+            <div className="mt-4">
+              {contentCategoryConfig[previewMaterial.category]?.type === 'image' ? (
+                <Image src={previewMaterial.content} alt={previewMaterial.title} style={{ maxWidth: '100%' }} />
+              ) : contentCategoryConfig[previewMaterial.category]?.type === 'video' ? (
+                <video src={previewMaterial.content} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+              ) : (
+                <Paragraph className="whitespace-pre-wrap">{previewMaterial.content}</Paragraph>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </Modal>
-  )
-
-  // 根据props决定渲染主页面还是抽屉
-  return (
-    <>
-      {visible ? renderDrawer() : renderMainPage()}
-      {renderPreviewModal()}
-    </>
+        )}
+      </Modal>
+    </div>
   )
 }
