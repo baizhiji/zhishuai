@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Layout, Dropdown, Avatar, Space, Typography, MenuProps, Modal, Form, Input, message, Result } from 'antd';
-import { UserOutlined, LockOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, LogoutOutlined } from '@ant-design/icons';
 import AdminNavbar from './layout/Navbar';
 import { useRouter } from 'next/navigation';
 
@@ -23,7 +23,6 @@ export default function AdminLayout({
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // 权限检查：只有 admin 角色或 viewing_role 为 admin 才能访问
     const userStr = localStorage.getItem('user');
     const viewingRole = localStorage.getItem('viewing_role');
     
@@ -32,14 +31,12 @@ export default function AdminLayout({
         const user = JSON.parse(userStr);
         const currentRole = viewingRole || user.role;
         
-        // 只有 admin 用户才能访问 admin 后台
         if (user.role === 'admin' && (currentRole === 'admin' || !viewingRole)) {
           setIsAuthorized(true);
         } else {
           setIsAuthorized(false);
         }
         
-        // 获取用户信息
         const stored = localStorage.getItem('userInfo');
         if (stored) {
           const info = JSON.parse(stored);
@@ -84,7 +81,6 @@ export default function AdminLayout({
     });
   };
 
-  // 未授权
   if (isAuthorized === false) {
     return (
       <Result
@@ -100,7 +96,6 @@ export default function AdminLayout({
     );
   }
 
-  // 加载中
   if (isAuthorized === null) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>加载中...</div>;
   }
@@ -130,7 +125,8 @@ export default function AdminLayout({
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <AdminNavbar>
+      <AdminNavbar />
+      <Layout>
         <Header style={{ background: '#fff', padding: '0 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <Space size="large">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
@@ -144,9 +140,8 @@ export default function AdminLayout({
         <Content style={{ padding: 24, background: '#f0f2f5' }}>
           {children}
         </Content>
-      </AdminNavbar>
+      </Layout>
 
-      {/* 修改密码弹窗 */}
       <Modal
         title="修改密码"
         open={passwordModalVisible}
@@ -166,7 +161,6 @@ export default function AdminLayout({
         </Form>
       </Modal>
 
-      {/* 个人资料弹窗 */}
       <Modal
         title="个人资料"
         open={profileModalVisible}
