@@ -29,6 +29,7 @@ import {
   FileTextOutlined,
   ThunderboltOutlined,
   SwapOutlined,
+  PictureOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
