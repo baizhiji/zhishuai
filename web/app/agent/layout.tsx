@@ -130,7 +130,8 @@ export default function AgentLayout({
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <AgentNavbar>
+      <AgentNavbar />
+      <Layout>
         <Header style={{ background: '#fff', padding: '0 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <Space size="large">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
@@ -144,7 +145,7 @@ export default function AgentLayout({
         <Content style={{ padding: 24, background: '#f0f2f5' }}>
           {children}
         </Content>
-      </AgentNavbar>
+      </Layout>
 
       {/* 修改密码弹窗 */}
       <Modal
