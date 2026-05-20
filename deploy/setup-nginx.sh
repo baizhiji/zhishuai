@@ -22,7 +22,7 @@ echo "✓ 配置目录已就绪"
 # 3. 创建API反向代理配置
 echo "[3/4] 创建API反向代理配置..."
 
-# 先删除旧配置（如果存在）
+# 先删除旧配置
 sudo rm -f /etc/nginx/sites-available/api.baizhiji.net
 sudo rm -f /etc/nginx/sites-enabled/api.baizhiji.net
 
@@ -32,23 +32,19 @@ server {
     listen 80;
     server_name api.baizhiji.net;
 
-    # 处理OPTIONS预检请求
+    # 跨域头
+    add_header 'Access-Control-Allow-Origin' '*' always;
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization' always;
+
     location / {
-        # 处理CORS预检
+        # 处理CORS预检请求
         if ($request_method = 'OPTIONS') {
-            add_header 'Access-Control-Allow-Origin' '*';
-            add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
-            add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization';
-            add_header 'Access-Control-Max-Age' 86400;
             add_header 'Content-Type' 'text/plain charset=UTF-8';
             add_header 'Content-Length' 0;
+            add_header 'Access-Control-Max-Age' 86400;
             return 204;
         }
-
-        # 跨域头
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization' always;
 
         # 反向代理到后端API
         proxy_pass http://127.0.0.1:3001;
