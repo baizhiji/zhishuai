@@ -1,7 +1,7 @@
 // API 配置
 export const API_CONFIG = {
   // 后端服务地址（生产环境）- 统一使用实际服务器地址
-  BASE_URL: 'https://api.zhishuai.com/v1',
+  BASE_URL: 'https://api.baizhiji.net/v1',
   
   // 启用生产模式
   DEV_MODE: false,
