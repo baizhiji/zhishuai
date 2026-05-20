@@ -1,286 +1,458 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { Card, Table, Button, Tag, Space, Modal, Form, Input, Select, Upload, message, Popconfirm, Image, Row, Col, Statistic } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, UploadOutlined, SearchOutlined, PictureOutlined, VideoCameraOutlined, FileTextOutlined, AudioOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-import { getMaterials, createMaterial, updateMaterial, deleteMaterial, batchDeleteMaterials, markMaterialUsed, type Material } from '@/services/materials';
+import { useState, useEffect } from 'react'
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Input,
+  Select,
+  Button,
+  Space,
+  Table,
+  Tag,
+  Modal,
+  message,
+  Image,
+  Popconfirm,
+  Drawer,
+} from 'antd'
+import {
+  SearchOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  CopyOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  TagsOutlined,
+  FileImageOutlined,
+  HeartOutlined,
+  PictureOutlined,
+  ShoppingOutlined,
+  VideoCameraOutlined,
+  RobotOutlined,
+  FontSizeOutlined,
+} from '@ant-design/icons'
+import { ContentCategory, contentCategoryConfig } from '@/lib/content/types'
 
-const { TextArea } = Input;
-const { Option } = Select;
+const { Title, Text, Paragraph } = Typography
+const { Search } = Input
 
-const TYPE_MAP: Record<string, { label: string; color: string; icon: any }> = {
-  text: { label: '文本', color: 'blue', icon: <FileTextOutlined /> },
-  image: { label: '图片', color: 'green', icon: <PictureOutlined /> },
-  video: { label: '视频', color: 'purple', icon: <VideoCameraOutlined /> },
-  audio: { label: '音频', color: 'orange', icon: <AudioOutlined /> },
-};
+interface Material {
+  id: string
+  category: ContentCategory
+  title: string
+  content: string
+  status: 'unused' | 'used'
+  timestamp: number
+}
 
-const CATEGORIES = [
-  '营销文案', '产品介绍', '行业资讯', '热点话题', '招聘JD', '获客话术', '通用素材', '其他'
-];
+interface MaterialLibraryPageProps {
+  onSelectMaterial?: (material: Material) => void
+  visible?: boolean
+  onClose?: () => void
+  filterCategory?: ContentCategory
+}
 
-export default function MaterialsPage() {
-  const [loading, setLoading] = useState(false);
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [pagination, setPagination] = useState({ total: 0, page: 1, pageSize: 20 });
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
-  const [filters, setFilters] = useState({ type: '', keyword: '', category: '' });
-  const [form] = Form.useForm();
+export default function MaterialLibraryPage({
+  onSelectMaterial,
+  visible,
+  onClose,
+  filterCategory,
+}: MaterialLibraryPageProps) {
+  const [searchText, setSearchText] = useState('')
+  const [filterCategoryState, setFilterCategoryState] = useState<ContentCategory | 'all'>('all')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [previewVisible, setPreviewVisible] = useState(false)
+  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null)
 
+  // 从 localStorage 加载素材
   useEffect(() => {
-    loadMaterials();
-  }, [filters]);
+    loadMaterials()
+  }, [])
 
-  const loadMaterials = async (page = 1, pageSize = 20) => {
-    setLoading(true);
-    try {
-      const res = await getMaterials({ ...filters, page, pageSize });
-      setMaterials(res.data?.list || res.data || []);
-      setPagination({ 
-        total: res.data?.total || res.total || 0, 
-        page, 
-        pageSize 
-      });
-    } catch (error) {
-      message.error('加载素材失败');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAdd = () => {
-    setEditingMaterial(null);
-    form.resetFields();
-    setModalVisible(true);
-  };
-
-  const handleEdit = (record: Material) => {
-    setEditingMaterial(record);
-    form.setFieldsValue(record);
-    setModalVisible(true);
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteMaterial(id);
-      message.success('删除成功');
-      loadMaterials(pagination.page, pagination.pageSize);
-    } catch (error) {
-      message.error('删除失败');
-    }
-  };
-
-  const handleBatchDelete = async () => {
-    if (selectedRowKeys.length === 0) {
-      message.warning('请选择要删除的素材');
-      return;
-    }
-    try {
-      await batchDeleteMaterials(selectedRowKeys as string[]);
-      message.success(`成功删除 ${selectedRowKeys.length} 个素材`);
-      setSelectedRowKeys([]);
-      loadMaterials(pagination.page, pagination.pageSize);
-    } catch (error) {
-      message.error('批量删除失败');
-    }
-  };
-
-  const handleMarkUsed = async (id: string) => {
-    try {
-      await markMaterialUsed(id);
-      message.success('已标记为已使用');
-      loadMaterials(pagination.page, pagination.pageSize);
-    } catch (error) {
-      message.error('操作失败');
-    }
-  };
-
-  const handleSubmit = async () => {
-    try {
-      const values = await form.validateFields();
-      if (editingMaterial) {
-        await updateMaterial(editingMaterial.id, values);
-        message.success('更新成功');
-      } else {
-        await createMaterial(values);
-        message.success('创建成功');
+  const loadMaterials = () => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('materials')
+      if (saved) {
+        try {
+          setMaterials(JSON.parse(saved))
+        } catch (error) {
+          console.error('加载素材失败:', error)
+        }
       }
-      setModalVisible(false);
-      loadMaterials(pagination.page, pagination.pageSize);
-    } catch (error) {
-      message.error('操作失败');
     }
-  };
+  }
 
-  const renderContent = (record: Material) => {
-    switch (record.type) {
-      case 'text':
-        return <div style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{record.content}</div>;
-      case 'image':
-        return record.url ? <Image src={record.url} width={60} height={60} style={{ objectFit: 'cover' }} /> : <PictureOutlined style={{ fontSize: 24 }} />;
-      case 'video':
-        return record.url ? <video src={record.url} width={60} height={60} style={{ objectFit: 'cover' }} /> : <VideoCameraOutlined style={{ fontSize: 24 }} />;
-      default:
-        return '-';
+  // 筛选素材
+  const filteredMaterials = materials.filter((material) => {
+    // 分类筛选
+    const categoryMatch =
+      filterCategoryState === 'all' || material.category === filterCategoryState
+
+    // 外部传入的分类筛选（如果有的话）
+    const externalCategoryMatch = !filterCategory || material.category === filterCategory
+
+    // 状态筛选
+    const statusMatch = filterStatus === 'all' || material.status === filterStatus
+
+    // 搜索筛选
+    const searchMatch =
+      !searchText ||
+      material.title.toLowerCase().includes(searchText.toLowerCase()) ||
+      material.content.toLowerCase().includes(searchText.toLowerCase())
+
+    return categoryMatch && statusMatch && searchMatch && externalCategoryMatch
+  })
+
+  // 删除素材
+  const handleDelete = (id: string) => {
+    const newMaterials = materials.filter((m) => m.id !== id)
+    setMaterials(newMaterials)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('materials', JSON.stringify(newMaterials))
     }
-  };
+    message.success('已删除')
+  }
 
-  const columns: ColumnsType<Material> = [
-    { title: '预览', key: 'preview', width: 80, render: (_, record) => renderContent(record) },
-    { title: '标题', dataIndex: 'title', key: 'title', width: 200, ellipsis: true },
+  // 复制内容
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content)
+    message.success('已复制到剪贴板')
+  }
+
+  // 下载内容
+  const handleDownload = (material: Material) => {
+    const categoryConfig = contentCategoryConfig[material.category]
+    if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
+      window.open(material.content, '_blank')
+    } else {
+      const blob = new Blob([material.content], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${material.title}_${Date.now()}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+    message.success('已下载')
+  }
+
+  // 预览素材
+  const handlePreview = (material: Material) => {
+    setPreviewMaterial(material)
+    setPreviewVisible(true)
+  }
+
+  // 选择素材
+  const handleSelect = (material: Material) => {
+    if (onSelectMaterial) {
+      onSelectMaterial(material)
+      if (onClose) {
+        onClose()
+      }
+    }
+  }
+
+  // 获取分类图标
+  const getCategoryIcon = (category: ContentCategory) => {
+    const iconMap: Record<ContentCategory, any> = {
+      [ContentCategory.TITLE]: <FontSizeOutlined />,
+      [ContentCategory.TAGS]: <TagsOutlined />,
+      [ContentCategory.COPYWRITING]: <FileTextOutlined />,
+      [ContentCategory.IMAGE_TO_TEXT]: <FileImageOutlined />,
+      [ContentCategory.XIAOHONGSHU]: <HeartOutlined />,
+      [ContentCategory.IMAGE]: <PictureOutlined />,
+      [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
+      [ContentCategory.VIDEO]: <VideoCameraOutlined />,
+      [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
+    }
+    return iconMap[category]
+  }
+
+  // 表格列定义
+  const columns = [
     {
-      title: '类型',
-      dataIndex: 'type',
-      key: 'type',
-      width: 100,
-      render: (t: string) => (
-        <Tag color={TYPE_MAP[t]?.color} icon={TYPE_MAP[t]?.icon}>
-          {TYPE_MAP[t]?.label || t}
+      title: '标题',
+      dataIndex: 'title',
+      key: 'title',
+      width: 200,
+      render: (text: string, record: Material) => (
+        <Space>
+          <span style={{ color: contentCategoryConfig[record.category]?.color }}>
+            {getCategoryIcon(record.category)}
+          </span>
+          <span>{text}</span>
+        </Space>
+      ),
+    },
+    {
+      title: '分类',
+      dataIndex: 'category',
+      key: 'category',
+      width: 120,
+      render: (category: ContentCategory) => (
+        <Tag color={contentCategoryConfig[category]?.color}>
+          {contentCategoryConfig[category]?.label}
         </Tag>
       ),
     },
-    { title: '分类', dataIndex: 'category', key: 'category', width: 100 },
-    { title: '标签', dataIndex: 'tags', key: 'tags', width: 150, render: (tags: string[]) => tags?.map((t, i) => <Tag key={i}>{t}</Tag>) },
+    {
+      title: '内容预览',
+      dataIndex: 'content',
+      key: 'content',
+      ellipsis: true,
+      render: (content: string, record: Material) => {
+        const categoryConfig = contentCategoryConfig[record.category]
+        if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
+          return (
+            <Image
+              src={content}
+              alt={record.title}
+              style={{ width: 60, height: 60, objectFit: 'cover' }}
+            />
+          )
+        }
+        return <Paragraph ellipsis={{ rows: 1 }}>{content}</Paragraph>
+      },
+    },
     {
       title: '状态',
-      dataIndex: 'used',
-      key: 'used',
-      width: 100,
-      render: (used: boolean) => (
-        <Tag color={used ? 'red' : 'green'}>{used ? '已使用' : '未使用'}</Tag>
+      dataIndex: 'status',
+      key: 'status',
+      width: 80,
+      render: (status: string) => (
+        <Tag color={status === 'used' ? 'green' : 'blue'}>
+          {status === 'used' ? '已使用' : '未使用'}
+        </Tag>
       ),
     },
-    { title: '浏览', dataIndex: 'viewCount', key: 'viewCount', width: 80 },
-    { title: '点赞', dataIndex: 'likeCount', key: 'likeCount', width: 80 },
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180, render: (t: string) => new Date(t).toLocaleString('zh-CN') },
+    {
+      title: '创建时间',
+      dataIndex: 'timestamp',
+      key: 'timestamp',
+      width: 160,
+      render: (timestamp: number) =>
+        new Date(timestamp).toLocaleString('zh-CN'),
+    },
     {
       title: '操作',
       key: 'action',
-      width: 250,
-      render: (_, record) => (
-        <Space>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          {!record.used && (
-            <Button type="link" size="small" onClick={() => handleMarkUsed(record.id)}>
-              标记已用
+      width: 200,
+      render: (_: any, record: Material) => (
+        <Space size="small">
+          {onSelectMaterial && (
+            <Button
+              type="link"
+              size="small"
+              icon={<FileTextOutlined />}
+              onClick={() => handleSelect(record)}
+            >
+              使用
             </Button>
           )}
-          <Popconfirm title="确定删除?" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => handlePreview(record)}
+          >
+            预览
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<CopyOutlined />}
+            onClick={() => handleCopy(record.content)}
+          >
+            复制
+          </Button>
+          <Popconfirm
+            title="确定删除？"
+            onConfirm={() => handleDelete(record.id)}
+            okText="确定"
+            cancelText="取消"
+          >
+            <Button
+              type="link"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+            >
               删除
             </Button>
           </Popconfirm>
         </Space>
       ),
     },
-  ];
+  ]
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
-  };
+  // 渲染主页面
+  const renderMainPage = () => (
+    <div className="p-6">
+      {/* 页面头部 */}
+      <div className="mb-6">
+        <Title level={2}>素材库</Title>
+        <Text type="secondary">管理和使用您的AI生成内容</Text>
+      </div>
 
-  return (
-    <div style={{ padding: 24 }}>
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card><Statistic title="素材总数" value={pagination.total} /></Card>
-        </Col>
-        <Col span={6}>
-          <Card><Statistic title="文本" value={materials.filter(m => m.type === 'text').length} /></Card>
-        </Col>
-        <Col span={6}>
-          <Card><Statistic title="图片" value={materials.filter(m => m.type === 'image').length} /></Card>
-        </Col>
-        <Col span={6}>
-          <Card><Statistic title="已使用" value={materials.filter(m => m.used).length} /></Card>
-        </Col>
-      </Row>
-
-      <Card
-        title="素材库"
-        extra={
-          <Space>
-            <Select placeholder="类型" style={{ width: 120 }} allowClear onChange={v => setFilters({ ...filters, type: v || '' })}>
-              <Option value="text">文本</Option>
-              <Option value="image">图片</Option>
-              <Option value="video">视频</Option>
-              <Option value="audio">音频</Option>
+      {/* 筛选栏 */}
+      <Card className="mb-4">
+        <Row gutter={16}>
+          <Col span={6}>
+            <Search
+              placeholder="搜索素材标题或内容"
+              allowClear
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          <Col span={4}>
+            <Select
+              placeholder="选择分类"
+              value={filterCategoryState}
+              onChange={setFilterCategoryState}
+              style={{ width: '100%' }}
+              allowClear
+            >
+              <Select.Option value="all">全部分类</Select.Option>
+              {Object.values(ContentCategory).map((category) => (
+                <Select.Option key={category} value={category}>
+                  {contentCategoryConfig[category]?.label}
+                </Select.Option>
+              ))}
             </Select>
-            <Select placeholder="分类" style={{ width: 120 }} allowClear onChange={v => setFilters({ ...filters, category: v || '' })}>
-              {CATEGORIES.map(c => <Option key={c} value={c}>{c}</Option>)}
+          </Col>
+          <Col span={4}>
+            <Select
+              placeholder="选择状态"
+              value={filterStatus}
+              onChange={setFilterStatus}
+              style={{ width: '100%' }}
+              allowClear
+            >
+              <Select.Option value="all">全部状态</Select.Option>
+              <Select.Option value="unused">未使用</Select.Option>
+              <Select.Option value="used">已使用</Select.Option>
             </Select>
-            <Input placeholder="搜索标题/内容" prefix={<SearchOutlined />} style={{ width: 200 }} onPressEnter={() => loadMaterials()} />
-            <Button onClick={() => loadMaterials()}>搜索</Button>
-            {selectedRowKeys.length > 0 && (
-              <Popconfirm title={`确定删除 ${selectedRowKeys.length} 个素材?`} onConfirm={handleBatchDelete}>
-                <Button danger>批量删除</Button>
-              </Popconfirm>
-            )}
-            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-              上传素材
-            </Button>
-          </Space>
-        }
-      >
+          </Col>
+        </Row>
+      </Card>
+
+      {/* 素材表格 */}
+      <Card>
         <Table
           columns={columns}
-          dataSource={materials}
+          dataSource={filteredMaterials}
           rowKey="id"
-          loading={loading}
-          rowSelection={rowSelection}
           pagination={{
-            total: pagination.total,
-            current: pagination.page,
-            pageSize: pagination.pageSize,
-            onChange: (page, pageSize) => loadMaterials(page, pageSize),
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total) => `共 ${total} 条`,
           }}
         />
       </Card>
-
-      <Modal
-        title={editingMaterial ? '编辑素材' : '上传素材'}
-        open={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        width={700}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
-            <Input placeholder="素材标题" />
-          </Form.Item>
-          <Space style={{ width: '100%' }} size="large">
-            <Form.Item name="type" label="类型" rules={[{ required: true }]} style={{ width: 200 }}>
-              <Select placeholder="选择类型">
-                <Option value="text">文本</Option>
-                <Option value="image">图片</Option>
-                <Option value="video">视频</Option>
-                <Option value="audio">音频</Option>
-              </Select>
-            </Form.Item>
-            <Form.Item name="category" label="分类" style={{ width: 200 }}>
-              <Select placeholder="选择分类">
-                {CATEGORIES.map(c => <Option key={c} value={c}>{c}</Option>)}
-              </Select>
-            </Form.Item>
-          </Space>
-          <Form.Item name="content" label="内容">
-            <TextArea rows={4} placeholder="文本内容或描述" />
-          </Form.Item>
-          <Form.Item name="url" label="文件URL">
-            <Input placeholder="图片/视频/音频的URL" />
-          </Form.Item>
-          <Form.Item name="tags" label="标签">
-            <Select mode="tags" placeholder="输入标签后按回车">
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
-  );
+  )
+
+  // 渲染抽屉版本（用于在发布时选择素材）
+  const renderDrawer = () => (
+    <Drawer
+      title="选择素材"
+      onClose={onClose}
+      open={visible}
+      width={800}
+    >
+      {/* 筛选栏 */}
+      <div className="mb-4">
+        <Row gutter={16}>
+          <Col span={12}>
+            <Search
+              placeholder="搜索素材标题或内容"
+              allowClear
+              onChange={(e) => setSearchText(e.target.value)}
+            />
+          </Col>
+          <Col span={12}>
+            <Select
+              placeholder="选择分类"
+              value={filterCategory}
+              onChange={() => {}}
+              style={{ width: '100%' }}
+              disabled
+            >
+              <Select.Option value={filterCategory}>
+                {contentCategoryConfig[filterCategory!]?.label}
+              </Select.Option>
+            </Select>
+          </Col>
+        </Row>
+      </div>
+
+      {/* 素材表格 */}
+      <Table
+        columns={columns}
+        dataSource={filteredMaterials}
+        rowKey="id"
+        pagination={{
+          pageSize: 5,
+          size: 'small',
+        }}
+      />
+    </Drawer>
+  )
+
+  // 预览模态框
+  const renderPreviewModal = () => (
+    <Modal
+      title={previewMaterial?.title}
+      open={previewVisible}
+      onCancel={() => setPreviewVisible(false)}
+      footer={[
+        <Button key="copy" icon={<CopyOutlined />} onClick={() => previewMaterial && handleCopy(previewMaterial.content)}>
+          复制
+        </Button>,
+        <Button key="download" icon={<DownloadOutlined />} onClick={() => previewMaterial && handleDownload(previewMaterial)}>
+          下载
+        </Button>,
+        <Button key="close" onClick={() => setPreviewVisible(false)}>
+          关闭
+        </Button>,
+      ]}
+      width={800}
+    >
+      {previewMaterial && (
+        <div>
+          <Space className="mb-4">
+            <Tag color={contentCategoryConfig[previewMaterial.category]?.color}>
+              {contentCategoryConfig[previewMaterial.category]?.label}
+            </Tag>
+            <Tag color={previewMaterial.status === 'used' ? 'green' : 'blue'}>
+              {previewMaterial.status === 'used' ? '已使用' : '未使用'}
+            </Tag>
+          </Space>
+          <div className="mt-4">
+            {contentCategoryConfig[previewMaterial.category]?.type === 'image' ? (
+              <Image src={previewMaterial.content} alt={previewMaterial.title} style={{ maxWidth: '100%' }} />
+            ) : contentCategoryConfig[previewMaterial.category]?.type === 'video' ? (
+              <video src={previewMaterial.content} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+            ) : (
+              <Paragraph className="whitespace-pre-wrap">{previewMaterial.content}</Paragraph>
+            )}
+          </div>
+        </div>
+      )}
+    </Modal>
+  )
+
+  // 根据props决定渲染主页面还是抽屉
+  return (
+    <>
+      {visible ? renderDrawer() : renderMainPage()}
+      {renderPreviewModal()}
+    </>
+  )
 }
