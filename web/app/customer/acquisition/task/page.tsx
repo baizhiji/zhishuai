@@ -400,7 +400,7 @@ export default function TaskPage() {
         </Col>
         <Col span={4}>
           <Card className="border-l-4 border-l-orange-500">
-            <Statistic title="收到回复" value={stats.totalReplied} suffix={`(${stats.avgReplyRate}%)`} />
+            <Statistic title="收到回复" value={stats.totalReplied} suffix={`(${Number(stats.avgReplyRate)}%)`} />
           </Card>
         </Col>
         <Col span={4}>
@@ -443,8 +443,8 @@ export default function TaskPage() {
           </div>
           <div className="text-3xl text-orange-500">→</div>
           <div className="flex-1 mx-8">
-            <Progress percent={stats.avgReplyRate} showInfo={false} strokeColor="#faad14" />
-            <div className="text-center text-sm text-gray-400 mt-1">回复率 {stats.avgReplyRate}%</div>
+            <Progress percent={Number(stats.avgReplyRate)} showInfo={false} strokeColor="#faad14" />
+            <div className="text-center text-sm text-gray-400 mt-1">回复率 {Number(stats.avgReplyRate)}%</div>
           </div>
           <div className="text-3xl text-orange-500">→</div>
           <div className="flex-1 mx-8">
