@@ -424,7 +424,7 @@ router.delete('/config/:id', async (req, res) => {
       message: '服务器错误',
     });
   }
-);
+});
 
 // 设为默认配置
 router.post('/config/:id/default', async (req, res) => {
