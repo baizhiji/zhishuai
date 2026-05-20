@@ -10,27 +10,24 @@ import {
   Avatar,
   Tag,
   Progress,
-  Table,
   Select,
-  DatePicker,
   Space,
   Typography,
-  ProgressProps,
+  message,
 } from 'antd';
 import {
   UserOutlined,
   TeamOutlined,
   RiseOutlined,
-  MailOutlined,
   FileTextOutlined,
   MessageOutlined,
   DollarOutlined,
   LikeOutlined,
   EyeOutlined,
+  PlayCircleOutlined,
+  ShareAltOutlined,
 } from '@ant-design/icons';
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   PieChart,
@@ -41,45 +38,54 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from 'recharts';
 import request from '@/utils/request';
 
 const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
 
 interface DashboardData {
   overview: {
-    totalUsers: number;
-    activeUsers: number;
-    totalRevenue: number;
-    growth: number;
+    materials: number;
+    recruitmentPosts: number;
+    acquisitionTasks: number;
+    shareCodes: number;
+    matrixAccounts: number;
+    publishedContent: number;
   };
-  matrix: {
-    accounts: number;
-    todayPosts: number;
-    totalViews: number;
-    totalLikes: number;
+  weekly: {
+    newMaterials: number;
+    newPosts: number;
+    newLeads: number;
   };
-  recruitment: {
-    activePosts: number;
-    totalCandidates: number;
-    interviews: number;
-    hires: number;
+  platforms: { platform: string; count: number }[];
+  mediaStats?: {
+    trend: any[];
+    totals: {
+      posts: number;
+      views: number;
+      likes: number;
+      comments: number;
+      shares: number;
+    };
   };
-  acquisition: {
-    totalLeads: number;
-    contacted: number;
-    converted: number;
+  recruitmentStats?: {
+    posts: { total: number; byStatus: Record<string, number> };
+    candidates: { total: number; byStatus: Record<string, number> };
+    totals: { views: number; applications: number };
+  };
+  acquisitionStats?: {
+    tasks: { total: number; byStatus: Record<string, number> };
+    leads: { total: number; byStatus: Record<string, number> };
+    metrics: { replyRate: number; avgConversion: number };
+  };
+  shareStats?: {
+    totalCodes: number;
+    totals: { scans: number; registers: number };
     conversionRate: number;
   };
-  recentActivities: any[];
-  platformDistribution: { name: string; value: number }[];
-  revenueTrend: { date: string; revenue: number }[];
 }
 
-const COLORS = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1'];
+const COLORS = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
 
 const cardStyle: React.CSSProperties = {
   borderRadius: 12,
@@ -90,120 +96,172 @@ export default function CustomerDashboard() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<DashboardData | null>(null);
   const [dateRange, setDateRange] = useState<string>('7d');
+  const [userId, setUserId] = useState<string>('1'); // 默认测试用户
 
   useEffect(() => {
     fetchDashboardData();
-  }, [dateRange]);
+  }, [userId]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // 获取统计数据
-      const statsRes = await request.get('/api/statistics/overview');
-      const matrixRes = await request.get('/api/social/accounts?userId=1');
-      const recruitRes = await request.get('/api/recruitment/stats?userId=1');
-      const acquireRes = await request.get('/api/acquisition/stats?userId=1');
+      // 并行获取所有数据
+      const [dashboardRes, mediaRes, recruitRes, acquireRes, shareRes] = await Promise.allSettled([
+        request.get(`/api/customer/dashboard?userId=${userId}`),
+        request.get(`/api/customer/media-stats?userId=${userId}&days=30`),
+        request.get(`/api/customer/recruitment-stats?userId=${userId}`),
+        request.get(`/api/customer/acquisition-stats?userId=${userId}`),
+        request.get(`/api/customer/share-stats?userId=${userId}`),
+      ]);
 
-      // Mock 数据用于演示
-      const mockData: DashboardData = {
-        overview: {
-          totalUsers: statsRes?.totalUsers || 12580,
-          activeUsers: statsRes?.activeUsers || 8642,
-          totalRevenue: statsRes?.totalRevenue || 285600,
-          growth: 12.5,
-        },
-        matrix: {
-          accounts: matrixRes?.length || 8,
-          todayPosts: 24,
-          totalViews: 1256800,
-          totalLikes: 45680,
-        },
-        recruitment: {
-          activePosts: recruitRes?.activePosts || 12,
-          totalCandidates: recruitRes?.totalCandidates || 156,
-          interviews: recruitRes?.interviews || 38,
-          hires: recruitRes?.hires || 8,
-        },
-        acquisition: {
-          totalLeads: acquireRes?.totalLeads || 456,
-          contacted: acquireRes?.contacted || 289,
-          converted: acquireRes?.converted || 67,
-          conversionRate: acquireRes?.conversionRate || 14.7,
-        },
-        recentActivities: [
-          { id: 1, type: 'post', platform: 'douyin', content: '内容发布成功', time: '2分钟前' },
-          { id: 2, type: 'candidate', name: '张三', status: '面试邀请', time: '15分钟前' },
-          { id: 3, type: 'lead', name: '李四', status: '已转化', time: '30分钟前' },
-          { id: 4, type: 'post', platform: 'xiaohongshu', content: '内容发布成功', time: '1小时前' },
-          { id: 5, type: 'candidate', name: '王五', status: '待筛选', time: '2小时前' },
-        ],
-        platformDistribution: [
-          { name: '抖音', value: 35 },
-          { name: '快手', value: 25 },
-          { name: '小红书', value: 20 },
-          { name: '微信', value: 15 },
-          { name: '其他', value: 5 },
-        ],
-        revenueTrend: [
-          { date: '周一', revenue: 4200 },
-          { date: '周二', revenue: 3800 },
-          { date: '周三', revenue: 5100 },
-          { date: '周四', revenue: 4600 },
-          { date: '周五', revenue: 6200 },
-          { date: '周六', revenue: 5500 },
-          { date: '周日', revenue: 4800 },
-        ],
-      };
+      const dashboard = dashboardRes.status === 'fulfilled' ? dashboardRes.value?.data : null;
+      const media = mediaRes.status === 'fulfilled' ? mediaRes.value?.data : null;
+      const recruit = recruitRes.status === 'fulfilled' ? recruitRes.value?.data : null;
+      const acquire = acquireRes.status === 'fulfilled' ? acquireRes.value?.data : null;
+      const share = shareRes.status === 'fulfilled' ? shareRes.value?.data : null;
 
-      setData(mockData);
+      // 如果没有真实数据，使用模拟数据
+      const hasRealData = dashboard?.overview?.materials > 0 || dashboard?.overview?.matrixAccounts > 0;
+
+      if (hasRealData) {
+        setData({
+          overview: dashboard.overview,
+          weekly: dashboard.weekly,
+          platforms: dashboard.platforms,
+          mediaStats: media,
+          recruitmentStats: recruit,
+          acquisitionStats: acquire,
+          shareStats: share,
+        });
+      } else {
+        // 使用演示数据
+        setData({
+          overview: {
+            materials: 156,
+            recruitmentPosts: 12,
+            acquisitionTasks: 8,
+            shareCodes: 25,
+            matrixAccounts: 8,
+            publishedContent: 342,
+          },
+          weekly: {
+            newMaterials: 23,
+            newPosts: 18,
+            newLeads: 45,
+          },
+          platforms: [
+            { platform: '抖音', count: 3 },
+            { platform: '小红书', count: 2 },
+            { platform: '快手', count: 1 },
+            { platform: '视频号', count: 2 },
+          ],
+          mediaStats: {
+            trend: [
+              { date: '周一', posts: 5, views: 1200, likes: 89 },
+              { date: '周二', posts: 8, views: 1580, likes: 112 },
+              { date: '周三', posts: 6, views: 980, likes: 67 },
+              { date: '周四', posts: 10, views: 2100, likes: 156 },
+              { date: '周五', posts: 7, views: 1800, likes: 134 },
+              { date: '周六', posts: 4, views: 890, likes: 45 },
+              { date: '周日', posts: 3, views: 650, likes: 38 },
+            ],
+            totals: { posts: 43, views: 9200, likes: 641, comments: 89, shares: 45 },
+          },
+          recruitmentStats: {
+            posts: { total: 12, byStatus: { published: 8, draft: 4 } },
+            candidates: { total: 156, byStatus: { new: 45, screening: 38, interview: 28, offer: 12, hired: 8 } },
+            totals: { views: 3450, applications: 156 },
+          },
+          acquisitionStats: {
+            tasks: { total: 8, byStatus: { running: 5, completed: 2, paused: 1 } },
+            leads: { total: 456, byStatus: { new: 120, contacted: 180, replied: 98, converted: 58 } },
+            metrics: { replyRate: 21.5, avgConversion: 73 },
+          },
+          shareStats: {
+            totalCodes: 25,
+            totals: { scans: 5680, registers: 456 },
+            conversionRate: 8,
+          },
+        });
+      }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
-      // 使用默认数据
+      message.error('获取数据失败，使用演示数据');
+      // 使用默认演示数据
       setData({
-        overview: { totalUsers: 12580, activeUsers: 8642, totalRevenue: 285600, growth: 12.5 },
-        matrix: { accounts: 8, todayPosts: 24, totalViews: 1256800, totalLikes: 45680 },
-        recruitment: { activePosts: 12, totalCandidates: 156, interviews: 38, hires: 8 },
-        acquisition: { totalLeads: 456, contacted: 289, converted: 67, conversionRate: 14.7 },
-        recentActivities: [],
-        platformDistribution: [
-          { name: '抖音', value: 35 },
-          { name: '快手', value: 25 },
-          { name: '小红书', value: 20 },
-          { name: '微信', value: 15 },
-          { name: '其他', value: 5 },
+        overview: {
+          materials: 156,
+          recruitmentPosts: 12,
+          acquisitionTasks: 8,
+          shareCodes: 25,
+          matrixAccounts: 8,
+          publishedContent: 342,
+        },
+        weekly: {
+          newMaterials: 23,
+          newPosts: 18,
+          newLeads: 45,
+        },
+        platforms: [
+          { platform: '抖音', count: 3 },
+          { platform: '小红书', count: 2 },
+          { platform: '快手', count: 1 },
+          { platform: '视频号', count: 2 },
         ],
-        revenueTrend: [
-          { date: '周一', revenue: 4200 },
-          { date: '周二', revenue: 3800 },
-          { date: '周三', revenue: 5100 },
-          { date: '周四', revenue: 4600 },
-          { date: '周五', revenue: 6200 },
-          { date: '周六', revenue: 5500 },
-          { date: '周日', revenue: 4800 },
-        ],
+        mediaStats: {
+          trend: [],
+          totals: { posts: 43, views: 9200, likes: 641, comments: 89, shares: 45 },
+        },
+        recruitmentStats: {
+          posts: { total: 12, byStatus: { published: 8, draft: 4 } },
+          candidates: { total: 156, byStatus: { new: 45, screening: 38, interview: 28, offer: 12, hired: 8 } },
+          totals: { views: 3450, applications: 156 },
+        },
+        acquisitionStats: {
+          tasks: { total: 8, byStatus: { running: 5, completed: 2, paused: 1 } },
+          leads: { total: 456, byStatus: { new: 120, contacted: 180, replied: 98, converted: 58 } },
+          metrics: { replyRate: 21.5, avgConversion: 73 },
+        },
+        shareStats: {
+          totalCodes: 25,
+          totals: { scans: 5680, registers: 456 },
+          conversionRate: 8,
+        },
       });
     }
     setLoading(false);
   };
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'post': return <FileTextOutlined style={{ color: '#1890ff' }} />;
-      case 'candidate': return <TeamOutlined style={{ color: '#52c41a' }} />;
-      case 'lead': return <UserOutlined style={{ color: '#faad14' }} />;
-      default: return <MessageOutlined style={{ color: '#722ed1' }} />;
+  // 准备饼图数据
+  const getPlatformChartData = () => {
+    if (!data?.platforms?.length) {
+      return [
+        { name: '抖音', value: 35 },
+        { name: '小红书', value: 25 },
+        { name: '快手', value: 20 },
+        { name: '视频号', value: 20 },
+      ];
     }
+    return data.platforms.map(p => ({ name: p.platform, value: p.count }));
   };
 
-  const recruitmentProgress: any = {
-    steps: [
-      { title: '投递', value: 100 },
-      { title: '筛选', value: 65 },
-      { title: '面试', value: 35 },
-      { title: '入职', value: 8 },
-    ],
-    percent: 8,
-    strokeColor: '#52c41a',
+  // 招聘漏斗数据
+  const getRecruitmentFunnel = () => {
+    if (!data?.recruitmentStats) {
+      return [
+        { stage: '投递', count: 156, color: '#1890ff' },
+        { stage: '筛选', count: 98, color: '#52c41a' },
+        { stage: '面试', count: 40, color: '#faad14' },
+        { stage: '入职', count: 8, color: '#722ed1' },
+      ];
+    }
+    const candidates = data.recruitmentStats.candidates;
+    return [
+      { stage: '投递', count: candidates.total, color: '#1890ff' },
+      { stage: '筛选', count: (candidates.byStatus?.screening || 0) + (candidates.byStatus?.interview || 0), color: '#52c41a' },
+      { stage: '面试', count: candidates.byStatus?.interview || 0, color: '#faad14' },
+      { stage: '入职', count: (candidates.byStatus?.offer || 0) + (candidates.byStatus?.hired || 0), color: '#722ed1' },
+    ];
   };
 
   return (
@@ -233,78 +291,92 @@ export default function CustomerDashboard() {
         <Col xs={24} sm={12} lg={6}>
           <Card style={cardStyle} loading={loading}>
             <Statistic
-              title="总用户数"
-              value={data?.overview.totalUsers || 0}
-              prefix={<UserOutlined />}
-              suffix={<Text type="success" style={{ fontSize: 14 }}>+{data?.overview.growth}%</Text>}
+              title="素材总数"
+              value={data?.overview.materials || 0}
+              prefix={<FileTextOutlined />}
+              suffix={<Text type="success" style={{ fontSize: 12 }}>+{data?.weekly.newMaterials || 0}本周</Text>}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card style={cardStyle} loading={loading}>
             <Statistic
-              title="活跃用户"
-              value={data?.overview.activeUsers || 0}
+              title="招聘职位"
+              value={data?.overview.recruitmentPosts || 0}
               prefix={<TeamOutlined />}
               valueStyle={{ color: '#52c41a' }}
+              suffix={<Text type="secondary" style={{ fontSize: 12 }}>个</Text>}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card style={cardStyle} loading={loading}>
             <Statistic
-              title="总收益"
-              value={data?.overview.totalRevenue || 0}
-              prefix={<DollarOutlined />}
-              formatter={(value) => `¥${Number(value).toLocaleString()}`}
+              title="获客任务"
+              value={data?.overview.acquisitionTasks || 0}
+              prefix={<UserOutlined />}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card style={cardStyle} loading={loading}>
             <Statistic
-              title="今日收入"
-              value={data?.overview.totalRevenue ? Math.round(data.overview.totalRevenue / 30) : 0}
-              prefix={<RiseOutlined />}
-              suffix={<Text type="success" style={{ fontSize: 14 }}>+5.2%</Text>}
+              title="分享码"
+              value={data?.overview.shareCodes || 0}
+              prefix={<ShareAltOutlined />}
+              suffix={<Text type="success" style={{ fontSize: 12 }}>+{data?.shareStats?.conversionRate || 0}%转化</Text>}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* Matrix & Business Stats */}
+      {/* Matrix & Media Stats */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        {/* Matrix Stats */}
+        {/* Media Stats */}
         <Col xs={24} lg={16}>
           <Card
             title="自媒体运营"
-            extra={<a href="/media/matrix">查看详情</a>}
+            extra={<a href="/customer/media/matrix">查看详情</a>}
             style={cardStyle}
             loading={loading}
           >
             <Row gutter={16}>
               <Col span={6}>
-                <Statistic title="账号数量" value={data?.matrix.accounts || 0} prefix={<TeamOutlined />} />
+                <Statistic title="矩阵账号" value={data?.overview.matrixAccounts || 0} prefix={<TeamOutlined />} />
               </Col>
               <Col span={6}>
-                <Statistic title="今日发布" value={data?.matrix.todayPosts || 0} prefix={<FileTextOutlined />} />
+                <Statistic title="已发布" value={data?.overview.publishedContent || 0} prefix={<PlayCircleOutlined />} />
               </Col>
               <Col span={6}>
-                <Statistic title="总浏览量" value={data?.matrix.totalViews || 0} prefix={<EyeOutlined />} />
+                <Statistic 
+                  title="本周发布" 
+                  value={data?.weekly.newPosts || 0} 
+                  prefix={<FileTextOutlined />} 
+                />
               </Col>
               <Col span={6}>
-                <Statistic title="总点赞量" value={data?.matrix.totalLikes || 0} prefix={<LikeOutlined />} />
+                <Statistic 
+                  title="本周潜客" 
+                  value={data?.weekly.newLeads || 0} 
+                  prefix={<UserOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+                />
               </Col>
             </Row>
             <div style={{ marginTop: 24, height: 280 }}>
-              <Title level={5} style={{ marginBottom: 16 }}>收益趋势</Title>
+              <Title level={5} style={{ marginBottom: 16 }}>发布趋势</Title>
               <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={data?.revenueTrend || []}>
+                <AreaChart data={data?.mediaStats?.trend || []}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip formatter={(value: number) => [`¥${value}`, '收益']} />
-                  <Area type="monotone" dataKey="revenue" stroke="#1890ff" fill="#1890ff33" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip formatter={(value: number, name: string) => {
+                    const labels: Record<string, string> = { posts: '发布数', views: '浏览量', likes: '点赞数' };
+                    return [`${value}`, labels[name] || name];
+                  }} />
+                  <Area yAxisId="left" type="monotone" dataKey="posts" stroke="#1890ff" fill="#1890ff33" name="posts" />
+                  <Area yAxisId="right" type="monotone" dataKey="views" stroke="#52c41a" fill="#52c41a33" name="views" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -318,7 +390,7 @@ export default function CustomerDashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={data?.platformDistribution || []}
+                    data={getPlatformChartData()}
                     cx="50%"
                     cy="50%"
                     innerRadius={50}
@@ -326,7 +398,7 @@ export default function CustomerDashboard() {
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
-                    {(data?.platformDistribution || []).map((entry, index) => (
+                    {getPlatformChartData().map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -344,46 +416,37 @@ export default function CustomerDashboard() {
         <Col xs={24} lg={12}>
           <Card
             title="招聘助手"
-            extra={<a href="/customer/recruitment-dashboard">数据看板</a>}
+            extra={<a href="/customer/recruitment">职位管理</a>}
             style={cardStyle}
             loading={loading}
           >
             <Row gutter={16}>
               <Col span={6}>
-                <Statistic title="在招职位" value={data?.recruitment.activePosts || 0} />
+                <Statistic title="在招职位" value={data?.recruitmentStats?.posts.total || 0} />
               </Col>
               <Col span={6}>
-                <Statistic title="候选人" value={data?.recruitment.totalCandidates || 0} />
+                <Statistic title="候选人" value={data?.recruitmentStats?.candidates.total || 0} />
               </Col>
               <Col span={6}>
-                <Statistic title="面试中" value={data?.recruitment.interviews || 0} />
+                <Statistic title="面试中" value={data?.recruitmentStats?.candidates.byStatus?.interview || 0} />
               </Col>
               <Col span={6}>
-                <Statistic title="已入职" value={data?.recruitment.hires || 0} valueStyle={{ color: '#52c41a' }} />
+                <Statistic 
+                  title="已入职" 
+                  value={(data?.recruitmentStats?.candidates.byStatus?.offer || 0) + (data?.recruitmentStats?.candidates.byStatus?.hired || 0)} 
+                  valueStyle={{ color: '#52c41a' }} 
+                />
               </Col>
             </Row>
             <div style={{ marginTop: 24 }}>
               <Title level={5} style={{ marginBottom: 12 }}>招聘漏斗</Title>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>{data?.recruitment.totalCandidates || 0}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>投递</div>
-                </div>
-                <span style={{ color: '#d9d9d9' }}>→</span>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>{Math.round((data?.recruitment.totalCandidates || 0) * 0.65)}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>筛选</div>
-                </div>
-                <span style={{ color: '#d9d9d9' }}>→</span>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#faad14' }}>{data?.recruitment.interviews || 0}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>面试</div>
-                </div>
-                <span style={{ color: '#d9d9d9' }}>→</span>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#722ed1' }}>{data?.recruitment.hires || 0}</div>
-                  <div style={{ fontSize: 12, color: '#666' }}>入职</div>
-                </div>
+                {getRecruitmentFunnel().map((item, idx) => (
+                  <div key={idx} style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ fontSize: 24, fontWeight: 'bold', color: item.color }}>{item.count}</div>
+                    <div style={{ fontSize: 12, color: '#666' }}>{item.stage}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </Card>
@@ -393,71 +456,88 @@ export default function CustomerDashboard() {
         <Col xs={24} lg={12}>
           <Card
             title="智能获客"
-            extra={<a href="/customer/acquisition-dashboard">数据看板</a>}
+            extra={<a href="/customer/acquisition">任务管理</a>}
             style={cardStyle}
             loading={loading}
           >
             <Row gutter={16}>
               <Col span={6}>
-                <Statistic title="总线索" value={data?.acquisition.totalLeads || 0} />
+                <Statistic title="总线索" value={data?.acquisitionStats?.leads.total || 0} />
               </Col>
               <Col span={6}>
-                <Statistic title="已联系" value={data?.acquisition.contacted || 0} />
+                <Statistic title="已联系" value={data?.acquisitionStats?.leads.byStatus?.contacted || 0} />
               </Col>
               <Col span={6}>
-                <Statistic title="已转化" value={data?.acquisition.converted || 0} />
+                <Statistic title="已回复" value={data?.acquisitionStats?.leads.byStatus?.replied || 0} />
               </Col>
               <Col span={6}>
-                <Statistic
-                  title="转化率"
-                  value={data?.acquisition.conversionRate || 0}
-                  suffix="%"
-                  valueStyle={{ color: '#52c41a' }}
+                <Statistic 
+                  title="已转化" 
+                  value={data?.acquisitionStats?.leads.byStatus?.converted || 0} 
+                  valueStyle={{ color: '#52c41a' }} 
                 />
               </Col>
             </Row>
             <div style={{ marginTop: 24 }}>
-              <Title level={5} style={{ marginBottom: 12 }}>获客漏斗</Title>
+              <Title level={5} style={{ marginBottom: 12 }}>获客转化</Title>
               <Progress
-                percent={data?.acquisition.conversionRate || 0}
-                success={{ percent: data?.acquisition.conversionRate || 0 }}
+                percent={data?.acquisitionStats?.metrics?.replyRate || 0}
+                success={{ percent: data?.acquisitionStats?.metrics?.replyRate || 0 }}
                 strokeColor="#52c41a"
-                format={(percent) => `${percent}% 转化`}
+                format={(percent) => `${percent}% 回复率`}
               />
+              <div style={{ marginTop: 8 }}>
+                <Progress
+                  percent={data?.acquisitionStats?.metrics?.avgConversion || 0}
+                  strokeColor="#1890ff"
+                  format={(percent) => `${percent}% 完成度`}
+                />
+              </div>
             </div>
           </Card>
         </Col>
       </Row>
 
-      {/* Recent Activities */}
+      {/* Recent Activities & Quick Links */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
-          <Card title="最近活动" style={cardStyle} loading={loading}>
-            <List
-              dataSource={data?.recentActivities || []}
-              renderItem={(item: any) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={<Avatar icon={getActivityIcon(item.type)} style={{ background: '#f0f0f0' }} />}
-                    title={item.content || `${item.name} - ${item.status}`}
-                    description={item.platform ? `平台: ${item.platform}` : item.time}
-                  />
-                  <Tag color={item.status === '已转化' || item.status === '入职' ? 'green' : 'blue'}>
-                    {item.status || item.time}
-                  </Tag>
-                </List.Item>
-              )}
-            />
+          <Card title="数据总览" style={cardStyle} loading={loading}>
+            <Row gutter={16}>
+              <Col span={8}>
+                <Statistic 
+                  title="总浏览量" 
+                  value={data?.mediaStats?.totals.views || 0} 
+                  prefix={<EyeOutlined />} 
+                  formatter={(v) => Number(v).toLocaleString()} 
+                />
+              </Col>
+              <Col span={8}>
+                <Statistic 
+                  title="总点赞" 
+                  value={data?.mediaStats?.totals.likes || 0} 
+                  prefix={<LikeOutlined />} 
+                  formatter={(v) => Number(v).toLocaleString()} 
+                />
+              </Col>
+              <Col span={8}>
+                <Statistic 
+                  title="分享码扫码" 
+                  value={data?.shareStats?.totals.scans || 0} 
+                  prefix={<ShareAltOutlined />} 
+                  formatter={(v) => Number(v).toLocaleString()} 
+                />
+              </Col>
+            </Row>
           </Card>
         </Col>
 
         <Col xs={24} lg={8}>
           <Card title="快捷入口" style={cardStyle}>
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <a href="/media/matrix/accounts" style={{ display: 'block', padding: '12px 16px', background: '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
+              <a href="/customer/media/matrix" style={{ display: 'block', padding: '12px 16px', background: '#e6f7ff', borderRadius: 8, color: '#1890ff' }}>
                 <TeamOutlined /> 矩阵账号管理
               </a>
-              <a href="/media/matrix/publish" style={{ display: 'block', padding: '12px 16px', background: '#f6ffed', borderRadius: 8, color: '#52c41a' }}>
+              <a href="/customer/media/publish" style={{ display: 'block', padding: '12px 16px', background: '#f6ffed', borderRadius: 8, color: '#52c41a' }}>
                 <FileTextOutlined /> 发布内容
               </a>
               <a href="/customer/recruitment" style={{ display: 'block', padding: '12px 16px', background: '#fff7e6', borderRadius: 8, color: '#faad14' }}>
@@ -466,10 +546,7 @@ export default function CustomerDashboard() {
               <a href="/customer/acquisition" style={{ display: 'block', padding: '12px 16px', background: '#fff1f0', borderRadius: 8, color: '#f5222d' }}>
                 <UserOutlined /> 获客管理
               </a>
-              <a href="/agent/ai-chat" style={{ display: 'block', padding: '12px 16px', background: '#f9f0ff', borderRadius: 8, color: '#722ed1' }}>
-                <MessageOutlined /> AI 对话
-              </a>
-              <a href="/customer/materials" style={{ display: 'block', padding: '12px 16px', background: '#f0f5ff', borderRadius: 8, color: '#1890ff' }}>
+              <a href="/customer/materials" style={{ display: 'block', padding: '12px 16px', background: '#f9f0ff', borderRadius: 8, color: '#722ed1' }}>
                 <FileTextOutlined /> 素材库
               </a>
             </Space>
