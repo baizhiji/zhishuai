@@ -38,10 +38,10 @@ router.get('/accounts', authMiddleware, async (req: Request, res: Response) => {
 router.post('/accounts', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { platform, name, accountId, avatar, autoPublish } = req.body;
+    const { platform, accountId, accountId, avatar, autoPublish } = req.body;
 
     const account = await prisma.matrixAccount.create({
-      data: { userId, platform, name, accountId, avatar, autoPublish: autoPublish || false },
+      data: { userId, platform, accountId, accountId, avatar, autoPublish: autoPublish || false },
     });
 
     res.json({ success: true, data: account });
@@ -55,7 +55,7 @@ router.put('/accounts/:id', authMiddleware, async (req: Request, res: Response) 
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
-    const { name, autoPublish, status } = req.body;
+    const { accountId, autoPublish, status } = req.body;
 
     const data: any = {};
     if (name !== undefined) data.name = name;
@@ -95,14 +95,14 @@ router.get('/publish-records', authMiddleware, async (req: Request, res: Respons
     const userId = (req as any).userId;
     const { page = 1, pageSize = 20 } = req.query;
 
-    const records = await prisma.publishRecord.findMany({
+    const records = await prisma.publishedContent.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       skip: (Number(page) - 1) * Number(pageSize),
       take: Number(pageSize),
     });
 
-    const total = await prisma.publishRecord.count({ where: { userId } });
+    const total = await prisma.publishedContent.count({ where: { userId } });
 
     res.json({
       success: true,
@@ -119,7 +119,7 @@ router.post('/publish', authMiddleware, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const { materialId, accountIds, platforms } = req.body;
 
-    const record = await prisma.publishRecord.create({
+    const record = await prisma.publishedContent.create({
       data: {
         userId,
         materialId,
@@ -151,14 +151,14 @@ router.get('/content-data', authMiddleware, async (req: Request, res: Response) 
     const userId = (req as any).userId;
     const { page = 1, pageSize = 20 } = req.query;
 
-    const records = await prisma.contentData.findMany({
+    const records = await prisma.publishedContent.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       skip: (Number(page) - 1) * Number(pageSize),
       take: Number(pageSize),
     });
 
-    const total = await prisma.contentData.count({ where: { userId } });
+    const total = await prisma.publishedContent.count({ where: { userId } });
 
     res.json({
       success: true,
@@ -176,7 +176,7 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
 
     const accountCount = await prisma.matrixAccount.count({ where: { userId } });
-    const publishCount = await prisma.publishRecord.count({ where: { userId } });
+    const publishCount = await prisma.publishedContent.count({ where: { userId } });
 
     res.json({
       success: true,

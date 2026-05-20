@@ -70,7 +70,7 @@ router.get('/customers', async (req: Request, res: Response) => {
         const [materialCount, accountCount, publishCount] = await Promise.all([
           prisma.material.count({ where: { userId: customer.id } }),
           prisma.matrixAccount.count({ where: { userId: customer.id } }),
-          prisma.publishRecord.count({ where: { userId: customer.id } }),
+          prisma.publishedContent.count({ where: { userId: customer.id } }),
         ]);
 
         return {
@@ -105,9 +105,9 @@ router.get('/customers/:id', async (req: Request, res: Response) => {
 
     // 验证客户属于该代理商
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentId: agentId },
+      where: { id: customerId, agentRelation: { agentId: agentId } },
       include: {
-        UserFeatureSwitch: true,
+        featureSwitches: true,
       },
     });
 
@@ -119,7 +119,7 @@ router.get('/customers/:id', async (req: Request, res: Response) => {
     const [materialCount, accountCount, publishCount, referralCount] = await Promise.all([
       prisma.material.count({ where: { userId: customerId } }),
       prisma.matrixAccount.count({ where: { userId: customerId } }),
-      prisma.publishRecord.count({ where: { userId: customerId } }),
+      prisma.publishedContent.count({ where: { userId: customerId } }),
       // 需要添加 Referral 表
     ]);
 
@@ -176,7 +176,7 @@ router.post(
           name: name || phone,
           password: password || '123456', // 默认密码
           role: 'customer',
-          agentId: agentId,
+          agentRelations: { create: { agentId: agentId } },
           status: 'active',
         },
       });
@@ -202,7 +202,7 @@ router.put('/customers/:id', async (req: Request, res: Response) => {
 
     // 验证客户属于该代理商
     const existing = await prisma.user.findFirst({
-      where: { id: customerId, agentId: agentId },
+      where: { id: customerId, agentRelation: { agentId: agentId } },
     });
 
     if (!existing) {
@@ -233,7 +233,7 @@ router.post('/customers/:id/toggle-status', async (req: Request, res: Response) 
 
     // 验证客户属于该代理商
     const existing = await prisma.user.findFirst({
-      where: { id: customerId, agentId: agentId },
+      where: { id: customerId, agentRelation: { agentId: agentId } },
     });
 
     if (!existing) {
@@ -267,7 +267,7 @@ router.post('/customers/:id/reset-password', async (req: Request, res: Response)
 
     // 验证客户属于该代理商
     const existing = await prisma.user.findFirst({
-      where: { id: customerId, agentId: agentId },
+      where: { id: customerId, agentRelation: { agentId: agentId } },
     });
 
     if (!existing) {
@@ -297,7 +297,7 @@ router.get('/customers/:id/features', async (req: Request, res: Response) => {
 
     // 验证客户属于该代理商
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentId: agentId },
+      where: { id: customerId, agentRelation: { agentId: agentId } },
     });
 
     if (!customer) {
@@ -307,7 +307,7 @@ router.get('/customers/:id/features', async (req: Request, res: Response) => {
     // 获取全局功能开关
     const globalFeatures = await prisma.featureSwitch.findMany({
       include: {
-        subSwitches: true,
+        subFeatures: true,
       },
     });
 
@@ -318,25 +318,20 @@ router.get('/customers/:id/features', async (req: Request, res: Response) => {
 
     // 合并数据
     const featuresWithStatus = globalFeatures.map((feature) => {
-      const customerSetting = customerFeatures.find((f) => f.featureId === feature.id);
+      const customerSetting = customerFeatures.find((f) => f.featureCode === feature.code);
       return {
         id: feature.id,
-        key: feature.key,
+        code: feature.code,
         name: feature.name,
         description: feature.description,
         enabled: customerSetting ? customerSetting.enabled : feature.enabled,
-        subSwitches: feature.subSwitches.map((sub) => {
-          const customerSubSetting = customerFeatures.find(
-            (f) => f.featureId === feature.id && f.subKey === sub.key
-          );
-          return {
-            id: sub.id,
-            key: sub.key,
-            name: sub.name,
-            description: sub.description,
-            enabled: customerSubSetting ? customerSubSetting.enabled : sub.enabled,
-          };
-        }),
+        subFeatures: feature.subFeatures.map((sub) => ({
+          id: sub.id,
+          code: sub.code,
+          name: sub.name,
+          description: sub.description,
+          enabled: sub.enabled,
+        })),
       };
     });
 
@@ -359,7 +354,7 @@ router.put('/customers/:id/features', async (req: Request, res: Response) => {
 
     // 验证客户属于该代理商
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentId: agentId },
+      where: { id: customerId, agentRelation: { agentId: agentId } },
     });
 
     if (!customer) {
@@ -369,49 +364,22 @@ router.put('/customers/:id/features', async (req: Request, res: Response) => {
     // 批量更新功能开关
     await Promise.all(
       features.map(async (feature: any) => {
-        // 更新主开关
         await prisma.userFeatureSwitch.upsert({
           where: {
-            userId_featureId: {
+            userId_featureCode: {
               userId: customerId,
-              featureId: feature.id,
+              featureCode: feature.code,
             },
           },
           create: {
             userId: customerId,
-            featureId: feature.id,
+            featureCode: feature.code,
             enabled: feature.enabled,
           },
           update: {
             enabled: feature.enabled,
           },
         });
-
-        // 更新子开关
-        if (feature.subSwitches) {
-          await Promise.all(
-            feature.subSwitches.map(async (sub: any) => {
-              await prisma.userFeatureSwitch.upsert({
-                where: {
-                  userId_featureId_subKey: {
-                    userId: customerId,
-                    featureId: feature.id,
-                    subKey: sub.key,
-                  },
-                },
-                create: {
-                  userId: customerId,
-                  featureId: feature.id,
-                  subKey: sub.key,
-                  enabled: sub.enabled,
-                },
-                update: {
-                  enabled: sub.enabled,
-                },
-              });
-            })
-          );
-        }
       })
     );
 
@@ -434,7 +402,7 @@ router.get('/customers/:id/stats', async (req: Request, res: Response) => {
 
     // 验证客户属于该代理商
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentId: agentId },
+      where: { id: customerId, agentRelation: { agentId: agentId } },
     });
 
     if (!customer) {
@@ -457,7 +425,7 @@ router.get('/customers/:id/stats', async (req: Request, res: Response) => {
     const [materialCount, accountCount, publishCount] = await Promise.all([
       prisma.material.count({ where }),
       prisma.matrixAccount.count({ where }),
-      prisma.publishRecord.count({ where }),
+      prisma.publishedContent.count({ where }),
     ]);
 
     res.json({

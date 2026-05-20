@@ -43,7 +43,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { title, type, content, url, tags } = req.body;
+    const { title, type, content } = req.body;
 
     const material = await prisma.material.create({
       data: {
@@ -51,9 +51,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         title,
         type,
         content,
-        url,
-        tags: tags || [],
-        used: false,
+        status: 'unused',
       },
     });
 

@@ -14,7 +14,7 @@ router.get('/admin', async (req, res) => {
     const features = await prisma.featureSwitch.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
-        subFeatures: {
+        subSwitches: {
           orderBy: { sortOrder: 'asc' }
         }
       }
@@ -55,7 +55,7 @@ router.put('/admin/:featureCode/sub/:subCode', async (req, res) => {
 
     const subFeature = await prisma.featureSubSwitch.update({
       where: {
-        featureCode_code: {
+        featureCode_key: {
           featureCode,
           code: subCode
         }
@@ -83,7 +83,7 @@ router.post('/admin/init', async (req, res) => {
         description: 'AI批量生成内容、多平台发布管理',
         icon: 'icon-media',
         sortOrder: 1,
-        subFeatures: [
+        subSwitches: [
           { code: 'content_factory', name: '内容工厂', description: 'AI批量生成内容', sortOrder: 1 },
           { code: 'matrix_account', name: '矩阵账号管理', description: '多平台账号统一管理', sortOrder: 2 },
           { code: 'publish_center', name: '发布中心', description: '素材选取批量发布', sortOrder: 3 },
@@ -98,7 +98,7 @@ router.post('/admin/init', async (req, res) => {
         description: 'AI生成JD、批量发布、智能筛选',
         icon: 'icon-recruitment',
         sortOrder: 2,
-        subFeatures: [
+        subSwitches: [
           { code: 'post_manage', name: '职位发布', description: '批量发布职位', sortOrder: 1 },
           { code: 'ai_generate_jd', name: 'AI生成JD', description: 'AI生成职位描述', sortOrder: 2 },
           { code: 'resume_filter', name: '简历筛选', description: 'AI匹配度分析', sortOrder: 3 },
@@ -111,7 +111,7 @@ router.post('/admin/init', async (req, res) => {
         description: '潜客发现、引流任务、数据追踪',
         icon: 'icon-acquisition',
         sortOrder: 3,
-        subFeatures: [
+        subSwitches: [
           { code: 'lead_discovery', name: '潜客发现', description: '按行业/关键词搜索', sortOrder: 1 },
           { code: 'drain_task', name: '引流任务', description: '自动发送引流话术', sortOrder: 2 },
           { code: 'wechat_qr', name: '企业微信二维码', description: '自动发送二维码', sortOrder: 3 },
@@ -123,7 +123,7 @@ router.post('/admin/init', async (req, res) => {
         description: '视频推广码、效果追踪',
         icon: 'icon-share',
         sortOrder: 4,
-        subFeatures: [
+        subSwitches: [
           { code: 'qrcode_generate', name: '码生成', description: '生成专属推广二维码', sortOrder: 1 },
           { code: 'effect_track', name: '效果追踪', description: '扫码/下载数据追踪', sortOrder: 2 },
         ]
@@ -134,7 +134,7 @@ router.post('/admin/init', async (req, res) => {
         description: '推荐下载APP、奖励记录',
         icon: 'icon-referral',
         sortOrder: 5,
-        subFeatures: [
+        subSwitches: [
           { code: 'my_referral', name: '我的推荐', description: '查看推荐用户', sortOrder: 1 },
           { code: 'reward_record', name: '奖励记录', description: '查看推荐奖励', sortOrder: 2 },
         ]
@@ -142,7 +142,7 @@ router.post('/admin/init', async (req, res) => {
     ];
 
     for (const feature of defaultFeatures) {
-      const { subFeatures, ...featureData } = feature;
+      const { subSwitches, ...featureData } = feature;
       
       await prisma.featureSwitch.upsert({
         where: { code: feature.code },
@@ -150,10 +150,10 @@ router.post('/admin/init', async (req, res) => {
         create: featureData
       });
 
-      for (const sub of subFeatures) {
+      for (const sub of subSwitches) {
         await prisma.featureSubSwitch.upsert({
           where: {
-            featureCode_code: {
+            featureCode_key: {
               featureCode: feature.code,
               code: sub.code
             }

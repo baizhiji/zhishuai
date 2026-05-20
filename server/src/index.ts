@@ -22,16 +22,11 @@ import oauthRoutes from './routes/oauth';
 import socialAccountRoutes from './routes/social-account';
 import contentPublishRoutes from './routes/content-publish';
 import agentRoutes from './routes/agent';
-import scheduleRoutes from './routes/schedule';
 import hotTopicsRoutes from './routes/hot-topics';
 import versionRoutes from './routes/version';
 import adminLogsRoutes from './routes/admin-logs';
 import employeeRoutes from './routes/employee';
 import reportRoutes from './routes/report';
-import customerStatsRoutes from './routes/customer-stats';
-import communicationRoutes from './routes/communication';
-import autoAcquisitionRoutes from './routes/auto-acquisition';
-import digitalHumanRoutes from './routes/digital-human';
 import ticketRoutes from './routes/ticket';
 import settlementRoutes from './routes/settlement';
 
@@ -73,19 +68,6 @@ app.use('/api/features', userFeaturesRoutes);
 
 // Agent 代理商客户管理
 app.use('/api/agent', agentRoutes);
-
-app.use('/api/customer', customerStatsRoutes);
-
-// 智能沟通系统（话术模板、对话记录）
-app.use('/api/communication', communicationRoutes);
-
-// 获客自动化
-app.use('/api/auto-acquisition', autoAcquisitionRoutes);
-
-// 数字人视频
-app.use('/api/digital-human', digitalHumanRoutes);
-
-app.use('/api/schedule', scheduleRoutes);
 
 // 热点话题
 app.use('/api/hot-topics', hotTopicsRoutes);

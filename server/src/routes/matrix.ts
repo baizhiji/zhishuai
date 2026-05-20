@@ -51,7 +51,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const { status, autoPublish } = req.body;
     const account = await prisma.matrixAccount.update({
-      where: { id: parseInt(id) },
+      where: { id: id },
       data: { status, autoPublish },
     });
     res.json({ success: true, data: account });
@@ -65,7 +65,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     await prisma.matrixAccount.delete({
-      where: { id: parseInt(id) },
+      where: { id: id },
     });
     res.json({ success: true, message: '删除成功' });
   } catch (error) {

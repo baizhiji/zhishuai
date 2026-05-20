@@ -300,7 +300,7 @@ router.post(
         return res.status(400).json({ success: false, errors: errors.array() });
       }
 
-      const { name, provider, accessKeyId, accessKeySecret, signName, templateCode, enabled, isDefault } = req.body;
+      const { title, provider, accessKeyId, accessKeySecret, signName, templateCode, enabled, isDefault } = req.body;
 
       // 如果设为默认，先取消其他默认
       if (isDefault) {
@@ -312,7 +312,7 @@ router.post(
 
       const config = await prisma.smsConfig.create({
         data: {
-          name,
+          title,
           provider,
           accessKeyId,
           accessKeySecret,
@@ -356,7 +356,7 @@ router.put(
         });
       }
 
-      const { name, provider, accessKeyId, accessKeySecret, signName, templateCode, enabled, isDefault } = req.body;
+      const { title, provider, accessKeyId, accessKeySecret, signName, templateCode, enabled, isDefault } = req.body;
 
       // 如果设为默认，先取消其他默认
       if (isDefault) {

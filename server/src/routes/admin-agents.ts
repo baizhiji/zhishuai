@@ -36,7 +36,7 @@ router.get('/agents', async (req, res) => {
           },
           _count: {
             select: {
-              customers: true
+              agentRelations: true
             }
           }
         },
@@ -87,18 +87,15 @@ router.get('/agents/:id', async (req, res) => {
             user: { select: { name: true, phone: true } }
           }
         },
-        customers: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            createdAt: true
+        agentRelations: {
+          include: {
+            user: { select: { id: true, name: true, phone: true, createdAt: true } }
           },
           orderBy: { createdAt: 'desc' },
           take: 50
         },
         _count: {
-          select: { customers: true }
+          select: { agentRelations: true }
         }
       }
     });
@@ -217,14 +214,14 @@ router.delete('/agents/:id', async (req, res) => {
 
     const agent = await prisma.agent.findUnique({
       where: { id },
-      include: { _count: { select: { customers: true } } }
+      include: { _count: { select: { agentRelations: true } } }
     });
 
     if (!agent) {
       return res.status(404).json({ error: '代理商不存在' });
     }
 
-    if (agent._count.customers > 0) {
+    if (agent._count.agentRelations > 0) {
       return res.status(400).json({ error: '该代理商下有客户，无法删除' });
     }
 
@@ -279,7 +276,7 @@ router.get('/agents/:id/stats', async (req, res) => {
         totalRevenue: true,
         _count: {
           select: {
-            customers: true
+            agentRelations: true
           }
         }
       }
@@ -291,7 +288,7 @@ router.get('/agents/:id/stats', async (req, res) => {
         summary: {
           balance: summary?.balance || 0,
           totalRevenue: summary?.totalRevenue || 0,
-          totalCustomers: summary?._count.customers || 0
+          totalCustomers: summary?._count.agentRelations || 0
         }
       }
     });
@@ -445,7 +442,7 @@ router.get('/customers', async (req, res) => {
             }
           },
           _count: {
-            select: { accounts: true, publishedContents: true }
+            select: { matrixAccounts: true, publishedContents: true }
           }
         },
         orderBy: { createdAt: 'desc' },

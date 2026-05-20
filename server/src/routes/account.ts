@@ -94,7 +94,7 @@ router.get('/staff', authMiddleware, async (req: Request, res: Response) => {
 
     // 查找该用户创建的所有子账号
     const staff = await prisma.user.findMany({
-      where: { parentId: userId },
+      where: { agentRelations: { some: { agent: { userId: userId } } } },
       select: {
         id: true,
         phone: true,
@@ -107,7 +107,7 @@ router.get('/staff', authMiddleware, async (req: Request, res: Response) => {
       take: Number(pageSize),
     });
 
-    const total = await prisma.user.count({ where: { parentId: userId } });
+    const total = await prisma.user.count({ where: { agentRelations: { some: { agent: { userId: userId } } } } });
 
     res.json({
       success: true,
@@ -129,7 +129,8 @@ router.post('/staff', authMiddleware, async (req: Request, res: Response) => {
         phone,
         name,
         role: role || 'staff',
-        parentId: userId,
+        password: '888888', // 默认密码
+        agentRelations: { create: { agentId: userId } },
       },
     });
 
@@ -150,8 +151,8 @@ async function getUserStats(userId: string) {
   ] = await Promise.all([
     prisma.material.count({ where: { userId } }),
     prisma.matrixAccount.count({ where: { userId } }),
-    prisma.publishRecord.count({ where: { userId } }),
-    prisma.referral.count({ where: { referrerId: userId } }),
+    prisma.publishedContent.count({ where: { userId } }),
+    prisma.shareRecord.count({ where: { referrerId: userId } }),
   ]);
 
   return {
