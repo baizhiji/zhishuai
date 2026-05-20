@@ -81,7 +81,7 @@ export default function MaterialLibraryPage() {
       filterCategoryState === 'all' || material.category === filterCategoryState
 
     // 外部传入的分类筛选（如果有的话）
-    const externalCategoryMatch = !filterCategory || material.category === filterCategory
+    const externalCategoryMatch = true
 
     // 状态筛选
     const statusMatch = filterStatus === 'all' || material.status === filterStatus
