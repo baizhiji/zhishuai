@@ -75,10 +75,10 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '自媒体运营',
           icon: <VideoCameraOutlined />,
           children: [
-            { key: 'media-factory', label: '内容工厂', icon: <ThunderboltOutlined />, path: '/media/factory' },
-            { key: 'media-matrix', label: '矩阵管理', icon: <TeamOutlined />, path: '/media/matrix' },
-            { key: 'media-publish', label: '发布中心', icon: <ShareAltOutlined />, path: '/media/publish' },
-            { key: 'media-report', label: '数据报表', icon: <PieChartOutlined />, path: '/media/report' },
+            { key: 'media-factory', label: '内容工厂', icon: <ThunderboltOutlined />, path: '/customer/media/factory' },
+            { key: 'media-matrix', label: '矩阵管理', icon: <TeamOutlined />, path: '/customer/media/matrix' },
+            { key: 'media-publish', label: '发布中心', icon: <ShareAltOutlined />, path: '/customer/media/publish' },
+            { key: 'media-report', label: '数据报表', icon: <PieChartOutlined />, path: '/customer/media/report' },
           ],
         },
         {
@@ -88,10 +88,9 @@ function getNavigationItems(role: Role): NavigationItem[] {
           children: [
             { key: 'recruit-platforms', label: '平台授权', icon: <QrcodeOutlined />, path: '/customer/recruitment/platforms' },
             { key: 'recruit-auto', label: '智能沟通', icon: <MessageOutlined />, path: '/customer/recruitment/auto' },
-            { key: 'recruit-publish', label: '职位发布', icon: <ShareAltOutlined />, path: '/recruitment/publish' },
-            { key: 'recruit-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/recruitment/screen' },
-            { key: 'recruit-interview', label: '面试管理', icon: <TeamOutlined />, path: '/recruitment/interview' },
-            { key: 'recruit-board', label: '招聘看板', icon: <PieChartOutlined />, path: '/recruitment/board' },
+            { key: 'recruit-publish', label: '职位发布', icon: <ShareAltOutlined />, path: '/customer/recruitment' },
+            { key: 'recruit-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/customer/interview' },
+            { key: 'recruit-interview', label: '面试管理', icon: <TeamOutlined />, path: '/customer/recruitment-dashboard' },
           ],
         },
         {
@@ -99,9 +98,9 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '智能获客',
           icon: <UserAddOutlined />,
           children: [
-            { key: 'acquisition-discover', label: '潜客发现', icon: <UserAddOutlined />, path: '/acquisition/discover' },
-            { key: 'acquisition-task', label: '引流任务', icon: <ShareAltOutlined />, path: '/acquisition/task' },
-            { key: 'acquisition-board', label: '获客看板', icon: <PieChartOutlined />, path: '/acquisition/board' },
+            { key: 'acquisition-discover', label: '潜客发现', icon: <UserAddOutlined />, path: '/customer/acquisition/discover' },
+            { key: 'acquisition-task', label: '引流任务', icon: <ShareAltOutlined />, path: '/customer/acquisition/task' },
+            { key: 'acquisition-board', label: '获客看板', icon: <PieChartOutlined />, path: '/customer/acquisition/board' },
           ],
         },
         {
@@ -109,9 +108,9 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '推荐分享',
           icon: <ShareAltOutlined />,
           children: [
-            { key: 'share-code', label: '码生成', icon: <QrcodeOutlined />, path: '/share/code' },
-            { key: 'share-track', label: '推荐追踪', icon: <PieChartOutlined />, path: '/share/track' },
-            { key: 'share-board', label: '分享看板', icon: <ShareAltOutlined />, path: '/share/board' },
+            { key: 'share-code', label: '码生成', icon: <QrcodeOutlined />, path: '/customer/share/code' },
+            { key: 'share-track', label: '推荐追踪', icon: <PieChartOutlined />, path: '/customer/share/track' },
+            { key: 'share-board', label: '分享看板', icon: <ShareAltOutlined />, path: '/customer/share/board' },
           ],
         },
         {
@@ -136,13 +135,11 @@ function getNavigationItems(role: Role): NavigationItem[] {
           key: 'settings',
           label: '设置',
           icon: <SettingOutlined />,
-          path: '/customer/settings',
-        },
-        {
-          key: 'help',
-          label: '帮助中心',
-          icon: <AppstoreOutlined />,
-          path: '/help',
+          children: [
+            { key: 'settings-company', label: '公司信息', icon: <TeamOutlined />, path: '/customer/settings/company' },
+            { key: 'settings-security', label: '安全设置', icon: <SettingOutlined />, path: '/customer/settings/security' },
+            { key: 'settings-theme', label: '主题设置', icon: <PictureOutlined />, path: '/customer/settings/theme' },
+          ],
         },
       ]
     case 'agent':
