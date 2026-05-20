@@ -86,15 +86,25 @@ router.get('/packages', async (req: Request, res: Response) => {
   }
 });
 
-// 员工管理
+// 员工管理 - 获取列表
 router.get('/staff', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { page = 1, pageSize = 20 } = req.query;
 
-    // 查找该用户创建的所有子账号
+    // 通过 UserAgentRelation 查找该用户创建的所有子账号
+    const relations = await prisma.userAgentRelation.findMany({
+      where: { agentId: userId },
+      select: { userId: true },
+      skip: (Number(page) - 1) * Number(pageSize),
+      take: Number(pageSize),
+    });
+
+    const total = await prisma.userAgentRelation.count({ where: { agentId: userId } });
+
+    const staffIds = relations.map(r => r.userId);
     const staff = await prisma.user.findMany({
-      where: { agentRelations: { some: { agent: { userId: userId } } } },
+      where: { id: { in: staffIds } },
       select: {
         id: true,
         phone: true,
@@ -103,11 +113,7 @@ router.get('/staff', authMiddleware, async (req: Request, res: Response) => {
         status: true,
         createdAt: true,
       },
-      skip: (Number(page) - 1) * Number(pageSize),
-      take: Number(pageSize),
     });
-
-    const total = await prisma.user.count({ where: { agentRelations: { some: { agent: { userId: userId } } } } });
 
     res.json({
       success: true,
@@ -124,13 +130,66 @@ router.post('/staff', authMiddleware, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
     const { phone, name, role } = req.body;
 
+    // 先创建用户
     const staff = await prisma.user.create({
       data: {
         phone,
         name,
         role: role || 'staff',
         password: '888888', // 默认密码
-        agentRelations: { create: { agentId: userId } },
+      },
+    });
+
+    // 创建用户与代理商的关系
+    await prisma.userAgentRelation.create({
+      data: {
+        userId: staff.id,
+        agentId: userId,
+      },
+    });
+
+    res.json({ success: true, data: staff });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 删除员工
+router.delete('/staff/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const staffId = req.params.id;
+
+    // 删除关联关系
+    await prisma.userAgentRelation.deleteMany({
+      where: { userId: staffId, agentId: userId },
+    });
+
+    // 删除用户
+    await prisma.user.delete({ where: { id: staffId } });
+
+    res.json({ success: true, message: '员工已删除' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 更新员工
+router.put('/staff/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const staffId = req.params.id;
+    const { name, status, role } = req.body;
+
+    const staff = await prisma.user.update({
+      where: { id: staffId },
+      data: { name, status, role },
+      select: {
+        id: true,
+        phone: true,
+        name: true,
+        role: true,
+        status: true,
+        createdAt: true,
       },
     });
 

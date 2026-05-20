@@ -176,7 +176,7 @@ router.post(
           name: name || phone,
           password: password || '123456', // 默认密码
           role: 'customer',
-          agentRelations: { create: { agentId: agentId } },
+          agentRelation: { create: { agentId: agentId } },
           status: 'active',
         },
       });
