@@ -33,6 +33,7 @@ import {
   VideoCameraOutlined,
   RobotOutlined,
   FontSizeOutlined,
+  FileOutlined,
 } from '@ant-design/icons'
 import { ContentCategory, contentCategoryConfig } from '@/lib/content/types'
 
@@ -152,6 +153,7 @@ export default function MaterialLibraryPage() {
       [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
       [ContentCategory.VIDEO]: <VideoCameraOutlined />,
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
+      [ContentCategory.VIDEO_ANALYSIS]: <FileOutlined />,
     }
     return iconMap[category]
   }
