@@ -2,7 +2,6 @@
 
 import { App } from 'antd'
 import Navbar from '../../../components/layout/Navbar'
-import '../../../styles/globals.css'
 
 export default function MediaLayout({
   children,
