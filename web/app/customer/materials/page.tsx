@@ -48,19 +48,7 @@ interface Material {
   timestamp: number
 }
 
-interface MaterialLibraryPageProps {
-  onSelectMaterial?: (material: Material) => void
-  visible?: boolean
-  onClose?: () => void
-  filterCategory?: ContentCategory
-}
-
-export default function MaterialLibraryPage({
-  onSelectMaterial,
-  visible,
-  onClose,
-  filterCategory,
-}: MaterialLibraryPageProps) {
+export default function MaterialLibraryPage() {
   const [searchText, setSearchText] = useState('')
   const [filterCategoryState, setFilterCategoryState] = useState<ContentCategory | 'all'>('all')
   const [filterStatus, setFilterStatus] = useState<string>('all')
