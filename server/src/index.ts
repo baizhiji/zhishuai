@@ -28,6 +28,9 @@ import adminLogsRoutes from './routes/admin-logs';
 import employeeRoutes from './routes/employee';
 import reportRoutes from './routes/report';
 import ticketRoutes from './routes/ticket';
+import scriptRoutes from './routes/script';
+import digitalHumanRoutes from './routes/digital-human';
+import dashboardStatsRoutes from './routes/dashboard-stats';
 import settlementRoutes from './routes/settlement';
 
 const app = express();
@@ -56,6 +59,9 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/crm', crmRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
+app.use('/api/scripts', scriptRoutes);
+app.use('/api/digital-human', digitalHumanRoutes);
+app.use('/api/dashboard-stats', dashboardStatsRoutes);
 
 // Admin 功能开关管理
 app.use('/api/admin', adminFeaturesRoutes);
