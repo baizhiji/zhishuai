@@ -453,7 +453,7 @@ export default function TaskPage() {
           </div>
           <div className="text-3xl text-orange-500">→</div>
           <div className="flex-1 mx-8">
-            <Progress percent={stats.avgConvertRate} showInfo={false} strokeColor="#722ed1" />
+            <Progress percent={Number(stats.avgConvertRate)} showInfo={false} strokeColor="#722ed1" />
             <div className="text-center text-sm text-gray-400 mt-1">转化率 {stats.avgConvertRate}%</div>
           </div>
           <div className="text-center">
