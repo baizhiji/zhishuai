@@ -14,7 +14,7 @@ router.get('/admin', async (req, res) => {
     const features = await prisma.featureSwitch.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
-        subSwitches: {
+        subFeatures: {
           orderBy: { sortOrder: 'asc' }
         }
       }
@@ -55,7 +55,7 @@ router.put('/admin/:featureCode/sub/:subCode', async (req, res) => {
 
     const subFeature = await prisma.featureSubSwitch.update({
       where: {
-        featureCode_key: {
+        featureCode_code: {
           featureCode,
           code: subCode
         }
@@ -153,7 +153,7 @@ router.post('/admin/init', async (req, res) => {
       for (const sub of subSwitches) {
         await prisma.featureSubSwitch.upsert({
           where: {
-            featureCode_key: {
+            featureCode_code: {
               featureCode: feature.code,
               code: sub.code
             }

@@ -211,7 +211,7 @@ async function getUserStats(userId: string) {
     prisma.material.count({ where: { userId } }),
     prisma.matrixAccount.count({ where: { userId } }),
     prisma.publishedContent.count({ where: { userId } }),
-    prisma.shareRecord.count({ where: { referrerId: userId } }),
+    prisma.shareRecord.count({ where: { scannerId: userId } }),
   ]);
 
   return {

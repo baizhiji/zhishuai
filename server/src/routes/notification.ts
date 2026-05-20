@@ -37,7 +37,7 @@ router.get('/unread-count', authMiddleware, async (req: Request, res: Response) 
   try {
     const userId = (req as any).userId;
     const count = await prisma.notification.count({
-      where: { userId, read: false },
+      where: { userId, isRead: false },
     });
 
     res.json({ success: true, data: count });
@@ -54,7 +54,7 @@ router.put('/:id/read', authMiddleware, async (req: Request, res: Response) => {
 
     await prisma.notification.update({
       where: { id, userId },
-      data: { read: true },
+      data: { isRead: true },
     });
 
     res.json({ success: true });
@@ -69,8 +69,8 @@ router.put('/read-all', authMiddleware, async (req: Request, res: Response) => {
     const userId = (req as any).userId;
 
     await prisma.notification.updateMany({
-      where: { userId, read: false },
-      data: { read: true },
+      where: { userId, isRead: false },
+      data: { isRead: true },
     });
 
     res.json({ success: true });

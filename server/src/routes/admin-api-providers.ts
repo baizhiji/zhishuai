@@ -235,21 +235,23 @@ router.get('/agent/config', authMiddleware, async (req: Request, res: Response) 
     
     const config = await prisma.agentApiConfig.findUnique({
       where: { agentId },
-      include: { 
-        ApiProvider: {
-          select: { id: true, name: true, type: true, baseUrl: true }
-        }
-      }
     });
     
     if (!config) {
       return res.json({ success: true, data: null });
     }
     
+    // 获取provider信息
+    const provider = await prisma.apiProvider.findUnique({
+      where: { id: config.providerId },
+      select: { id: true, name: true, type: true, baseUrl: true }
+    });
+    
     res.json({ 
       success: true, 
       data: {
         ...config,
+        provider,
         apiKey: '******'
       }
     });
@@ -415,14 +417,18 @@ router.get('/available', authMiddleware, async (req: Request, res: Response) => 
     if (agentId) {
       const agentConfig = await prisma.agentApiConfig.findUnique({
         where: { agentId },
-        include: { ApiProvider: true }
       });
       
       if (agentConfig?.enabled) {
-        provider = {
-          ...agentConfig.ApiProvider,
-          apiKey: decryptApiKey(agentConfig.apiKey)
-        };
+        const apiProvider = await prisma.apiProvider.findUnique({
+          where: { id: agentConfig.providerId }
+        });
+        if (apiProvider) {
+          provider = {
+            ...apiProvider,
+            apiKey: decryptApiKey(agentConfig.apiKey)
+          };
+        }
       }
     }
     

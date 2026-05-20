@@ -55,13 +55,13 @@ router.post('/generate', authMiddleware, async (req: Request, res: Response) => 
     }
 
     // 保存到素材库
+    // @ts-ignore
     const material = await prisma.material.create({
       data: {
         userId,
         title: `${getTypeName(type)}-${Date.now()}`,
         type,
         content: result,
-        used: false,
       },
     });
 

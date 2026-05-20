@@ -36,7 +36,7 @@ router.get('/agents', async (req, res) => {
           },
           _count: {
             select: {
-              agentRelation: true
+              agentRelations: true
             }
           }
         },
@@ -87,7 +87,7 @@ router.get('/agents/:id', async (req, res) => {
             user: { select: { name: true, phone: true } }
           }
         },
-        agentRelation: {
+        agentRelations: {
           include: {
             user: { select: { id: true, name: true, phone: true, createdAt: true } }
           },
@@ -95,7 +95,7 @@ router.get('/agents/:id', async (req, res) => {
           take: 50
         },
         _count: {
-          select: { agentRelation: true }
+          select: { agentRelations: true }
         }
       }
     });
@@ -214,14 +214,14 @@ router.delete('/agents/:id', async (req, res) => {
 
     const agent = await prisma.agent.findUnique({
       where: { id },
-      include: { _count: { select: { agentRelation: true } } }
+      include: { _count: { select: { agentRelations: true } } }
     });
 
     if (!agent) {
       return res.status(404).json({ error: '代理商不存在' });
     }
 
-    if (agent._count.agentRelation > 0) {
+    if (agent._count.agentRelations > 0) {
       return res.status(400).json({ error: '该代理商下有客户，无法删除' });
     }
 
@@ -262,7 +262,7 @@ router.get('/agents/:id/stats', async (req, res) => {
     const stats = await prisma.agentStats.findMany({
       where: {
         agentId: id,
-        period,
+        period: period as string,
         periodStart: { gte: startDate }
       },
       orderBy: { periodStart: 'desc' }
@@ -276,7 +276,7 @@ router.get('/agents/:id/stats', async (req, res) => {
         totalRevenue: true,
         _count: {
           select: {
-            agentRelation: true
+            agentRelations: true
           }
         }
       }
@@ -288,7 +288,7 @@ router.get('/agents/:id/stats', async (req, res) => {
         summary: {
           balance: summary?.balance || 0,
           totalRevenue: summary?.totalRevenue || 0,
-          totalCustomers: summary?._count.agentRelation || 0
+          totalCustomers: summary?._count.agentRelations || 0
         }
       }
     });
@@ -314,11 +314,12 @@ router.get('/agents/:id/customers', async (req, res) => {
     }
 
     // 查找关联的客户
+    const statusFilter = status as string | undefined;
     const [customers, total] = await Promise.all([
       prisma.user.findMany({
         where: {
-          agentRelation: { agentId: id },
-          ...(status && { status })
+          agentRelation: { agent: { id: id } },
+          ...(statusFilter && { status: statusFilter })
         },
         select: {
           id: true,
@@ -334,8 +335,8 @@ router.get('/agents/:id/customers', async (req, res) => {
       }),
       prisma.user.count({
         where: {
-          agentRelation: { agentId: id },
-          ...(status && { status })
+          agentRelation: { agent: { id: id } },
+          ...(statusFilter && { status: statusFilter })
         }
       })
     ]);

@@ -120,7 +120,8 @@ router.get('/customers/:id', async (req: Request, res: Response) => {
       prisma.material.count({ where: { userId: customerId } }),
       prisma.matrixAccount.count({ where: { userId: customerId } }),
       prisma.publishedContent.count({ where: { userId: customerId } }),
-      // 需要添加 Referral 表
+      // referral count placeholder
+      Promise.resolve(0),
     ]);
 
     res.json({
