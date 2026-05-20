@@ -134,14 +134,10 @@ export default function MaterialLibraryPage() {
     setPreviewVisible(true)
   }
 
-  // 选择素材
+  // 选择素材（目前仅预览）
   const handleSelect = (material: Material) => {
-    if (onSelectMaterial) {
-      onSelectMaterial(material)
-      if (onClose) {
-        onClose()
-      }
-    }
+    setPreviewMaterial(material)
+    setPreviewVisible(true)
   }
 
   // 获取分类图标
