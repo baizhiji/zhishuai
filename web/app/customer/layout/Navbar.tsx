@@ -287,7 +287,8 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       icon: <SettingOutlined />,
       onClick: () => router.push('/customer/settings'),
     },
-    {
+    // 只有 admin 账号才能切换角色
+    ...(user?.role === 'admin' ? [{
       key: 'role-switch',
       label: '切换角色视角',
       icon: <SwapOutlined />,
@@ -302,7 +303,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         ),
         onClick: () => handleRoleSwitch(opt.value),
       })),
-    },
+    }] : []),
     { type: 'divider' as const },
     {
       key: 'logout',

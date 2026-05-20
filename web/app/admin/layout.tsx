@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layout, Dropdown, Avatar, Space, Typography, MenuProps, Button, Modal, Form, Input, message } from 'antd';
+import { Layout, Dropdown, Avatar, Space, Typography, MenuProps, Modal, Form, Input, message, Result } from 'antd';
 import { UserOutlined, LockOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import AdminNavbar from './layout/Navbar';
 import { useRouter } from 'next/navigation';
@@ -20,24 +20,47 @@ export default function AdminLayout({
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [profileForm] = Form.useForm();
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('userInfo');
-    if (stored) {
+    // 权限检查：只有 admin 角色或 viewing_role 为 admin 才能访问
+    const userStr = localStorage.getItem('user');
+    const viewingRole = localStorage.getItem('viewing_role');
+    
+    if (userStr) {
       try {
-        const info = JSON.parse(stored);
-        setUserInfo({
-          username: info.username || '管理员',
-          phone: info.phone || '',
-        });
-        profileForm.setFieldsValue(info);
-      } catch (e) {}
+        const user = JSON.parse(userStr);
+        const currentRole = viewingRole || user.role;
+        
+        // 只有 admin 用户才能访问 admin 后台
+        if (user.role === 'admin' && (currentRole === 'admin' || !viewingRole)) {
+          setIsAuthorized(true);
+        } else {
+          setIsAuthorized(false);
+        }
+        
+        // 获取用户信息
+        const stored = localStorage.getItem('userInfo');
+        if (stored) {
+          const info = JSON.parse(stored);
+          setUserInfo({
+            username: info.username || '管理员',
+            phone: info.phone || '',
+          });
+          profileForm.setFieldsValue(info);
+        }
+      } catch (e) {
+        setIsAuthorized(false);
+      }
+    } else {
+      setIsAuthorized(false);
     }
-  }, []);
+  }, [profileForm]);
 
   const handleLogout = () => {
     localStorage.removeItem('userRole');
     localStorage.removeItem('userInfo');
+    localStorage.removeItem('viewing_role');
     router.push('/login');
   };
 
@@ -56,25 +79,42 @@ export default function AdminLayout({
   const handleProfileUpdate = () => {
     profileForm.validateFields().then((values) => {
       localStorage.setItem('userInfo', JSON.stringify(values));
-      setUserInfo({
-        username: values.username || '管理员',
-        phone: values.phone || '',
-      });
       message.success('个人信息更新成功');
       setProfileModalVisible(false);
     });
   };
 
-  const menuItems: MenuProps['items'] = [
+  // 未授权
+  if (isAuthorized === false) {
+    return (
+      <Result
+        status="403"
+        title="无权限访问"
+        subTitle="您没有权限访问管理员后台，请使用管理员账号登录或切换到正确的角色。"
+        extra={
+          <button onClick={() => router.push('/')}>
+            返回首页
+          </button>
+        }
+      />
+    );
+  }
+
+  // 加载中
+  if (isAuthorized === null) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>加载中...</div>;
+  }
+
+  const userMenuItems: MenuProps['items'] = [
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: '个人信息',
+      label: '个人资料',
       onClick: () => setProfileModalVisible(true),
     },
     {
-      key: 'settings',
-      icon: <SettingOutlined />,
+      key: 'password',
+      icon: <LockOutlined />,
       label: '修改密码',
       onClick: () => setPasswordModalVisible(true),
     },
@@ -83,99 +123,62 @@ export default function AdminLayout({
       key: 'logout',
       icon: <LogoutOutlined />,
       label: '退出登录',
+      danger: true,
       onClick: handleLogout,
     },
   ];
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <AdminNavbar />
-      <Layout style={{ marginLeft: 220 }}>
-        <Header style={{ 
-          background: '#fff', 
-          padding: '0 24px', 
-          display: 'flex', 
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-        }}>
-          <Dropdown menu={{ items: menuItems }} placement="bottomRight" arrow>
-            <Space style={{ cursor: 'pointer' }}>
-              <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
-              <Text strong>{userInfo.username}</Text>
-            </Space>
-          </Dropdown>
+      <AdminNavbar>
+        <Header style={{ background: '#fff', padding: '0 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+          <Space size="large">
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <Space style={{ cursor: 'pointer' }}>
+                <Avatar style={{ backgroundColor: '#1890ff' }} icon={<UserOutlined />} />
+                <Text>{userInfo.username}</Text>
+              </Space>
+            </Dropdown>
+          </Space>
         </Header>
-        <Content style={{ background: '#f0f2f5' }}>
+        <Content style={{ padding: 24, background: '#f0f2f5' }}>
           {children}
         </Content>
-      </Layout>
+      </AdminNavbar>
 
-      {/* 个人信息 Modal */}
+      {/* 修改密码弹窗 */}
       <Modal
-        title="个人信息"
-        open={profileModalVisible}
-        onOk={handleProfileUpdate}
-        onCancel={() => setProfileModalVisible(false)}
-        okText="保存"
-        cancelText="取消"
+        title="修改密码"
+        open={passwordModalVisible}
+        onCancel={() => setPasswordModalVisible(false)}
+        onOk={handlePasswordChange}
       >
-        <Form form={profileForm} layout="vertical" style={{ marginTop: 20 }}>
-          <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
-            <Input placeholder="请输入用户名" />
+        <Form form={form} layout="vertical">
+          <Form.Item name="oldPassword" label="旧密码" rules={[{ required: true }]}>
+            <Input.Password />
           </Form.Item>
-          <Form.Item name="phone" label="手机号码" rules={[{ required: true, message: '请输入手机号码' }]}>
-            <Input placeholder="请输入手机号码" />
+          <Form.Item name="newPassword" label="新密码" rules={[{ required: true }]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item name="confirmPassword" label="确认密码" rules={[{ required: true }]}>
+            <Input.Password />
           </Form.Item>
         </Form>
       </Modal>
 
-      {/* 修改密码 Modal */}
+      {/* 个人资料弹窗 */}
       <Modal
-        title="修改密码"
-        open={passwordModalVisible}
-        onOk={handlePasswordChange}
-        onCancel={() => setPasswordModalVisible(false)}
-        okText="确认"
-        cancelText="取消"
+        title="个人资料"
+        open={profileModalVisible}
+        onCancel={() => setProfileModalVisible(false)}
+        onOk={handleProfileUpdate}
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
-          <Form.Item
-            name="oldPassword"
-            label="原密码"
-            rules={[{ required: true, message: '请输入原密码' }]}
-          >
-            <Input.Password placeholder="请输入原密码" />
+        <Form form={profileForm} layout="vertical">
+          <Form.Item name="username" label="用户名">
+            <Input />
           </Form.Item>
-          <Form.Item
-            name="newPassword"
-            label="新密码"
-            rules={[
-              { required: true, message: '请输入新密码' },
-              { min: 6, message: '密码至少6位' },
-            ]}
-          >
-            <Input.Password placeholder="请输入新密码" />
-          </Form.Item>
-          <Form.Item
-            name="confirmPassword"
-            label="确认密码"
-            rules={[
-              { required: true, message: '请确认密码' },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue('newPassword') === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error('两次密码输入不一致'));
-                },
-              }),
-            ]}
-          >
-            <Input.Password placeholder="请再次输入新密码" />
+          <Form.Item name="phone" label="手机号">
+            <Input />
           </Form.Item>
         </Form>
       </Modal>
