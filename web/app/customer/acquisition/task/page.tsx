@@ -448,7 +448,7 @@ export default function TaskPage() {
           </div>
           <div className="text-3xl text-orange-500">→</div>
           <div className="flex-1 mx-8">
-            <Progress percent={stats.avgScanRate} showInfo={false} strokeColor="#52c41a" />
+            <Progress percent={Number(stats.avgScanRate)} showInfo={false} strokeColor="#52c41a" />
             <div className="text-center text-sm text-gray-400 mt-1">扫码率 {stats.avgScanRate}%</div>
           </div>
           <div className="text-3xl text-orange-500">→</div>
