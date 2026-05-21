@@ -7,6 +7,7 @@ import {
   Tag,
   Space,
   Input,
+  InputNumber,
   Modal,
   Form,
   Card,
@@ -155,9 +156,9 @@ export default function AgentTenantsPage() {
   const handleCreate = async () => {
     try {
       const values = await createForm.validateFields()
-      const { expireMonths, price, priceUnit, ...rest } = values
+      const { expireMonths, price, priceQuantity, priceUnit, ...rest } = values
       
-      // 根据计费周期计算月均价格显示
+      // 根据计费周期计算显示文本
       let unitText = ''
       switch (priceUnit) {
         case 'quarter': unitText = '季'; break
@@ -169,11 +170,12 @@ export default function AgentTenantsPage() {
         ...rest,
         password: '123456',
         price,
+        priceQuantity,
         priceUnit,
         expireMonths
       })
       
-      message.success(`已开通客户账号：${values.name}，${unitText}收费 ¥${price || 0}，登录账号：${values.phone}，初始密码：123456`)
+      message.success(`已开通客户账号：${values.name}，价格 ¥${price || 0} × ${priceQuantity || 1}${unitText}，登录账号：${values.phone}，初始密码：123456`)
       setCreateVisible(false)
       createForm.resetFields()
       loadCustomers()
@@ -363,6 +365,7 @@ export default function AgentTenantsPage() {
               createForm.setFieldsValue({ 
                 expireMonths: 12,
                 price: 299,
+                priceQuantity: 1,
                 priceUnit: 'month'
               })
               setCreateVisible(true)
@@ -462,26 +465,23 @@ export default function AgentTenantsPage() {
             <Input placeholder="请输入手机号码" />
           </Form.Item>
           <Form.Item
-            name="price"
             label="价格"
-            extra="设置该客户的套餐价格"
-            rules={[{ required: true, message: '请输入价格' }]}
           >
-            <Input type="number" prefix="¥" placeholder="如：299" min={0} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item
-            name="priceUnit"
-            label="计费周期"
-            initialValue="month"
-            extra="选择价格对应的计费周期"
-            rules={[{ required: true, message: '请选择计费周期' }]}
-          >
-            <Select placeholder="请选择">
-              <Select.Option value="month">/月</Select.Option>
-              <Select.Option value="quarter">/季</Select.Option>
-              <Select.Option value="year">/年</Select.Option>
-            </Select>
+            <Space.Compact>
+              <Form.Item name="price" noStyle rules={[{ required: true, message: '请输入价格' }]}>
+                <Input type="number" prefix="¥" placeholder="金额" min={0} style={{ width: 120 }} />
+              </Form.Item>
+              <Form.Item name="priceQuantity" noStyle rules={[{ required: true, message: '请输入时间' }]}>
+                <InputNumber placeholder="时间" min={1} style={{ width: 80 }} />
+              </Form.Item>
+              <Form.Item name="priceUnit" noStyle rules={[{ required: true, message: '请选择单位' }]}>
+                <Select style={{ width: 80 }} defaultValue="month">
+                  <Select.Option value="month">月</Select.Option>
+                  <Select.Option value="quarter">季</Select.Option>
+                  <Select.Option value="year">年</Select.Option>
+                </Select>
+              </Form.Item>
+            </Space.Compact>
           </Form.Item>
 
           <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true, message: '请选择有效时间' }]}>

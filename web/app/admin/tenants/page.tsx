@@ -7,6 +7,7 @@ import {
   Tag,
   Space,
   Input,
+  InputNumber,
   Select,
   Modal,
   Form,
@@ -209,6 +210,7 @@ export default function AdminCustomersPage() {
     createForm.setFieldsValue({
       status: 'active',
       price: 299,
+      priceQuantity: 1,
       priceUnit: 'month',
       expireMonths: 12,
     })
@@ -220,7 +222,7 @@ export default function AdminCustomersPage() {
       const expireValue = values.expireMonths
       const expireAt = expireValue === -1 ? '2099-12-31' : dayjs().add(expireValue, 'month').format('YYYY-MM-DD')
       
-      // 根据计费周期计算月均价格显示
+      // 根据计费周期计算显示文本
       let unitText = ''
       switch (values.priceUnit) {
         case 'quarter': unitText = '季'; break
@@ -251,7 +253,7 @@ export default function AdminCustomersPage() {
         agentName: values.agentName || '-',
       }
       setCustomers((prev) => [newCustomer, ...prev])
-      message.success(`已成功开通：${values.name}，${unitText}收费 ¥${values.price || 0}，登录账号：${values.phone}，初始密码：123456`)
+      message.success(`已成功开通：${values.name}，价格 ¥${values.price || 0} × ${values.priceQuantity || 1}${unitText}，登录账号：${values.phone}，初始密码：123456`)
       setCreateVisible(false)
     })
   }
@@ -621,26 +623,23 @@ export default function AdminCustomersPage() {
           </Form.Item>
 
           <Form.Item
-            name="price"
             label="价格"
-            extra="设置该客户的套餐价格"
-            rules={[{ required: true, message: '请输入价格' }]}
           >
-            <Input type="number" prefix="¥" placeholder="如：299" min={0} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item
-            name="priceUnit"
-            label="计费周期"
-            initialValue="month"
-            extra="选择价格对应的计费周期"
-            rules={[{ required: true, message: '请选择计费周期' }]}
-          >
-            <Select placeholder="请选择">
-              <Option value="month">/月</Option>
-              <Option value="quarter">/季</Option>
-              <Option value="year">/年</Option>
-            </Select>
+            <Space.Compact>
+              <Form.Item name="price" noStyle rules={[{ required: true, message: '请输入价格' }]}>
+                <Input type="number" prefix="¥" placeholder="金额" min={0} style={{ width: 120 }} />
+              </Form.Item>
+              <Form.Item name="priceQuantity" noStyle rules={[{ required: true, message: '请输入时间' }]}>
+                <InputNumber placeholder="时间" min={1} style={{ width: 80 }} />
+              </Form.Item>
+              <Form.Item name="priceUnit" noStyle rules={[{ required: true, message: '请选择单位' }]}>
+                <Select style={{ width: 80 }} defaultValue="month">
+                  <Option value="month">月</Option>
+                  <Option value="quarter">季</Option>
+                  <Option value="year">年</Option>
+                </Select>
+              </Form.Item>
+            </Space.Compact>
           </Form.Item>
 
           <Form.Item

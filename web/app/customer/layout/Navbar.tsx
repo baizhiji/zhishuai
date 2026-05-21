@@ -205,8 +205,15 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 角色切换弹窗状态
   const [roleModalVisible, setRoleModalVisible] = useState(false)
 
-  // 从 localStorage 读取保存的角色
+  // /customer 路由下强制使用 customer 角色，不受 viewing_role 影响
+  const isCustomerRoute = pathname.startsWith('/customer')
+  
+  // 从 localStorage 读取保存的角色（仅在非 customer 路由时使用）
   const getSavedRole = (): Role => {
+    // /customer 路由下强制使用 customer 角色
+    if (isCustomerRoute) {
+      return 'customer'
+    }
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('viewing_role')
       if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
@@ -222,14 +229,19 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 监听用户角色变化
   useEffect(() => {
     if (user?.role) {
-      const savedRole = getSavedRole()
-      if (!localStorage.getItem('viewing_role')) {
-        setCurrentRole(user.role as Role)
+      // /customer 路由下强制使用 customer 角色
+      if (isCustomerRoute) {
+        setCurrentRole('customer')
       } else {
-        setCurrentRole(savedRole)
+        const savedRole = getSavedRole()
+        if (!localStorage.getItem('viewing_role')) {
+          setCurrentRole(user.role as Role)
+        } else {
+          setCurrentRole(savedRole)
+        }
       }
     }
-  }, [user?.role])
+  }, [user?.role, isCustomerRoute])
 
   // 切换角色
   const handleRoleSwitch = (role: Role) => {
