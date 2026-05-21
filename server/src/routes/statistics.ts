@@ -45,6 +45,17 @@ adminRouter.get('/overview', async (req, res) => {
       },
     });
 
+    // 统计客户总支付金额
+    const customerStats = await prisma.user.aggregate({
+      _sum: {
+        totalPaid: true,
+        monthlyPaid: true,
+      },
+      where: {
+        role: 'user',
+      },
+    });
+
     res.json({
       data: {
         totalUsers,
@@ -57,6 +68,8 @@ adminRouter.get('/overview', async (req, res) => {
         totalLeads: 0,
         totalRevenue: agentStats._sum.totalPaid || 0,
         monthlyRevenue: agentStats._sum.monthlyPaid || 0,
+        totalCustomerPaid: customerStats._sum.totalPaid || 0,
+        monthlyCustomerPaid: customerStats._sum.monthlyPaid || 0,
       },
     });
   } catch (error: any) {
@@ -128,7 +141,7 @@ adminRouter.get('/platforms', async (req, res) => {
         where: {
           featureSwitches: {
             some: {
-              featureKey: 'media',
+              featureCode: 'media',
               enabled: true,
             },
           },
@@ -138,7 +151,7 @@ adminRouter.get('/platforms', async (req, res) => {
         where: {
           featureSwitches: {
             some: {
-              featureKey: 'recruitment',
+              featureCode: 'recruitment',
               enabled: true,
             },
           },
@@ -148,7 +161,7 @@ adminRouter.get('/platforms', async (req, res) => {
         where: {
           featureSwitches: {
             some: {
-              featureKey: 'acquisition',
+              featureCode: 'acquisition',
               enabled: true,
             },
           },
@@ -172,31 +185,36 @@ adminRouter.get('/platforms', async (req, res) => {
 adminRouter.get('/agents', async (req, res) => {
   try {
     const agents = await prisma.agent.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            phone: true,
-          },
-        },
-        agentRelations: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                companyName: true,
-              },
-            },
-          },
-        },
-      },
       orderBy: { createdAt: 'desc' },
       take: 50,
     });
 
-    // 计算每个代理商的客户数和收益
+    // 获取每个代理商关联的用户信息
+    const agentIds = agents.map((a) => a.id);
+    const relations = await prisma.userAgentRelation.findMany({
+      where: { agentId: { in: agentIds } },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            totalPaid: true,
+            monthlyPaid: true,
+          },
+        },
+      },
+    });
+
+    // 按代理商分组客户
+    const relationMap = new Map();
+    relations.forEach((r) => {
+      if (!relationMap.has(r.agentId)) {
+        relationMap.set(r.agentId, []);
+      }
+      relationMap.get(r.agentId).push(r.user);
+    });
+
     const agentsWithStats = agents.map((agent) => ({
       id: agent.id,
       name: agent.name,
@@ -209,9 +227,9 @@ adminRouter.get('/agents', async (req, res) => {
       balance: agent.balance,
       totalRevenue: agent.totalRevenue,
       status: agent.status,
-      user: agent.user,
-      customerCount: agent.agentRelations.length,
-      customers: agent.agentRelations.map((r) => r.user),
+      phone: null, // 需要单独查询
+      customerCount: relationMap.get(agent.id)?.length || 0,
+      customers: relationMap.get(agent.id) || [],
       createdAt: agent.createdAt,
     }));
 
@@ -229,26 +247,6 @@ adminRouter.get('/agents/:id', async (req, res) => {
     const agent = await prisma.agent.findUnique({
       where: { id },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            phone: true,
-            email: true,
-          },
-        },
-        agentRelations: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                companyName: true,
-                createdAt: true,
-              },
-            },
-          },
-        },
         children: {
           select: {
             id: true,
@@ -257,10 +255,6 @@ adminRouter.get('/agents/:id', async (req, res) => {
             status: true,
           },
         },
-        payments: {
-          orderBy: { createdAt: 'desc' },
-          take: 20,
-        },
       },
     });
 
@@ -268,7 +262,40 @@ adminRouter.get('/agents/:id', async (req, res) => {
       return res.status(404).json({ error: '代理商不存在' });
     }
 
-    res.json({ data: agent });
+    // 获取关联的用户信息
+    const relations = await prisma.userAgentRelation.findMany({
+      where: { agentId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            createdAt: true,
+            totalPaid: true,
+            monthlyPaid: true,
+          },
+        },
+      },
+    });
+
+    // 获取代理商关联的用户
+    const agentUser = await prisma.user.findFirst({
+      where: { agent: { some: { id } } },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+      },
+    });
+
+    res.json({
+      data: {
+        ...agent,
+        user: agentUser,
+        customers: relations.map((r) => r.user),
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -290,11 +317,6 @@ adminRouter.get('/agents/:id/stats', async (req, res) => {
         agentType: true,
         commissionRate: true,
         oneTimeFee: true,
-        agentRelations: {
-          select: {
-            userId: true,
-          },
-        },
       },
     });
 
@@ -302,9 +324,15 @@ adminRouter.get('/agents/:id/stats', async (req, res) => {
       return res.status(404).json({ error: '代理商不存在' });
     }
 
-    // 获取客户使用统计
-    const customerIds = agent.agentRelations.map((r) => r.userId);
+    // 获取客户列表
+    const relations = await prisma.userAgentRelation.findMany({
+      where: { agentId: id },
+      select: { userId: true },
+    });
 
+    const customerIds = relations.map((r) => r.userId);
+
+    // 获取客户使用统计
     const [materialCount, recruitmentCount, acquisitionCount] = await Promise.all([
       prisma.material.count({
         where: { userId: { in: customerIds } },
