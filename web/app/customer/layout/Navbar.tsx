@@ -226,22 +226,17 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 当前查看的角色
   const [currentRole, setCurrentRole] = useState<Role>(getSavedRole)
 
-  // 监听用户角色变化
+  // 监听用户角色变化（仅在非 customer 路由时需要）
   useEffect(() => {
-    if (user?.role) {
-      // /customer 路由下强制使用 customer 角色
-      if (isCustomerRoute) {
-        setCurrentRole('customer')
+    if (!isCustomerRoute && user?.role) {
+      const savedRole = getSavedRole()
+      if (!localStorage.getItem('viewing_role')) {
+        setCurrentRole(user.role as Role)
       } else {
-        const savedRole = getSavedRole()
-        if (!localStorage.getItem('viewing_role')) {
-          setCurrentRole(user.role as Role)
-        } else {
-          setCurrentRole(savedRole)
-        }
+        setCurrentRole(savedRole)
       }
     }
-  }, [user?.role, isCustomerRoute])
+  }, [isCustomerRoute, user?.role])
 
   // 切换角色
   const handleRoleSwitch = (role: Role) => {

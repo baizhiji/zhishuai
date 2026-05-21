@@ -93,7 +93,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 初始化时检查认证状态
   useEffect(() => {
-    checkAuth();
+    // 防止重复调用
+    if (loading) {
+      checkAuth();
+    }
   }, [pathname]);
 
   const value = {
