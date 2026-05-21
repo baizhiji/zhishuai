@@ -93,9 +93,6 @@ const nextConfig = {
   // 生产环境优化
   productionBrowserSourceMaps: false,
 
-  // 输出配置
-  output: 'standalone',
-
   // 头部配置
   async headers() {
     return [
