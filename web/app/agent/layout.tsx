@@ -131,7 +131,7 @@ export default function AgentLayout({
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <AgentNavbar />
-      <Layout>
+      <Layout style={{ marginLeft: 220 }}>
         <Header style={{ background: '#fff', padding: '0 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <Space size="large">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
