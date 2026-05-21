@@ -8,6 +8,8 @@ import {
   Modal,
   Form,
   Input,
+  InputNumber,
+  Select,
   Space,
   Tag,
   message,
@@ -380,12 +382,22 @@ export default function CustomerManagementPage() {
             <Input placeholder="请输入姓名（选填）" />
           </Form.Item>
 
-          <Form.Item 
-            name="monthlyFee" 
-            label="月费金额（元）"
-            rules={[{ required: true, message: '请输入月费金额' }]}
-          >
-            <Input type="number" placeholder="请输入月费金额，如 99" min={0} />
+          <Form.Item label="价格">
+            <Space.Compact>
+              <Form.Item name="price" noStyle rules={[{ required: true, message: '请输入价格' }]}>
+                <Input type="number" prefix="¥" placeholder="金额" min={0} style={{ width: 120 }} />
+              </Form.Item>
+              <Form.Item name="priceQuantity" noStyle rules={[{ required: true, message: '请输入时间' }]}>
+                <InputNumber placeholder="时间" min={1} style={{ width: 80 }} />
+              </Form.Item>
+              <Form.Item name="priceUnit" noStyle rules={[{ required: true, message: '请选择单位' }]}>
+                <Select style={{ width: 80 }} defaultValue="month">
+                  <Select.Option value="month">月</Select.Option>
+                  <Select.Option value="quarter">季</Select.Option>
+                  <Select.Option value="year">年</Select.Option>
+                </Select>
+              </Form.Item>
+            </Space.Compact>
           </Form.Item>
 
           {!editingCustomer && (
