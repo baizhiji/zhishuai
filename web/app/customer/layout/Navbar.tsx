@@ -259,8 +259,11 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     }
   }
 
-  // 导航菜单项
-  const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole])
+  // 导航菜单项（直接基于路由，不依赖状态避免闪烁）
+  const navItems = useMemo(() => {
+    // 始终使用 customer 角色
+    return getNavigationItems('customer')
+  }, [])
 
   // 菜单展开状态
   const [openKeys, setOpenKeys] = useState<string[]>([])
@@ -432,7 +435,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <span style={{ fontSize: 14, color: token.colorTextSecondary }}>
-              当前角色：{getRoleDisplayText(currentRole)}
+              当前角色：{getRoleDisplayText('customer')}
             </span>
             {isAdmin && (
               <Button
