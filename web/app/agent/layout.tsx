@@ -131,8 +131,8 @@ export default function AgentLayout({
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <AgentNavbar />
-      <Layout style={{ marginLeft: 220 }}>
-        <Header style={{ background: '#fff', padding: '0 24px', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+      <Layout>
+        <Header style={{ padding: '0 24px', marginLeft: 220, background: '#fff', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <Space size="large">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
@@ -142,7 +142,7 @@ export default function AgentLayout({
             </Dropdown>
           </Space>
         </Header>
-        <Content style={{ padding: 24, background: '#f0f2f5' }}>
+        <Content style={{ padding: 24, marginLeft: 220, background: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
           {children}
         </Content>
       </Layout>
