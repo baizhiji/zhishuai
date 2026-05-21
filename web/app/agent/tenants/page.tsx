@@ -155,15 +155,25 @@ export default function AgentTenantsPage() {
   const handleCreate = async () => {
     try {
       const values = await createForm.validateFields()
-      const { expireMonths, ...rest } = values
+      const { expireMonths, price, priceUnit, ...rest } = values
+      
+      // 根据计费周期计算月均价格显示
+      let unitText = ''
+      switch (priceUnit) {
+        case 'quarter': unitText = '季'; break
+        case 'year': unitText = '年'; break
+        default: unitText = '月'; break
+      }
       
       await request.post('/admin/customers', {
         ...rest,
         password: '123456',
+        price,
+        priceUnit,
         expireMonths
       })
       
-      message.success(`已开通客户账号：${values.name}，登录账号：${values.phone}，初始密码：123456`)
+      message.success(`已开通客户账号：${values.name}，${unitText}收费 ¥${price || 0}，登录账号：${values.phone}，初始密码：123456`)
       setCreateVisible(false)
       createForm.resetFields()
       loadCustomers()
@@ -350,7 +360,11 @@ export default function AgentTenantsPage() {
             icon={<PlusOutlined />} 
             onClick={() => {
               createForm.resetFields()
-              createForm.setFieldsValue({ expireMonths: 12 })
+              createForm.setFieldsValue({ 
+                expireMonths: 12,
+                price: 299,
+                priceUnit: 'month'
+              })
               setCreateVisible(true)
             }}
           >
@@ -447,6 +461,29 @@ export default function AgentTenantsPage() {
           <Form.Item name="phone" label="手机号码（登录账号）" rules={[{ required: true, message: '请输入手机号码' }]}>
             <Input placeholder="请输入手机号码" />
           </Form.Item>
+          <Form.Item
+            name="price"
+            label="价格"
+            extra="设置该客户的套餐价格"
+            rules={[{ required: true, message: '请输入价格' }]}
+          >
+            <Input type="number" prefix="¥" placeholder="如：299" min={0} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="priceUnit"
+            label="计费周期"
+            initialValue="month"
+            extra="选择价格对应的计费周期"
+            rules={[{ required: true, message: '请选择计费周期' }]}
+          >
+            <Select placeholder="请选择">
+              <Select.Option value="month">/月</Select.Option>
+              <Select.Option value="quarter">/季</Select.Option>
+              <Select.Option value="year">/年</Select.Option>
+            </Select>
+          </Form.Item>
+
           <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true, message: '请选择有效时间' }]}>
             <Select placeholder="选择有效时间">
               {expireOptions.map(opt => (

@@ -208,6 +208,8 @@ export default function AdminCustomersPage() {
     createForm.resetFields()
     createForm.setFieldsValue({
       status: 'active',
+      price: 299,
+      priceUnit: 'month',
       expireMonths: 12,
     })
     setCreateVisible(true)
@@ -217,6 +219,14 @@ export default function AdminCustomersPage() {
     createForm.validateFields().then((values) => {
       const expireValue = values.expireMonths
       const expireAt = expireValue === -1 ? '2099-12-31' : dayjs().add(expireValue, 'month').format('YYYY-MM-DD')
+      
+      // 根据计费周期计算月均价格显示
+      let unitText = ''
+      switch (values.priceUnit) {
+        case 'quarter': unitText = '季'; break
+        case 'year': unitText = '年'; break
+        default: unitText = '月'; break
+      }
       
       const newCustomer: Customer = {
         id: Date.now().toString(),
@@ -236,12 +246,12 @@ export default function AdminCustomersPage() {
         users: 0,
         published: 0,
         acquired: 0,
-        monthlyPayment: values.monthlyPayment || 0,
-        totalPayment: values.monthlyPayment || 0,
+        monthlyPayment: values.price || 0,
+        totalPayment: values.price || 0,
         agentName: values.agentName || '-',
       }
       setCustomers((prev) => [newCustomer, ...prev])
-      message.success(`已成功开通：${values.name}，收费 ¥${values.monthlyPayment || 0}，登录账号：${values.phone}，初始密码：123456`)
+      message.success(`已成功开通：${values.name}，${unitText}收费 ¥${values.price || 0}，登录账号：${values.phone}，初始密码：123456`)
       setCreateVisible(false)
     })
   }
@@ -611,11 +621,26 @@ export default function AdminCustomersPage() {
           </Form.Item>
 
           <Form.Item
-            name="monthlyPayment"
-            label="月收费金额"
-            extra="设置该客户的月服务费"
+            name="price"
+            label="价格"
+            extra="设置该客户的套餐价格"
+            rules={[{ required: true, message: '请输入价格' }]}
           >
-            <Input type="number" prefix="¥" placeholder="如：299" min={0} />
+            <Input type="number" prefix="¥" placeholder="如：299" min={0} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            name="priceUnit"
+            label="计费周期"
+            initialValue="month"
+            extra="选择价格对应的计费周期"
+            rules={[{ required: true, message: '请选择计费周期' }]}
+          >
+            <Select placeholder="请选择">
+              <Option value="month">/月</Option>
+              <Option value="quarter">/季</Option>
+              <Option value="year">/年</Option>
+            </Select>
           </Form.Item>
 
           <Form.Item
