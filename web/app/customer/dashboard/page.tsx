@@ -107,7 +107,7 @@ export default function CustomerDashboard() {
     try {
       // 并行获取所有数据
       const [dashboardRes, mediaRes, recruitRes, acquireRes, shareRes] = await Promise.allSettled([
-        request.get(`/api/customer/dashboard/stats`),
+        request.get(`/api/dashboard-stats/stats`),
         request.get(`/api/media/stats?days=30`),
         request.get(`/api/recruitment/stats`),
         request.get(`/api/acquisition/stats`),
