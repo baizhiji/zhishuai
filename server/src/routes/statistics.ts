@@ -279,15 +279,17 @@ adminRouter.get('/agents/:id', async (req, res) => {
       },
     });
 
-    // 获取代理商关联的用户
-    const agentUser = await prisma.user.findFirst({
-      where: { agentId: id },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-      },
-    });
+    // 获取代理商关联的用户（通过Agent.userId找到对应User）
+    const agentUser = agent.userId
+      ? await prisma.user.findUnique({
+          where: { id: agent.userId },
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        })
+      : null;
 
     res.json({
       data: {
