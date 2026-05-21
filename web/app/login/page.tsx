@@ -24,7 +24,8 @@ export default function LoginPage() {
     switch (role) {
       case 'admin': return '/admin/tenants';
       case 'agent': return '/agent/tenants';
-      default: return '/dashboard';
+      case 'customer': return '/customer/dashboard';
+      default: return '/customer/dashboard';
     }
   };
 
