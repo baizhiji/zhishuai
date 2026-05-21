@@ -1,5 +1,5 @@
 /**
- * 统计数据API - 简化版
+ * 统计数据API - 管理后台统计
  */
 
 import { Router } from 'express';
@@ -14,29 +14,49 @@ const adminRouter = Router();
 // 获取管理后台总览统计
 adminRouter.get('/overview', async (req, res) => {
   try {
-    const [totalUsers, totalAgents, totalTenants, todayActive] = await Promise.all([
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [totalUsers, totalAgents, totalCustomers, todayActive, monthlyNewUsers] = await Promise.all([
       prisma.user.count(),
-      prisma.agent.count(),
-      prisma.tenant.count(),
+      prisma.agent.count({ where: { status: 'active' } }),
+      prisma.userAgentRelation.count(), // 客户数 = 关联关系数
       prisma.user.count({
         where: {
           updatedAt: {
-            gte: new Date(new Date().setHours(0, 0, 0, 0)),
+            gte: new Date(now.setHours(0, 0, 0, 0)),
+          },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          createdAt: {
+            gte: startOfMonth,
           },
         },
       }),
     ]);
 
+    // 统计总收益（一次性付费代理商 + 按比例分成代理商）
+    const agentStats = await prisma.agent.aggregate({
+      _sum: {
+        totalPaid: true,
+        monthlyPaid: true,
+      },
+    });
+
     res.json({
       data: {
         totalUsers,
         totalAgents,
-        totalCustomers: totalTenants,
+        totalCustomers,
         todayActiveUsers: todayActive,
+        monthlyNewUsers,
         totalMaterials: 0,
         totalPosts: 0,
         totalLeads: 0,
-        totalRevenue: 0,
+        totalRevenue: agentStats._sum.totalPaid || 0,
+        monthlyRevenue: agentStats._sum.monthlyPaid || 0,
       },
     });
   } catch (error: any) {
@@ -49,24 +69,51 @@ adminRouter.get('/trend', async (req, res) => {
   try {
     const { days = '7' } = req.query;
     const numDays = Number(days);
-    
+
     const trendData = [];
     for (let i = numDays - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      // 模拟数据
+      const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+
+      const [newUsers, newAgents, newCustomers] = await Promise.all([
+        prisma.user.count({
+          where: {
+            createdAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        }),
+        prisma.agent.count({
+          where: {
+            createdAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        }),
+        prisma.userAgentRelation.count({
+          where: {
+            createdAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        }),
+      ]);
+
       trendData.push({
-        date: dateStr,
-        newUsers: Math.floor(Math.random() * 20) + 5,
-        newAgents: Math.floor(Math.random() * 5) + 1,
-        newCustomers: Math.floor(Math.random() * 30) + 10,
+        date: startOfDay.toISOString().split('T')[0],
+        newUsers,
+        newAgents,
+        newCustomers,
         apiCalls: Math.floor(Math.random() * 1000) + 100,
         revenue: Math.floor(Math.random() * 5000) + 1000,
       });
     }
-    
+
     res.json({ data: trendData });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -76,12 +123,45 @@ adminRouter.get('/trend', async (req, res) => {
 // 获取平台分布
 adminRouter.get('/platforms', async (req, res) => {
   try {
+    const [mediaUsers, recruitmentUsers, acquisitionUsers] = await Promise.all([
+      prisma.user.count({
+        where: {
+          featureSwitches: {
+            some: {
+              featureKey: 'media',
+              enabled: true,
+            },
+          },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          featureSwitches: {
+            some: {
+              featureKey: 'recruitment',
+              enabled: true,
+            },
+          },
+        },
+      }),
+      prisma.user.count({
+        where: {
+          featureSwitches: {
+            some: {
+              featureKey: 'acquisition',
+              enabled: true,
+            },
+          },
+        },
+      }),
+    ]);
+
     const platforms = [
-      { name: '自媒体运营', count: Math.floor(Math.random() * 100) + 50 },
-      { name: '招聘助手', count: Math.floor(Math.random() * 80) + 30 },
-      { name: '智能获客', count: Math.floor(Math.random() * 60) + 20 },
+      { name: '自媒体运营', count: mediaUsers },
+      { name: '招聘助手', count: recruitmentUsers },
+      { name: '智能获客', count: acquisitionUsers },
     ];
-    
+
     res.json({ data: platforms });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -93,20 +173,164 @@ adminRouter.get('/agents', async (req, res) => {
   try {
     const agents = await prisma.agent.findMany({
       include: {
-        tenants: {
+        user: {
           select: {
             id: true,
-            companyName: true,
-            paymentAmount: true,
-            monthlyPayment: true,
+            username: true,
+            phone: true,
+          },
+        },
+        agentRelations: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                companyName: true,
+              },
+            },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take: 50,
     });
-    
-    res.json({ data: agents });
+
+    // 计算每个代理商的客户数和收益
+    const agentsWithStats = agents.map((agent) => ({
+      id: agent.id,
+      name: agent.name,
+      level: agent.level,
+      agentType: agent.agentType,
+      commissionRate: agent.commissionRate,
+      oneTimeFee: agent.oneTimeFee,
+      totalPaid: agent.totalPaid,
+      monthlyPaid: agent.monthlyPaid,
+      balance: agent.balance,
+      totalRevenue: agent.totalRevenue,
+      status: agent.status,
+      user: agent.user,
+      customerCount: agent.agentRelations.length,
+      customers: agent.agentRelations.map((r) => r.user),
+      createdAt: agent.createdAt,
+    }));
+
+    res.json({ data: agentsWithStats });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取单个代理商详情
+adminRouter.get('/agents/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const agent = await prisma.agent.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            phone: true,
+            email: true,
+          },
+        },
+        agentRelations: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                companyName: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+        children: {
+          select: {
+            id: true,
+            name: true,
+            level: true,
+            status: true,
+          },
+        },
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+      },
+    });
+
+    if (!agent) {
+      return res.status(404).json({ error: '代理商不存在' });
+    }
+
+    res.json({ data: agent });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取代理商业绩统计
+adminRouter.get('/agents/:id/stats', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const agent = await prisma.agent.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        totalPaid: true,
+        monthlyPaid: true,
+        totalRevenue: true,
+        balance: true,
+        agentType: true,
+        commissionRate: true,
+        oneTimeFee: true,
+        agentRelations: {
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!agent) {
+      return res.status(404).json({ error: '代理商不存在' });
+    }
+
+    // 获取客户使用统计
+    const customerIds = agent.agentRelations.map((r) => r.userId);
+
+    const [materialCount, recruitmentCount, acquisitionCount] = await Promise.all([
+      prisma.material.count({
+        where: { userId: { in: customerIds } },
+      }),
+      prisma.recruitmentPost.count({
+        where: { userId: { in: customerIds } },
+      }),
+      prisma.acquisitionTask.count({
+        where: { userId: { in: customerIds } },
+      }),
+    ]);
+
+    res.json({
+      data: {
+        totalPaid: agent.totalPaid,
+        monthlyPaid: agent.monthlyPaid,
+        totalRevenue: agent.totalRevenue,
+        balance: agent.balance,
+        customerCount: customerIds.length,
+        customerStats: {
+          materials: materialCount,
+          recruitmentPosts: recruitmentCount,
+          acquisitionTasks: acquisitionCount,
+        },
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -119,14 +343,14 @@ router.use('/admin', adminRouter);
 router.get('/overview', async (req, res) => {
   try {
     const { userId } = req.query;
-    
+
     const [materialCount, recruitmentCount, acquisitionCount, shareCount] = await Promise.all([
       prisma.material.count({ where: { userId: userId as string } }),
       prisma.recruitmentPost.count({ where: { userId: userId as string } }),
       prisma.acquisitionTask.count({ where: { userId: userId as string } }),
       prisma.shareQrCode.count({ where: { userId: userId as string } }),
     ]);
-    
+
     res.json({
       data: {
         totalMaterials: materialCount,
@@ -145,19 +369,19 @@ router.get('/trend', async (req, res) => {
   try {
     const { userId, days = '7' } = req.query;
     const numDays = Number(days);
-    
+
     const trendData = [];
     for (let i = numDays - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
-      
+
       trendData.push({
         date: dateStr,
         value: Math.floor(Math.random() * 1000) + 100,
       });
     }
-    
+
     res.json({ data: trendData });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -168,14 +392,14 @@ router.get('/trend', async (req, res) => {
 router.get('/dashboard', async (req, res) => {
   try {
     const { userId } = req.query;
-    
+
     const [materials, recruitmentPosts, acquisitionTasks, shareCodes] = await Promise.all([
       prisma.material.findMany({ where: { userId: userId as string }, take: 10, orderBy: { createdAt: 'desc' } }),
       prisma.recruitmentPost.findMany({ where: { userId: userId as string }, take: 10, orderBy: { createdAt: 'desc' } }),
       prisma.acquisitionTask.findMany({ where: { userId: userId as string }, take: 10, orderBy: { createdAt: 'desc' } }),
       prisma.shareQrCode.findMany({ where: { userId: userId as string }, take: 10, orderBy: { createdAt: 'desc' } }),
     ]);
-    
+
     res.json({
       data: {
         materials,
