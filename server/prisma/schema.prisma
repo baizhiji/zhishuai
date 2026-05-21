@@ -20,6 +20,13 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
+  // 客户计费相关（仅租户客户使用）
+  fee           Decimal   @default(0)    // 收费金额
+  totalPaid     Decimal   @default(0)   // 累计已付金额
+  monthlyPaid   Decimal   @default(0)   // 当月已付金额（每月初重置）
+  lastPaidAt    DateTime?              // 最后支付时间
+  expireAt      DateTime?              // 服务到期时间
+  
   // 关联数据
   recruitmentPosts    RecruitmentPost[]
   candidates          Candidate[]
@@ -66,6 +73,9 @@ model User {
   
   // 视频任务
   videoTasks         VideoTask[]
+  
+  // 支付记录
+  payments           Payment[]
 }
 
 model RecruitmentPost {
@@ -453,9 +463,17 @@ model Agent {
   name          String              // 代理商名称
   level         String    @default("district")  // 级别: country, province, city, district
   region        String?             // 区域
-  commissionRate Decimal   @default(0.3)  // 分成比例
+  
+  // 计费相关
+  agentType     String    @default("commission")  // 计费类型: one_time(一次性付费), commission(按比例分成)
+  commissionRate Decimal   @default(0.3)  // 分成比例（按比例分成时使用）
+  oneTimeFee    Decimal   @default(0)    // 一次性付费金额
+  totalPaid     Decimal   @default(0)   // 累计已付金额
+  monthlyPaid   Decimal   @default(0)   // 当月已付金额（每月初重置）
+  lastPaidAt    DateTime?              // 最后支付时间
+  
   status        String    @default("active")  // active, frozen
-  balance       Decimal   @default(0)  // 账户余额
+  balance       Decimal   @default(0)  // 账户余额（仅按比例分成代理商）
   totalRevenue  Decimal   @default(0)  // 累计收益
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -470,6 +488,9 @@ model Agent {
   
   // 关联关系
   agentRelations UserAgentRelation[]
+  
+  // 支付记录
+  payments      Payment[]
 }
 
 // 用户与代理商关联表
@@ -1012,4 +1033,50 @@ model VideoTask {
   @@index([userId, status])
   @@index([humanId])
   @@index([templateId])
+}
+
+// 支付记录表
+model Payment {
+  id            String    @id @default(uuid())
+  
+  // 支付类型: agent_fee(代理商费用), customer_fee(客户费用), commission(佣金分成)
+  type          String    @default("customer_fee")
+  
+  // 支付金额
+  amount        Decimal   @default(0)
+  
+  // 支付状态: pending(待支付), paid(已支付), refunded(已退款), failed(失败)
+  status        String    @default("paid")
+  
+  // 支付方式: wechat(微信), alipay(支付宝), bank(银行转账), admin(管理员操作)
+  paymentMethod String?   
+  
+  // 关联用户（客户或代理商）
+  userId        String?                      // 客户用户ID
+  user          User?      @relation(fields: [userId], references: [id])
+  
+  // 代理商支付关联
+  agentId       String?                      // 代理商ID
+  agent         Agent?     @relation(fields: [agentId], references: [id])
+  
+  // 关联的租户客户（客户支付时关联）
+  tenantId      String?                      // 租户用户ID
+  
+  // 支付描述
+  description   String?                     // 支付描述
+  
+  // 交易流水号
+  transactionId String?                     // 第三方交易流水号
+  
+  // 备注
+  remark        String?                     // 备注信息
+  
+  paidAt        DateTime?                   // 支付时间
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, type])
+  @@index([agentId, type])
+  @@index([status])
+  @@index([createdAt])
 }

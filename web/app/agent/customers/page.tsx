@@ -247,6 +247,20 @@ export default function CustomerManagementPage() {
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
     },
     {
+      title: '月费',
+      dataIndex: 'monthlyFee',
+      key: 'monthlyFee',
+      width: 100,
+      render: (fee: number) => fee ? `¥${fee}` : '-',
+    },
+    {
+      title: '累计付费',
+      dataIndex: 'totalPaid',
+      key: 'totalPaid',
+      width: 100,
+      render: (amount: number) => amount ? `¥${amount}` : '-',
+    },
+    {
       title: '操作',
       key: 'action',
       width: 280,
@@ -364,6 +378,14 @@ export default function CustomerManagementPage() {
 
           <Form.Item name="name" label="姓名">
             <Input placeholder="请输入姓名（选填）" />
+          </Form.Item>
+
+          <Form.Item 
+            name="monthlyFee" 
+            label="月费金额（元）"
+            rules={[{ required: true, message: '请输入月费金额' }]}
+          >
+            <Input type="number" placeholder="请输入月费金额，如 99" min={0} />
           </Form.Item>
 
           {!editingCustomer && (

@@ -7,6 +7,8 @@ export interface Customer {
   avatar?: string;
   status: 'active' | 'frozen';
   role: string;
+  monthlyFee?: number;      // 月费金额
+  totalPaid?: number;      // 累计付费金额
   materialCount?: number;
   accountCount?: number;
   publishCount?: number;
@@ -45,6 +47,7 @@ export function createCustomer(data: {
   phone: string;
   name?: string;
   password?: string;
+  monthlyFee?: number;
 }) {
   return request.post<Customer>('/api/agent/customers', data);
 }

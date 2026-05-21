@@ -58,6 +58,10 @@ interface Customer {
   users: number
   published: number
   acquired: number
+  // 计费相关
+  monthlyPayment: number  // 当月支付金额
+  totalPayment: number    // 累计支付金额
+  agentName?: string      // 所属代理商名称
 }
 
 // 到期时间选项
@@ -85,6 +89,9 @@ const mockCustomers: Customer[] = [
     users: 20,
     published: 580,
     acquired: 0,
+    monthlyPayment: 299,
+    totalPayment: 3588,
+    agentName: '张三代理商'
   },
   {
     id: '3',
@@ -98,6 +105,9 @@ const mockCustomers: Customer[] = [
     users: 5,
     published: 45,
     acquired: 0,
+    monthlyPayment: 0,
+    totalPayment: 897,
+    agentName: '李四代理商'
   },
   {
     id: '5',
@@ -111,6 +121,9 @@ const mockCustomers: Customer[] = [
     users: 12,
     published: 320,
     acquired: 156,
+    monthlyPayment: 499,
+    totalPayment: 5988,
+    agentName: '张三代理商'
   },
 ]
 
@@ -223,9 +236,12 @@ export default function AdminCustomersPage() {
         users: 0,
         published: 0,
         acquired: 0,
+        monthlyPayment: values.monthlyPayment || 0,
+        totalPayment: values.monthlyPayment || 0,
+        agentName: values.agentName || '-',
       }
       setCustomers((prev) => [newCustomer, ...prev])
-      message.success(`已成功开通：${values.name}，登录账号：${values.phone}，初始密码：123456`)
+      message.success(`已成功开通：${values.name}，收费 ¥${values.monthlyPayment || 0}，登录账号：${values.phone}，初始密码：123456`)
       setCreateVisible(false)
     })
   }
@@ -254,6 +270,13 @@ export default function AdminCustomersPage() {
       ),
     },
     {
+      title: '代理商',
+      dataIndex: 'agentName',
+      key: 'agentName',
+      width: 120,
+      render: (text: string) => text || '-'
+    },
+    {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
@@ -268,43 +291,36 @@ export default function AdminCustomersPage() {
     {
       title: '功能权限',
       key: 'features',
-      width: 220,
+      width: 180,
       render: (_, record) => (
-        <Space size={4} wrap>
+        <Space size={2} wrap>
           {record.features.media && <Tag color="cyan">自媒体</Tag>}
           {record.features.recruitment && <Tag color="purple">招聘</Tag>}
           {record.features.acquisition && <Tag color="orange">获客</Tag>}
-          {record.features.sharing && <Tag color="green">分享</Tag>}
-          {record.features.referral && <Tag color="gold">转介</Tag>}
-          {!record.features.media && !record.features.recruitment && !record.features.acquisition && 
-           !record.features.sharing && !record.features.referral && (
-            <Text type="secondary" style={{ fontSize: 12 }}>暂无权限</Text>
-          )}
         </Space>
       ),
     },
     {
-      title: '数据统计',
-      key: 'data',
-      width: 160,
+      title: '当月/累计支付',
+      key: 'payment',
+      width: 140,
       render: (_, record) => (
-        <Space direction="vertical" size={2}>
-          <Text type="secondary" style={{ fontSize: 12 }}>用户: <span style={{ color: '#1890ff' }}>{record.users}</span></Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>发布: <span style={{ color: '#52c41a' }}>{record.published}</span></Text>
-          <Text type="secondary" style={{ fontSize: 12 }}>获客: <span style={{ color: '#faad14' }}>{record.acquired}</span></Text>
-        </Space>
+        <div>
+          <div style={{ color: '#52c41a' }}>¥{record.monthlyPayment || 0}</div>
+          <Text type="secondary" style={{ fontSize: 12 }}>累计 ¥{record.totalPayment || 0}</Text>
+        </div>
       ),
     },
     {
       title: '到期时间',
       dataIndex: 'expireAt',
       key: 'expireAt',
-      width: 120,
+      width: 110,
     },
     {
       title: '操作',
       key: 'action',
-      width: 240,
+      width: 200,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -325,21 +341,6 @@ export default function AdminCustomersPage() {
           >
             功能
           </Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-            编辑
-          </Button>
-          <Popconfirm
-            title="确认删除"
-            description={`确定要删除 ${record.name} 吗？此操作不可恢复。`}
-            onConfirm={() => handleDelete(record)}
-            okText="确认"
-            cancelText="取消"
-            okButtonProps={{ danger: true }}
-          >
-            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
         </Space>
       ),
     },
@@ -597,6 +598,24 @@ export default function AdminCustomersPage() {
             ]}
           >
             <Input placeholder="请输入11位手机号码" maxLength={11} />
+          </Form.Item>
+
+          <Form.Item
+            name="agentName"
+            label="所属代理商"
+          >
+            <Select placeholder="请选择代理商（可选）" allowClear>
+              <Option value="张三代理商">张三代理商</Option>
+              <Option value="李四代理商">李四代理商</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="monthlyPayment"
+            label="月收费金额"
+            extra="设置该客户的月服务费"
+          >
+            <Input type="number" prefix="¥" placeholder="如：299" min={0} />
           </Form.Item>
 
           <Form.Item

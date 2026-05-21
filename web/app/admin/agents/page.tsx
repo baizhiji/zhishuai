@@ -46,6 +46,8 @@ const { Title, Text } = Typography
 const { Option } = Select
 
 // 代理商类型
+export type AgentType = 'one_time' | 'commission'  // 一次性付费 | 按比例分成
+
 interface Agent {
   id: string
   userId: string
@@ -61,6 +63,10 @@ interface Agent {
   createTime: string
   expireAt: string
   commissionRate?: number
+  agentType: AgentType  // 代理商类型
+  oneTimeFee?: number   // 一次性付费金额
+  totalPaid?: number    // 已支付金额
+  monthPaid?: number    // 当月支付金额
 }
 
 // 到期时间选项
@@ -170,7 +176,11 @@ export default function AdminAgentsPage() {
           features: [], // 需要单独获取
           createTime: agent.user?.createdAt ? dayjs(agent.user.createdAt).format('YYYY-MM-DD') : '',
           expireAt: agent.expireAt || '',
-          commissionRate: agent.commissionRate
+          commissionRate: agent.commissionRate,
+          agentType: agent.agentType || 'commission',
+          oneTimeFee: agent.oneTimeFee || 0,
+          totalPaid: agent.totalPaid || 0,
+          monthPaid: agent.monthPaid || 0
         }))
         setAgents(agentsData as any)
         if ((res.data as any).pagination) {
@@ -206,18 +216,38 @@ export default function AdminAgentsPage() {
   const handleCreate = async () => {
     try {
       const values = await createForm.validateFields()
-      const { region, expireMonths, ...rest } = values
-      const [province, city] = region || []
+      const { region, expireMonths, agentType, commissionRate, oneTimeFee, ...rest } = values
+      
+      // 处理代理商类型和对应费用
+      const agentData: any = {
+        ...rest,
+        agentType: agentType || 'commission',
+        expireMonths
+      }
+      
+      if (agentType === 'one_time') {
+        // 一次性付费代理商
+        agentData.oneTimeFee = oneTimeFee || 0
+        agentData.commissionRate = 0
+      } else {
+        // 按比例分成代理商
+        agentData.commissionRate = commissionRate || 20
+        agentData.oneTimeFee = 0
+      }
+      
+      if (region) {
+        const [province, city] = region
+        agentData.province = province
+        agentData.city = city
+      }
       
       await request.post('/admin/agents', {
-        ...rest,
-        province,
-        city,
-        password: '123456', // 默认密码
-        expireMonths
+        ...agentData,
+        password: '123456' // 默认密码
       })
       
-      message.success(`已开通代理商：${values.name}，登录账号：${values.phone}，初始密码：123456`)
+      const typeText = agentType === 'one_time' ? `一次性付费 ¥${oneTimeFee || 0}` : `按比例分成 ${commissionRate || 20}%`
+      message.success(`已开通代理商：${values.name}，${typeText}，登录账号：${values.phone}，初始密码：123456`)
       setCreateVisible(false)
       createForm.resetFields()
       loadAgents()
@@ -378,6 +408,41 @@ export default function AdminAgentsPage() {
       )
     },
     {
+      title: '代理商类型',
+      key: 'agentType',
+      width: 120,
+      render: (_, record) => (
+        <Tag color={record.agentType === 'one_time' ? 'gold' : 'blue'}>
+          {record.agentType === 'one_time' ? '一次性付费' : '按比例分成'}
+        </Tag>
+      )
+    },
+    {
+      title: '收费/分成',
+      key: 'fee',
+      width: 120,
+      render: (_, record) => (
+        <Text>
+          {record.agentType === 'one_time' ? (
+            <Text style={{ color: '#fa8c16' }}>¥{record.oneTimeFee || 0}</Text>
+          ) : (
+            <Text style={{ color: '#1890ff' }}>{record.commissionRate || 20}%</Text>
+          )}
+        </Text>
+      )
+    },
+    {
+      title: '当月/累计支付',
+      key: 'payment',
+      width: 150,
+      render: (_, record) => (
+        <div>
+          <div>当月: <Text style={{ color: '#52c41a' }}>¥{record.monthPaid || 0}</Text></div>
+          <div>累计: <Text style={{ color: '#fa8c16' }}>¥{record.totalPaid || 0}</Text></div>
+        </div>
+      )
+    },
+    {
       title: '负责区域',
       key: 'region',
       render: (_, record) => renderRegion(record)
@@ -390,13 +455,6 @@ export default function AdminAgentsPage() {
       render: (count: number) => (
         <Text strong style={{ color: '#1890ff' }}>{count}</Text>
       )
-    },
-    {
-      title: '功能',
-      dataIndex: 'features',
-      key: 'features',
-      width: 300,
-      render: (features: string[]) => getFeatureTags(features)
     },
     {
       title: '到期时间',
@@ -418,7 +476,7 @@ export default function AdminAgentsPage() {
     {
       title: '操作',
       key: 'action',
-      width: 280,
+      width: 220,
       render: (_, record) => (
         <Space size={4}>
           <Button
@@ -440,27 +498,11 @@ export default function AdminAgentsPage() {
           <Button
             type="text"
             size="small"
-            icon={<UserOutlined />}
-            onClick={() => handleViewDetail(record)}
-          >
-            详情
-          </Button>
-          <Button
-            type="text"
-            size="small"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
             编辑
           </Button>
-          <Popconfirm
-            title="确定删除该代理商？"
-            onConfirm={() => handleDelete(record)}
-          >
-            <Button type="text" size="small" danger icon={<DeleteOutlined />}>
-              删除
-            </Button>
-          </Popconfirm>
         </Space>
       )
     }
@@ -470,7 +512,8 @@ export default function AdminAgentsPage() {
     const total = agents.length
     const active = agents.filter(a => a.status === 'active').length
     const totalCustomers = agents.reduce((sum, a) => sum + a.customerCount, 0)
-    return { total, active, totalCustomers }
+    const totalAgentPayment = agents.reduce((sum, a) => sum + (a.totalPaid || 0), 0)
+    return { total, active, totalCustomers, totalAgentPayment }
   }, [agents])
 
   return (
@@ -498,7 +541,7 @@ export default function AdminAgentsPage() {
 
       {/* 统计卡片 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
+        <Col span={6}>
           <Card loading={loading}>
             <Statistic 
               title="代理商总数" 
@@ -508,23 +551,32 @@ export default function AdminAgentsPage() {
             />
           </Card>
         </Col>
-        <Col span={8}>
+        <Col span={6}>
           <Card loading={loading}>
             <Statistic 
-              title="正常" 
+              title="正常代理商" 
               value={stats.active} 
               valueStyle={{ color: '#52c41a' }}
-              suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>个</span>}
             />
           </Card>
         </Col>
-        <Col span={8}>
+        <Col span={6}>
           <Card loading={loading}>
             <Statistic 
               title="客户总数" 
-              value={stats.totalCustomers} 
+              value={stats.totalCustomers || 0} 
               prefix={<GlobalOutlined style={{ color: '#722ed1' }} />}
               valueStyle={{ color: '#722ed1' }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card loading={loading}>
+            <Statistic 
+              title="代理商累计支付" 
+              value={stats.totalAgentPayment || 0} 
+              prefix="¥"
+              valueStyle={{ color: '#fa8c16' }}
             />
           </Card>
         </Col>
@@ -584,7 +636,7 @@ export default function AdminAgentsPage() {
         onCancel={() => setCreateVisible(false)}
         okText="确认开通"
         cancelText="取消"
-        width={600}
+        width={700}
       >
         <Form form={createForm} layout="vertical">
           <Row gutter={16}>
@@ -619,12 +671,33 @@ export default function AdminAgentsPage() {
               </Form.Item>
             </Col>
           </Row>
+          <Divider>收费设置</Divider>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="commissionRate" label="分成比例">
-                <Input type="number" suffix="%" placeholder="例如：30" />
+              <Form.Item name="agentType" label="代理商类型" rules={[{ required: true, message: '请选择代理商类型' }]}>
+                <Select placeholder="选择代理商类型" onChange={() => createForm.setFieldValue('commissionRate', undefined)}>
+                  <Option value="commission">按比例分成</Option>
+                  <Option value="one_time">一次性付费</Option>
+                </Select>
               </Form.Item>
             </Col>
+            <Col span={12}>
+              <Form.Item noStyle shouldUpdate={(prev, curr) => prev.agentType !== curr.agentType}>
+                {({ getFieldValue }) => 
+                  getFieldValue('agentType') === 'one_time' ? (
+                    <Form.Item name="oneTimeFee" label="一次性付费金额" rules={[{ required: true, message: '请输入付费金额' }]}>
+                      <Input type="number" prefix="¥" placeholder="请输入金额" suffix="元" />
+                    </Form.Item>
+                  ) : (
+                    <Form.Item name="commissionRate" label="分成比例" rules={[{ required: true, message: '请输入分成比例' }]}>
+                      <Input type="number" suffix="%" placeholder="例如：20" />
+                    </Form.Item>
+                  )
+                }
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="level" label="代理等级">
                 <Select placeholder="选择等级">

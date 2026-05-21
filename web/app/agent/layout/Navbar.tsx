@@ -5,14 +5,9 @@ import { Layout, Menu } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
-  UserOutlined,
-  BarChartOutlined,
-  WarningOutlined,
-  CustomerServiceOutlined,
-  RobotOutlined,
   DollarOutlined,
   SettingOutlined,
-  ToolOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -53,24 +48,6 @@ const AgentNavbar: React.FC = () => {
       icon: <WarningOutlined />,
       label: '工单处理',
       path: '/agent/tickets',
-    },
-    {
-      key: 'ai-chat',
-      icon: <RobotOutlined />,
-      label: 'AI对话',
-      path: '/agent/ai-chat',
-    },
-    {
-      key: 'recruitment',
-      icon: <CustomerServiceOutlined />,
-      label: '智能招聘',
-      path: '/agent/recruitment',
-    },
-    {
-      key: 'acquisition',
-      icon: <UserOutlined />,
-      label: '智能获客',
-      path: '/agent/acquisition',
     },
   ];
 
