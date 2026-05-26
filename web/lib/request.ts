@@ -28,17 +28,19 @@ request.interceptors.request.use(
 
 // 响应拦截器
 request.interceptors.response.use(
-  (response: AxiosResponse<ApiResponse>) => {
-    const { code, message: msg, data } = response.data;
+  (response: AxiosResponse<any>) => {
+    const data = response.data;
 
-    // 业务成功
-    if (code === 200) {
+    // 支持两种响应格式：
+    // 1. { success: true, data: {...} } - 登录等API格式
+    // 2. { code: 200, data: {...} } - 其他API格式
+    if (data.success === true || data.code === 200) {
       return response.data as any;
     }
 
     // 业务失败
-    message.error(msg || '请求失败');
-    return Promise.reject(new Error(msg || '请求失败'));
+    message.error(data.message || data.msg || '请求失败');
+    return Promise.reject(new Error(data.message || data.msg || '请求失败'));
   },
   (error) => {
     const { response } = error;

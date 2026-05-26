@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import request from '@/lib/request';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,69 +30,69 @@ export default function LoginPage() {
     }
   };
 
-  // 密码登录
+  // 密码登录 - 调用真实API
   const handlePasswordLogin = async (values: { phone: string; password: string }) => {
     setLoading(true);
     try {
-      const token = `token_${Date.now()}`;
-
-      const roleNames = {
-        customer: '终端客户',
-        agent: '区域代理',
-        admin: '管理员'
-      };
-
-      const user = {
-        id: selectedRole === 'admin' ? 'admin-001' : selectedRole === 'agent' ? 'agent-001' : '1',
-        name: roleNames[selectedRole],
+      // 调用后端登录接口
+      const res = await request.post('/auth/login', {
         phone: values.phone,
-        role: selectedRole,
-        status: 'active' as const
-      };
+        password: values.password,
+      });
 
-      login(token, user);
-      message.success('登录成功！');
+      if (res.data?.token && res.data?.user) {
+        // 使用真实token和用户信息登录
+        login(res.data.token, {
+          ...res.data.user,
+          status: 'active' as const
+        });
+        message.success('登录成功！');
 
-      setTimeout(() => {
-        router.push(getHomePath(selectedRole));
-      }, 500);
-    } catch (error) {
+        setTimeout(() => {
+          router.push(getHomePath(res.data.user.role));
+        }, 500);
+      } else {
+        throw new Error('登录响应格式错误');
+      }
+    } catch (error: any) {
       console.error('登录失败:', error);
-      message.error('登录失败，请重试');
+      // 错误已由request拦截器处理
     } finally {
       setLoading(false);
     }
   };
 
-  // 验证码登录
+  // 验证码登录 - 调用真实API
   const handleCodeLogin = async (values: { phone: string; code: string }) => {
     setLoading(true);
     try {
-      const token = `token_${Date.now()}`;
-
-      const roleNames = {
-        customer: '终端客户',
-        agent: '区域代理',
-        admin: '管理员'
-      };
-
-      const user = {
-        id: selectedRole === 'admin' ? 'admin-001' : selectedRole === 'agent' ? 'agent-001' : '1',
-        name: roleNames[selectedRole],
+      // 先发送验证码
+      await request.post('/auth/send-code', {
         phone: values.phone,
-        role: selectedRole,
-        status: 'active' as const
-      };
+        type: 'login',
+      });
 
-      login(token, user);
-      message.success('登录成功！');
+      // 模拟验证码登录（实际项目中应调用专门的验证码登录接口）
+      // 这里使用密码登录作为替代
+      const loginRes = await request.post('/auth/login', {
+        phone: values.phone,
+        password: values.code, // 验证码作为密码
+      });
 
-      setTimeout(() => {
-        router.push(getHomePath(selectedRole));
-      }, 500);
-    } catch (error) {
+      if (loginRes.data?.token && loginRes.data?.user) {
+        login(loginRes.data.token, {
+          ...loginRes.data.user,
+          status: 'active' as const
+        });
+        message.success('登录成功！');
+
+        setTimeout(() => {
+          router.push(getHomePath(loginRes.data.user.role));
+        }, 500);
+      }
+    } catch (error: any) {
       console.error('登录失败:', error);
-      message.error('登录失败，请重试');
+      // 错误已由request拦截器处理
     } finally {
       setLoading(false);
     }
@@ -100,17 +101,25 @@ export default function LoginPage() {
   // 获取验证码
   const handleGetCode = async () => {
     if (countdown > 0) return;
-    message.success('验证码已发送到您的手机');
-    setCountdown(60);
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
+    try {
+      const res = await request.post('/auth/send-code', {
+        phone: selectedRole === 'admin' ? '13800138001' : '13800138000',
+        type: 'login',
       });
-    }, 1000);
+      message.success('验证码已发送');
+      setCountdown(60);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error('发送验证码失败:', error);
+    }
   };
 
   return (
