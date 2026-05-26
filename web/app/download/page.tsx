@@ -6,7 +6,7 @@ import {
   AndroidOutlined,
   DownloadOutlined,
   CheckCircleOutlined,
-  IPhoneOutlined,
+  PhoneOutlined,
   WindowsOutlined,
   ChromeOutlined,
 } from '@ant-design/icons';
