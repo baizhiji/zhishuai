@@ -13,6 +13,7 @@ import {
   Image,
   Modal,
   Radio,
+  message,
 } from 'antd'
 import {
   PieChartOutlined,
@@ -30,6 +31,7 @@ import {
   ThunderboltOutlined,
   SwapOutlined,
   PictureOutlined,
+  AndroidOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -276,8 +278,27 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     setOpenKeys(keys)
   }, [])
 
+  // 下载APK处理函数
+  const handleDownloadApk = () => {
+    const apkUrl = process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL || '/zhishuai.apk'
+    const link = document.createElement('a')
+    link.href = apkUrl
+    link.download = '智枢AI.apk'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    message.success('开始下载智枢AI APP')
+  }
+
   // 用户下拉菜单
   const userMenuItems = [
+    {
+      key: 'download-apk',
+      label: '下载APP',
+      icon: <AndroidOutlined />,
+      onClick: handleDownloadApk,
+    },
+    { type: 'divider' as const },
     {
       key: 'profile',
       label: '个人资料',

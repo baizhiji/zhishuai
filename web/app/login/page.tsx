@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, Input, Button, Card, Tabs, message, Space } from 'antd';
+import { Form, Input, Button, Card, message } from 'antd';
 import {
-  UserOutlined,
   LockOutlined,
   MobileOutlined,
-  SafetyOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,9 +14,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('password');
   const [selectedRole, setSelectedRole] = useState<'customer' | 'agent' | 'admin'>('customer');
-  const [countdown, setCountdown] = useState(0);
 
   // 根据角色返回首页路径
   const getHomePath = (role: string) => {
@@ -59,66 +55,6 @@ export default function LoginPage() {
       // 错误已由request拦截器处理
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 验证码登录 - 调用真实API
-  const handleCodeLogin = async (values: { phone: string; code: string }) => {
-    setLoading(true);
-    try {
-      // 先发送验证码
-      await request.post('/auth/send-code', {
-        phone: values.phone,
-        type: 'login',
-      });
-
-      // 模拟验证码登录（实际项目中应调用专门的验证码登录接口）
-      // 这里使用密码登录作为替代
-      const loginRes = await request.post('/auth/login', {
-        phone: values.phone,
-        password: values.code, // 验证码作为密码
-      });
-
-      if (loginRes.data?.token && loginRes.data?.user) {
-        login(loginRes.data.token, {
-          ...loginRes.data.user,
-          status: 'active' as const
-        });
-        message.success('登录成功！');
-
-        setTimeout(() => {
-          router.push(getHomePath(loginRes.data.user.role));
-        }, 500);
-      }
-    } catch (error: any) {
-      console.error('登录失败:', error);
-      // 错误已由request拦截器处理
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 获取验证码
-  const handleGetCode = async () => {
-    if (countdown > 0) return;
-    try {
-      const res = await request.post('/auth/send-code', {
-        phone: selectedRole === 'admin' ? '13800138001' : '13800138000',
-        type: 'login',
-      });
-      message.success('验证码已发送');
-      setCountdown(60);
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (error) {
-      console.error('发送验证码失败:', error);
     }
   };
 
@@ -239,140 +175,56 @@ export default function LoginPage() {
         </div>
 
         {/* 登录表单 */}
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          centered
-          style={{ marginBottom: 20 }}
-          items={[
-            {
-              key: 'password',
-              label: '密码登录',
-              children: (
-                <Form
-                  name="password-login"
-                  onFinish={handlePasswordLogin}
-                  layout="vertical"
-                >
-                  <Form.Item
-                    name="phone"
-                    rules={[
-                      { required: true, message: '请输入手机号' },
-                      { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
-                    ]}
-                  >
-                    <Input
-                      prefix={<MobileOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />}
-                      placeholder="请输入手机号"
-                      size="large"
-                      style={{ borderRadius: 12, height: 52, fontSize: 15 }}
-                    />
-                  </Form.Item>
+        <Form
+          name="password-login"
+          onFinish={handlePasswordLogin}
+          layout="vertical"
+        >
+          <Form.Item
+            name="phone"
+            rules={[
+              { required: true, message: '请输入手机号' },
+              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
+            ]}
+          >
+            <Input
+              prefix={<MobileOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />}
+              placeholder="请输入手机号"
+              size="large"
+              style={{ borderRadius: 12, height: 52, fontSize: 15 }}
+            />
+          </Form.Item>
 
-                  <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
-                    <Input.Password
-                      prefix={<LockOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />}
-                      placeholder="请输入密码"
-                      size="large"
-                      style={{ borderRadius: 12, height: 52, fontSize: 15 }}
-                    />
-                  </Form.Item>
+          <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
+            <Input.Password
+              prefix={<LockOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />}
+              placeholder="请输入密码"
+              size="large"
+              style={{ borderRadius: 12, height: 52, fontSize: 15 }}
+            />
+          </Form.Item>
 
-                  <Form.Item style={{ marginTop: 28, marginBottom: 0 }}>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                      size="large"
-                      style={{
-                        borderRadius: 12,
-                        height: 52,
-                        fontSize: 16,
-                        fontWeight: 500,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        border: 'none',
-                        boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
-                      }}
-                    >
-                      登 录
-                    </Button>
-                  </Form.Item>
-                </Form>
-              )
-            },
-            {
-              key: 'code',
-              label: '验证码登录',
-              children: (
-                <Form
-                  name="code-login"
-                  onFinish={handleCodeLogin}
-                  layout="vertical"
-                >
-                  <Form.Item
-                    name="phone"
-                    rules={[
-                      { required: true, message: '请输入手机号' },
-                      { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
-                    ]}
-                  >
-                    <Input
-                      prefix={<MobileOutlined style={{ color: '#8c8c8c', fontSize: 18 }} />}
-                      placeholder="请输入手机号"
-                      size="large"
-                      style={{ borderRadius: 12, height: 52, fontSize: 15 }}
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    name="code"
-                    rules={[{ required: true, message: '请输入验证码' }]}
-                  >
-                    <Space.Compact style={{ width: '100%' }}>
-                      <Input
-                        prefix={<SafetyOutlined style={{ color: '#8c8c8c' }} />}
-                        placeholder="请输入验证码"
-                        size="large"
-                        maxLength={6}
-                        style={{ borderRadius: '12px 0 0 12px', height: 52, fontSize: 15 }}
-                      />
-                      <Button
-                        size="large"
-                        onClick={handleGetCode}
-                        style={{ borderRadius: '0 12px 12px 0', width: 120, height: 52, fontWeight: 500 }}
-                        disabled={countdown > 0}
-                      >
-                        {countdown > 0 ? `${countdown}s` : '获取验证码'}
-                      </Button>
-                    </Space.Compact>
-                  </Form.Item>
-
-                  <Form.Item style={{ marginTop: 28, marginBottom: 0 }}>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                      size="large"
-                      style={{
-                        borderRadius: 12,
-                        height: 52,
-                        fontSize: 16,
-                        fontWeight: 500,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        border: 'none',
-                        boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
-                      }}
-                    >
-                      登 录
-                    </Button>
-                  </Form.Item>
-                </Form>
-              )
-            }
-          ]}
-        />
+          <Form.Item style={{ marginTop: 28, marginBottom: 0 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              block
+              size="large"
+              style={{
+                borderRadius: 12,
+                height: 52,
+                fontSize: 16,
+                fontWeight: 500,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
+              }}
+            >
+              登 录
+            </Button>
+          </Form.Item>
+        </Form>
 
         {/* 底部提示 */}
         <div style={{

@@ -18,6 +18,22 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "CAMERA",
+        "READ_PHONE_STATE"
+      ]
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_APP_START",
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "production"
       }
     },
     "extra": {
