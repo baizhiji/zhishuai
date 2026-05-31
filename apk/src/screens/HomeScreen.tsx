@@ -1,0 +1,392 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  StatusBar,
+  ActivityIndicator,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { homeService, authService, TodayStats, ReferralStats } from '../services';
+import { featureService, FeatureSwitch, FEATURE_ROUTES, FEATURE_ICONS, FEATURE_COLORS } from '../services/feature.service';
+import { useAppNavigation } from '../context/NavigationContext';
+
+interface FeatureItem {
+  id: string;
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  bgColor: string;
+  route: string;
+}
+
+// 默认功能配置（后备方案）
+const DEFAULT_FEATURES: FeatureItem[] = [
+  { id: 'media', title: '自媒体运营', icon: 'videocam', color: '#FFFFFF', bgColor: '#3B82F6', route: 'MediaOperation' },
+  { id: 'recruitment', title: '招聘助手', icon: 'people', color: '#FFFFFF', bgColor: '#8B5CF6', route: 'Recruitment' },
+  { id: 'acquisition', title: '智能获客', icon: 'trending-up', color: '#FFFFFF', bgColor: '#10B981', route: 'Acquisition' },
+  { id: 'share', title: '推荐分享', icon: 'share-social', color: '#FFFFFF', bgColor: '#F97316', route: 'Share' },
+  { id: 'materials', title: '素材库', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
+  { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' },
+];
+
+export default function HomeScreen() {
+  const { navigate } = useAppNavigation();
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('用户');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [todayStats, setTodayStats] = useState<TodayStats | null>(null);
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
+  const [features, setFeatures] = useState<FeatureItem[]>(DEFAULT_FEATURES);
+  const [featuresLoading, setFeaturesLoading] = useState(true);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // 加载功能开关
+  const loadFeatures = async () => {
+    try {
+      const user = authService.getCurrentUser();
+      if (user?.id) {
+        const userFeatures = await featureService.getUserFeatures(user.id);
+        if (userFeatures && userFeatures.length > 0) {
+          const featureItems = userFeatures
+            .filter(f => f.enabled)
+            .map(f => ({
+              id: f.code,
+              title: f.name,
+              icon: (FEATURE_ICONS[f.code] || 'apps') as keyof typeof Ionicons.glyphMap,
+              color: '#FFFFFF',
+              bgColor: FEATURE_COLORS[f.code] || '#6366F1',
+              route: FEATURE_ROUTES[f.code] || 'Home',
+            }));
+          
+          // 添加素材库和数据统计（固定功能）
+          featureItems.push(
+            { id: 'materials', title: '素材库', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
+            { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' }
+          );
+          
+          setFeatures(featureItems);
+        }
+      }
+    } catch (error) {
+      console.error('加载功能开关失败:', error);
+    } finally {
+      setFeaturesLoading(false);
+    }
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [userInfo, stats, referral] = await Promise.all([
+        loadUserInfo(),
+        homeService.getTodayStats(),
+        homeService.getReferralStats(),
+        loadFeatures(),
+      ]);
+
+      if (userInfo) {
+        setUserName(userInfo.name);
+        if (userInfo.expireTime) {
+          setExpiryDate(formatDate(userInfo.expireTime));
+        }
+      }
+      setTodayStats(stats);
+      setReferralStats(referral);
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUserInfo = async () => {
+    try {
+      const localUser = authService.getCurrentUser();
+      if (localUser) {
+        return localUser;
+      }
+      if (authService.isLoggedIn()) {
+        return await authService.getUserInfo();
+      }
+    } catch (error) {
+      console.log('获取用户信息失败');
+    }
+    return null;
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  };
+
+  const navigateTo = (route: string) => {
+    navigate(route);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <Text style={styles.loadingText}>加载中...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
+      
+      {/* 头部区域 */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.welcomeText}>欢迎回来</Text>
+            <Text style={styles.userName}>{userName}</Text>
+            <Text style={styles.sloganText}>用AI赋能企业，让商业更智能</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.avatarButton}
+            onPress={() => navigateTo('Profile')}
+          >
+            <Ionicons name="person-outline" size={22} color="#2563EB" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* 内容区域 */}
+      <ScrollView 
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* 今日数据卡片 */}
+        <View style={styles.statsCard}>
+          <Text style={styles.statsTitle}>今日概览</Text>
+          <View style={styles.statsRow}>
+            <View style={[styles.statItem, styles.statBorder]}>
+              <Text style={styles.statValue}>
+                {todayStats?.contentGenerated || 0}
+              </Text>
+              <Text style={styles.statLabel}>生成内容</Text>
+              <View style={[styles.statChange, styles.trendUp]}>
+                <Text style={styles.changeText}>+{todayStats?.contentUsed || 0}使用</Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statItem, styles.statBorder]}>
+              <Text style={styles.statValue}>
+                {todayStats?.newCustomers || 0}
+              </Text>
+              <Text style={styles.statLabel}>新增潜客</Text>
+              <View style={[styles.statChange, todayStats?.customersGrowth && todayStats.customersGrowth > 0 ? styles.trendUp : styles.trendDown]}>
+                <Text style={styles.changeText}>
+                  {todayStats?.customersGrowth ? (todayStats.customersGrowth > 0 ? '+' : '') + todayStats.customersGrowth + '%' : '0%'}
+                </Text>
+              </View>
+            </View>
+            
+            <View style={[styles.statItem, styles.statItemLast]}>
+              <Text style={styles.statValue}>
+                {todayStats?.publishedToday || 0}
+              </Text>
+              <Text style={styles.statLabel}>今日发布</Text>
+              <View style={styles.statChange}>
+                <Text style={[styles.changeText, { color: '#64748B' }]}>
+                  共{todayStats?.totalPublished || 0}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* 功能中心 - 一行两个大图标 */}
+        <Text style={styles.sectionTitle}>功能中心</Text>
+        <View style={styles.featureGrid}>
+          {features.map((item) => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.featureItem, { backgroundColor: item.bgColor }]}
+              activeOpacity={0.8}
+              onPress={() => navigateTo(item.route)}
+            >
+              <View style={styles.featureIconBox}>
+                <Ionicons name={item.icon as any} size={32} color={item.color} />
+              </View>
+              <Text style={[styles.featureTitle, { color: item.color }]}>{item.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 底部留白 */}
+        <View style={styles.bottomSpace} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#EFF6FF',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748B',
+  },
+  header: {
+    backgroundColor: '#DBEAFE',
+    paddingTop: 50,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  welcomeText: {
+    fontSize: 13,
+    color: '#475569',
+    marginBottom: 6,
+  },
+  userName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1E3A5F',
+    marginBottom: 4,
+  },
+  sloganText: {
+    fontSize: 14,
+    color: '#3B82F6',
+  },
+  avatarButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  statsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 8,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  statsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E3A5F',
+    marginBottom: 16,
+  },
+  statsRow: {
+    flexDirection: 'row',
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statBorder: {
+    borderRightWidth: 1,
+    borderRightColor: '#E0E7FF',
+  },
+  statItemLast: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1E3A5F',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#475569',
+    marginBottom: 6,
+  },
+  statChange: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  trendUp: {
+    backgroundColor: '#DCFCE7',
+  },
+  trendDown: {
+    backgroundColor: '#FEE2E2',
+  },
+  changeText: {
+    fontSize: 11,
+    color: '#3B82F6',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E3A5F',
+    marginTop: 24,
+    marginBottom: 12,
+  },
+  featureGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  featureItem: {
+    width: '48%',
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  featureIconBox: {
+    marginBottom: 10,
+  },
+  featureTitle: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#334155',
+    textAlign: 'center',
+  },
+  bottomSpace: {
+    height: 100,
+  },
+});

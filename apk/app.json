@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "智枢AI",
+    "slug": "zhishuai",
+    "version": "1.0.0",
+    "description": "智枢AI SaaS多租户超级应用",
+    "owner": "baizhiji",
+    "privacy": "public",
+    "platforms": [
+      "android"
+    ],
+    "cli": {
+      "appVersionSource": "remote"
+    },
+    "android": {
+      "package": "com.baizhiji.zhishuai",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "CAMERA",
+        "READ_PHONE_STATE"
+      ]
+    },
+    "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_APP_START",
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "5a4eb93d-bd7e-4aec-93e4-637539f77742"
+      }
+    },
+    "newArchEnabled": false,
+    "jsEngine": "hermes"
+  }
+}
