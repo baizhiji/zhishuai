@@ -300,7 +300,7 @@ model ScheduledTask {
   // 内容信息
   title         String
   content       String
-  images        String[]  // 图片URL列表
+  images        String    @db.LongText  // 图片URL列表，JSON格式
   
   // 发布目标
   platform      String    // douyin, kuaishou, xiaohongshu
