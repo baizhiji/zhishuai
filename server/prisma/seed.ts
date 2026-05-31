@@ -5,26 +5,26 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('开始初始化数据库...');
 
-  // 创建测试用户
-  const user = await prisma.user.upsert({
-    where: { phone: '13800138000' },
+  // 创建管理员用户
+  const admin = await prisma.user.upsert({
+    where: { phone: '18601655222' },
     update: {},
     create: {
-      phone: '13800138000',
-      password: '123456',
-      name: '测试用户',
+      phone: '18601655222',
+      password: '20061218',
+      name: '超级管理员',
       role: 'admin',
     },
   });
-  console.log('测试用户创建成功:', user.phone);
+  console.log('管理员创建成功:', admin.phone);
 
   // 创建公司信息
   await prisma.companyInfo.upsert({
-    where: { userId: user.id },
+    where: { userId: admin.id },
     update: {},
     create: {
       name: '上海百智集网络科技有限公司',
-      userId: user.id,
+      userId: admin.id,
     },
   });
   console.log('公司信息创建成功');
@@ -38,7 +38,7 @@ async function main() {
 
   for (const post of posts) {
     await prisma.recruitmentPost.create({
-      data: { ...post, userId: user.id },
+      data: { ...post, userId: admin.id },
     });
   }
   console.log('招聘岗位创建成功:', posts.length, '个');
@@ -58,7 +58,7 @@ async function main() {
         targetCount: task.targetCount,
         leadsCount: Math.floor(task.targetCount * 0.5),
         status: task.status,
-        userId: user.id,
+        userId: admin.id,
       },
     });
   }
@@ -73,7 +73,7 @@ async function main() {
 
   for (const mat of materials) {
     await prisma.material.create({
-      data: { ...mat, userId: user.id },
+      data: { ...mat, userId: admin.id },
     });
   }
   console.log('素材创建成功:', materials.length, '个');
@@ -87,7 +87,7 @@ async function main() {
 
   for (const customer of customers) {
     await prisma.crmCustomer.create({
-      data: { ...customer, userId: user.id },
+      data: { ...customer, userId: admin.id },
     });
   }
   console.log('CRM客户创建成功:', customers.length, '个');
