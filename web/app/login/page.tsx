@@ -34,6 +34,7 @@ export default function LoginPage() {
       const res = await request.post('/auth/login', {
         phone: values.phone,
         password: values.password,
+        loginType: selectedRole,
       });
 
       if (res.data?.token && res.data?.user) {

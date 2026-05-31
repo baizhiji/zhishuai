@@ -378,7 +378,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 // 登录
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { phone, password } = req.body;
+    const { phone, password, loginType } = req.body;
     
     if (!phone || !password) {
       return res.status(400).json({ error: '请填写手机号和密码' });
@@ -387,44 +387,52 @@ router.post('/login', async (req: Request, res: Response) => {
     // 查找用户
     const user = await prisma.user.findUnique({ where: { phone } });
     
-    // Mock登录 - 测试账号
-    const mockUsers: Record<string, string> = {
-      '13800138000': hashPassword('123456'),
-      '13800138001': hashPassword('123456'),
-    };
-
-    const isMockUser = mockUsers[phone] && verifyPassword(password, mockUsers[phone]);
+    // 验证密码
     const isValidUser = user && verifyPassword(password, user.password);
 
-    if (!isMockUser && !isValidUser) {
+    if (!isValidUser) {
       return res.status(401).json({ error: '手机号或密码错误' });
     }
 
-    // 如果是Mock用户但数据库没有，则创建
-    let finalUser = user;
-    if (isMockUser && !user) {
-      finalUser = await prisma.user.create({
-        data: {
-          phone,
-          password: hashPassword(password),
-          name: phone === '13800138000' ? '测试用户' : '管理员',
-          role: phone === '13800138001' ? 'admin' : 'user',
-          status: 'active',
-        },
-      });
+    // 检查账号状态
+    if (user!.status !== 'active') {
+      return res.status(401).json({ error: '账号已被禁用，请联系管理员' });
     }
 
-    const token = generateToken(finalUser!.id, finalUser!.role);
+    // 入口权限控制
+    const userRole = user!.role;
+    
+    // admin 角色可以从所有入口登录
+    if (userRole === 'admin') {
+      // 允许从所有入口登录
+    } 
+    // agent 角色只能从 agent 入口登录
+    else if (userRole === 'agent') {
+      if (loginType === 'customer') {
+        return res.status(403).json({ error: '您的账号不支持从客户入口登录' });
+      }
+    }
+    // user 角色只能从 customer 入口登录
+    else if (userRole === 'user') {
+      if (loginType === 'admin') {
+        return res.status(403).json({ error: '您的账号不支持从管理入口登录' });
+      }
+      if (loginType === 'agent') {
+        return res.status(403).json({ error: '您的账号不支持从代理入口登录' });
+      }
+    }
+
+    const token = generateToken(user!.id, user!.role);
 
     res.json({
       success: true,
       data: {
         user: {
-          id: finalUser!.id,
-          phone: finalUser!.phone,
-          name: finalUser!.name,
-          role: finalUser!.role,
-          avatar: finalUser!.avatar,
+          id: user!.id,
+          phone: user!.phone,
+          name: user!.name,
+          role: user!.role,
+          avatar: user!.avatar,
         },
         token,
         expireTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
