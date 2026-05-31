@@ -20,7 +20,9 @@
 # 3. web目录下的忽略项
 web/.next
 web/node_modules
-web/.env*
+web/.env                    # 敏感配置
+web/.env.local              # 本地开发配置（可提交）
+web/.env.production          # 生产环境配置（可提交）
 web/.turbo
 web/dist
 web/out
@@ -31,7 +33,9 @@ web/.pnpm-debug.log*
 # 4. apk目录下的忽略项
 apk/.next
 apk/node_modules
-apk/.env*
+apk/.env                   # 敏感配置
+apk/.env.local             # 本地开发配置（可提交）
+apk/.env.production        # 生产环境配置（可提交）
 apk/out
 apk/dist
 apk/.DS_Store
