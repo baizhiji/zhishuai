@@ -44,11 +44,15 @@ export default function LoginPage() {
           ...res.data.user,
           status: 'active' as const
         });
+        
+        // 保存登录入口角色，用于权限检查
+        const targetRole = res.data.user.targetRole || res.data.user.role;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('viewing_role', targetRole);
+        }
+        
         message.success('登录成功！');
 
-        // 根据登录入口（targetRole）决定跳转页面，而不是根据用户角色
-        const targetRole = res.data.user.targetRole || res.data.user.role;
-        
         setTimeout(() => {
           router.push(getHomePath(targetRole));
         }, 500);

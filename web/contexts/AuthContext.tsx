@@ -77,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 退出登录
   const logout = () => {
     removeAuthToken();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('viewing_role');
+    }
     setUser(null);
     message.success('已退出登录');
     router.push('/login');
