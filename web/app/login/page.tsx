@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState<'user' | 'agent' | 'admin'>('user');
 
   // 根据角色返回首页路径
+  // 根据登录入口决定跳转页面
   const getHomePath = (role: string) => {
     switch (role) {
       case 'admin': return '/admin/tenants';
@@ -45,8 +46,11 @@ export default function LoginPage() {
         });
         message.success('登录成功！');
 
+        // 根据登录入口（targetRole）决定跳转页面，而不是根据用户角色
+        const targetRole = res.data.user.targetRole || res.data.user.role;
+        
         setTimeout(() => {
-          router.push(getHomePath(res.data.user.role));
+          router.push(getHomePath(targetRole));
         }, 500);
       } else {
         throw new Error('登录响应格式错误');

@@ -403,26 +403,17 @@ router.post('/login', async (req: Request, res: Response) => {
     const userRole = user!.role;
     
     // admin 角色可以从所有入口登录
-    if (userRole === 'admin') {
-      // 允许从所有入口登录
-    } 
-    // agent 角色只能从 agent 入口登录
-    else if (userRole === 'agent') {
-      if (loginType === 'customer') {
-        return res.status(403).json({ error: '您的账号不支持从客户入口登录' });
-      }
-    }
-    // user 角色只能从 customer 入口登录
-    else if (userRole === 'user') {
-      if (loginType === 'admin') {
-        return res.status(403).json({ error: '您的账号不支持从管理入口登录' });
-      }
-      if (loginType === 'agent') {
-        return res.status(403).json({ error: '您的账号不支持从代理入口登录' });
-      }
+    // agent 角色可以从所有入口登录（可以切换视角）
+    // user 角色只能从 user 入口登录
+    if (userRole === 'user' && loginType !== 'user') {
+      return res.status(403).json({ error: '您的账号不支持从此入口登录' });
     }
 
     const token = generateToken(user!.id, user!.role);
+
+    // 根据登录入口决定跳转的 targetRole
+    // 从哪个入口登录就跳转到对应的后台
+    const targetRole = loginType || userRole;
 
     res.json({
       success: true,
@@ -432,6 +423,7 @@ router.post('/login', async (req: Request, res: Response) => {
           phone: user!.phone,
           name: user!.name,
           role: user!.role,
+          targetRole: targetRole,
           avatar: user!.avatar,
         },
         token,
