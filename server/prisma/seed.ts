@@ -11,7 +11,7 @@ async function main() {
     update: {},
     create: {
       phone: '18601655222',
-      password: '20061218',
+      password: require('crypto').createHash('sha256').update('20061218zhishuai-secret-key-2024').digest('hex'),
       name: '超级管理员',
       role: 'admin',
     },
