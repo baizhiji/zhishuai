@@ -20,7 +20,7 @@ import {
   CopyOutlined,
   CheckCircleOutlined,
   WarningOutlined,
-  SmartphoneOutlined,
+  MobileOutlined,
 } from '@ant-design/icons';
 
 const { Title, Text, Paragraph } = Typography;
@@ -128,7 +128,7 @@ export default function DownloadPage() {
                 <Row gutter={16}>
                   <Col span={12}>
                     <div style={{ textAlign: 'center', padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
-                      <SmartphoneOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                      <MobileOutlined style={{ fontSize: 24, color: '#1890ff' }} />
                       <div style={{ marginTop: 8 }}>
                         <Text type="secondary">版本</Text>
                         <div><Text strong>v{version.version}</Text></div>
