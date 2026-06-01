@@ -8,13 +8,14 @@ import {
   Button,
   Switch,
   Space,
+  Row,
+  Col,
   Tabs,
   List,
   Avatar,
   Tag,
   Typography,
-  Paragraph,
-  Paragraph,
+  Text,
   message,
   Divider,
   Modal,
@@ -452,9 +453,9 @@ export default function SettingsPage() {
       children: (
         <Card>
           <Title level={4}>智枢AI APP 下载</Title>
-          <Paragraph type="secondary">
+          <Text type="secondary">
             下载并安装智枢AI移动端应用，随时随地管理您的业务
-          </Paragraph>
+          </Text>
           
           <div style={{ marginTop: 24 }}>
             <Row gutter={[24, 24]}>
@@ -465,7 +466,7 @@ export default function SettingsPage() {
                   style={{ textAlign: 'center' }}
                 >
                   <Title level={3}>v1.0.0</Title>
-                  <Paragraph type="secondary">大小：45.6 MB</Paragraph>
+                  <Text type="secondary">大小：45.6 MB</Text>
                   <Button 
                     type="primary" 
                     size="large"
