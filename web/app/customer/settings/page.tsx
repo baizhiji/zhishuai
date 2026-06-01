@@ -353,23 +353,6 @@ export default function SettingsPage() {
                 description="接收系统推送通知"
               />
             </List.Item>
-            <List.Item
-              actions={[
-                <Button
-                  type="primary"
-                  icon={<DownloadOutlined />}
-                  onClick={() => window.open('/download', '_blank')}
-                >
-                  下载
-                </Button>,
-              ]}
-            >
-              <List.Item.Meta
-                avatar={<AndroidOutlined style={{ fontSize: 24, color: '#13c2c2' }} />}
-                title="智枢AI APP下载"
-                description="下载安装智枢AI移动端应用"
-              />
-            </List.Item>
           </List>
         </Card>
       ),
@@ -452,6 +435,75 @@ export default function SettingsPage() {
                 />
               </List.Item>
             )}
+          />
+        </Card>
+      ),
+    },
+    {
+      key: 'app-download',
+      label: (
+        <span>
+          <AndroidOutlined />
+          智枢AI APP下载
+        </span>
+      ),
+      children: (
+        <Card>
+          <Title level={4}>智枢AI APP 下载</Title>
+          <Paragraph type="secondary">
+            下载并安装智枢AI移动端应用，随时随地管理您的业务
+          </Paragraph>
+          
+          <div style={{ marginTop: 24 }}>
+            <Row gutter={[24, 24]}>
+              <Col xs={24} md={12}>
+                <Card 
+                  title="Android 版本" 
+                  extra={<AndroidOutlined style={{ fontSize: 24, color: '#13c2c2' }} />}
+                  style={{ textAlign: 'center' }}
+                >
+                  <Title level={3}>v1.0.0</Title>
+                  <Paragraph type="secondary">大小：45.6 MB</Paragraph>
+                  <Button 
+                    type="primary" 
+                    size="large"
+                    icon={<DownloadOutlined />}
+                    onClick={() => window.open('/app/zhishuai.apk', '_blank')}
+                    style={{ marginTop: 16 }}
+                  >
+                    下载安装包
+                  </Button>
+                </Card>
+              </Col>
+              <Col xs={24} md={12}>
+                <Card 
+                  title="安装教程" 
+                  extra={<QuestionCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
+                  style={{ textAlign: 'center' }}
+                >
+                  <Steps
+                    direction="vertical"
+                    size="small"
+                    current={3}
+                    items={[
+                      { title: '下载 APK', description: '点击上方按钮下载安装包' },
+                      { title: '允许安装', description: '在设置中允许未知来源应用' },
+                      { title: '安装应用', description: '运行下载的 APK 文件' },
+                      { title: '开始使用', description: '打开应用并登录您的账号' },
+                    ]}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          </div>
+          
+          <Alert
+            type="info"
+            showIcon
+            icon={<AndroidOutlined />}
+            message="温馨提示"
+            description="如果遇到安装问题，请在手机设置中开启'允许安装未知来源应用'选项。"
+            style={{ marginTop: 24 }}
           />
         </Card>
       ),

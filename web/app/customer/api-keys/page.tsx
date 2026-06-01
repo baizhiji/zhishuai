@@ -226,33 +226,13 @@ export default function ApiKeysPage() {
     <div style={{ padding: 24 }}>
       <Title level={4}>API Key 管理</Title>
       
-      {/* 服务商使用量统计 */}
+      {/* 服务商使用量统计：主=腾讯云TokenHub，副=阿里云百炼 */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={12}>
           <Card size="small">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <Text type="secondary">阿里云百炼 Token 使用量</Text>
-                <div style={{ marginTop: 4 }}>
-                  <Text strong>{dashscopeUsage.toLocaleString()}</Text>
-                  <Text type="secondary"> / {dashscopeLimit.toLocaleString()}</Text>
-                </div>
-              </div>
-              <CloudServerOutlined style={{ fontSize: 32, color: '#1890ff' }} />
-            </div>
-            <Progress 
-              percent={dashscopeLimit > 0 ? Math.min((dashscopeUsage / dashscopeLimit) * 100, 100) : 0} 
-              size="small" 
-              strokeColor="#1890ff"
-              style={{ marginTop: 8 }}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card size="small">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <Text type="secondary">腾讯云 TokenHub Token 使用量</Text>
+                <Text type="secondary">腾讯云 TokenHub Token 使用量（主）</Text>
                 <div style={{ marginTop: 4 }}>
                   <Text strong>{tokenhubUsage.toLocaleString()}</Text>
                   <Text type="secondary"> / {tokenhubLimit.toLocaleString()}</Text>
@@ -264,6 +244,26 @@ export default function ApiKeysPage() {
               percent={tokenhubLimit > 0 ? Math.min((tokenhubUsage / tokenhubLimit) * 100, 100) : 0} 
               size="small" 
               strokeColor="#52c41a"
+              style={{ marginTop: 8 }}
+            />
+          </Card>
+        </Col>
+        <Col span={12}>
+          <Card size="small">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <Text type="secondary">阿里云百炼 Token 使用量（副）</Text>
+                <div style={{ marginTop: 4 }}>
+                  <Text strong>{dashscopeUsage.toLocaleString()}</Text>
+                  <Text type="secondary"> / {dashscopeLimit.toLocaleString()}</Text>
+                </div>
+              </div>
+              <CloudServerOutlined style={{ fontSize: 32, color: '#1890ff' }} />
+            </div>
+            <Progress 
+              percent={dashscopeLimit > 0 ? Math.min((dashscopeUsage / dashscopeLimit) * 100, 100) : 0} 
+              size="small" 
+              strokeColor="#1890ff"
               style={{ marginTop: 8 }}
             />
           </Card>

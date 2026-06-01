@@ -172,6 +172,19 @@ async function callTokenHub(params: ChatCompletionParams, apiKey: string, secret
   return response.json();
 }
 
+// 获取用户的主服务商（腾讯云 TokenHub 优先）
+async function getPrimaryProvider(userId: string): Promise<string> {
+  const primaryKey = await getUserValidApiKey(userId, 'tokenhub');
+  if (primaryKey) {
+    return 'tokenhub'; // 优先使用腾讯云 TokenHub
+  }
+  const backupKey = await getUserValidApiKey(userId, 'dashscope');
+  if (backupKey) {
+    return 'dashscope'; // 备用使用阿里云百炼
+  }
+  return 'tokenhub'; // 默认
+}
+
 // 通用的聊天补全接口
 export async function chatCompletion(userId: string, params: ChatCompletionParams) {
   // 1. 解析模型提供商
@@ -183,8 +196,8 @@ export async function chatCompletion(userId: string, params: ChatCompletionParam
     provider = p;
     modelId = m;
   } else {
-    // 自动检测服务商
-    provider = 'dashscope'; // 默认使用阿里云百炼
+    // 自动检测服务商 - 优先使用主 Key 对应的服务商
+    provider = await getPrimaryProvider(userId);
   }
   
   // 2. 获取用户的 API Key
