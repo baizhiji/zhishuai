@@ -1,208 +1,244 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Button, Space, Typography, message, Modal, Steps, Descriptions, Tag, Alert } from 'antd';
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Button,
+  QRCode,
+  Space,
+  Tag,
+  Progress,
+  message,
+  Divider,
+} from 'antd';
 import {
   AndroidOutlined,
   DownloadOutlined,
+  CopyOutlined,
   CheckCircleOutlined,
-  PhoneOutlined,
-  WindowsOutlined,
-  ChromeOutlined,
+  WarningOutlined,
+  SmartphoneOutlined,
 } from '@ant-design/icons';
 
 const { Title, Text, Paragraph } = Typography;
 
-export default function DownloadPage() {
-  const [apkUrl, setApkUrl] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
-  const [showInstallGuide, setShowInstallGuide] = useState(false);
+interface AppVersion {
+  version: string;
+  buildNumber: number;
+  minVersion: string;
+  downloadUrl: string;
+  changelog: string;
+  size: string;
+  releaseDate: string;
+  forceUpdate: boolean;
+}
 
-  useEffect(() => {
-    // 检测设备类型
-    const checkDevice = () => {
-      const ua = navigator.userAgent.toLowerCase();
-      const isAndroid = ua.indexOf('android') > -1;
-      const isIOS = ua.indexOf('iphone') > -1 || ua.indexOf('ipad') > -1;
-      setIsMobile(isAndroid || isIOS);
-    };
-    
-    checkDevice();
-    
-    // 设置APK下载地址
-    const downloadUrl = process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL || '/zhishuai.apk';
-    setApkUrl(downloadUrl);
-  }, []);
+export default function DownloadPage() {
+  const [loading, setLoading] = useState(false);
+  const [version, setVersion] = useState<AppVersion>({
+    version: '1.0.0',
+    buildNumber: 1,
+    minVersion: '1.0.0',
+    downloadUrl: '/app/zhishuai.apk',
+    changelog: '初始版本发布',
+    size: '45.6 MB',
+    releaseDate: new Date().toISOString().split('T')[0],
+    forceUpdate: false,
+  });
+
+  const downloadUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}${version.downloadUrl}`
+    : version.downloadUrl;
 
   const handleDownload = () => {
-    if (!apkUrl) {
-      message.error('APK下载链接未配置，请联系管理员');
-      return;
-    }
-    
-    const link = document.createElement('a');
-    link.href = apkUrl;
-    link.download = '智枢AI.apk';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    message.success('开始下载智枢AI APP');
+    setLoading(true);
+    // 模拟下载
+    setTimeout(() => {
+      window.open(version.downloadUrl, '_blank');
+      setLoading(false);
+      message.success('开始下载');
+    }, 500);
   };
 
-  const installSteps = [
-    {
-      title: '下载APK',
-      description: '点击上方下载按钮',
-    },
-    {
-      title: '允许安装',
-      description: '在设置中允许安装未知来源应用',
-    },
-    {
-      title: '安装应用',
-      description: '打开下载的APK文件进行安装',
-    },
-    {
-      title: '开始使用',
-      description: '安装完成后打开应用登录使用',
-    },
-  ];
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(downloadUrl);
+    message.success('下载链接已复制');
+  };
+
+  const appName = '智枢AI';
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
+    <div style={{
+      minHeight: '100vh',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '40px 20px'
+      padding: '40px 20px',
     }}>
-      <Card
-        style={{
-          maxWidth: 600,
-          margin: '0 auto',
-          borderRadius: 20,
-          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.25)',
-        }}
-        styles={{ body: { padding: 40 } }}
-      >
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+        {/* Logo 和标题 */}
+        <div style={{ textAlign: 'center', marginBottom: 40, color: 'white' }}>
           <div style={{
             width: 100,
             height: 100,
             borderRadius: 24,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'white',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             margin: '0 auto 20px',
-            boxShadow: '0 12px 40px rgba(102, 126, 234, 0.4)',
+            fontSize: 48,
           }}>
-            <AndroidOutlined style={{ fontSize: 50, color: '#fff' }} />
+            🤖
           </div>
-          <Title level={2} style={{ marginBottom: 8 }}>智枢AI</Title>
-          <Text type="secondary">智能内容创作与营销平台</Text>
-        </div>
-
-        {/* 下载按钮 */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Button
-            type="primary"
-            size="large"
-            icon={<DownloadOutlined />}
-            onClick={handleDownload}
-            style={{
-              height: 56,
-              paddingLeft: 48,
-              paddingRight: 48,
-              borderRadius: 28,
-              fontSize: 18,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              boxShadow: '0 8px 30px rgba(102, 126, 234, 0.4)',
-            }}
-          >
-            下载Android安装包
-          </Button>
-          <Text type="secondary" style={{ display: 'block', marginTop: 12 }}>
-            版本: {process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0'}
+          <Title level={2} style={{ color: 'white', marginBottom: 8 }}>{appName}</Title>
+          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16 }}>
+            智能获客 · 招聘助手 · 自媒体运营
           </Text>
         </div>
 
+        {/* 下载卡片 */}
+        <Card style={{ borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }}>
+          <Row gutter={[32, 24]} align="middle">
+            {/* 左侧：版本信息 */}
+            <Col xs={24} md={14}>
+              <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                {/* 版本号 */}
+                <div>
+                  <Tag color="blue" style={{ marginBottom: 8 }}>最新版本</Tag>
+                  <Title level={3} style={{ margin: 0 }}>v{version.version}</Title>
+                  <Text type="secondary">Build {version.buildNumber}</Text>
+                </div>
+
+                <Divider style={{ margin: '8px 0' }} />
+
+                {/* 更新说明 */}
+                <div>
+                  <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                    <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
+                    更新内容
+                  </Text>
+                  <Paragraph style={{ color: '#666' }}>
+                    {version.changelog}
+                  </Paragraph>
+                </div>
+
+                {/* 版本信息 */}
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <div style={{ textAlign: 'center', padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
+                      <SmartphoneOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                      <div style={{ marginTop: 8 }}>
+                        <Text type="secondary">版本</Text>
+                        <div><Text strong>v{version.version}</Text></div>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ textAlign: 'center', padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
+                      <AndroidOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+                      <div style={{ marginTop: 8 }}>
+                        <Text type="secondary">大小</Text>
+                        <div><Text strong>{version.size}</Text></div>
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+
+                <Divider style={{ margin: '8px 0' }} />
+
+                {/* 下载按钮 */}
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<DownloadOutlined />}
+                    block
+                    loading={loading}
+                    onClick={handleDownload}
+                    style={{ height: 56, fontSize: 18, borderRadius: 12 }}
+                  >
+                    下载安装包
+                  </Button>
+                  <Button
+                    size="large"
+                    icon={<CopyOutlined />}
+                    block
+                    onClick={handleCopyLink}
+                    style={{ height: 48, borderRadius: 12 }}
+                  >
+                    复制下载链接
+                  </Button>
+                </Space>
+
+                {version.forceUpdate && (
+                  <Alert
+                    type="warning"
+                    icon={<WarningOutlined />}
+                    message="必须更新到最新版本才能继续使用"
+                    style={{ marginTop: 16 }}
+                  />
+                )}
+              </Space>
+            </Col>
+
+            {/* 右侧：二维码 */}
+            <Col xs={24} md={10}>
+              <div style={{ textAlign: 'center' }}>
+                <QRCode
+                  value={downloadUrl}
+                  size={180}
+                  style={{ marginBottom: 16 }}
+                />
+                <Text type="secondary" style={{ display: 'block' }}>
+                  扫码下载 App
+                </Text>
+                <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
+                  或访问上方链接下载
+                </Text>
+              </div>
+            </Col>
+          </Row>
+        </Card>
+
         {/* 安装说明 */}
-        <div style={{ marginBottom: 32 }}>
-          <Button 
-            type="link" 
-            onClick={() => setShowInstallGuide(true)}
-            style={{ padding: 0 }}
-          >
-            查看安装教程
-          </Button>
-        </div>
-
-        {/* 功能特性 */}
-        <div style={{ marginBottom: 24 }}>
-          <Title level={5} style={{ marginBottom: 16 }}>APP功能</Title>
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
-            <Space>
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-              <Text>AI智能对话与内容创作</Text>
-            </Space>
-            <Space>
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-              <Text>数字人视频制作</Text>
-            </Space>
-            <Space>
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-              <Text>自媒体矩阵管理</Text>
-            </Space>
-            <Space>
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-              <Text>智能获客与CRM管理</Text>
-            </Space>
-            <Space>
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-              <Text>招聘助手与简历筛选</Text>
-            </Space>
+        <Card title="安装说明" style={{ marginTop: 24, borderRadius: 16 }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <div>
+              <Text strong>1. 下载安装包</Text>
+              <Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                点击上方「下载安装包」按钮，或扫描二维码下载 APK 文件。
+              </Paragraph>
+            </div>
+            <div>
+              <Text strong>2. 允许安装未知来源应用</Text>
+              <Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                在手机设置中开启「允许安装未知来源应用」权限。
+              </Paragraph>
+            </div>
+            <div>
+              <Text strong>3. 安装应用</Text>
+              <Paragraph type="secondary" style={{ marginBottom: 8 }}>
+                找到下载的 APK 文件，点击安装即可。
+              </Paragraph>
+            </div>
+            <div>
+              <Text strong>4. 打开 App</Text>
+              <Paragraph type="secondary">
+                安装完成后，打开 {appName} App 并登录使用。
+              </Paragraph>
+            </div>
           </Space>
-        </div>
+        </Card>
 
-        {/* 提示 */}
-        <Alert
-          type="info"
-          showIcon
-          message="温馨提示"
-          description="如遇安装问题，请在手机设置中开启'允许安装未知来源应用'，或联系管理员获取帮助。"
-          style={{ marginBottom: 16 }}
-        />
-      </Card>
-
-      {/* 安装教程弹窗 */}
-      <Modal
-        title="Android安装教程"
-        open={showInstallGuide}
-        onCancel={() => setShowInstallGuide(false)}
-        footer={null}
-        width={500}
-      >
-        <Steps
-          direction="vertical"
-          current={4}
-          items={installSteps.map((step, index) => ({
-            title: step.title,
-            description: step.description,
-            status: 'finish',
-          }))}
-        />
-        
-        <div style={{ marginTop: 24, padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
-          <Title level={5}>注意事项</Title>
-          <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <li>首次安装需要允许安装未知来源应用</li>
-            <li>安装后如提示"风险"，选择"仍要安装"</li>
-            <li>建议在WiFi环境下下载，节省流量</li>
-            <li>如更新后无法打开，请先卸载旧版本再安装</li>
-          </ul>
+        {/* 底部信息 */}
+        <div style={{ textAlign: 'center', marginTop: 40, color: 'rgba(255,255,255,0.7)' }}>
+          <Text style={{ color: 'rgba(255,255,255,0.7)' }}>
+            © 2024 {appName} · 智能商业解决方案
+          </Text>
         </div>
-      </Modal>
+      </div>
     </div>
   );
 }

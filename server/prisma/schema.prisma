@@ -585,6 +585,27 @@ model AgentApiConfig {
   @@index([agentId])
 }
 
+// 用户API Key配置表（简化版）
+model ApiKey {
+  id          String    @id @default(uuid())
+  userId      String                     // 用户ID
+  provider    String                     // 服务商：dashscope(阿里云百炼) / tokenhub(腾讯云TokenHub)
+  apiKey      String                     // API密钥（加密存储）
+  secretKey   String                     // Secret密钥（加密存储）
+  status      String    @default("active") // active / disabled
+  isPrimary   Boolean   @default(false)  // 是否主Key
+  isSecondary Boolean   @default(false)  // 是否备用Key
+  usage       Int       @default(0)      // 使用次数
+  limit       Int       @default(0)     // 额度限制
+  failCount   Int       @default(0)     // 连续失败次数
+  lastUsedAt  DateTime?                  // 最后使用时间
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, provider])
+  @@index([userId])
+}
+
 // API使用日志表
 model ApiUsageLog {
   id          String    @id @default(uuid())

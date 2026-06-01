@@ -1,248 +1,341 @@
+/**
+ * AI 能力路由
+ * 提供统一的 AI 调用接口
+ */
+
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { getAvailableModels, chatCompletion, generateImage, textToSpeech } from '../services/ai-service';
+import { getModelList } from '../services/ai-models';
 
 const router = Router();
-const prisma = new PrismaClient();
 
-// 创作历史记录类型
-type CreateType = 'title' | 'topic' | 'copywriting' | 'image_to_text' | 
-                  'xhs_image' | 'image_generate' | 'product_detail' | 
-                  'short_video' | 'video_parse' | 'digital_human';
-
-// AI创作（这里需要对接真实的AI服务，如Claude/GPT等）
-router.post('/generate', authMiddleware, async (req: Request, res: Response) => {
+// 获取所有可用的AI模型
+router.get('/models', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { type, params } = req.body;
+    const models = await getAvailableModels(userId);
+    res.json({ success: true, data: models });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-    // 根据类型生成内容（实际应调用AI服务）
-    let result = '';
+// 获取模型列表（不带用户状态）
+router.get('/model-list', async (req: Request, res: Response) => {
+  try {
+    const models = getModelList();
+    res.json({ success: true, data: models });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-    switch (type) {
-      case 'title':
-        result = generateTitle(params);
-        break;
-      case 'topic':
-        result = generateTopic(params);
-        break;
-      case 'copywriting':
-        result = generateCopywriting(params);
-        break;
-      case 'image_to_text':
-        result = generateImageToText(params);
-        break;
-      case 'xhs_image':
-        result = generateXHSImage(params);
-        break;
-      case 'image_generate':
-        result = generateImage(params);
-        break;
-      case 'product_detail':
-        result = generateProductDetail(params);
-        break;
-      case 'short_video':
-        result = generateShortVideo(params);
-        break;
-      case 'video_parse':
-        result = parseVideo(params);
-        break;
-      case 'digital_human':
-        result = generateDigitalHuman(params);
-        break;
-      default:
-        result = '请输入内容描述';
+// 聊天补全
+router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { model, messages, temperature, top_p, max_tokens, stream } = req.body;
+    
+    if (!model || !messages || !Array.isArray(messages)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '缺少必要参数：model, messages' 
+      });
     }
-
-    // 保存到素材库
-    // @ts-ignore
-    const material = await prisma.material.create({
-      data: {
-        userId,
-        title: `${getTypeName(type)}-${Date.now()}`,
-        type,
-        content: result,
-      },
+    
+    const result = await chatCompletion(userId, {
+      model,
+      messages,
+      temperature,
+      top_p,
+      max_tokens,
+      stream
     });
-
-    res.json({ success: true, data: { result, materialId: material.id } });
+    
+    res.json({ success: true, data: result });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// 获取创作历史
-router.get('/history', authMiddleware, async (req: Request, res: Response) => {
+// 图像生成
+router.post('/image', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { type, page = 1, pageSize = 20 } = req.query;
-
-    const where: any = { userId };
-    if (type) where.type = type;
-
-    const records = await prisma.material.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip: (Number(page) - 1) * Number(pageSize),
-      take: Number(pageSize),
+    const { model, prompt, negative_prompt, image_size, n, seed } = req.body;
+    
+    if (!model || !prompt) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '缺少必要参数：model, prompt' 
+      });
+    }
+    
+    const result = await generateImage(userId, {
+      model,
+      prompt,
+      negative_prompt,
+      image_size,
+      n,
+      seed
     });
-
-    const total = await prisma.material.count({ where });
-
-    res.json({
-      success: true,
-      data: { list: records, total, page: Number(page), pageSize: Number(pageSize) },
-    });
+    
+    res.json({ success: true, data: result });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// ============ 辅助函数 ============
+// 语音合成
+router.post('/tts', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { model, text, voice, speed, volume, format } = req.body;
+    
+    if (!model || !text) {
+      return res.status(400).json({ 
+        success: false, 
+        message: '缺少必要参数：model, text' 
+      });
+    }
+    
+    const result = await textToSpeech(userId, {
+      model,
+      text,
+      voice,
+      speed,
+      volume,
+      format
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-function getTypeName(type: string): string {
-  const names: Record<string, string> = {
-    title: '标题生成',
-    topic: '话题标签',
-    copywriting: '文案生成',
-    image_to_text: '图转文',
-    xhs_image: '小红书图文',
-    image_generate: '图片生成',
-    product_detail: '电商详情',
-    short_video: '短视频脚本',
-    video_parse: '视频解析',
-    digital_human: '数字人视频',
-  };
-  return names[type] || 'AI创作';
-}
+// 预设的 AI 功能接口
 
-function generateTitle(params: any): string {
-  const { description, count = 5 } = params;
-  const templates = [
-    `《${description}的10个爆款标题，建议收藏！》`,
-    `震惊！${description}竟然可以这样...`,
-    `${description}，看完这篇就够了`,
-    `关于${description}，你不知道的5个秘密`,
-    `${description}全攻略，建议收藏备用`,
-  ];
-  return templates.slice(0, count).join('\n\n');
-}
+// 1. 内容生成（标题、文案、话题标签等）
+router.post('/generate/content', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { type, topic, keywords, platform } = req.body;
+    
+    // 根据类型选择合适的提示词
+    const prompts: Record<string, string> = {
+      title: `请为以下主题生成10个吸引人的短视频标题，每个标题不超过30字：\n主题：${topic}\n关键词：${keywords || ''}\n格式：每行一个标题`,
+      hashtags: `请为以下主题生成15个适合${platform || '短视频'}平台的话题标签（带#号）：\n主题：${topic}\n格式：#话题1 #话题2 ...`,
+      script: `请为以下主题生成一个短视频脚本，包含开场、主体、结尾：\n主题：${topic}\n要求：时长约60秒，语言生动有趣，适合短视频平台`,
+      description: `请为以下产品生成一段小红书风格的推广文案：\n产品：${topic}\n要求：包含emoji表情，适当话题标签，吸引人阅读`,
+      adCopy: `请为以下产品/服务生成一段广告文案：\n产品/服务：${topic}\n要求：简洁有力，突出卖点，适合朋友圈传播`
+    };
+    
+    const result = await chatCompletion(userId, {
+      model: 'dashscope:qwen-plus',
+      messages: [
+        { role: 'user', content: prompts[type] || prompts.script }
+      ],
+      temperature: 0.8,
+      max_tokens: 2000
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-function generateTopic(params: any): string {
-  const { description, count = 10 } = params;
-  return `#${description}\n#智能时代\n#科技改变生活\n#效率提升\n#干货分享\n#职场技能\n#数字化转型\n#AI助手\n#高效工作\n#实用技巧`.slice(0, count * 15);
-}
+// 2. 图片生成
+router.post('/generate/image', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { prompt, style, size, platform } = req.body;
+    
+    // 优化提示词
+    let enhancedPrompt = prompt;
+    if (style) {
+      enhancedPrompt += `，${style}风格`;
+    }
+    if (platform) {
+      enhancedPrompt += `，适合${platform}平台`;
+    }
+    
+    const result = await generateImage(userId, {
+      model: 'dashscope:wanx2.1-t2i-pro',
+      prompt: enhancedPrompt,
+      image_size: size || '1024x1024',
+      n: 1
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-function generateCopywriting(params: any): string {
-  const { description, style, length } = params;
-  return `【${style || '专业'}风格文案】
+// 3. 视频脚本生成
+router.post('/generate/video-script', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { topic, duration, style, platform } = req.body;
+    
+    const prompt = `请为以下主题生成一个${duration || 60}秒的短视频脚本：
 
-${description}
+主题：${topic}
+风格：${style || '活泼有趣'}
+平台：${platform || '抖音/快手'}
 
----
-${description}的核心价值在于帮助用户解决实际问题。通过智能化的工作方式，让复杂的事情变得简单高效。
+要求：
+1. 分镜头脚本，包含景别、时长、画面描述
+2. 包含配音文字
+3. 包含背景音乐建议
+4. 包含字幕建议
+5. 总时长控制在${duration || 60}秒左右`;
 
-💡 亮点功能：
-• 智能分析，精准匹配
-• 操作简便，一键完成
-• 数据安全，随时可查
+    const result = await chatCompletion(userId, {
+      model: 'dashscope:qwen-plus',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 3000
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-立即体验，开启智能工作新方式！
+// 4. 评论回复生成
+router.post('/generate/reply', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { comment, context, tone } = req.body;
+    
+    const prompt = `请根据以下评论生成3个不同风格的回复：
 
-#${description} #智能工具 #效率提升`;
-}
+原始评论：${comment}
+${context ? `上下文：${context}` : ''}
+语气：${tone || '友好热情'}
 
-function generateImageToText(params: any): string {
-  return '图片内容识别结果：\n\n这是一张展示智能工作场景的图片，画面中包含多个数字化元素，体现了现代办公的高效与便捷。';
-}
+要求：
+1. 每个回复不超过50字
+2. 符合短视频平台风格
+3. 可以引导关注或私信
+4. 3个回复风格要有差异`;
 
-function generateXHSImage(params: any): string {
-  const { description } = params;
-  return `📸 图片描述：${description}
+    const result = await chatCompletion(userId, {
+      model: 'dashscope:qwen-plus',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.8,
+      max_tokens: 500
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-✨ 图片已生成，建议尺寸：3:4（竖版）
+// 5. 招聘JD生成
+router.post('/generate/job-description', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { jobTitle, requirements, benefits, salary } = req.body;
+    
+    const prompt = `请生成一份完整的招聘JD：
 
-💡 小红书发布建议：
-• 添加热门话题标签
-• 配文控制在100字以内
-• 发布时间：19:00-22:00`;
-}
+职位：${jobTitle}
+要求：${requirements || '无'}
+福利：${benefits || '无'}
+薪资：${salary || '面议'}
 
-function generateImage(params: any): string {
-  return '图片生成成功，请前往素材库查看下载';
-}
+要求：
+1. 职位描述（工作内容）
+2. 任职要求（硬性条件）
+3. 加分项
+4. 福利待遇
+5. 发展机会
+6. 适合人群`;
 
-function generateProductDetail(params: any): string {
-  const { productName, features } = params;
-  return `【${productName}】
+    const result = await chatCompletion(userId, {
+      model: 'dashscope:qwen-plus',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2000
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-📦 产品介绍
-采用先进的技术方案，为用户提供优质的解决方案。
+// 6. 简历分析
+router.post('/analyze/resume', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { resume, jobRequirement } = req.body;
+    
+    const prompt = `请分析以下简历是否符合招聘要求：
 
-⭐ 核心卖点
-${features || '• 品质卓越\n• 性能稳定\n• 服务完善'}
+简历内容：
+${resume}
 
-💰 价格说明
-欢迎咨询客服获取最新报价
+岗位要求：
+${jobRequirement}
 
-📞 购买咨询
-如有疑问，请联系在线客服`;
-}
+分析内容：
+1. 简历与岗位的匹配度（0-100分）
+2. 优势亮点
+3. 不足之处
+4. 建议问题（面试时重点问）
+5. 是否推荐录用`;
 
-function generateShortVideo(params: any): string {
-  const { description, duration } = params;
-  return `【短视频脚本 - ${duration || 60}秒】
+    const result = await chatCompletion(userId, {
+      model: 'dashscope:qwen-plus',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.5,
+      max_tokens: 1500
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-🎬 开场（0-5秒）
-吸引眼球，引发好奇
+// 7. 获客话术生成
+router.post('/generate/sales-pitch', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { product, targetAudience, goal } = req.body;
+    
+    const prompt = `请为以下产品生成引流话术：
 
-📝 正文（5-50秒）
-${description}
+产品/服务：${product}
+目标人群：${targetAudience || '潜在客户'}
+目标：${goal || '吸引咨询'}
 
-🎯 高潮（50-55秒）
-展示核心价值
+要求：
+1. 开场白（引起注意）
+2. 价值介绍（突出卖点）
+3. 信任背书
+4. 行动号召（引导私信/扫码）
+5. 备用话术（3个不同角度）`;
 
-📢 结尾（55-60秒）
-引导关注、点赞、收藏
-
----
-💡 拍摄建议：
-• 使用竖屏拍摄
-• 添加背景音乐
-• 字幕同步显示`;
-}
-
-function parseVideo(params: any): string {
-  const { videoUrl } = params;
-  return `【视频解析结果】
-
-📹 原视频地址：${videoUrl}
-
-✅ 解析成功
-• 视频时长：约60秒
-• 分辨率：1080P
-• 格式：MP4
-
-💾 下载链接：（解析中...）
-
-⚠️ 请确保拥有该视频的使用版权`;
-}
-
-function generateDigitalHuman(params: any): string {
-  const { script, digitalHuman } = params;
-  return `【数字人视频脚本】
-
-🎭 数字人：${digitalHuman || '默认数字人'}
-
-📝 口播内容：
-${script || '请输入需要数字人播报的内容'}
-
-⚙️ 参数设置：
-• 分辨率：1080P
-• 时长：60秒
-• 字幕：自动生成
-
-🎬 视频生成中，请稍候...`;
-}
+    const result = await chatCompletion(userId, {
+      model: 'dashscope:qwen-plus',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.8,
+      max_tokens: 2000
+    });
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 export default router;

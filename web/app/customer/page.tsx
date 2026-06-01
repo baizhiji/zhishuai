@@ -7,7 +7,7 @@ export default function CustomerPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/customer/dashboard');
+    router.replace('/customer/my');
   }, [router]);
 
   return (

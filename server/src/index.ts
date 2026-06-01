@@ -23,8 +23,8 @@ import oauthRoutes from './routes/oauth';
 import contentPublishRoutes from './routes/content-publish';
 import agentRoutes from './routes/agent';
 import hotTopicsRoutes from './routes/hot-topics';
-// version.ts 暂时禁用，等待 schema 完善后启用
 // import versionRoutes from './routes/version';
+import versionRoutes from './routes/version';
 import adminLogsRoutes from './routes/admin-logs';
 import employeeRoutes from './routes/employee';
 // import reportRoutes from './routes/report';
@@ -33,6 +33,8 @@ import scriptRoutes from './routes/script';
 import digitalHumanRoutes from './routes/digital-human';
 import dashboardStatsRoutes from './routes/dashboard-stats';
 import referralRoutes from './routes/referral';
+import aiConfigRoutes from './routes/ai-config';
+import aiRoutes from './routes/ai';
 // import settlementRoutes from './routes/settlement';
 
 const app = express();
@@ -62,6 +64,9 @@ app.use('/api/crm', crmRoutes);
 // app.use('/api/statistics', statisticsRoutes); // temporarily disabled
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/referral', referralRoutes);
+
+// 版本检测
+app.use('/api/version', versionRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/scripts', scriptRoutes);
 app.use('/api/digital-human', digitalHumanRoutes);
@@ -108,6 +113,10 @@ app.use('/api/content', contentPublishRoutes);
 
 // 工单系统
 app.use('/api/tickets', ticketRoutes);
+
+// AI 能力配置 & 调用
+app.use('/api/ai-config', aiConfigRoutes);
+app.use('/api/ai', aiRoutes);
 
 // 代理分成结算
 // app.use('/api/settlement', settlementRoutes); // temporarily disabled

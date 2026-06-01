@@ -32,6 +32,7 @@ import {
   SwapOutlined,
   PictureOutlined,
   AndroidOutlined,
+  HomeOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -143,6 +144,12 @@ function getNavigationItems(role: Role): NavigationItem[] {
             { key: 'settings-security', label: '安全设置', icon: <SettingOutlined />, path: '/customer/settings/security' },
             { key: 'settings-theme', label: '主题设置', icon: <PictureOutlined />, path: '/customer/settings/theme' },
           ],
+        },
+        {
+          key: 'my',
+          label: '我的',
+          icon: <HomeOutlined />,
+          path: '/customer/my',
         },
       ]
     case 'agent':
