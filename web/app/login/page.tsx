@@ -14,14 +14,14 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<'customer' | 'agent' | 'admin'>('customer');
+  const [selectedRole, setSelectedRole] = useState<'user' | 'agent' | 'admin'>('user');
 
   // 根据角色返回首页路径
   const getHomePath = (role: string) => {
     switch (role) {
       case 'admin': return '/admin/tenants';
       case 'agent': return '/agent/tenants';
-      case 'customer': return '/customer/dashboard';
+      case 'user': return '/customer/dashboard';
       default: return '/customer/dashboard';
     }
   };
@@ -148,7 +148,7 @@ export default function LoginPage() {
             padding: 4,
           }}>
             {[
-              { value: 'customer', label: '终端客户' },
+              { value: 'user', label: '终端客户' },
               { value: 'agent', label: '区域代理' },
               { value: 'admin', label: '管理员' },
             ].map(item => (

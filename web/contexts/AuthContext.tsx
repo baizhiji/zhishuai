@@ -12,7 +12,7 @@ interface User {
   phone: string;
   email?: string;
   avatar?: string;
-  role: 'admin' | 'agent' | 'customer';
+  role: 'admin' | 'agent' | 'user';
   status: 'active' | 'inactive' | 'banned';
 }
 
