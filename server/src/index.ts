@@ -35,6 +35,7 @@ import dashboardStatsRoutes from './routes/dashboard-stats';
 import referralRoutes from './routes/referral';
 import aiConfigRoutes from './routes/ai-config';
 import aiRoutes from './routes/ai';
+import tokenStatsRoutes from './routes/token-stats';
 // import settlementRoutes from './routes/settlement';
 
 const app = express();
@@ -114,9 +115,10 @@ app.use('/api/content', contentPublishRoutes);
 // 工单系统
 app.use('/api/tickets', ticketRoutes);
 
-// AI 能力配置 & 调用
+// AI 能力配置 & 调用 & Token 统计
 app.use('/api/ai-config', aiConfigRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/token-stats', tokenStatsRoutes);
 
 // 代理分成结算
 // app.use('/api/settlement', settlementRoutes); // temporarily disabled

@@ -29,6 +29,8 @@ import {
   SunOutlined,
   DeleteOutlined,
   WarningOutlined,
+  AndroidOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import request from '@/utils/request';
 
@@ -349,6 +351,23 @@ export default function SettingsPage() {
                 avatar={<BellOutlined style={{ fontSize: 24, color: '#722ed1' }} />}
                 title="推送通知"
                 description="接收系统推送通知"
+              />
+            </List.Item>
+            <List.Item
+              actions={[
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  onClick={() => window.open('/download', '_blank')}
+                >
+                  下载
+                </Button>,
+              ]}
+            >
+              <List.Item.Meta
+                avatar={<AndroidOutlined style={{ fontSize: 24, color: '#13c2c2' }} />}
+                title="智枢AI APP下载"
+                description="下载安装智枢AI移动端应用"
               />
             </List.Item>
           </List>
