@@ -394,20 +394,7 @@ export const BossAdapter: PlatformAdapter = {
   }
 };
 
-// 平台适配器注册表
-export const platformAdapters: Record<string, PlatformAdapter> = {
-  douyin: DouyinAdapter,
-  kuaishou: KuaishouAdapter,
-  xiaohongshu: XiaohongshuAdapter,
-  weibo: WeiboAdapter,
-  boss: BossAdapter,
-  channels: ChannelsAdapter,
-  zhihu: ZhihuAdapter,
-  baijiahao: BaijiahaoAdapter,
-  toutiao: ToutiaoAdapter,
-  liepin: LiepinAdapter,
-  zhilian: ZhilianAdapter
-};
+// 平台适配器注册表（移到文件末尾）
 
 // 获取平台适配器
 export function getAdapter(platform: string): PlatformAdapter | undefined {
@@ -682,3 +669,23 @@ export const ZhilianAdapter: PlatformAdapter = {
     return info;
   }
 };
+
+// 平台适配器注册表
+export const platformAdapters: Record<string, PlatformAdapter> = {
+  douyin: DouyinAdapter,
+  kuaishou: KuaishouAdapter,
+  xiaohongshu: XiaohongshuAdapter,
+  weibo: WeiboAdapter,
+  boss: BossAdapter,
+  channels: ChannelsAdapter,
+  zhihu: ZhihuAdapter,
+  baijiahao: BaijiahaoAdapter,
+  toutiao: ToutiaoAdapter,
+  liepin: LiepinAdapter,
+  zhilian: ZhilianAdapter
+};
+
+// 获取平台适配器
+export function getAdapter(platform: string): PlatformAdapter | undefined {
+  return platformAdapters[platform];
+}
