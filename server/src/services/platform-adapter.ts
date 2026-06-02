@@ -365,7 +365,6 @@ export const BossAdapter: PlatformAdapter = {
   platformName: 'BOSS直聘',
   name: 'BOSS直聘',
   capabilities: { canPublish: true, canReply: true, canFetchStats: true },
-  platformName: 'BOSS直聘',
   
   getLoginUrl() {
     return 'https://www.zhipin.com/web/geek/index';
@@ -528,7 +527,6 @@ export const BaijiahaoAdapter: PlatformAdapter = {
   platformName: '百家号',
   name: '百家号',
   capabilities: { canPublish: true, canReply: true, canFetchStats: true },
-  platformName: '百家号',
   
   getLoginUrl() {
     return 'https://baijiahao.baidu.com/';
