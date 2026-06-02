@@ -33,6 +33,7 @@ import {
   PictureOutlined,
   AndroidOutlined,
   HomeOutlined,
+  CommentOutlined,
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -79,6 +80,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '自媒体运营',
           icon: <VideoCameraOutlined />,
           children: [
+            { key: 'social-accounts', label: '账号授权', icon: <QrcodeOutlined />, path: '/customer/social-accounts' },
             { key: 'media-factory', label: '内容工厂', icon: <ThunderboltOutlined />, path: '/customer/media/factory' },
             { key: 'media-matrix', label: '矩阵管理', icon: <TeamOutlined />, path: '/customer/media/matrix' },
             { key: 'media-publish', label: '发布中心', icon: <ShareAltOutlined />, path: '/customer/media/publish' },
@@ -128,6 +130,18 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '登录日志',
           icon: <FileTextOutlined />,
           path: '/customer/login-logs',
+        },
+        {
+          key: 'social-accounts',
+          label: '社交账号',
+          icon: <ShareAltOutlined />,
+          path: '/customer/social-accounts',
+        },
+        {
+          key: 'auto-reply',
+          label: '自动回复',
+          icon: <CommentOutlined />,
+          path: '/customer/auto-reply',
         },
         {
           key: 'api-keys',

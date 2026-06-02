@@ -21,6 +21,7 @@ import adminApiProvidersRoutes from './routes/admin-api-providers';
 import oauthRoutes from './routes/oauth';
 import socialAccountRoutes from './routes/social-account';
 import contentPublishRoutes from './routes/content-publish';
+import autoReplyRoutes from './routes/auto-reply';
 import agentRoutes from './routes/agent';
 import hotTopicsRoutes from './routes/hot-topics';
 // import versionRoutes from './routes/version';
@@ -108,6 +109,9 @@ app.use('/api/social', socialAccountRoutes);
 
 // 内容发布
 app.use('/api/content', contentPublishRoutes);
+
+// 自动回复
+app.use('/api/auto-reply', autoReplyRoutes);
 
 // 数据报表导出
 // app.use('/api/report', reportRoutes); // temporarily disabled

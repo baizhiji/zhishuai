@@ -374,6 +374,32 @@ router.delete('/accounts/:accountId', async (req: Request, res: Response) => {
 });
 
 /**
+ * 解绑账号 (别名路由，兼容前端调用)
+ */
+router.post('/unbind/:accountId', async (req: Request, res: Response) => {
+  try {
+    const { accountId } = req.params;
+    const userId = req.headers['x-user-id'] as string;
+    
+    if (!userId) {
+      return res.json({ code: 401, message: '未授权' });
+    }
+    
+    const success = await unbindAccount(accountId, userId);
+    
+    if (success) {
+      res.json({ code: 0, message: '解绑成功' });
+    } else {
+      res.json({ code: 400, message: '解绑失败，账号不存在或无权操作' });
+    }
+    
+  } catch (error: any) {
+    console.error('解绑失败:', error);
+    res.json({ code: 500, message: '解绑失败' });
+  }
+});
+
+/**
  * 刷新账号Cookie
  */
 router.post('/accounts/:accountId/refresh', async (req: Request, res: Response) => {
@@ -471,8 +497,12 @@ function getPlatformIcon(platform: string): string {
     xiaohongshu: '📕',
     weibo: '🌐',
     boss: '💼',
-    lagou: '📊',
-    zhipin: '📋'
+    channels: '🎬',
+    zhihu: '💬',
+    baijiahao: '📝',
+    toutiao: '📰',
+    liepin: '💼',
+    zhilian: '📋'
   };
   return icons[platform] || '📱';
 }
