@@ -505,3 +505,6 @@ export async function humanType(page: Page, selector: string, text: string): Pro
     await randomDelay(30, 80);
   }
 }
+
+// 从 platform-adapter 重新导出 getAdapter
+export { getAdapter } from './platform-adapter';
