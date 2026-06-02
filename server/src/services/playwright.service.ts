@@ -63,14 +63,50 @@ export const PLATFORM_CONFIGS: Record<string, {
       qrContainer: '.qrcode-img'
     }
   },
-  lagou: {
-    name: '拉勾网',
-    loginUrl: 'https://www.lagou.com/',
+  // 视频号
+  channels: {
+    name: '视频号',
+    loginUrl: 'https://channels.weixin.qq.com/login',
+    selectors: {
+      qrContainer: '.qrcode-img'
+    }
+  },
+  // 知乎
+  zhihu: {
+    name: '知乎',
+    loginUrl: 'https://www.zhihu.com/',
+    selectors: {
+      username: 'input[name="username"]',
+      password: 'input[name="password"]',
+      loginButton: 'button[type="submit"]'
+    }
+  },
+  // 百家号
+  baijiahao: {
+    name: '百家号',
+    loginUrl: 'https://baijiahao.baidu.com/',
     selectors: {
       qrContainer: '.qrcode'
     }
   },
-  zhipin: {
+  // 今日头条
+  toutiao: {
+    name: '今日头条',
+    loginUrl: 'https://mp.toutiao.com/',
+    selectors: {
+      qrContainer: '.qrcode'
+    }
+  },
+  // 前程无忧
+  liepin: {
+    name: '前程无忧',
+    loginUrl: 'https://www.liepin.com/',
+    selectors: {
+      qrContainer: '.qrcode'
+    }
+  },
+  // 智联招聘
+  zhilian: {
     name: '智联招聘',
     loginUrl: 'https://www.zhaopin.com/',
     selectors: {

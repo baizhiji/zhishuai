@@ -400,7 +400,13 @@ export const platformAdapters: Record<string, PlatformAdapter> = {
   kuaishou: KuaishouAdapter,
   xiaohongshu: XiaohongshuAdapter,
   weibo: WeiboAdapter,
-  boss: BossAdapter
+  boss: BossAdapter,
+  channels: ChannelsAdapter,
+  zhihu: ZhihuAdapter,
+  baijiahao: BaijiahaoAdapter,
+  toutiao: ToutiaoAdapter,
+  liepin: LiepinAdapter,
+  zhilian: ZhilianAdapter
 };
 
 // 获取平台适配器
@@ -429,3 +435,250 @@ function parseNumber(text: string): number {
   const match = text.replace(/[,，\s]/g, '').match(/(\d+\.?\d*)/);
   return match ? parseInt(match[1]) : 0;
 }
+
+// 视频号适配器
+export const ChannelsAdapter: PlatformAdapter = {
+  platform: 'channels',
+  platformName: '视频号',
+  
+  getLoginUrl() {
+    return 'https://channels.weixin.qq.com/login';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode-img, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]',
+      '[class*="user"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.nickname', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取视频号账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 知乎适配器
+export const ZhihuAdapter: PlatformAdapter = {
+  platform: 'zhihu',
+  platformName: '知乎',
+  
+  getLoginUrl() {
+    return 'https://www.zhihu.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .SignContainer-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.AppHeader',
+      '[class*="user"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.AppHeader-profile-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取知乎账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 百家号适配器
+export const BaijiahaoAdapter: PlatformAdapter = {
+  platform: 'baijiahao',
+  platformName: '百家号',
+  
+  getLoginUrl() {
+    return 'https://baijiahao.baidu.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取百家号账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 今日头条适配器
+export const ToutiaoAdapter: PlatformAdapter = {
+  platform: 'toutiao',
+  platformName: '今日头条',
+  
+  getLoginUrl() {
+    return 'https://mp.toutiao.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.header-user',
+      '[class*="user"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取今日头条账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 前程无忧适配器
+export const LiepinAdapter: PlatformAdapter = {
+  platform: 'liepin',
+  platformName: '前程无忧',
+  
+  getLoginUrl() {
+    return 'https://www.liepin.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取前程无忧账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 智联招聘适配器
+export const ZhilianAdapter: PlatformAdapter = {
+  platform: 'zhilian',
+  platformName: '智联招聘',
+  
+  getLoginUrl() {
+    return 'https://www.zhaopin.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取智联招聘账号信息失败:', e);
+    }
+    return info;
+  }
+};
