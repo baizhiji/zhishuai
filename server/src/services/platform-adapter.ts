@@ -394,13 +394,6 @@ export const BossAdapter: PlatformAdapter = {
   }
 };
 
-// 平台适配器注册表（移到文件末尾）
-
-// 获取平台适配器
-export function getAdapter(platform: string): PlatformAdapter | undefined {
-  return platformAdapters[platform];
-}
-
 // 辅助函数：解析粉丝数
 function parseFansCount(text: string): number {
   const cleaned = text.replace(/[,，\s]/g, '');
