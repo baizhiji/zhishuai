@@ -19,7 +19,7 @@ import userFeaturesRoutes from './routes/user-features';
 import adminApiProvidersRoutes from './routes/admin-api-providers';
 // import smsRoutes from './routes/sms';
 import oauthRoutes from './routes/oauth';
-// import socialAccountRoutes from './routes/social-account';
+import socialAccountRoutes from './routes/social-account';
 import contentPublishRoutes from './routes/content-publish';
 import agentRoutes from './routes/agent';
 import hotTopicsRoutes from './routes/hot-topics';
@@ -104,7 +104,7 @@ app.use('/api/employee', employeeRoutes);
 app.use('/api/oauth', oauthRoutes);
 
 // 社交账号授权
-// app.use('/api/social', socialAccountRoutes);
+app.use('/api/social', socialAccountRoutes);
 
 // 内容发布
 app.use('/api/content', contentPublishRoutes);
