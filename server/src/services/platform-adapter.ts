@@ -9,6 +9,14 @@ export interface PlatformAdapter {
   // 平台标识
   platform: string;
   platformName: string;
+  name: string; // 兼容性别名
+  
+  // 能力
+  capabilities: {
+    canPublish: boolean;
+    canReply: boolean;
+    canFetchStats: boolean;
+  };
   
   // 登录相关
   getLoginUrl(): string;
@@ -32,6 +40,8 @@ export interface PlatformAdapter {
 export const DouyinAdapter: PlatformAdapter = {
   platform: 'douyin',
   platformName: '抖音',
+  name: '抖音',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://creator.douyin.com/creator-micro/home';
@@ -166,6 +176,8 @@ export const DouyinAdapter: PlatformAdapter = {
 export const KuaishouAdapter: PlatformAdapter = {
   platform: 'kuaishou',
   platformName: '快手',
+  name: '快手',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://creator.kuaishou.com/profile';
@@ -235,6 +247,8 @@ export const KuaishouAdapter: PlatformAdapter = {
 export const XiaohongshuAdapter: PlatformAdapter = {
   platform: 'xiaohongshu',
   platformName: '小红书',
+  name: '小红书',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://creator.xiaohongshu.com/creator/post';
@@ -299,6 +313,8 @@ export const XiaohongshuAdapter: PlatformAdapter = {
 export const WeiboAdapter: PlatformAdapter = {
   platform: 'weibo',
   platformName: '微博',
+  name: '微博',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://weibo.com/';
@@ -346,6 +362,9 @@ export const WeiboAdapter: PlatformAdapter = {
 // BOSS直聘适配器
 export const BossAdapter: PlatformAdapter = {
   platform: 'boss',
+  platformName: 'BOSS直聘',
+  name: 'BOSS直聘',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   platformName: 'BOSS直聘',
   
   getLoginUrl() {
@@ -420,6 +439,8 @@ function parseNumber(text: string): number {
 export const ChannelsAdapter: PlatformAdapter = {
   platform: 'channels',
   platformName: '视频号',
+  name: '视频号',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://channels.weixin.qq.com/login';
@@ -462,6 +483,8 @@ export const ChannelsAdapter: PlatformAdapter = {
 export const ZhihuAdapter: PlatformAdapter = {
   platform: 'zhihu',
   platformName: '知乎',
+  name: '知乎',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://www.zhihu.com/';
@@ -502,6 +525,9 @@ export const ZhihuAdapter: PlatformAdapter = {
 // 百家号适配器
 export const BaijiahaoAdapter: PlatformAdapter = {
   platform: 'baijiahao',
+  platformName: '百家号',
+  name: '百家号',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   platformName: '百家号',
   
   getLoginUrl() {
@@ -544,6 +570,8 @@ export const BaijiahaoAdapter: PlatformAdapter = {
 export const ToutiaoAdapter: PlatformAdapter = {
   platform: 'toutiao',
   platformName: '今日头条',
+  name: '今日头条',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://mp.toutiao.com/';
@@ -585,6 +613,8 @@ export const ToutiaoAdapter: PlatformAdapter = {
 export const LiepinAdapter: PlatformAdapter = {
   platform: 'liepin',
   platformName: '前程无忧',
+  name: '前程无忧',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://www.liepin.com/';
@@ -626,6 +656,8 @@ export const LiepinAdapter: PlatformAdapter = {
 export const ZhilianAdapter: PlatformAdapter = {
   platform: 'zhilian',
   platformName: '智联招聘',
+  name: '智联招聘',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
   
   getLoginUrl() {
     return 'https://www.zhaopin.com/';
