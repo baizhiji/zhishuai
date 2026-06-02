@@ -143,13 +143,8 @@ function getNavigationItems(role: Role): NavigationItem[] {
             { key: 'settings-company', label: '公司信息', icon: <TeamOutlined />, path: '/customer/settings/company' },
             { key: 'settings-security', label: '安全设置', icon: <SettingOutlined />, path: '/customer/settings/security' },
             { key: 'settings-theme', label: '主题设置', icon: <PictureOutlined />, path: '/customer/settings/theme' },
+            { key: 'settings-app-download', label: '智枢AI APP下载', icon: <AndroidOutlined />, path: '/customer/settings/app-download' },
           ],
-        },
-        {
-          key: 'my',
-          label: '我的',
-          icon: <HomeOutlined />,
-          path: '/customer/my',
         },
       ]
     case 'agent':
