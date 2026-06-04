@@ -16,9 +16,11 @@ export default function HomePage() {
       display: 'flex', 
       justifyContent: 'center', 
       alignItems: 'center', 
-      height: '100vh' 
+      height: '100vh',
+      fontSize: '16px',
+      color: '#666'
     }}>
-      正在跳转到工作台...
+      正在加载...
     </div>
   )
 }
