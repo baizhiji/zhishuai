@@ -140,6 +140,10 @@ app.use('/api/hotspot', hotspotRoutes);
 import multimodalRoutes from './routes/multimodal';
 app.use('/api/multimodal', multimodalRoutes);
 
+// 视频增强路由
+import enhancementRoutes from './routes/enhancement';
+app.use('/api/enhancement', enhancementRoutes);
+
 // 代理分成结算
 // app.use('/api/settlement', settlementRoutes); // temporarily disabled
 
