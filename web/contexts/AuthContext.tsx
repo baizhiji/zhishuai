@@ -36,9 +36,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // 用于解决服务端/客户端 hydration 不匹配问题
+  const [mounted, setMounted] = useState(false);
+
+  // 确保只在客户端挂载后才执行需要 localStorage 的操作
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 检查认证状态
   const checkAuth = () => {
+    // 服务端渲染时跳过认证检查，避免 hydration 不匹配
+    if (typeof window === 'undefined') {
+      return;
+    }
+    
     setLoading(true);
 
     if (!isAuthenticated()) {
@@ -96,11 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 初始化时检查认证状态
   useEffect(() => {
-    // 防止重复调用
-    if (loading) {
+    // 防止重复调用，只在组件挂载后执行
+    if (mounted && loading) {
       checkAuth();
     }
-  }, [pathname]);
+  }, [pathname, mounted]);
 
   const value = {
     user,

@@ -80,7 +80,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '自媒体运营',
           icon: <VideoCameraOutlined />,
           children: [
-            { key: 'social-accounts', label: '账号授权', icon: <QrcodeOutlined />, path: '/customer/social-accounts' },
+            { key: 'social-account-auth', label: '账号授权', icon: <QrcodeOutlined />, path: '/customer/social-accounts' },
             { key: 'media-factory', label: '内容工厂', icon: <ThunderboltOutlined />, path: '/customer/media/factory' },
             { key: 'media-matrix', label: '矩阵管理', icon: <TeamOutlined />, path: '/customer/media/matrix' },
             { key: 'media-publish', label: '发布中心', icon: <ShareAltOutlined />, path: '/customer/media/publish' },
@@ -216,12 +216,20 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   const pathname = usePathname()
   const { token } = useToken()
   const { user, logout, isAdmin } = useAuth()
+  
+  // 用于解决服务端/客户端 hydration 不匹配问题
+  const [mounted, setMounted] = useState(false)
 
   // Logo 图片加载状态
   const [logoError, setLogoError] = useState(false)
 
   // 角色切换弹窗状态
   const [roleModalVisible, setRoleModalVisible] = useState(false)
+  
+  // 确保只在客户端挂载后渲染
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // /customer 路由下强制使用 customer 角色，不受 viewing_role 影响
   const isCustomerRoute = pathname.startsWith('/customer')
@@ -232,7 +240,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     if (isCustomerRoute) {
       return 'customer'
     }
-    if (typeof window !== 'undefined') {
+    if (mounted && typeof window !== 'undefined') {
       const saved = localStorage.getItem('viewing_role')
       if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
         return saved as Role
@@ -242,19 +250,15 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   }
 
   // 当前查看的角色
-  const [currentRole, setCurrentRole] = useState<Role>(getSavedRole)
+  const [currentRole, setCurrentRole] = useState<Role>('customer')
 
   // 监听用户角色变化（仅在非 customer 路由时需要）
   useEffect(() => {
-    if (!isCustomerRoute && user?.role) {
-      const savedRole = getSavedRole()
-      if (!localStorage.getItem('viewing_role')) {
-        setCurrentRole(user.role as Role)
-      } else {
-        setCurrentRole(savedRole)
-      }
+    if (mounted) {
+      const role = getSavedRole()
+      setCurrentRole(role)
     }
-  }, [isCustomerRoute, user?.role])
+  }, [mounted, isCustomerRoute, user?.role])
 
   // 切换角色
   const handleRoleSwitch = (role: Role) => {

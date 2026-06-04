@@ -513,4 +513,51 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+// 获取登录日志
+router.get('/login-logs', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { page = 1, pageSize = 20 } = req.query;
+    
+    // 生成模拟数据
+    const logs = [];
+    const users = ['张三', '李四', '王五', '赵六', '孙七'];
+    const actions = ['login', 'logout'];
+    const devices = ['desktop', 'mobile', 'tablet'];
+    const browsers = ['Chrome 120', 'Firefox 121', 'Safari 17', 'Edge 120'];
+    const osList = ['Windows 11', 'macOS 14', 'iOS 17', 'Android 14'];
+    const locations = ['北京市', '上海市', '广州市', '深圳市', '杭州市'];
+    
+    for (let i = 0; i < 30; i++) {
+      const action = actions[Math.floor(Math.random() * actions.length)];
+      logs.push({
+        id: `log-${i}-${Date.now()}`,
+        userId: `user-${i % 5}`,
+        userName: users[i % 5],
+        userType: ['admin', 'agent', 'customer', 'employee'][i % 4],
+        action: action,
+        device: devices[Math.floor(Math.random() * devices.length)],
+        browser: browsers[Math.floor(Math.random() * browsers.length)],
+        os: osList[Math.floor(Math.random() * osList.length)],
+        ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+        location: locations[Math.floor(Math.random() * locations.length)],
+        status: 'success',
+        createdAt: new Date(Date.now() - i * 3600000).toISOString(),
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        logs: logs.slice(0, Number(pageSize)),
+        total: logs.length,
+        page: Number(page),
+        pageSize: Number(pageSize),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
