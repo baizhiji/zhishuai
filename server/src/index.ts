@@ -1,11 +1,9 @@
 /**
- * Server Entry Point - Simplified version without database dependency
+ * Server Entry Point - Simplified version
  */
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-
-// Import routes
+import aiRouter from './routes/ai';
 import aiEnhancedRouter from './routes/ai-enhanced';
 import multimodalRouter from './routes/multimodal';
 
@@ -22,7 +20,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Mount AI routes
+// Mount routes
+app.use('/api/ai', aiRouter);
 app.use('/api/ai-enhanced', aiEnhancedRouter);
 app.use('/api/multimodal', multimodalRouter);
 
@@ -37,11 +36,6 @@ app.get('/api/stats/dashboard', (req, res) => {
       totalViews: 10000
     }
   });
-});
-
-// Test endpoint
-app.get('/api/test', (req, res) => {
-  res.json({ code: 200, message: 'API is working', data: null });
 });
 
 // Start server
