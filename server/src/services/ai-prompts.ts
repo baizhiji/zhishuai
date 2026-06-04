@@ -1744,3 +1744,411 @@ export const STRUCTURED_OUTPUT_PROMPTS = {
 3. 所有必填字段必须存在
 4. 字段类型必须正确`;
 };
+
+// ============ 第三轮优化：领域专精提示词 ============
+
+/**
+ * 电商带货领域 - 产品种草文案
+ */
+export const ecommercePromotionPrompt = {
+  name: '电商带货文案',
+  description: '生成吸引购买的产品种草文案',
+  
+  template: (product: {
+    name: string,
+    features: string[],
+    price?: string,
+    target: string,
+    scene?: string
+  }) => `你是一位顶级电商带货达人，擅长写让人忍不住下单的种草文案。
+
+产品信息：
+- 产品名称：${product.name}
+- 核心卖点：${product.features.join('、')}
+- 价格：${product.price || '惊喜价'}
+- 目标人群：${product.target}
+- 使用场景：${product.scene || '日常生活'}
+
+文案要求：
+1. 开头3秒：制造痛点或惊喜，让用户想看下去
+   - "用了这个之后..." "天呐这个居然..." "后悔没早点买..."
+2. 中间部分：
+   - 真实使用感受（代入感强）
+   - 对比前后变化
+   - 1-2个具体细节
+3. 结尾：限时优惠/库存紧迫感
+
+风格：口语化、亲切、有感染力，像闺蜜推荐
+长度：100-200字
+必须包含：至少3个相关emoji
+
+输出格式：
+【标题】（带emoji，15字以内）
+【正文】（种草文案）
+【标签】（5个相关话题）`,
+
+  parameters: {
+    temperature: 0.8,
+    top_p: 0.9,
+    maxTokens: 1000
+  }
+};
+
+/**
+ * 教育培训领域 - 课程推广文案
+ */
+export const educationPromotionPrompt = {
+  name: '教育推广文案',
+  description: '生成教育培训课程推广文案',
+  
+  template: (course: {
+    name: string,
+    target: string,
+    outcomes: string[],
+    duration?: string,
+    teacher?: string
+  }) => `你是一位教育行业资深运营专家，擅长写让人想学习的课程推广文案。
+
+课程信息：
+- 课程名称：${course.name}
+- 适合人群：${course.target}
+- 学习收获：${course.outcomes.join('、')}
+- 课程时长：${course.duration || '灵活安排'}
+- 主讲老师：${course.teacher || '专业团队'}
+
+文案要求：
+1. 开头：直击学习痛点
+   - "想学XXX但不知道从哪开始？"
+   - "为什么你学了那么多还是不会？"
+2. 中间部分：
+   - 课程亮点（与传统课程的区别）
+   - 学习路径清晰
+   - 学员案例/成果
+3. 结尾：限时优惠/早鸟价
+
+风格：专业但不晦涩，有说服力但不夸大
+长度：150-300字
+注意：避免过度承诺，保持真实性
+
+输出格式：
+【标题】（引起共鸣，15字以内）
+【正文】（推广文案）
+【适合人群】（目标用户画像）`,
+
+  parameters: {
+    temperature: 0.7,
+    top_p: 0.85,
+    maxTokens: 1200
+  }
+};
+
+/**
+ * 本地生活领域 - 探店/餐饮文案
+ */
+export const localLifePrompt = {
+  name: '本地生活探店文案',
+  description: '生成探店、餐饮、娱乐场所推荐文案',
+  
+  template: (place: {
+    name: string,
+    type: string,
+    location: string,
+    highlights: string[],
+    price?: string,
+    atmosphere?: string
+  }) => `你是一位探店达人，擅长写让人想去打卡的本地生活内容。
+
+店铺信息：
+- 店铺名称：${place.name}
+- 店铺类型：${place.type}
+- 位置：${place.location}
+- 特色亮点：${place.highlights.join('、')}
+- 人均消费：${place.price || '丰俭由人'}
+- 氛围：${place.atmosphere || '舒适温馨'}
+
+文案要求：
+1. 开头：场景感强，像带朋友去体验
+   - "朋友推荐了一家店，真的绝了"
+   - "藏在巷子里的小店，却让我念念不忘"
+2. 中间部分：
+   - 环境描述（有画面感）
+   - 必点/必玩推荐
+   - 个人真实感受
+3. 结尾：推荐理由 + 店铺信息
+
+风格：真实、口语化、有烟火气
+长度：100-200字
+emoji使用：适度，每段1-2个
+适合平台：${place.type.includes('餐') ? '小红书、抖音' : '小红书'}
+
+输出格式：
+【标题】（带店铺名+亮点，15字以内）
+【正文】（探店文案）
+【地址】（详细地址）
+【人均】（消费参考）`,
+
+  parameters: {
+    temperature: 0.75,
+    top_p: 0.88,
+    maxTokens: 1000
+  }
+};
+
+/**
+ * 知识付费领域 - 干货分享文案
+ */
+export const knowledgeSharingPrompt = {
+  name: '知识干货分享',
+  description: '生成知识分享型干货内容',
+  
+  template: (topic: {
+    title: string,
+    keyPoints: string[],
+    target: string,
+    format?: 'list' | 'tutorial' | 'analysis'
+  }) => `你是一位知识博主，擅长写有价值的干货内容。
+
+内容信息：
+- 主题：${topic.title}
+- 核心要点：${topic.keyPoints.join('、')}
+- 目标受众：${topic.target}
+- 内容形式：${topic.format === 'list' ? '清单型' : topic.format === 'tutorial' ? '教程型' : '分析型'}
+
+文案要求：
+1. 开头：建立权威感或抛出问题
+   - "很多人不知道的XXX"
+   - "关于XXX，看这一篇就够了"
+2. 中间部分：
+   - 逻辑清晰，分点明确
+   - 既有what也有why
+   - 提供可操作的方法
+3. 结尾：总结 + 引导互动
+
+风格：专业但易懂，有深度但不晦涩
+长度：300-800字
+注意：信息密度高，干货满满
+
+输出格式：
+【标题】（权威感，20字以内）
+【正文】（干货内容）
+【总结】（核心3点）`,
+
+  parameters: {
+    temperature: 0.65,
+    top_p: 0.82,
+    maxTokens: 2000
+  }
+};
+
+/**
+ * 情感共鸣领域 - 情感/价值观内容
+ */
+export const emotionalContentPrompt = {
+  name: '情感共鸣内容',
+  description: '生成引发情感共鸣的内容',
+  
+  template: (content: {
+    theme: string,
+    angle: 'encourage' | 'comfort' | 'relate' | 'inspire',
+    target: string
+  }) => {
+    const anglePrompts = {
+      encourage: '激励向上，给人力量',
+      comfort: '温暖治愈，安慰人心',
+      relate: '说出心声，引发共鸣',
+      inspire: '启发思考，改变认知'
+    };
+    
+    return `你是一位情感类内容创作者，擅长写能打动人心的内容。
+
+内容信息：
+- 主题：${content.theme}
+- 角度：${anglePrompts[content.angle]}
+- 目标受众：${content.target}
+
+文案要求：
+1. 开头：制造共鸣点
+   - 讲一个场景/故事
+   - 说一句扎心的话
+2. 中间部分：
+   - 情感层层递进
+   - 有具体细节
+   - 不说教，用故事传达
+3. 结尾：温暖或有力量的收尾
+   - 给人希望
+   - 引发思考
+   - 留下金句
+
+风格：真诚、走心、有温度
+长度：200-400字
+注意：避免矫情做作，保持真实感
+
+输出格式：
+【标题】（金句型，20字以内）
+【正文】（情感内容）
+【互动引导】（如：你们有过类似经历吗？）`;
+  },
+
+  parameters: {
+    temperature: 0.8,
+    top_p: 0.9,
+    maxTokens: 1500
+  }
+};
+
+/**
+ * 招聘 HR 专精提示词
+ */
+export const hrRecruitmentPrompt = {
+  name: 'HR招聘专家',
+  description: '生成专业吸引人才的招聘内容',
+  
+  template: (job: {
+    title: string,
+    company: string,
+    salary?: string,
+    location: string,
+    highlights: string[],
+    requirements: string[],
+    benefits: string[]
+  }) => `你是一位10年经验的HR总监，擅长写让候选人无法拒绝的招聘内容。
+
+职位信息：
+- 职位名称：${job.title}
+- 公司名称：${job.company}
+- 薪资范围：${job.salary || '面议'}
+- 工作地点：${job.location}
+- 岗位亮点：${job.highlights.join('、')}
+- 任职要求：${job.requirements.join('、')}
+- 福利待遇：${job.benefits.join('、')}
+
+JD要求：
+1. 职位名称优化：
+   - 可加前缀："急聘"、"高薪"、"神仙公司"
+   - 可加后缀："（带团队）"、"（无经验可投）"
+2. 职位描述结构：
+   【关于团队】2-3句介绍团队氛围
+   【做什么】3-5条具体工作内容
+   【希望你】3-5条任职要求（不超纲，真实要求）
+   【我们提供】5-7条福利待遇（要具体）
+3. 要求：
+   - 用词精准专业
+   - 福利要具体化（"六险一金"比"完善福利"好）
+   - 避免歧视性用语
+   - 不要写"等相关工作"等模糊表述
+
+输出格式：
+【职位名称】
+【薪资待遇】
+【岗位职责】（3-5条）
+【任职要求】（3-5条）
+【福利待遇】（5-7条）
+【公司介绍】（2-3句）
+
+长度：400-600字`,
+
+  parameters: {
+    temperature: 0.6,
+    top_p: 0.8,
+    maxTokens: 2000
+  }
+};
+
+/**
+ * 获客引流专精提示词
+ */
+export const customerAcquisitionPrompt = {
+  name: '获客引流话术',
+  description: '生成高效引流私信话术',
+  
+  template: (outreach: {
+    scenario: 'inquiry' | 'comment' | 'dm' | 'follow_up',
+    platform: string,
+    product: string,
+    targetProfile: string,
+    goal: 'add_wechat' | 'consult' | 'purchase'
+  }) => {
+    const scenarioTips = {
+      inquiry: '主动咨询的客户',
+      comment: '在评论区留言的客户',
+      dm: '收到私信的客户',
+      follow_up: '之前沟通过的客户'
+    };
+    
+    const goalTips = {
+      add_wechat: '引导添加微信',
+      consult: '引导进一步咨询',
+      purchase: '引导下单'
+    };
+    
+    return `你是一位私域引流专家，擅长写让人愿意回复的引流私信。
+
+引流信息：
+- 场景：${scenarioTips[outreach.scenario]}
+- 目标平台：${outreach.platform}
+- 产品/服务：${outreach.product}
+- 客户画像：${outreach.targetProfile}
+- 目标：${goalTips[outreach.goal]}
+
+话术要求：
+1. 总字数：${outreach.platform === '抖音' ? '50-80字' : '80-120字'}（太长会被限流）
+2. 结构：开场 → 价值传递 → 行动引导
+3. 开场白要求：
+   - 不要用"你好"、"在吗"
+   - 要有差异化，像真人在聊天
+   - 参考："看到你对XX感兴趣，刚好我最近在研究..."、"刷到你的评论，感觉你也在找..."
+4. 价值传递：
+   - 突出客户收益
+   - 不要直接发广告
+   - 简单明了
+5. 行动引导：
+   - 要具体
+   - 不要说"加我了解"（太硬）
+   - 应该说"我整理了一份XX资料，感兴趣的话可以发你"
+6. 平台规则：
+   - ${outreach.platform === '抖音' ? '抖音偏轻松，可用emoji，避免链接暗示' : ''}
+   - ${outreach.platform === '小红书' ? '小红书偏真诚，可稍长一些' : ''}
+   - ${outreach.platform === '微信' ? '微信可稍正式，但也要自然' : ''}
+
+风格：像朋友建议，不像销售
+注意：避免明显广告感、诱导性词汇、外部链接暗示
+
+生成3个不同风格的话术备选`};
+  },
+
+  parameters: {
+    temperature: 0.75,
+    top_p: 0.88,
+    maxTokens: 1500
+  }
+};
+
+/**
+ * 生成优化的提示词（基于用户反馈）
+ */
+export function getOptimizedPrompt(contentType: string, stats?: { adoptionRate?: number, patterns?: any }): string {
+  const basePrompt = CONTENT_PROMPTS[contentType as keyof typeof CONTENT_PROMPTS];
+  
+  if (!basePrompt || !stats) {
+    return basePrompt?.template || '';
+  }
+  
+  // 根据采纳率添加优化提示
+  let optimization = '';
+  
+  if (stats.adoptionRate && stats.adoptionRate > 0.7) {
+    // 高采纳率，添加更多约束保持质量
+    optimization = '\n\n【质量要求】基于历史数据分析，以下特征的高采纳率内容表现好：\n';
+    if (stats.patterns?.hasExamples > '50%') {
+      optimization += '- 包含具体示例的内容\n';
+    }
+    if (stats.patterns?.hasCallToAction > '50%') {
+      optimization += '- 包含明确的行动号召\n';
+    }
+    if (stats.patterns?.hasQuestions > '30%') {
+      optimization += '- 适当使用问句增加互动感\n';
+    }
+  }
+  
+  return basePrompt.template + optimization;
+}

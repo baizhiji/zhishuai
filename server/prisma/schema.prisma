@@ -1155,3 +1155,94 @@ model AIUsageStats {
   @@unique([userId, feature, model, periodStart])
   @@index([userId, periodStart])
 }
+
+// AI 内容反馈表
+model ContentFeedback {
+  id                 String   @id @default(uuid())
+  contentType        String                      // 内容类型: title, script, post, hashtags, etc
+  prompt             String   @db.Text            // 使用的提示词
+  generatedContent   String   @db.Text            // 生成的内容
+  adopted            Boolean  @default(false)     // 是否被采纳
+  edited             Boolean  @default(false)     // 是否被编辑
+  rating             Int?                        // 用户评分 1-5
+  editedContent      String?  @db.Text            // 编辑后的内容
+  userId             String?                     // 用户ID
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([contentType, createdAt])
+  @@index([adopted, createdAt])
+  @@index([userId])
+}
+
+// AI 智能体反馈表
+model AgentFeedback {
+  id             String   @id @default(uuid())
+  agentId        String                      // 智能体ID
+  conversationId String?                     // 对话ID
+  messageIndex   Int?                        // 消息索引
+  userMessage    String?  @db.Text           // 用户消息
+  agentResponse  String?  @db.Text          // 智能体回复
+  helpful        Boolean?                    // 是否有帮助
+  rating         Int?                        // 评分 1-5
+  userId         String?                     // 用户ID
+  createdAt      DateTime @default(now())
+  
+  @@index([agentId, createdAt])
+  @@index([helpful, createdAt])
+}
+
+// AI 示例库表
+model AIExample {
+  id           String   @id @default(uuid())
+  contentType  String                      // 内容类型
+  platform     String                      // 平台: douyin, kuaishou, xiaohongshu, etc
+  category     String?                     // 分类
+  title        String                      // 示例标题
+  content      String   @db.Text           // 示例内容
+  features     String?  @db.Text          // 特色描述
+  adoptionRate Float    @default(0)       // 采纳率
+  usageCount   Int      @default(0)        // 使用次数
+  qualityScore Float    @default(0)       // 质量评分
+  isActive     Boolean  @default(true)    // 是否启用
+  userId       String?                     // 创建者
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([contentType, platform, title])
+  @@index([contentType, isActive])
+  @@index([adoptionRate])
+}
+
+// 提示词优化表
+model PromptOptimization {
+  id            String   @id @default(uuid())
+  contentType   String   @unique            // 内容类型
+  sampleCount   Int      @default(0)         // 样本数量
+  adoptionRate  Float    @default(0)        // 采纳率
+  avgRating     Float    @default(0)        // 平均评分
+  optimizedPrompt String? @db.Text          // 优化后的提示词
+  insights      String?  @db.Text           // 分析洞察
+  lastUpdated   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  
+  @@index([adoptionRate])
+}
+
+// 热点话题缓存表
+model HotspotCache {
+  id         String   @id @default(uuid())
+  platform   String                      // 平台
+  keyword    String                      // 关键词
+  heat       Int      @default(0)        // 热度值
+  label      String?                     // 标签
+  category   String?                     // 分类
+  url        String?                     // 链接
+  rawData    String?  @db.Text           // 原始数据
+  cachedAt   DateTime @default(now())
+  expiresAt  DateTime                    // 过期时间
+  
+  @@unique([platform, keyword, cachedAt])
+  @@index([platform, cachedAt])
+  @@index([heat])
+}

@@ -128,6 +128,18 @@ app.use('/api/ai-enhanced', aiEnhancedRoutes);
 app.use('/api/ai-workflow', aiWorkflowRoutes);
 app.use('/api/token-stats', tokenStatsRoutes);
 
+// AI 反馈学习系统
+import feedbackRoutes from './routes/feedback';
+app.use('/api/ai-feedback', feedbackRoutes);
+
+// 热点话题服务
+import hotspotRoutes from './routes/hotspot';
+app.use('/api/hotspot', hotspotRoutes);
+
+// 多模态内容生成
+import multimodalRoutes from './routes/multimodal';
+app.use('/api/multimodal', multimodalRoutes);
+
 // 代理分成结算
 // app.use('/api/settlement', settlementRoutes); // temporarily disabled
 
