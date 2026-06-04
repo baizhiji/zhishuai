@@ -20,31 +20,40 @@ export async function processWorkflow(workflowType: string, params: any): Promis
 }
 
 async function contentProductionWorkflow(params: { topic: string; platform: string }) {
-  const prompt = `生成关于"${params.topic}"的完整内容方案：
-平台：${params.platform || '抖音'}
-包括：标题(5个)、正文、话题标签(10个)`;
+  const prompt = `Generate complete content plan for "${params.topic}":
+Platform: ${params.platform || 'Douyin'}
+Include: titles(5), body, hashtags(10)`;
   
-  const result = await chatCompletion('system', { messages: [{ role: 'user', content: prompt }] });
+  const result = await chatCompletion('system', { 
+    model: 'qwen-max',
+    messages: [{ role: 'user', content: prompt }] 
+  });
   
   return { content: result, topic: params.topic, platform: params.platform };
 }
 
 async function recruitmentWorkflow(params: { jobTitle: string }) {
-  const prompt = `为职位"${params.jobTitle}"生成：
-1. 完整的招聘JD
-2. 5个面试必问问题`;
+  const prompt = `For job "${params.jobTitle}" generate:
+1. Complete recruitment JD
+2. 5 interview questions`;
   
-  const result = await chatCompletion('system', { messages: [{ role: 'user', content: prompt }] });
+  const result = await chatCompletion('system', { 
+    model: 'qwen-max',
+    messages: [{ role: 'user', content: prompt }] 
+  });
   
   return { content: result, jobTitle: params.jobTitle };
 }
 
 async function customerAcquisitionWorkflow(params: { product: string; targetProfile: string }) {
-  const prompt = `为产品"${params.product}"生成引流话术：
-目标客户：${params.targetProfile}
-包括：开场白(3个)、价值传递、行动引导`;
+  const prompt = `Generate outreach message for product "${params.product}":
+Target customer: ${params.targetProfile}
+Include: opening(3), value proposition, call to action`;
   
-  const result = await chatCompletion('system', { messages: [{ role: 'user', content: prompt }] });
+  const result = await chatCompletion('system', { 
+    model: 'qwen-max',
+    messages: [{ role: 'user', content: prompt }] 
+  });
   
   return { content: result, product: params.product };
 }

@@ -3,8 +3,6 @@
  */
 import { Router } from 'express';
 import { chatCompletion } from '../services/ai-service';
-import { generatePrompt } from '../services/ai-prompts';
-import { checkContentQuality } from '../services/ai-quality';
 
 const router = Router();
 
@@ -13,17 +11,20 @@ router.post('/title', async (req, res) => {
   try {
     const { topic, platform, count = 5 } = req.body;
     
-    const prompt = `你是一位抖音爆款内容专家，请为以下主题生成${count}个高点击率短视频标题。
-主题：${topic}
-平台：${platform || '抖音'}
+    const prompt = `You are an expert at creating viral video titles. Generate ${count} high CTR titles for:
+Topic: ${topic}
+Platform: ${platform || 'Douyin'}
 
-要求：
-1. 每个标题控制在15-25字
-2. 使用技巧：悬念型、数字型、冲突型、情感型
-3. 避免标题党、夸大虚假
-4. 每行一个标题`;
+Requirements:
+1. 15-25 characters each
+2. Use techniques: suspense, numbers, conflict, emotion
+3. Avoid clickbait
+4. One title per line`;
     
-    const result = await chatCompletion('system', { messages: [{ role: 'user', content: prompt }] });
+    const result = await chatCompletion('system', { 
+      model: 'qwen-max',
+      messages: [{ role: 'user', content: prompt }] 
+    });
     
     res.json({
       code: 200,
@@ -38,14 +39,17 @@ router.post('/title', async (req, res) => {
 // Generate script
 router.post('/script', async (req, res) => {
   try {
-    const { topic, duration = 60, style = '知识分享' } = req.body;
+    const { topic, duration = 60, style = 'knowledge' } = req.body;
     
-    const prompt = `请为以下主题生成短视频分镜脚本：
-主题：${topic}
-时长：${duration}秒
-风格：${style}`;
+    const prompt = `Generate a short video script:
+Topic: ${topic}
+Duration: ${duration} seconds
+Style: ${style}`;
     
-    const result = await chatCompletion('system', { messages: [{ role: 'user', content: prompt }] });
+    const result = await chatCompletion('system', { 
+      model: 'qwen-max',
+      messages: [{ role: 'user', content: prompt }] 
+    });
     
     res.json({
       code: 200,
@@ -62,10 +66,13 @@ router.post('/hashtags', async (req, res) => {
   try {
     const { topic, platform, count = 10 } = req.body;
     
-    const prompt = `为${platform || '抖音'}平台生成${count}个话题标签：
-主题：${topic}`;
+    const prompt = `Generate ${count} hashtags for ${platform || 'Douyin'}:
+Topic: ${topic}`;
     
-    const result = await chatCompletion('system', { messages: [{ role: 'user', content: prompt }] });
+    const result = await chatCompletion('system', { 
+      model: 'qwen-max',
+      messages: [{ role: 'user', content: prompt }] 
+    });
     
     res.json({
       code: 200,
@@ -82,10 +89,13 @@ router.post('/post', async (req, res) => {
   try {
     const { topic, platform } = req.body;
     
-    const prompt = `生成一篇${platform || '抖音'}平台的图文帖子：
-主题：${topic}`;
+    const prompt = `Generate a social media post for ${platform || 'Douyin'}:
+Topic: ${topic}`;
     
-    const result = await chatCompletion('system', { messages: [{ role: 'user', content: prompt }] });
+    const result = await chatCompletion('system', { 
+      model: 'qwen-max',
+      messages: [{ role: 'user', content: prompt }] 
+    });
     
     res.json({
       code: 200,
