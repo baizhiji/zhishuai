@@ -1,26 +1,42 @@
 /**
- * 多模态内容生成路由
+ * Multimodal Routes
  */
 import { Router } from 'express';
-import {
-  generateCompleteContentPackage,
-  generateVideoFromImage,
-  generateNarration,
-  batchGenerateContent
-} from '../services/multimodal.service';
+import { generateContentPackage, imageToVideo, synthesizeSpeech } from '../services/multimodal.service';
 
 const router = Router();
 
-// 联合生成完整内容包
-router.post('/generate-package', generateCompleteContentPackage);
+// Generate content package
+router.post('/generate-package', async (req, res) => {
+  try {
+    const { topic, platform, contentType } = req.body;
+    const result = await generateContentPackage({ topic, platform, contentType });
+    res.json({ code: 200, message: 'success', data: result });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
 
-// 图生视频
-router.post('/image-to-video', generateVideoFromImage);
+// Image to video
+router.post('/image-to-video', async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    const result = await imageToVideo(imageUrl);
+    res.json({ code: 200, message: 'success', data: result });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
 
-// 语音合成（数字人配音）
-router.post('/narration', generateNarration);
-
-// 批量生成
-router.post('/batch-generate', batchGenerateContent);
+// Speech synthesis
+router.post('/synthesize', async (req, res) => {
+  try {
+    const { text, voice } = req.body;
+    const result = await synthesizeSpeech(text, voice);
+    res.json({ code: 200, message: 'success', data: result });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
 
 export default router;

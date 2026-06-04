@@ -1,56 +1,83 @@
 /**
- * 视频增强路由
+ * Enhancement Routes - Video, Voice, Digital Human, Analytics
  */
 import { Router } from 'express';
-import videoEnhancer from '../services/video-enhancer';
-import voiceClone from '../services/voice-clone';
-import digitalHuman from '../services/digital-human';
-import realtimeAnalytics from '../services/realtime-analytics';
+import { enhanceVideo, generateVideoCover, adaptForPlatform } from '../services/video-enhancer';
+import { getVoiceList } from '../services/voice-clone';
+import { getAvatarList, getAvatarById } from '../services/digital-human';
+import { getRealtimeAnalytics, analyzeData } from '../services/realtime-analytics';
 
 const router = Router();
 
-// 视频增强路由
-router.use('/video', videoEnhancer);
-
-// 语音克隆路由
-router.use('/voice', voiceClone);
-
-// 数字人路由
-router.use('/digital-human', digitalHuman);
-
-// 实时分析路由
-router.use('/analytics', realtimeAnalytics);
-
-// 组合路由 - 一键生成完整内容包
-router.post('/generate-complete-package', async (req, res) => {
+// Video Enhancement
+router.post('/video/enhance', async (req, res) => {
   try {
-    const {
-      topic,
-      contentType = 'short_video',
-      style = 'professional',
-      platforms = ['douyin'],
-      duration = 30
-    } = req.body;
-    
-    // 调用 multimodal service 的 generatePackage
-    const { default: multimodalService } = await import('../services/multimodal.service');
-    
-    // 生成完整内容包
-    const result = await multimodalService.generateCompletePackage({
-      topic,
-      contentType,
-      style,
-      platforms,
-      duration
-    });
-    
-    res.json({
-      success: true,
-      ...result
-    });
+    const { videoUrl, options } = req.body;
+    const result = await enhanceVideo(videoUrl, options);
+    res.json({ code: 200, message: 'success', data: result });
   } catch (error: any) {
-    console.error('生成完整包失败:', error);
-    res.status(500).json({ error: error.message || '生成失败' });
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+router.post('/video/cover', async (req, res) => {
+  try {
+    const { videoUrl } = req.body;
+    const coverUrl = await generateVideoCover(videoUrl);
+    res.json({ code: 200, message: 'success', data: { coverUrl } });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+router.post('/video/adapt', async (req, res) => {
+  try {
+    const { videoUrl, platform } = req.body;
+    const result = adaptForPlatform(videoUrl, platform);
+    res.json({ code: 200, message: 'success', data: result });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+// Voice
+router.get('/voice/list', async (req, res) => {
+  const voices = getVoiceList();
+  res.json({ code: 200, message: 'success', data: voices });
+});
+
+// Digital Human
+router.get('/digital-human/avatars', async (req, res) => {
+  const avatars = getAvatarList();
+  res.json({ code: 200, message: 'success', data: avatars });
+});
+
+router.get('/digital-human/:id', async (req, res) => {
+  const avatar = getAvatarById(req.params.id);
+  if (!avatar) {
+    return res.status(404).json({ code: 404, message: 'Avatar not found', data: null });
+  }
+  res.json({ code: 200, message: 'success', data: avatar });
+});
+
+// Analytics
+router.post('/analytics/aggregate', async (req, res) => {
+  try {
+    const { platforms } = req.body;
+    const data = await getRealtimeAnalytics(platforms);
+    res.json({ code: 200, message: 'success', data });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+router.post('/analytics/analyze', async (req, res) => {
+  try {
+    const { data } = req.body;
+    const analysis = await analyzeData(data);
+    res.json({ code: 200, message: 'success', data: analysis });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
   }
 });
 

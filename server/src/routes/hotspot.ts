@@ -1,34 +1,42 @@
 /**
- * 热点话题路由
+ * Hotspot Routes
  */
 import { Router } from 'express';
-import {
-  getAggregatedHotspots,
-  getIndustryHotspots,
-  getHotspotTrends,
-  generateHotspotContent,
-  getHotspotUpdateTime,
-  clearHotspotCache
-} from '../services/hotspot.service';
+import { getHotspots, searchHotspots } from '../services/hotspot.service';
 
 const router = Router();
 
-// 获取聚合热点
-router.get('/aggregated', getAggregatedHotspots);
+// Get hotspots
+router.get('/aggregated', async (req, res) => {
+  try {
+    const { platform, category } = req.query;
+    const hotspots = await getHotspots(platform as string, category as string);
+    res.json({ code: 200, message: 'success', data: hotspots });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
 
-// 获取行业热点
-router.get('/industry', getIndustryHotspots);
+// Search hotspots
+router.get('/search', async (req, res) => {
+  try {
+    const { keyword } = req.query;
+    const hotspots = await searchHotspots(keyword as string);
+    res.json({ code: 200, message: 'success', data: hotspots });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
 
-// 获取热点趋势
-router.get('/trends', getHotspotTrends);
-
-// 生成热点内容
-router.post('/generate-content', generateHotspotContent);
-
-// 获取更新状态
-router.get('/update-time', getHotspotUpdateTime);
-
-// 清除缓存
-router.post('/clear-cache', clearHotspotCache);
+// Get industry hotspots
+router.get('/industry', async (req, res) => {
+  try {
+    const { industry } = req.query;
+    const hotspots = await getHotspots(undefined, industry as string);
+    res.json({ code: 200, message: 'success', data: hotspots });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
 
 export default router;
