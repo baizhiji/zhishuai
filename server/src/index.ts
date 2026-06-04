@@ -39,6 +39,7 @@ import aiRoutes from './routes/ai';
 import aiEnhancedRoutes from './routes/ai-enhanced';
 import aiWorkflowRoutes from './routes/ai-workflow';
 import tokenStatsRoutes from './routes/token-stats';
+import mediaRoutes from './routes/media';
 // import settlementRoutes from './routes/settlement';
 
 const app = express();
@@ -123,6 +124,7 @@ app.use('/api/tickets', ticketRoutes);
 
 // AI 能力配置 & 调用 & Token 统计
 app.use('/api/ai-config', aiConfigRoutes);
+app.use('/api/media', mediaRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/ai-enhanced', aiEnhancedRoutes);
 app.use('/api/ai-workflow', aiWorkflowRoutes);
