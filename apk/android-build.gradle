@@ -1,11 +1,13 @@
 // Top-level build file for Expo project
+// 此文件会在 expo prebuild 后被复制到 android/build.gradle
+
 buildscript {
     ext {
         buildToolsVersion = findProperty('android.buildToolsVersion') ?: '34.0.0'
         minSdkVersion = Integer.parseInt(findProperty('android.minSdkVersion') ?: '23')
         compileSdkVersion = Integer.parseInt(findProperty('android.compileSdkVersion') ?: '34')
         targetSdkVersion = Integer.parseInt(findProperty('android.targetSdkVersion') ?: '34')
-        ndkRevision = "26.1.10909125"
+        ndkRevision = findProperty('android.ndkVersion') ?: "26.1.10909125"
         kotlinVersion = findProperty('kotlinVersion') ?: '1.9.22'
     }
     repositories {
@@ -28,19 +30,15 @@ allprojects {
     }
 }
 
-// 统一所有 Kotlin 编译任务的 JVM 版本
+// 统一所有 Kotlin 编译任务的 JVM 版本为 17
 subprojects {
-    plugins.withId('kotlin-android') {
-        tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-            kotlinOptions {
-                jvmTarget = '17'
+    afterEvaluate { project ->
+        if (project.hasProperty('android') || project.plugins.hasPlugin('kotlin-android')) {
+            project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                kotlinOptions {
+                    jvmTarget = '17'
+                }
             }
-        }
-    }
-    
-    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-        kotlinOptions {
-            jvmTarget = '17'
         }
     }
 }
