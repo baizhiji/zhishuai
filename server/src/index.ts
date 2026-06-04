@@ -37,6 +37,7 @@ import referralRoutes from './routes/referral';
 import aiConfigRoutes from './routes/ai-config';
 import aiRoutes from './routes/ai';
 import aiEnhancedRoutes from './routes/ai-enhanced';
+import aiWorkflowRoutes from './routes/ai-workflow';
 import tokenStatsRoutes from './routes/token-stats';
 // import settlementRoutes from './routes/settlement';
 
@@ -124,6 +125,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/ai-config', aiConfigRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/ai-enhanced', aiEnhancedRoutes);
+app.use('/api/ai-workflow', aiWorkflowRoutes);
 app.use('/api/token-stats', tokenStatsRoutes);
 
 // 代理分成结算

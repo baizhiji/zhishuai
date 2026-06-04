@@ -1101,3 +1101,57 @@ model Payment {
   @@index([status])
   @@index([createdAt])
 }
+
+// AI 示例库表 - 存储高质量内容示例
+model AIExample {
+  id          String    @id @default(uuid())
+  type        String                      // 类型: title, post, script, message, jd, reply
+  platform    String?                     // 平台: 抖音, 快手, 小红书, 视频号, 通用
+  content     String                      // 内容
+  quality     Float     @default(7)       // 质量评分 1-10
+  tags        String?                     // 标签（逗号分隔）
+  metadata    Json?                        // 其他元数据
+  source      String?                     // 来源: user_adopted, system_default
+  usageCount  Int      @default(0)        // 使用次数
+  createdAt   DateTime  @default(now())
+  
+  @@index([type, platform])
+  @@index([quality])
+}
+
+// AI 内容反馈表 - 记录用户对生成内容的反馈
+model AIContentFeedback {
+  id          String    @id @default(uuid())
+  userId      String                      // 用户ID
+  contentId   String?                     // 内容ID
+  contentType String                      // 内容类型
+  content     String                      // 生成的内容
+  adopted     Boolean   @default(false)   // 是否被采纳
+  edited      Boolean   @default(false)   // 是否被编辑
+  rating      Int?                        // 满意度 1-5
+  edits       String?                     // 编辑内容
+  platform    String?                     // 平台
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([contentType])
+}
+
+// AI 使用统计表
+model AIUsageStats {
+  id            String    @id @default(uuid())
+  userId        String                      // 用户ID
+  agentId       String?                     // 代理商ID
+  feature       String                      // 功能: chat, generate_title, generate_post, etc
+  model         String                      // 使用的模型
+  tokens        Int      @default(0)        // Token消耗
+  cost          Decimal   @default(0)        // 费用
+  successCount  Int      @default(0)        // 成功次数
+  failCount     Int      @default(0)        // 失败次数
+  period        String    @default("daily") // 统计周期: daily, monthly
+  periodStart   DateTime                    // 周期开始
+  createdAt     DateTime  @default(now())
+  
+  @@unique([userId, feature, model, periodStart])
+  @@index([userId, periodStart])
+}

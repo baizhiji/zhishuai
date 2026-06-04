@@ -1354,3 +1354,393 @@ export function getOptimizedParams(taskType: string) {
     max_tokens: config.maxTokens
   };
 }
+
+// ==================== Chain of Thought 思维链提示词 ====================
+
+export const CHAIN_OF_THOUGHT_PROMPTS = {
+  /**
+   * 简历分析 - 思维链版本
+   */
+  resumeAnalysisCot: (resumeText: string, jobRequirements?: string) => {
+    return `你是一位资深HR总监，请使用"思维链"方法分析简历。
+
+【任务】逐步分析简历，得出结论
+
+【简历内容】
+${resumeText}
+
+${jobRequirements ? `【目标岗位要求】\n${jobRequirements}` : ''}
+
+【思维链分析步骤】
+
+第一步：基础信息识别
+- 学历背景
+- 工作年限
+- 最近职位和公司
+- 核心技能标签
+
+第二步：经历分析
+- 逐段分析工作经历
+- 识别关键成就和贡献
+- 评估公司背景含金量
+
+第三步：技能匹配度评估
+- 硬技能匹配度
+- 软技能评估
+- 与岗位要求的差距
+
+第四步：风险点识别
+- 职业稳定性
+- 薪资预期合理性
+- 潜在风险
+
+第五步：综合判断
+- 给出推荐等级（强烈推荐/推荐/待定/不推荐）
+- 说明推荐理由
+- 如有问题，提出改进建议
+
+【输出要求】
+请按上述步骤逐一分析，最终给出结论。每个步骤都要有具体的分析依据。`;
+  },
+
+  /**
+   * 内容质量评估 - 思维链版本
+   */
+  contentQualityAssessment: (content: string, platform: string, purpose: string) => {
+    return `你是一位内容质量评估专家，请使用"思维链"方法评估内容。
+
+【任务】评估以下内容的质量并给出改进建议
+
+【内容】
+${content.slice(0, 2000)}
+
+【平台】${platform}
+【目的】${purpose}
+
+【思维链评估步骤】
+
+第一步：内容基础评估
+- 结构完整性
+- 逻辑连贯性
+- 语言表达流畅度
+
+第二步：平台适配性分析
+- 是否符合${platform}平台调性
+- 平台算法偏好匹配度
+- 受众群体契合度
+
+第三步：吸引力评估
+- 开头是否能抓住注意力
+- 是否有情感共鸣点
+- 行动号召是否有力
+
+第四步：合规性检查
+- 敏感词检测
+- 平台规则符合度
+- 法律风险评估
+
+第五步：综合评分与改进建议
+- 各维度评分（1-10分）
+- 核心问题总结
+- 3-5条具体改进建议
+
+【输出要求】
+按步骤分析，每步给出评分和依据，最终给出综合报告。`;
+  },
+
+  /**
+   * 客户意向判断 - 思维链版本
+   */
+  customerIntentAnalysis: (customerData: Record<string, any>, interactionHistory: string[]) => {
+    return `你是一位销售分析专家，请使用"思维链"方法判断客户意向。
+
+【任务】分析客户意向等级和最佳跟进策略
+
+【客户信息】
+${Object.entries(customerData).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+【互动历史】
+${interactionHistory.map((h, i) => `${i + 1}. ${h}`).join('\n')}
+
+【思维链分析步骤】
+
+第一步：客户画像构建
+- 基本属性（年龄、职业、地区）
+- 需求标签
+- 行为特征
+
+第二步：互动深度分析
+- 主动行为 vs 被动行为
+- 互动频率和趋势
+- 关键行为节点
+
+第三步：意向信号识别
+- 积极信号（询问价格、索要资料、主动联系）
+- 消极信号（长时间无响应、多次拒绝）
+- 中性信号
+
+第四步：意向等级判定
+- A级（高意向，72小时内跟进）
+- B级（中意向，一周内跟进）
+- C级（低意向，持续培养）
+- D级（无意向，暂不跟进）
+
+第五步：跟进策略建议
+- 最佳跟进时机
+- 推荐跟进方式
+- 话术建议
+
+【输出要求】
+按步骤分析，最终给出意向等级和具体跟进建议。`;
+  },
+
+  /**
+   * 热点选题分析 - 思维链版本
+   */
+  hotspotAnalysis: (topic: string, industry: string) => {
+    return `你是一位热点运营专家，请使用"思维链"方法分析热点选题。
+
+【任务】评估热点价值并给出内容方向建议
+
+【热点/话题】${topic}
+【行业/领域】${industry}
+
+【思维链分析步骤】
+
+第一步：热点价值评估
+- 热度等级（爆款/热门/一般）
+- 生命周期预估
+- 受众覆盖范围
+
+第二步：受众需求分析
+- 目标用户痛点
+- 用户想获得什么
+- 情感共鸣点
+
+第三步：内容角度选择
+- 可以切入的角度有哪些
+- 每个角度的差异化程度
+- 推荐的最佳角度
+
+第四步：风险评估
+- 蹭热点风险等级
+- 潜在争议点
+- 平台敏感度
+
+第五步：内容创作建议
+- 推荐的内容形式
+- 标题技巧
+- 关键信息点
+- 行动号召设计
+
+【输出要求】
+按步骤分析，最终给出创作建议。`;
+  },
+
+  /**
+   * 竞品分析 - 思维链版本
+   */
+  competitorAnalysis: (competitorInfo: Record<string, any>) => {
+    return `你是一位商业分析专家，请使用"思维链"方法分析竞品。
+
+【任务】全面分析竞品并找出差异化机会
+
+【竞品信息】
+${Object.entries(competitorInfo).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+【思维链分析步骤】
+
+第一步：产品定位分析
+- 目标用户是谁
+- 核心卖点是什么
+- 价格策略
+
+第二步：优劣势拆解
+- 主要优势（3-5条）
+- 主要劣势（3-5条）
+- 用户评价印证
+
+第三步：市场策略分析
+- 推广渠道
+- 内容策略
+- 定价策略
+- 运营活动
+
+第四步：机会点识别
+- 竞品未满足的需求
+- 市场空白点
+- 差异化机会
+
+第五步：应对策略建议
+- 差异化定位
+- 核心竞争力构建
+- 风险预警
+
+【输出要求】
+按步骤分析，最终给出差异化策略建议。`;
+  },
+
+  /**
+   * 数据异常诊断 - 思维链版本
+   */
+  dataAnomalyDiagnosis: (metrics: Record<string, number>, context?: string) => {
+    return `你是一位数据分析师，请使用"思维链"方法诊断数据异常。
+
+【任务】分析数据异常原因并给出建议
+
+【数据指标】
+${Object.entries(metrics).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+${context ? `【背景信息】\n${context}` : ''}
+
+【思维链分析步骤】
+
+第一步：数据概览
+- 整体趋势（上升/下降/平稳）
+- 主要变化点
+- 异常程度评估
+
+第二步：外部因素排查
+- 是否受节假日影响
+- 是否有活动干扰
+- 行业整体趋势
+
+第三步：内部因素排查
+- 产品/功能变化
+- 运营策略调整
+- 用户结构变化
+- 技术/性能问题
+
+第四步：关联分析
+- 相关指标关联性
+- 因果关系推理
+- 主要驱动因素
+
+第五步：结论与建议
+- 异常原因判断
+- 是否需要干预
+- 具体改进建议
+
+【输出要求】
+按步骤分析，最终给出诊断结论和行动建议。`;
+  },
+
+  /**
+   * 转化率优化分析 - 思维链版本
+   */
+  conversionOptimization: (funnelData: Record<string, number>, goal: string) => {
+    return `你是一位增长专家，请使用"思维链"方法分析转化漏斗。
+
+【任务】找出转化瓶颈并给出优化建议
+
+【转化漏斗数据】
+${Object.entries(funnelData).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+
+【目标】${goal}
+
+【思维链分析步骤】
+
+第一步：漏斗结构分析
+- 各环节转化率计算
+- 薄弱环节识别
+- 行业基准对比
+
+第二步：流失原因推断
+- 流失发生在哪一步
+- 可能的原因是什么
+- 用户反馈印证
+
+第三步：优化优先级排序
+- 哪个环节改进空间最大
+- 投入产出比评估
+- 技术实现难度
+
+第四步：优化方案设计
+- 针对性改进措施
+- A/B测试建议
+- 预期效果评估
+
+第五步：实施计划
+- 短期行动（1-2周）
+- 中期优化（1个月）
+- 长期迭代（3个月）
+
+【输出要求】
+按步骤分析，最终给出优化方案和时间表。`;
+  }
+};
+
+// ==================== 结构化输出提示词 ====================
+
+export const STRUCTURED_OUTPUT_PROMPTS = {
+  /**
+   * JSON Schema 输出格式定义
+   */
+  jsonSchema: {
+    title: {
+      type: 'object',
+      properties: {
+        primary: { type: 'string', description: '主推标题' },
+        alternatives: { type: 'array', items: { type: 'string' }, description: '备选标题' },
+        score: { type: 'number', description: '质量评分 1-10' },
+        highlights: { type: 'array', items: { type: 'string' }, description: '标题亮点' }
+      },
+      required: ['primary']
+    },
+    post: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        content: { type: 'string' },
+        hashtags: { type: 'array', items: { type: 'string' } },
+        emoji_count: { type: 'integer' },
+        word_count: { type: 'integer' },
+        call_to_action: { type: 'string' },
+        quality_score: { type: 'number' }
+      },
+      required: ['title', 'content', 'hashtags']
+    },
+    script: {
+      type: 'object',
+      properties: {
+        sections: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              timing: { type: 'string' },
+              content: { type: 'string' },
+              emotion: { type: 'string' },
+              note: { type: 'string' }
+            }
+          }
+        },
+        total_duration: { type: 'integer', description: '预计时长（秒）' },
+        bpm_suggestion: { type: 'string', description: '推荐背景音乐风格' }
+      },
+      required: ['sections']
+    },
+    analysis: {
+      type: 'object',
+      properties: {
+        score: { type: 'number' },
+        strengths: { type: 'array', items: { type: 'string' } },
+        concerns: { type: 'array', items: { type: 'string' } },
+        recommendation: { type: 'string', enum: ['强烈推荐', '推荐', '待定', '不推荐'] },
+        confidence: { type: 'number', description: '判断置信度 0-1' }
+      },
+      required: ['score', 'recommendation']
+    }
+  },
+
+  /**
+   * 生成结构化输出的系统提示
+   */
+  structuredSystemPrompt: `你是一位专业的AI助手。请严格按照要求的JSON格式输出，不要包含任何其他内容。
+
+【输出要求】
+1. 只输出JSON，不要有解释性文字
+2. JSON必须完全符合schema定义
+3. 所有必填字段必须存在
+4. 字段类型必须正确`;
+};
