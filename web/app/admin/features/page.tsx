@@ -199,12 +199,7 @@ export default function FeatureConfigPage() {
     const updated: Record<string, boolean> = {};
     const subUpdated: Record<string, Record<string, boolean>> = {};
     featureToggles.forEach(ft => {
-      // 不修改预留模块
-      if (['ecommerce', 'crm', 'marketing'].includes(ft.key)) {
-        updated[ft.key] = ft.defaultEnabled;
-      } else {
-        updated[ft.key] = enabled;
-      }
+      updated[ft.key] = enabled;
       subUpdated[ft.key] = {};
       (ft.subFeatures || []).forEach(sub => {
         subUpdated[ft.key][sub.code] = enabled;
@@ -404,11 +399,7 @@ export default function FeatureConfigPage() {
                         </Text>
                         <br />
                         <Tag
-                          color={
-                            ft.key === 'ecommerce' || ft.key === 'crm' || ft.key === 'marketing'
-                              ? 'warning'
-                              : 'processing'
-                          }
+                          color="processing"
                           style={{ marginTop: 4 }}
                         >
                           属于: {ft.name}

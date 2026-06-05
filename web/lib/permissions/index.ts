@@ -285,27 +285,6 @@ export function getAllMenus(): MenuItem[] {
       ],
     },
     {
-      key: 'ecommerce',
-      label: '电商运营',
-      icon: 'ShoppingCart',
-      featureKey: 'ecommerce',
-      permission: Permission.ECOMMERCE,
-    },
-    {
-      key: 'crm',
-      label: 'CRM',
-      icon: 'Team',
-      featureKey: 'crm',
-      permission: Permission.CRM,
-    },
-    {
-      key: 'marketing',
-      label: '营销工具',
-      icon: 'Megaphone',
-      featureKey: 'marketing',
-      permission: Permission.MARKETING,
-    },
-    {
       key: 'account',
       label: '账号与配置',
       icon: 'Setting',
@@ -375,6 +354,13 @@ export function getAdminMenus(): MenuItem[] {
       icon: 'Bank',
       path: '/admin/tenants',
       permission: Permission.ADMIN_TENANTS,
+    },
+    {
+      key: 'admin-crm',
+      label: '客户管理',
+      icon: 'Team',
+      path: '/admin/crm',
+      permission: Permission.ADMIN_CRM,
     },
     {
       key: 'admin-agents',

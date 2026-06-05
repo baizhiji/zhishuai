@@ -48,6 +48,7 @@ export enum Permission {
   ADMIN_CONFIG = 'admin.config',
   ADMIN_BRANDING = 'admin.branding',
   ADMIN_ANALYTICS = 'admin.analytics',
+  ADMIN_CRM = 'admin.crm',
   SYSTEM_SETTINGS = 'system.settings',
   SYSTEM_USERS = 'system.users',
 
@@ -69,11 +70,6 @@ export enum Permission {
   SETTINGS_COMPANY = 'settings.company',
   SETTINGS_SECURITY = 'settings.security',
   SETTINGS_THEME = 'settings.theme',
-
-  // 预留模块
-  ECOMMERCE = 'ecommerce',
-  CRM = 'crm',
-  MARKETING = 'marketing',
 }
 
 // 角色权限配置
