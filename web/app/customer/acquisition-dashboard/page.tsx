@@ -11,7 +11,7 @@ import {
   Progress,
   Space,
   Typography,
-  DatePicker
+  DatePicker,
 } from 'antd';
 import {
   UserSwitchOutlined,
@@ -21,7 +21,7 @@ import {
   SendOutlined,
   LikeOutlined,
   CommentOutlined,
-  ShareAltOutlined
+  ShareAltOutlined,
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -35,7 +35,7 @@ import {
   ResponsiveContainer,
   FunnelChart,
   Funnel,
-  LabelList
+  LabelList,
 } from 'recharts';
 
 const { Title, Text } = Typography;
@@ -82,7 +82,7 @@ export default function AcquisitionDashboardPage() {
     contacted: 0,
     converted: 0,
     conversionRate: 0,
-    avgResponseTime: '0分钟'
+    avgResponseTime: '0分钟',
   });
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [leadsData, setLeadsData] = useState<LeadData[]>([]);
@@ -102,9 +102,9 @@ export default function AcquisitionDashboardPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/acquisition/dashboard', {
-        userId
+        userId,
       });
-      
+
       if (res.data) {
         setStats(res.data.stats || generateMockStats());
         setTrendData(res.data.trendData || generateMockTrendData());
@@ -127,7 +127,7 @@ export default function AcquisitionDashboardPage() {
     contacted: 156,
     converted: 42,
     conversionRate: 17.1,
-    avgResponseTime: '5分钟'
+    avgResponseTime: '5分钟',
   });
 
   const generateMockTrendData = () => {
@@ -137,18 +137,50 @@ export default function AcquisitionDashboardPage() {
         date: dayjs().subtract(i, 'day').format('MM-DD'),
         leads: Math.floor(Math.random() * 50) + 20,
         contacted: Math.floor(Math.random() * 30) + 10,
-        converted: Math.floor(Math.random() * 10) + 2
+        converted: Math.floor(Math.random() * 10) + 2,
       });
     }
     return data;
   };
 
   const generateMockLeadsData = () => [
-    { id: '1', name: '张先生', source: '抖音', status: 'converted', interest: 95, contactedAt: '2024-01-15', convertedAt: '2024-01-18' },
-    { id: '2', name: '李女士', source: '小红书', status: 'contacted', interest: 80, contactedAt: '2024-01-16', lastContact: '2024-01-17' },
+    {
+      id: '1',
+      name: '张先生',
+      source: '抖音',
+      status: 'converted',
+      interest: 95,
+      contactedAt: '2024-01-15',
+      convertedAt: '2024-01-18',
+    },
+    {
+      id: '2',
+      name: '李女士',
+      source: '小红书',
+      status: 'contacted',
+      interest: 80,
+      contactedAt: '2024-01-16',
+      lastContact: '2024-01-17',
+    },
     { id: '3', name: '王先生', source: '微信', status: 'new', interest: 65 },
-    { id: '4', name: '刘女士', source: '微博', status: 'contacted', interest: 75, contactedAt: '2024-01-14', lastContact: '2024-01-16' },
-    { id: '5', name: '陈先生', source: '抖音', status: 'converted', interest: 90, contactedAt: '2024-01-13', convertedAt: '2024-01-17' }
+    {
+      id: '4',
+      name: '刘女士',
+      source: '微博',
+      status: 'contacted',
+      interest: 75,
+      contactedAt: '2024-01-14',
+      lastContact: '2024-01-16',
+    },
+    {
+      id: '5',
+      name: '陈先生',
+      source: '抖音',
+      status: 'converted',
+      interest: 90,
+      contactedAt: '2024-01-13',
+      convertedAt: '2024-01-17',
+    },
   ];
 
   const generateMockSourceData = () => [
@@ -156,7 +188,7 @@ export default function AcquisitionDashboardPage() {
     { source: '小红书', count: 62, rate: 25 },
     { source: '微信', count: 48, rate: 20 },
     { source: '微博', count: 30, rate: 12 },
-    { source: '其他', count: 20, rate: 8 }
+    { source: '其他', count: 20, rate: 8 },
   ];
 
   const getStatusColor = (status: string) => {
@@ -164,7 +196,7 @@ export default function AcquisitionDashboardPage() {
       new: 'blue',
       contacted: 'orange',
       converted: 'green',
-      lost: 'red'
+      lost: 'red',
     };
     return colors[status] || 'default';
   };
@@ -174,7 +206,7 @@ export default function AcquisitionDashboardPage() {
       new: '新线索',
       contacted: '已联系',
       converted: '已转化',
-      lost: '已流失'
+      lost: '已流失',
     };
     return texts[status] || status;
   };
@@ -186,15 +218,22 @@ export default function AcquisitionDashboardPage() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
+      render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>,
     },
     {
       title: '意向度',
       dataIndex: 'interest',
       key: 'interest',
-      render: (val: number) => <Progress percent={val} size="small" status={val > 80 ? 'success' : 'active'} />
+      render: (val: number) => (
+        <Progress percent={val} size="small" status={val > 80 ? 'success' : 'active'} />
+      ),
     },
-    { title: '最后联系', dataIndex: 'lastContact', key: 'lastContact', render: (t: string) => t || '-' }
+    {
+      title: '最后联系',
+      dataIndex: 'lastContact',
+      key: 'lastContact',
+      render: (t: string) => t || '-',
+    },
   ];
 
   return (

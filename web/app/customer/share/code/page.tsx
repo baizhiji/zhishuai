@@ -1,20 +1,33 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Card, Typography, Button, Space, Table, Tag, Modal, Form, Input, message, Image, QRCode } from 'antd'
-import { PlusOutlined, ShareAltOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons'
+import { useState } from 'react';
+import {
+  Card,
+  Typography,
+  Button,
+  Space,
+  Table,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  message,
+  Image,
+  QRCode,
+} from 'antd';
+import { PlusOutlined, ShareAltOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 interface ReferralCode {
-  id: string
-  name: string
-  code: string
-  platform: string
-  status: 'active' | 'inactive'
-  clickCount: number
-  conversionCount: number
-  createdAt: string
+  id: string;
+  name: string;
+  code: string;
+  platform: string;
+  status: 'active' | 'inactive';
+  clickCount: number;
+  conversionCount: number;
+  createdAt: string;
 }
 
 export default function ShareCodePage() {
@@ -29,10 +42,10 @@ export default function ShareCodePage() {
       conversionCount: 86,
       createdAt: '2024-03-25',
     },
-  ])
+  ]);
 
-  const [isQrModalVisible, setIsQrModalVisible] = useState(false)
-  const [selectedCode, setSelectedCode] = useState<string>('')
+  const [isQrModalVisible, setIsQrModalVisible] = useState(false);
+  const [selectedCode, setSelectedCode] = useState<string>('');
 
   const columns = [
     { title: '名称', dataIndex: 'name', key: 'name' },
@@ -43,7 +56,9 @@ export default function ShareCodePage() {
       render: (code: string) => (
         <Space>
           <code>{code}</code>
-          <Button type="link" icon={<CopyOutlined />} size="small">复制</Button>
+          <Button type="link" icon={<CopyOutlined />} size="small">
+            复制
+          </Button>
         </Space>
       ),
     },
@@ -70,26 +85,32 @@ export default function ShareCodePage() {
             type="link"
             icon={<ShareAltOutlined />}
             onClick={() => {
-              setSelectedCode(record.code)
-              setIsQrModalVisible(true)
+              setSelectedCode(record.code);
+              setIsQrModalVisible(true);
             }}
           >
             二维码
           </Button>
-          <Button type="link" icon={<DownloadOutlined />}>下载</Button>
+          <Button type="link" icon={<DownloadOutlined />}>
+            下载
+          </Button>
         </Space>
       ),
     },
-  ]
+  ];
 
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <Title level={2} className="mb-2">推荐码生成</Title>
+          <Title level={2} className="mb-2">
+            推荐码生成
+          </Title>
           <Text type="secondary">生成个人推荐码和二维码</Text>
         </div>
-        <Button type="primary" icon={<PlusOutlined />}>生成新码</Button>
+        <Button type="primary" icon={<PlusOutlined />}>
+          生成新码
+        </Button>
       </div>
 
       <Card>
@@ -101,8 +122,23 @@ export default function ShareCodePage() {
         open={isQrModalVisible}
         onCancel={() => setIsQrModalVisible(false)}
         footer={[
-          <Button key="copy" onClick={() => { message.success('已复制图片') }}>复制图片</Button>,
-          <Button key="download" type="primary" onClick={() => { message.success('已下载') }}>下载</Button>,
+          <Button
+            key="copy"
+            onClick={() => {
+              message.success('已复制图片');
+            }}
+          >
+            复制图片
+          </Button>,
+          <Button
+            key="download"
+            type="primary"
+            onClick={() => {
+              message.success('已下载');
+            }}
+          >
+            下载
+          </Button>,
         ]}
       >
         <div className="text-center">
@@ -113,5 +149,5 @@ export default function ShareCodePage() {
         </div>
       </Modal>
     </div>
-  )
+  );
 }

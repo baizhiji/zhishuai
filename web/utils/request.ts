@@ -29,7 +29,7 @@ class Request {
   private getHeaders(): HeadersInit {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
 
     if (typeof window !== 'undefined') {
@@ -65,12 +65,10 @@ class Request {
     });
   }
 
-  async get<T = any>(
-    url: string,
-    params?: Record<string, string | number | boolean>
-  ): Promise<T> {
+  async get<T = any>(url: string, params?: Record<string, string | number | boolean>): Promise<T> {
     const queryString = params
-      ? '?' + new URLSearchParams(
+      ? '?' +
+        new URLSearchParams(
           Object.entries(params)
             .filter(([_, v]) => v !== undefined && v !== null)
             .map(([k, v]) => [k, String(v)])

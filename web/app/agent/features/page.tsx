@@ -63,7 +63,7 @@ export default function AgentFeaturesPage() {
   const fetchFeatures = async () => {
     try {
       const res = await fetch(`/api/admin/features`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       }).then(r => r.json());
       if (res.data) {
         setFeatures(res.data);
@@ -77,7 +77,7 @@ export default function AgentFeaturesPage() {
     setLoading(true);
     try {
       const res = await fetch(`/api/user/features?userId=${customerId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       }).then(r => r.json());
       if (res.data) {
         setCustomerFeatures(res.data);
@@ -101,12 +101,12 @@ export default function AgentFeaturesPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({
           userId: selectedCustomer,
-          enabled
-        })
+          enabled,
+        }),
       }).then(r => r.json());
 
       if (res.success) {
@@ -131,12 +131,12 @@ export default function AgentFeaturesPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
         body: JSON.stringify({
           userId: selectedCustomer,
-          enabled
-        })
+          enabled,
+        }),
       }).then(r => r.json());
 
       if (res.success) {
@@ -161,7 +161,7 @@ export default function AgentFeaturesPage() {
       dataIndex: 'code',
       key: 'code',
       width: 150,
-      render: (code: string) => <Tag>{code}</Tag>
+      render: (code: string) => <Tag>{code}</Tag>,
     },
     {
       title: '全局状态',
@@ -169,10 +169,8 @@ export default function AgentFeaturesPage() {
       key: 'globalEnabled',
       width: 100,
       render: (enabled: boolean) => (
-        <Tag color={enabled ? 'green' : 'red'}>
-          {enabled ? '全局开启' : '全局关闭'}
-        </Tag>
-      )
+        <Tag color={enabled ? 'green' : 'red'}>{enabled ? '全局开启' : '全局关闭'}</Tag>
+      ),
     },
     {
       title: '客户状态',
@@ -182,11 +180,11 @@ export default function AgentFeaturesPage() {
       render: (enabled: boolean, record: any) => (
         <Switch
           checked={enabled}
-          onChange={(checked) => handleToggleFeature(record.code, checked)}
+          onChange={checked => handleToggleFeature(record.code, checked)}
           checkedChildren="开"
           unCheckedChildren="关"
         />
-      )
+      ),
     },
     {
       title: '说明',
@@ -229,7 +227,7 @@ export default function AgentFeaturesPage() {
             请先选择要管理的客户
           </div>
         )}
-        
+
         {selectedCustomer && (
           <Table
             columns={columns}
@@ -238,24 +236,27 @@ export default function AgentFeaturesPage() {
             loading={loading}
             pagination={false}
             expandable={{
-              expandedRowRender: (record) => (
+              expandedRowRender: record => (
                 <div style={{ padding: '0 0 0 48px' }}>
                   {record.subFeatures?.length > 0 ? (
                     record.subFeatures.map((sub: any) => (
-                      <div key={sub.code} style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 16, 
-                        padding: '8px 0',
-                        borderBottom: '1px solid #f0f0f0'
-                      }}>
+                      <div
+                        key={sub.code}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 16,
+                          padding: '8px 0',
+                          borderBottom: '1px solid #f0f0f0',
+                        }}
+                      >
                         <span style={{ width: 200 }}>{sub.name}</span>
                         <Tag>{sub.code}</Tag>
                         <Switch
                           size="small"
                           checked={sub.effectiveEnabled}
                           disabled={!sub.enabled}
-                          onChange={(checked) => handleToggleFeature(sub.code, checked)}
+                          onChange={checked => handleToggleFeature(sub.code, checked)}
                         />
                         <span style={{ color: '#999', fontSize: 12 }}>
                           {sub.effectiveEnabled ? '已开启' : '已关闭'}
@@ -268,7 +269,7 @@ export default function AgentFeaturesPage() {
                   )}
                 </div>
               ),
-              rowExpandable: (record) => (record.subFeatures?.length || 0) > 0,
+              rowExpandable: record => (record.subFeatures?.length || 0) > 0,
             }}
           />
         )}

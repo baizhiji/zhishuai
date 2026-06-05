@@ -146,7 +146,7 @@ export default function AdminLogsPage() {
             <Option value="启用">启用</Option>
           </Select>
           <RangePicker
-            onChange={(dates) => {
+            onChange={dates => {
               setFilters({
                 ...filters,
                 startDate: dates?.[0]?.format('YYYY-MM-DD') || '',

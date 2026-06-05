@@ -1,5 +1,5 @@
-import PlaceholderPage from '@/components/common/PlaceholderPage'
+import PlaceholderPage from '@/components/common/PlaceholderPage';
 
 export default function HRMPage() {
-  return <PlaceholderPage featureName="员工管理" />
+  return <PlaceholderPage featureName="员工管理" />;
 }

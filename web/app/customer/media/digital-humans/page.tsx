@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   Card,
   Row,
@@ -23,7 +23,7 @@ import {
   Popconfirm,
   Empty,
   Tabs,
-} from 'antd'
+} from 'antd';
 import {
   PlusOutlined,
   UploadOutlined,
@@ -34,38 +34,38 @@ import {
   RobotOutlined,
   ApiOutlined,
   CheckCircleOutlined,
-} from '@ant-design/icons'
-import { DigitalHuman, DigitalHumanType } from '@/lib/content/types'
+} from '@ant-design/icons';
+import { DigitalHuman, DigitalHumanType } from '@/lib/content/types';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 export default function DigitalHumanWarehousePage() {
-  const [digitalHumans, setDigitalHumans] = useState<DigitalHuman[]>([])
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
-  const [isApiModalVisible, setIsApiModalVisible] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('all')
+  const [digitalHumans, setDigitalHumans] = useState<DigitalHuman[]>([]);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isApiModalVisible, setIsApiModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
 
   // 从 localStorage 加载数字人数据
   useEffect(() => {
-    loadDigitalHumans()
-  }, [])
+    loadDigitalHumans();
+  }, []);
 
   const loadDigitalHumans = () => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('digital-humans')
+      const saved = localStorage.getItem('digital-humans');
       if (saved) {
         try {
-          setDigitalHumans(JSON.parse(saved))
+          setDigitalHumans(JSON.parse(saved));
         } catch (error) {
-          console.error('加载数字人失败:', error)
+          console.error('加载数字人失败:', error);
         }
       }
 
       // 初始化系统自带数字人
-      initializeSystemDigitalHumans()
+      initializeSystemDigitalHumans();
     }
-  }
+  };
 
   const initializeSystemDigitalHumans = () => {
     if (typeof window !== 'undefined') {
@@ -114,28 +114,30 @@ export default function DigitalHumanWarehousePage() {
           createdAt: Date.now(),
           status: 'active',
         },
-      ]
+      ];
 
       // 合并系统数字人和已存在的数字人
-      const existing = localStorage.getItem('digital-humans')
-      const existingHumans = existing ? JSON.parse(existing) : []
+      const existing = localStorage.getItem('digital-humans');
+      const existingHumans = existing ? JSON.parse(existing) : [];
 
       // 过滤出非系统数字人
-      const nonSystemHumans = existingHumans.filter((h: DigitalHuman) => h.type !== DigitalHumanType.SYSTEM)
+      const nonSystemHumans = existingHumans.filter(
+        (h: DigitalHuman) => h.type !== DigitalHumanType.SYSTEM
+      );
 
       // 合并
-      const allHumans = [...systemHumans, ...nonSystemHumans]
-      localStorage.setItem('digital-humans', JSON.stringify(allHumans))
-      setDigitalHumans(allHumans)
+      const allHumans = [...systemHumans, ...nonSystemHumans];
+      localStorage.setItem('digital-humans', JSON.stringify(allHumans));
+      setDigitalHumans(allHumans);
     }
-  }
+  };
 
   // 上传真人照片克隆
   const handlePhotoClone = async (values: any) => {
-    setLoading(true)
+    setLoading(true);
     try {
       // 模拟克隆过程
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       const newHuman: DigitalHuman = {
         id: `cloned_photo_${Date.now()}`,
@@ -147,27 +149,27 @@ export default function DigitalHumanWarehousePage() {
         style: values.style,
         createdAt: Date.now(),
         status: 'active',
-      }
+      };
 
-      const updatedHumans = [...digitalHumans, newHuman]
-      setDigitalHumans(updatedHumans)
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans))
+      const updatedHumans = [...digitalHumans, newHuman];
+      setDigitalHumans(updatedHumans);
+      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans));
 
-      setIsAddModalVisible(false)
-      message.success('数字人克隆成功！')
+      setIsAddModalVisible(false);
+      message.success('数字人克隆成功！');
     } catch (error) {
-      message.error('克隆失败，请重试')
+      message.error('克隆失败，请重试');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // 上传真人视频克隆
   const handleVideoClone = async (values: any) => {
-    setLoading(true)
+    setLoading(true);
     try {
       // 模拟克隆过程
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       const newHuman: DigitalHuman = {
         id: `cloned_video_${Date.now()}`,
@@ -179,27 +181,27 @@ export default function DigitalHumanWarehousePage() {
         style: values.style,
         createdAt: Date.now(),
         status: 'active',
-      }
+      };
 
-      const updatedHumans = [...digitalHumans, newHuman]
-      setDigitalHumans(updatedHumans)
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans))
+      const updatedHumans = [...digitalHumans, newHuman];
+      setDigitalHumans(updatedHumans);
+      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans));
 
-      setIsAddModalVisible(false)
-      message.success('数字人克隆成功！')
+      setIsAddModalVisible(false);
+      message.success('数字人克隆成功！');
     } catch (error) {
-      message.error('克隆失败，请重试')
+      message.error('克隆失败，请重试');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // 从API调用数字人
   const handleApiCall = async (values: any) => {
-    setLoading(true)
+    setLoading(true);
     try {
       // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
       const newHuman: DigitalHuman = {
         id: `api_${Date.now()}`,
@@ -211,39 +213,39 @@ export default function DigitalHumanWarehousePage() {
         style: values.style,
         createdAt: Date.now(),
         status: 'active',
-      }
+      };
 
-      const updatedHumans = [...digitalHumans, newHuman]
-      setDigitalHumans(updatedHumans)
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans))
+      const updatedHumans = [...digitalHumans, newHuman];
+      setDigitalHumans(updatedHumans);
+      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans));
 
-      setIsApiModalVisible(false)
-      message.success('数字人添加成功！')
+      setIsApiModalVisible(false);
+      message.success('数字人添加成功！');
     } catch (error) {
-      message.error('添加失败，请重试')
+      message.error('添加失败，请重试');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // 删除数字人
   const handleDelete = (id: string) => {
     if (id.startsWith('system_')) {
-      message.warning('系统自带数字人不能删除')
-      return
+      message.warning('系统自带数字人不能删除');
+      return;
     }
 
-    const newHumans = digitalHumans.filter((h) => h.id !== id)
-    setDigitalHumans(newHumans)
-    localStorage.setItem('digital-humans', JSON.stringify(newHumans))
-    message.success('已删除')
-  }
+    const newHumans = digitalHumans.filter(h => h.id !== id);
+    setDigitalHumans(newHumans);
+    localStorage.setItem('digital-humans', JSON.stringify(newHumans));
+    message.success('已删除');
+  };
 
   // 筛选数字人
-  const filteredHumans = digitalHumans.filter((human) => {
-    if (activeTab === 'all') return true
-    return human.type === activeTab
-  })
+  const filteredHumans = digitalHumans.filter(human => {
+    if (activeTab === 'all') return true;
+    return human.type === activeTab;
+  });
 
   // 表格列定义
   const columns = [
@@ -252,9 +254,7 @@ export default function DigitalHumanWarehousePage() {
       dataIndex: 'avatar',
       key: 'avatar',
       width: 80,
-      render: (avatar: string) => (
-        <Avatar src={avatar} size={60} />
-      ),
+      render: (avatar: string) => <Avatar src={avatar} size={60} />,
     },
     {
       title: '名称',
@@ -263,9 +263,7 @@ export default function DigitalHumanWarehousePage() {
       render: (name: string, record: DigitalHuman) => (
         <Space>
           <Text strong>{name}</Text>
-          {record.type === DigitalHumanType.SYSTEM && (
-            <Tag color="blue">系统自带</Tag>
-          )}
+          {record.type === DigitalHumanType.SYSTEM && <Tag color="blue">系统自带</Tag>}
         </Space>
       ),
     },
@@ -279,13 +277,13 @@ export default function DigitalHumanWarehousePage() {
           [DigitalHumanType.SYSTEM]: { label: '系统自带', color: 'blue', icon: <RobotOutlined /> },
           [DigitalHumanType.CLONED]: { label: '克隆', color: 'green', icon: <CameraOutlined /> },
           [DigitalHumanType.API]: { label: 'API', color: 'purple', icon: <ApiOutlined /> },
-        }
-        const config = typeMap[type]
+        };
+        const config = typeMap[type];
         return (
           <Tag color={config.color} icon={config.icon}>
             {config.label}
           </Tag>
-        )
+        );
       },
     },
     {
@@ -293,7 +291,7 @@ export default function DigitalHumanWarehousePage() {
       dataIndex: 'gender',
       key: 'gender',
       width: 80,
-      render: (gender: string) => gender === 'male' ? '男' : '女',
+      render: (gender: string) => (gender === 'male' ? '男' : '女'),
     },
     {
       title: '年龄范围',
@@ -346,37 +344,28 @@ export default function DigitalHumanWarehousePage() {
         </Space>
       ),
     },
-  ]
+  ];
 
   return (
     <div className="p-6">
       {/* 页面头部 */}
       <div className="mb-6">
         <Title level={2}>数字人仓库</Title>
-        <Text type="secondary">
-          管理您的数字人，支持真人克隆、系统自带和API调用的数字人
-        </Text>
+        <Text type="secondary">管理您的数字人，支持真人克隆、系统自带和API调用的数字人</Text>
       </div>
 
       {/* 操作按钮 */}
       <Card className="mb-4">
         <Space>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsAddModalVisible(true)}
-          >
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalVisible(true)}>
             克隆数字人
           </Button>
-          <Button
-            icon={<ApiOutlined />}
-            onClick={() => setIsApiModalVisible(true)}
-          >
+          <Button icon={<ApiOutlined />} onClick={() => setIsApiModalVisible(true)}>
             从API添加
           </Button>
           <Button
             icon={<VideoCameraOutlined />}
-            onClick={() => window.location.href = '/media/factory'}
+            onClick={() => (window.location.href = '/media/factory')}
           >
             使用数字人生成视频
           </Button>
@@ -419,7 +408,7 @@ export default function DigitalHumanWarehousePage() {
               pagination={{
                 pageSize: 10,
                 showSizeChanger: true,
-                showTotal: (total) => `共 ${total} 个数字人`,
+                showTotal: total => `共 ${total} 个数字人`,
               }}
             />
           )}
@@ -446,11 +435,7 @@ export default function DigitalHumanWarehousePage() {
                     name="photo"
                     rules={[{ required: true, message: '请上传照片' }]}
                   >
-                    <Upload
-                      listType="picture-card"
-                      maxCount={1}
-                      beforeUpload={() => false}
-                    >
+                    <Upload listType="picture-card" maxCount={1} beforeUpload={() => false}>
                       <div>
                         <CameraOutlined />
                         <div style={{ marginTop: 8 }}>上传照片</div>
@@ -500,12 +485,7 @@ export default function DigitalHumanWarehousePage() {
                     </Select>
                   </Form.Item>
                   <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                    >
+                    <Button type="primary" htmlType="submit" loading={loading} block>
                       开始克隆
                     </Button>
                   </Form.Item>
@@ -522,11 +502,7 @@ export default function DigitalHumanWarehousePage() {
                     name="video"
                     rules={[{ required: true, message: '请上传视频' }]}
                   >
-                    <Upload
-                      listType="text"
-                      maxCount={1}
-                      beforeUpload={() => false}
-                    >
+                    <Upload listType="text" maxCount={1} beforeUpload={() => false}>
                       <Button icon={<UploadOutlined />}>选择视频文件</Button>
                     </Upload>
                   </Form.Item>
@@ -573,12 +549,7 @@ export default function DigitalHumanWarehousePage() {
                     </Select>
                   </Form.Item>
                   <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                    >
+                    <Button type="primary" htmlType="submit" loading={loading} block>
                       开始克隆
                     </Button>
                   </Form.Item>
@@ -626,11 +597,7 @@ export default function DigitalHumanWarehousePage() {
           >
             <Input placeholder="为数字人起个名字" />
           </Form.Item>
-          <Form.Item
-            label="性别"
-            name="gender"
-            rules={[{ required: true, message: '请选择性别' }]}
-          >
+          <Form.Item label="性别" name="gender" rules={[{ required: true, message: '请选择性别' }]}>
             <Radio.Group>
               <Radio value="male">男</Radio>
               <Radio value="female">女</Radio>
@@ -649,11 +616,7 @@ export default function DigitalHumanWarehousePage() {
               <Select.Option value="40-50">40-50岁</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item
-            label="风格"
-            name="style"
-            rules={[{ required: true, message: '请选择风格' }]}
-          >
+          <Form.Item label="风格" name="style" rules={[{ required: true, message: '请选择风格' }]}>
             <Select>
               <Select.Option value="商务">商务</Select.Option>
               <Select.Option value="活泼">活泼</Select.Option>
@@ -662,17 +625,12 @@ export default function DigitalHumanWarehousePage() {
             </Select>
           </Form.Item>
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-            >
+            <Button type="primary" htmlType="submit" loading={loading} block>
               添加数字人
             </Button>
           </Form.Item>
         </Form>
       </Modal>
     </div>
-  )
+  );
 }

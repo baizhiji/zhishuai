@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import {
   Card,
   Row,
@@ -16,91 +16,161 @@ import {
   message,
   Tabs,
   Table,
-  Tag
-} from 'antd'
+  Tag,
+} from 'antd';
 import {
   SaveOutlined,
   BellOutlined,
   GlobalOutlined,
   LockOutlined,
-  SettingOutlined
-} from '@ant-design/icons'
-import type { ColumnsType } from 'antd/es/table'
+  SettingOutlined,
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 // Mock 日志数据
 const mockLogs = [
-  { key: '1', time: '2024-04-30 14:30:25', user: 'admin', action: '贴牌配置', detail: '修改APP名称为"智枢AI"', ip: '192.168.1.100' },
-  { key: '2', time: '2024-04-30 13:45:10', user: 'agent_华东', action: '客户管理', detail: '新增客户"张三"', ip: '192.168.1.101' },
-  { key: '3', time: '2024-04-30 12:20:33', user: 'agent_华南', action: '功能开关', detail: '开启自媒体运营功能', ip: '192.168.1.102' },
-  { key: '4', time: '2024-04-30 11:15:08', user: 'admin', action: '租户管理', detail: '冻结客户"李四"', ip: '192.168.1.100' },
-  { key: '5', time: '2024-04-30 10:30:45', user: 'agent_西南', action: '客户管理', detail: '重置客户密码', ip: '192.168.1.103' },
-  { key: '6', time: '2024-04-29 16:45:22', user: 'admin', action: '代理商管理', detail: '创建区域代理"西北代理"', ip: '192.168.1.100' },
-  { key: '7', time: '2024-04-29 15:20:11', user: 'agent_华北', action: '功能开关', detail: '批量开启招聘助手功能', ip: '192.168.1.104' },
-  { key: '8', time: '2024-04-29 14:05:38', user: 'admin', action: '系统配置', detail: '更新热更新版本v2.1.0', ip: '192.168.1.100' },
-  { key: '9', time: '2024-04-29 11:30:55', user: 'agent_华东', action: '客户管理', detail: '设置套餐到期时间', ip: '192.168.1.101' },
-  { key: '10', time: '2024-04-29 10:15:42', user: 'admin', action: '公告管理', detail: '发布系统公告v3.2', ip: '192.168.1.100' }
-]
+  {
+    key: '1',
+    time: '2024-04-30 14:30:25',
+    user: 'admin',
+    action: '贴牌配置',
+    detail: '修改APP名称为"智枢AI"',
+    ip: '192.168.1.100',
+  },
+  {
+    key: '2',
+    time: '2024-04-30 13:45:10',
+    user: 'agent_华东',
+    action: '客户管理',
+    detail: '新增客户"张三"',
+    ip: '192.168.1.101',
+  },
+  {
+    key: '3',
+    time: '2024-04-30 12:20:33',
+    user: 'agent_华南',
+    action: '功能开关',
+    detail: '开启自媒体运营功能',
+    ip: '192.168.1.102',
+  },
+  {
+    key: '4',
+    time: '2024-04-30 11:15:08',
+    user: 'admin',
+    action: '租户管理',
+    detail: '冻结客户"李四"',
+    ip: '192.168.1.100',
+  },
+  {
+    key: '5',
+    time: '2024-04-30 10:30:45',
+    user: 'agent_西南',
+    action: '客户管理',
+    detail: '重置客户密码',
+    ip: '192.168.1.103',
+  },
+  {
+    key: '6',
+    time: '2024-04-29 16:45:22',
+    user: 'admin',
+    action: '代理商管理',
+    detail: '创建区域代理"西北代理"',
+    ip: '192.168.1.100',
+  },
+  {
+    key: '7',
+    time: '2024-04-29 15:20:11',
+    user: 'agent_华北',
+    action: '功能开关',
+    detail: '批量开启招聘助手功能',
+    ip: '192.168.1.104',
+  },
+  {
+    key: '8',
+    time: '2024-04-29 14:05:38',
+    user: 'admin',
+    action: '系统配置',
+    detail: '更新热更新版本v2.1.0',
+    ip: '192.168.1.100',
+  },
+  {
+    key: '9',
+    time: '2024-04-29 11:30:55',
+    user: 'agent_华东',
+    action: '客户管理',
+    detail: '设置套餐到期时间',
+    ip: '192.168.1.101',
+  },
+  {
+    key: '10',
+    time: '2024-04-29 10:15:42',
+    user: 'admin',
+    action: '公告管理',
+    detail: '发布系统公告v3.2',
+    ip: '192.168.1.100',
+  },
+];
 
-const logColumns: ColumnsType<typeof mockLogs[0]> = [
+const logColumns: ColumnsType<(typeof mockLogs)[0]> = [
   {
     title: '时间',
     dataIndex: 'time',
     key: 'time',
-    width: 180
+    width: 180,
   },
   {
     title: '操作用户',
     dataIndex: 'user',
     key: 'user',
     width: 120,
-    render: (text) => <Tag color={text === 'admin' ? 'red' : 'blue'}>{text}</Tag>
+    render: text => <Tag color={text === 'admin' ? 'red' : 'blue'}>{text}</Tag>,
   },
   {
     title: '操作类型',
     dataIndex: 'action',
     key: 'action',
-    width: 120
+    width: 120,
   },
   {
     title: '操作详情',
     dataIndex: 'detail',
-    key: 'detail'
+    key: 'detail',
   },
   {
     title: 'IP地址',
     dataIndex: 'ip',
     key: 'ip',
-    width: 140
-  }
-]
+    width: 140,
+  },
+];
 
 export default function SystemConfig() {
-  const [systemForm] = Form.useForm()
-  const [securityForm] = Form.useForm()
-  const [announcementForm] = Form.useForm()
+  const [systemForm] = Form.useForm();
+  const [securityForm] = Form.useForm();
+  const [announcementForm] = Form.useForm();
 
   // 保存系统配置
   const handleSaveSystem = () => {
     systemForm.validateFields().then(() => {
-      message.success('系统配置已保存')
-    })
-  }
+      message.success('系统配置已保存');
+    });
+  };
 
   // 保存安全设置
   const handleSaveSecurity = () => {
     securityForm.validateFields().then(() => {
-      message.success('安全设置已保存')
-    })
-  }
+      message.success('安全设置已保存');
+    });
+  };
 
   // 保存公告
   const handleSaveAnnouncement = () => {
     announcementForm.validateFields().then(() => {
-      message.success('公告已发布')
-    })
-  }
+      message.success('公告已发布');
+    });
+  };
 
   const tabItems = [
     {
@@ -121,7 +191,7 @@ export default function SystemConfig() {
               updateUrl: 'https://update.baizhiji.com',
               maintenanceMode: false,
               maxUploadSize: 50,
-              allowedFileTypes: 'jpg,png,pdf,doc,docx'
+              allowedFileTypes: 'jpg,png,pdf,doc,docx',
             }}
           >
             <Row gutter={24}>
@@ -167,7 +237,7 @@ export default function SystemConfig() {
             </Form.Item>
           </Form>
         </Card>
-      )
+      ),
     },
     {
       key: 'security',
@@ -187,7 +257,7 @@ export default function SystemConfig() {
               passwordRequireSpecial: true,
               sessionTimeout: 30,
               loginWhiteList: '',
-              ipLockThreshold: 10
+              ipLockThreshold: 10,
             }}
           >
             <Divider>密码策略</Divider>
@@ -199,7 +269,11 @@ export default function SystemConfig() {
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="必须包含特殊字符" name="passwordRequireSpecial" valuePropName="checked">
+                <Form.Item
+                  label="必须包含特殊字符"
+                  name="passwordRequireSpecial"
+                  valuePropName="checked"
+                >
                   <Switch />
                 </Form.Item>
               </Col>
@@ -231,7 +305,7 @@ export default function SystemConfig() {
             </Form.Item>
           </Form>
         </Card>
-      )
+      ),
     },
     {
       key: 'announcement',
@@ -243,10 +317,7 @@ export default function SystemConfig() {
       ),
       children: (
         <Card>
-          <Form
-            form={announcementForm}
-            layout="vertical"
-          >
+          <Form form={announcementForm} layout="vertical">
             <Form.Item label="公告标题" name="title" rules={[{ required: true }]}>
               <Input placeholder="如：系统升级通知" />
             </Form.Item>
@@ -257,7 +328,7 @@ export default function SystemConfig() {
                   { value: 'info', label: '通知' },
                   { value: 'warning', label: '警告' },
                   { value: 'success', label: '成功' },
-                  { value: 'error', label: '错误' }
+                  { value: 'error', label: '错误' },
                 ]}
               />
             </Form.Item>
@@ -284,7 +355,7 @@ export default function SystemConfig() {
             </Form.Item>
           </Form>
         </Card>
-      )
+      ),
     },
     {
       key: 'logs',
@@ -303,18 +374,20 @@ export default function SystemConfig() {
             pagination={{ pageSize: 10 }}
           />
         </Card>
-      )
-    }
-  ]
+      ),
+    },
+  ];
 
   return (
     <div className="p-6">
       <div className="mb-6">
-        <Title level={2} className="mb-2">系统配置</Title>
+        <Title level={2} className="mb-2">
+          系统配置
+        </Title>
         <Text type="secondary">热更新版本管理、全局公告、安全设置、操作日志</Text>
       </div>
 
       <Tabs items={tabItems} />
     </div>
-  )
+  );
 }

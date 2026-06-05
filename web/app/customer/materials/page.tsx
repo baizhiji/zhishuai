@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   Card,
   Row,
@@ -16,7 +16,7 @@ import {
   message,
   Image,
   Popconfirm,
-} from 'antd'
+} from 'antd';
 import {
   SearchOutlined,
   DeleteOutlined,
@@ -33,103 +33,103 @@ import {
   RobotOutlined,
   FontSizeOutlined,
   FileOutlined,
-} from '@ant-design/icons'
-import { ContentCategory, contentCategoryConfig } from '@/lib/content/types'
+} from '@ant-design/icons';
+import { ContentCategory, contentCategoryConfig } from '@/lib/content/types';
 
-const { Title, Text, Paragraph } = Typography
-const { Search } = Input
+const { Title, Text, Paragraph } = Typography;
+const { Search } = Input;
 
 interface Material {
-  id: string
-  category: ContentCategory
-  title: string
-  content: string
-  status: 'unused' | 'used'
-  timestamp: number
+  id: string;
+  category: ContentCategory;
+  title: string;
+  content: string;
+  status: 'unused' | 'used';
+  timestamp: number;
 }
 
 export default function MaterialLibraryPage() {
-  const [searchText, setSearchText] = useState('')
-  const [filterCategoryState, setFilterCategoryState] = useState<ContentCategory | 'all'>('all')
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [materials, setMaterials] = useState<Material[]>([])
-  const [previewVisible, setPreviewVisible] = useState(false)
-  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null)
+  const [searchText, setSearchText] = useState('');
+  const [filterCategoryState, setFilterCategoryState] = useState<ContentCategory | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
 
   // 从 localStorage 加载素材
   useEffect(() => {
-    loadMaterials()
-  }, [])
+    loadMaterials();
+  }, []);
 
   const loadMaterials = () => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('materials')
+      const saved = localStorage.getItem('materials');
       if (saved) {
         try {
-          setMaterials(JSON.parse(saved))
+          setMaterials(JSON.parse(saved));
         } catch (error) {
-          console.error('加载素材失败:', error)
+          console.error('加载素材失败:', error);
         }
       }
     }
-  }
+  };
 
   // 筛选素材
-  const filteredMaterials = materials.filter((material) => {
+  const filteredMaterials = materials.filter(material => {
     // 分类筛选
     const categoryMatch =
-      filterCategoryState === 'all' || material.category === filterCategoryState
+      filterCategoryState === 'all' || material.category === filterCategoryState;
 
     // 状态筛选
-    const statusMatch = filterStatus === 'all' || material.status === filterStatus
+    const statusMatch = filterStatus === 'all' || material.status === filterStatus;
 
     // 搜索筛选
     const searchMatch =
       !searchText ||
       material.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      material.content.toLowerCase().includes(searchText.toLowerCase())
+      material.content.toLowerCase().includes(searchText.toLowerCase());
 
-    return categoryMatch && statusMatch && searchMatch
-  })
+    return categoryMatch && statusMatch && searchMatch;
+  });
 
   // 删除素材
   const handleDelete = (id: string) => {
-    const newMaterials = materials.filter((m) => m.id !== id)
-    setMaterials(newMaterials)
+    const newMaterials = materials.filter(m => m.id !== id);
+    setMaterials(newMaterials);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('materials', JSON.stringify(newMaterials))
+      localStorage.setItem('materials', JSON.stringify(newMaterials));
     }
-    message.success('已删除')
-  }
+    message.success('已删除');
+  };
 
   // 复制内容
   const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content)
-    message.success('已复制到剪贴板')
-  }
+    navigator.clipboard.writeText(content);
+    message.success('已复制到剪贴板');
+  };
 
   // 下载内容
   const handleDownload = (material: Material) => {
-    const categoryConfig = contentCategoryConfig[material.category]
+    const categoryConfig = contentCategoryConfig[material.category];
     if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
-      window.open(material.content, '_blank')
+      window.open(material.content, '_blank');
     } else {
-      const blob = new Blob([material.content], { type: 'text/plain' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `${material.title}_${Date.now()}.txt`
-      a.click()
-      URL.revokeObjectURL(url)
+      const blob = new Blob([material.content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${material.title}_${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
-    message.success('已下载')
-  }
+    message.success('已下载');
+  };
 
   // 预览素材
   const handlePreview = (material: Material) => {
-    setPreviewMaterial(material)
-    setPreviewVisible(true)
-  }
+    setPreviewMaterial(material);
+    setPreviewVisible(true);
+  };
 
   // 获取分类图标
   const getCategoryIcon = (category: ContentCategory) => {
@@ -144,9 +144,9 @@ export default function MaterialLibraryPage() {
       [ContentCategory.VIDEO]: <VideoCameraOutlined />,
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
       [ContentCategory.VIDEO_ANALYSIS]: <FileOutlined />,
-    }
-    return iconMap[category]
-  }
+    };
+    return iconMap[category];
+  };
 
   // 表格列定义
   const columns = [
@@ -181,7 +181,7 @@ export default function MaterialLibraryPage() {
       key: 'content',
       ellipsis: true,
       render: (content: string, record: Material) => {
-        const categoryConfig = contentCategoryConfig[record.category]
+        const categoryConfig = contentCategoryConfig[record.category];
         if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
           return (
             <Image
@@ -189,9 +189,9 @@ export default function MaterialLibraryPage() {
               alt={record.title}
               style={{ width: 60, height: 60, objectFit: 'cover' }}
             />
-          )
+          );
         }
-        return <Paragraph ellipsis={{ rows: 1 }}>{content}</Paragraph>
+        return <Paragraph ellipsis={{ rows: 1 }}>{content}</Paragraph>;
       },
     },
     {
@@ -210,8 +210,7 @@ export default function MaterialLibraryPage() {
       dataIndex: 'timestamp',
       key: 'timestamp',
       width: 160,
-      render: (timestamp: number) =>
-        new Date(timestamp).toLocaleString('zh-CN'),
+      render: (timestamp: number) => new Date(timestamp).toLocaleString('zh-CN'),
     },
     {
       title: '操作',
@@ -241,19 +240,14 @@ export default function MaterialLibraryPage() {
             okText="确定"
             cancelText="取消"
           >
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-            >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
           </Popconfirm>
         </Space>
       ),
     },
-  ]
+  ];
 
   return (
     <div className="p-6">
@@ -270,7 +264,7 @@ export default function MaterialLibraryPage() {
             <Search
               placeholder="搜索素材标题或内容"
               allowClear
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={e => setSearchText(e.target.value)}
               style={{ width: '100%' }}
             />
           </Col>
@@ -283,7 +277,7 @@ export default function MaterialLibraryPage() {
               allowClear
             >
               <Select.Option value="all">全部分类</Select.Option>
-              {Object.values(ContentCategory).map((category) => (
+              {Object.values(ContentCategory).map(category => (
                 <Select.Option key={category} value={category}>
                   {contentCategoryConfig[category]?.label}
                 </Select.Option>
@@ -316,7 +310,7 @@ export default function MaterialLibraryPage() {
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条`,
+            showTotal: total => `共 ${total} 条`,
           }}
         />
       </Card>
@@ -327,10 +321,18 @@ export default function MaterialLibraryPage() {
         open={previewVisible}
         onCancel={() => setPreviewVisible(false)}
         footer={[
-          <Button key="copy" icon={<CopyOutlined />} onClick={() => previewMaterial && handleCopy(previewMaterial.content)}>
+          <Button
+            key="copy"
+            icon={<CopyOutlined />}
+            onClick={() => previewMaterial && handleCopy(previewMaterial.content)}
+          >
             复制
           </Button>,
-          <Button key="download" icon={<DownloadOutlined />} onClick={() => previewMaterial && handleDownload(previewMaterial)}>
+          <Button
+            key="download"
+            icon={<DownloadOutlined />}
+            onClick={() => previewMaterial && handleDownload(previewMaterial)}
+          >
             下载
           </Button>,
           <Button key="close" onClick={() => setPreviewVisible(false)}>
@@ -351,9 +353,17 @@ export default function MaterialLibraryPage() {
             </Space>
             <div className="mt-4">
               {contentCategoryConfig[previewMaterial.category]?.type === 'image' ? (
-                <Image src={previewMaterial.content} alt={previewMaterial.title} style={{ maxWidth: '100%' }} />
+                <Image
+                  src={previewMaterial.content}
+                  alt={previewMaterial.title}
+                  style={{ maxWidth: '100%' }}
+                />
               ) : contentCategoryConfig[previewMaterial.category]?.type === 'video' ? (
-                <video src={previewMaterial.content} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+                <video
+                  src={previewMaterial.content}
+                  controls
+                  style={{ maxWidth: '100%', maxHeight: 400 }}
+                />
               ) : (
                 <Paragraph className="whitespace-pre-wrap">{previewMaterial.content}</Paragraph>
               )}
@@ -362,5 +372,5 @@ export default function MaterialLibraryPage() {
         )}
       </Modal>
     </div>
-  )
+  );
 }

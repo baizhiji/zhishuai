@@ -1,13 +1,27 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Row, Col, Button, Modal, QRCode, Spin, message, Empty, Tabs, Tag, Space, Typography } from 'antd';
-import { 
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Modal,
+  QRCode,
+  Spin,
+  message,
+  Empty,
+  Tabs,
+  Tag,
+  Space,
+  Typography,
+} from 'antd';
+import {
   EnvironmentOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   UserOutlined,
-  WeiboSquareFilled
+  WeiboSquareFilled,
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -76,14 +90,16 @@ export default function RecruitmentPlatforms() {
     setSelectedPlatform(platform);
     setLoading(true);
     setQrCodeUrl('');
-    
+
     try {
       // 实际开发中调用后端获取二维码
       // const response = await fetch(platform.authUrl);
       // const data = await response.json();
-      
+
       // 模拟生成二维码
-      setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`recruitment_auth_${platform.id}_${Date.now()}`)}`);
+      setQrCodeUrl(
+        `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`recruitment_auth_${platform.id}_${Date.now()}`)}`
+      );
     } catch (error) {
       message.error('获取授权二维码失败');
     } finally {
@@ -126,24 +142,20 @@ export default function RecruitmentPlatforms() {
                   const platform = getPlatformInfo(account.platform);
                   return (
                     <Col span={8} key={account.platform}>
-                      <Card 
-                        size="small" 
-                        style={{ 
+                      <Card
+                        size="small"
+                        style={{
                           borderColor: platform?.color,
-                          background: `${platform?.color}10`
+                          background: `${platform?.color}10`,
                         }}
                         actions={[
                           <Button type="link" danger onClick={() => handleUnbind(account.platform)}>
                             解绑
-                          </Button>
+                          </Button>,
                         ]}
                       >
                         <Card.Meta
-                          avatar={
-                            <div style={{ color: platform?.color }}>
-                              {platform?.icon}
-                            </div>
-                          }
+                          avatar={<div style={{ color: platform?.color }}>{platform?.icon}</div>}
                           title={platform?.name}
                           description={
                             <Space direction="vertical" size={0}>
@@ -154,14 +166,18 @@ export default function RecruitmentPlatforms() {
                             </Space>
                           }
                         />
-                        <Tag 
+                        <Tag
                           color={account.status === 'active' ? 'green' : 'red'}
                           style={{ marginTop: 8 }}
                         >
                           {account.status === 'active' ? (
-                            <><CheckCircleOutlined /> 正常</>
+                            <>
+                              <CheckCircleOutlined /> 正常
+                            </>
                           ) : (
-                            <><ExclamationCircleOutlined /> 已过期</>
+                            <>
+                              <ExclamationCircleOutlined /> 已过期
+                            </>
                           )}
                         </Tag>
                       </Card>
@@ -184,9 +200,7 @@ export default function RecruitmentPlatforms() {
                     style={{ textAlign: 'center', borderColor: '#f0f0f0' }}
                     cover={
                       <div style={{ padding: '40px 0', background: `${platform.color}10` }}>
-                        <div style={{ color: platform.color }}>
-                          {platform.icon}
-                        </div>
+                        <div style={{ color: platform.color }}>{platform.icon}</div>
                         <div style={{ marginTop: 12, fontWeight: 500, color: '#333' }}>
                           {platform.name}
                         </div>
@@ -197,8 +211,8 @@ export default function RecruitmentPlatforms() {
                       {boundAccounts.some(acc => acc.platform === platform.id) ? (
                         <Tag color="green">已绑定</Tag>
                       ) : (
-                        <Button 
-                          type="primary" 
+                        <Button
+                          type="primary"
                           onClick={() => handleBindAccount(platform)}
                           style={{ background: platform.color, borderColor: platform.color }}
                         >
@@ -218,22 +232,24 @@ export default function RecruitmentPlatforms() {
       <Card title="授权说明" style={{ marginTop: 24 }}>
         <Row gutter={24}>
           <Col span={8}>
-            <Title level={5}><EnvironmentOutlined /> 自动发布职位</Title>
+            <Title level={5}>
+              <EnvironmentOutlined /> 自动发布职位
+            </Title>
             <Text type="secondary">
               绑定平台后，可一键将职位发布到多个招聘平台，无需手动登录各个平台
             </Text>
           </Col>
           <Col span={8}>
-            <Title level={5}><EnvironmentOutlined /> 智能简历筛选</Title>
-            <Text type="secondary">
-              AI自动分析简历与职位的匹配度，筛选优质候选人
-            </Text>
+            <Title level={5}>
+              <EnvironmentOutlined /> 智能简历筛选
+            </Title>
+            <Text type="secondary">AI自动分析简历与职位的匹配度，筛选优质候选人</Text>
           </Col>
           <Col span={8}>
-            <Title level={5}><EnvironmentOutlined /> 自动沟通候选人</Title>
-            <Text type="secondary">
-              设置智能话术，自动与候选人沟通，解答疑问，提高回复效率
-            </Text>
+            <Title level={5}>
+              <EnvironmentOutlined /> 自动沟通候选人
+            </Title>
+            <Text type="secondary">设置智能话术，自动与候选人沟通，解答疑问，提高回复效率</Text>
           </Col>
         </Row>
       </Card>

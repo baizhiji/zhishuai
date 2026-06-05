@@ -98,45 +98,45 @@ export default function ApiTestPage() {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
-      width: 80
+      width: 80,
     },
     {
       title: '标题',
       dataIndex: 'title',
-      key: 'title'
+      key: 'title',
     },
     {
       title: '类型',
       dataIndex: 'type',
       key: 'type',
-      render: (type) => {
+      render: type => {
         const typeMap: any = {
           text: '文案',
           image: '图片',
           video: '视频',
           'digital-human': '数字人',
-          ecommerce: '电商'
+          ecommerce: '电商',
         };
         return <Tag color="blue">{typeMap[type] || type}</Tag>;
-      }
+      },
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => {
+      render: status => {
         return status === 'unused' ? (
           <Tag color="green">未使用</Tag>
         ) : (
           <Tag color="red">已使用</Tag>
         );
-      }
+      },
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
-      key: 'createdAt'
-    }
+      key: 'createdAt',
+    },
   ];
 
   // 账号列表表格列
@@ -145,51 +145,47 @@ export default function ApiTestPage() {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
-      width: 80
+      width: 80,
     },
     {
       title: '平台',
       dataIndex: 'platform',
       key: 'platform',
-      render: (platform) => {
+      render: platform => {
         const platformMap: any = {
           douyin: '抖音',
           xiaohongshu: '小红书',
           weibo: '微博',
           wechat: '微信',
-          bilibili: '哔哩哔哩'
+          bilibili: '哔哩哔哩',
         };
         return <Tag color="purple">{platformMap[platform] || platform}</Tag>;
-      }
+      },
     },
     {
       title: '账号名称',
       dataIndex: 'accountName',
-      key: 'accountName'
+      key: 'accountName',
     },
     {
       title: '粉丝数',
       dataIndex: 'followerCount',
-      key: 'followerCount'
+      key: 'followerCount',
     },
     {
       title: '自动发布',
       dataIndex: 'autoPublish',
       key: 'autoPublish',
-      render: (autoPublish) => (autoPublish ? <Tag color="green">开启</Tag> : <Tag>关闭</Tag>)
+      render: autoPublish => (autoPublish ? <Tag color="green">开启</Tag> : <Tag>关闭</Tag>),
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => {
-        return status === 'active' ? (
-          <Tag color="green">正常</Tag>
-        ) : (
-          <Tag color="red">异常</Tag>
-        );
-      }
-    }
+      render: status => {
+        return status === 'active' ? <Tag color="green">正常</Tag> : <Tag color="red">异常</Tag>;
+      },
+    },
   ];
 
   // 职位列表表格列
@@ -198,38 +194,38 @@ export default function ApiTestPage() {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
-      width: 80
+      width: 80,
     },
     {
       title: '职位名称',
       dataIndex: 'title',
-      key: 'title'
+      key: 'title',
     },
     {
       title: '部门',
       dataIndex: 'department',
-      key: 'department'
+      key: 'department',
     },
     {
       title: '地点',
       dataIndex: 'location',
-      key: 'location'
+      key: 'location',
     },
     {
       title: '薪资',
       key: 'salary',
-      render: (_, record) => `${record.salaryMin}-${record.salaryMax}k`
+      render: (_, record) => `${record.salaryMin}-${record.salaryMax}k`,
     },
     {
       title: '经验要求',
       dataIndex: 'experience',
-      key: 'experience'
+      key: 'experience',
     },
     {
       title: '学历要求',
       dataIndex: 'education',
-      key: 'education'
-    }
+      key: 'education',
+    },
   ];
 
   return (
@@ -290,7 +286,7 @@ export default function ApiTestPage() {
                   <div style={{ textAlign: 'center', color: '#999' }}>暂无数据</div>
                 )}
               </Card>
-            )
+            ),
           },
           {
             key: 'materials',
@@ -304,7 +300,7 @@ export default function ApiTestPage() {
                   pagination={false}
                 />
               </Card>
-            )
+            ),
           },
           {
             key: 'accounts',
@@ -318,7 +314,7 @@ export default function ApiTestPage() {
                   pagination={false}
                 />
               </Card>
-            )
+            ),
           },
           {
             key: 'jobs',
@@ -327,8 +323,8 @@ export default function ApiTestPage() {
               <Card title="职位列表">
                 <Table columns={jobColumns} dataSource={jobs} rowKey="id" pagination={false} />
               </Card>
-            )
-          }
+            ),
+          },
         ]}
       />
     </div>

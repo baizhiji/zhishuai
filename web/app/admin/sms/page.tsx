@@ -188,8 +188,7 @@ export default function SmsConfigPage() {
       title: '默认',
       dataIndex: 'isDefault',
       key: 'isDefault',
-      render: (isDefault: boolean) =>
-        isDefault ? <Tag color="gold">默认</Tag> : null,
+      render: (isDefault: boolean) => (isDefault ? <Tag color="gold">默认</Tag> : null),
     },
     {
       title: '状态',
@@ -236,10 +235,7 @@ export default function SmsConfigPage() {
           >
             测试
           </Button>
-          <Popconfirm
-            title="确认删除此配置？"
-            onConfirm={() => handleDelete(record.id)}
-          >
+          <Popconfirm title="确认删除此配置？" onConfirm={() => handleDelete(record.id)}>
             <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
@@ -285,11 +281,7 @@ export default function SmsConfigPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) =>
-        status === 'success' ? (
-          <Tag color="success">成功</Tag>
-        ) : (
-          <Tag color="error">失败</Tag>
-        ),
+        status === 'success' ? <Tag color="success">成功</Tag> : <Tag color="error">失败</Tag>,
     },
     {
       title: '时间',
@@ -318,7 +310,7 @@ export default function SmsConfigPage() {
           { key: 'logs', tab: '发送日志' },
         ]}
         activeTabKey={activeTab}
-        onTabChange={(key) => setActiveTab(key as 'configs' | 'logs')}
+        onTabChange={key => setActiveTab(key as 'configs' | 'logs')}
       >
         {activeTab === 'configs' ? (
           <>
@@ -355,7 +347,7 @@ export default function SmsConfigPage() {
               total: logsPagination.total,
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total) => `共 ${total} 条`,
+              showTotal: total => `共 ${total} 条`,
               onChange: (page, pageSize) => {
                 setLogsPagination({ page, pageSize, total: logsPagination.total });
               },

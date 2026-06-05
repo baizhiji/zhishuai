@@ -81,7 +81,7 @@ export default function ApiKeysPage() {
   const handleCreate = (values: any) => {
     // 判断是否是第一个 Key 或同服务商已有主 Key
     const existingPrimary = apiKeys.find(k => k.provider === values.provider && k.isPrimary);
-    
+
     const newKey: ApiKey = {
       id: Date.now(),
       apiKey: values.apiKey,
@@ -95,7 +95,7 @@ export default function ApiKeysPage() {
       failCount: 0,
       isPrimary: !existingPrimary, // 同服务商没有主 Key 时自动设为主
     };
-    
+
     setApiKeys([...apiKeys, newKey]);
     message.success(`API Key 创建成功${newKey.isPrimary ? '（主 Key）' : '（备用 Key）'}`);
     setModalVisible(false);
@@ -105,7 +105,7 @@ export default function ApiKeysPage() {
   const handleDelete = (id: number) => {
     const key = apiKeys.find(k => k.id === id);
     const updatedKeys = apiKeys.filter(k => k.id !== id);
-    
+
     // 如果删除的是主 Key，将同服务商的第一个备用 Key 升级为主 Key
     if (key?.isPrimary) {
       const sameProviderBackups = updatedKeys.filter(k => k.provider === key.provider);
@@ -113,26 +113,30 @@ export default function ApiKeysPage() {
         sameProviderBackups[0].isPrimary = true;
       }
     }
-    
+
     setApiKeys(updatedKeys);
     message.success('API Key 已删除');
   };
 
   const handleToggle = (id: number) => {
-    setApiKeys(apiKeys.map(k => 
-      k.id === id ? { ...k, status: k.status === 'active' ? 'disabled' : 'active' } : k
-    ));
+    setApiKeys(
+      apiKeys.map(k =>
+        k.id === id ? { ...k, status: k.status === 'active' ? 'disabled' : 'active' } : k
+      )
+    );
     message.success('状态已更新');
   };
 
   const handleSetPrimary = (id: number) => {
     const key = apiKeys.find(k => k.id === id);
     if (!key) return;
-    
-    setApiKeys(apiKeys.map(k => ({
-      ...k,
-      isPrimary: k.provider === key.provider && k.id === id,
-    })));
+
+    setApiKeys(
+      apiKeys.map(k => ({
+        ...k,
+        isPrimary: k.provider === key.provider && k.id === id,
+      }))
+    );
     message.success('已设置为主 Key');
   };
 
@@ -147,7 +151,11 @@ export default function ApiKeysPage() {
           <Tag color={provider === 'dashscope' ? 'blue' : 'green'}>
             {provider === 'dashscope' ? '阿里云百炼' : '腾讯云 TokenHub'}
           </Tag>
-          {record.isPrimary && <Tag color="gold" icon={<CheckCircleOutlined />}>主</Tag>}
+          {record.isPrimary && (
+            <Tag color="gold" icon={<CheckCircleOutlined />}>
+              主
+            </Tag>
+          )}
         </Space>
       ),
     },
@@ -155,24 +163,22 @@ export default function ApiKeysPage() {
       title: 'API Key',
       dataIndex: 'apiKey',
       key: 'apiKey',
-      render: (text: string) => (
-        <Text copyable={{ text }}>{text}</Text>
-      ),
+      render: (text: string) => <Text copyable={{ text }}>{text}</Text>,
     },
     {
       title: 'Secret Key',
       dataIndex: 'secretKey',
       key: 'secretKey',
-      render: (text: string) => (
-        <Text copyable={{ text }}>{'••••••••'}</Text>
-      ),
+      render: (text: string) => <Text copyable={{ text }}>{'••••••••'}</Text>,
     },
     {
       title: '用量',
       key: 'usage',
       width: 150,
       render: (_: any, record: ApiKey) => (
-        <Text>{record.usage.toLocaleString()} / {record.limit.toLocaleString()}</Text>
+        <Text>
+          {record.usage.toLocaleString()} / {record.limit.toLocaleString()}
+        </Text>
       ),
     },
     {
@@ -201,7 +207,9 @@ export default function ApiKeysPage() {
             {record.status === 'active' ? '禁用' : '启用'}
           </Button>
           <Popconfirm title="确认删除此 API Key？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" danger size="small">删除</Button>
+            <Button type="link" danger size="small">
+              删除
+            </Button>
           </Popconfirm>
         </Space>
       ),
@@ -225,7 +233,7 @@ export default function ApiKeysPage() {
   return (
     <div style={{ padding: 24 }}>
       <Title level={4}>API Key 管理</Title>
-      
+
       {/* 服务商使用量统计：主=腾讯云TokenHub，副=阿里云百炼 */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={12}>
@@ -240,9 +248,9 @@ export default function ApiKeysPage() {
               </div>
               <CloudOutlined style={{ fontSize: 32, color: '#52c41a' }} />
             </div>
-            <Progress 
-              percent={tokenhubLimit > 0 ? Math.min((tokenhubUsage / tokenhubLimit) * 100, 100) : 0} 
-              size="small" 
+            <Progress
+              percent={tokenhubLimit > 0 ? Math.min((tokenhubUsage / tokenhubLimit) * 100, 100) : 0}
+              size="small"
               strokeColor="#52c41a"
               style={{ marginTop: 8 }}
             />
@@ -260,16 +268,18 @@ export default function ApiKeysPage() {
               </div>
               <CloudServerOutlined style={{ fontSize: 32, color: '#1890ff' }} />
             </div>
-            <Progress 
-              percent={dashscopeLimit > 0 ? Math.min((dashscopeUsage / dashscopeLimit) * 100, 100) : 0} 
-              size="small" 
+            <Progress
+              percent={
+                dashscopeLimit > 0 ? Math.min((dashscopeUsage / dashscopeLimit) * 100, 100) : 0
+              }
+              size="small"
               strokeColor="#1890ff"
               style={{ marginTop: 8 }}
             />
           </Card>
         </Col>
       </Row>
-      
+
       {/* 统计卡片 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
@@ -278,7 +288,11 @@ export default function ApiKeysPage() {
               <KeyOutlined style={{ fontSize: 24, color: '#1890ff' }} />
               <div>
                 <Text type="secondary">主 Key</Text>
-                <div><Text strong>{getPrimaryKey()?.provider === 'dashscope' ? '阿里云百炼' : '腾讯云 TokenHub'}</Text></div>
+                <div>
+                  <Text strong>
+                    {getPrimaryKey()?.provider === 'dashscope' ? '阿里云百炼' : '腾讯云 TokenHub'}
+                  </Text>
+                </div>
               </div>
             </div>
           </Card>
@@ -289,7 +303,9 @@ export default function ApiKeysPage() {
               <SafetyCertificateOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
               <div>
                 <Text type="secondary">备用 Key</Text>
-                <div><Text strong>{getBackupKeys().length} 个</Text></div>
+                <div>
+                  <Text strong>{getBackupKeys().length} 个</Text>
+                </div>
               </div>
             </div>
           </Card>
@@ -300,7 +316,11 @@ export default function ApiKeysPage() {
               <CheckCircleOutlined style={{ fontSize: 24, color: '#52c41a' }} />
               <div>
                 <Text type="secondary">可用状态</Text>
-                <div><Text strong>{apiKeys.filter(k => k.status === 'active').length} / {apiKeys.length}</Text></div>
+                <div>
+                  <Text strong>
+                    {apiKeys.filter(k => k.status === 'active').length} / {apiKeys.length}
+                  </Text>
+                </div>
               </div>
             </div>
           </Card>
@@ -312,10 +332,18 @@ export default function ApiKeysPage() {
         message="API Key 自动切换机制"
         description={
           <div>
-            <p><strong>自动识别：</strong>同服务商的第一个 Key 自动设为主 Key，后续添加的为备用 Key。</p>
-            <p><strong>自动切换：</strong>当主 Key 调用失败时，系统自动切换到同服务商的备用 Key。</p>
-            <p><strong>跨服务商备用：</strong>如需跨服务商备用，请分别添加两个服务商的主 Key。</p>
-            <p><strong>自动重试：</strong>调用失败时自动重试，同服务商备用 Key 依次启用。</p>
+            <p>
+              <strong>自动识别：</strong>同服务商的第一个 Key 自动设为主 Key，后续添加的为备用 Key。
+            </p>
+            <p>
+              <strong>自动切换：</strong>当主 Key 调用失败时，系统自动切换到同服务商的备用 Key。
+            </p>
+            <p>
+              <strong>跨服务商备用：</strong>如需跨服务商备用，请分别添加两个服务商的主 Key。
+            </p>
+            <p>
+              <strong>自动重试：</strong>调用失败时自动重试，同服务商备用 Key 依次启用。
+            </p>
           </div>
         }
         type="info"
@@ -337,12 +365,7 @@ export default function ApiKeysPage() {
             添加 API Key
           </Button>
         </div>
-        <Table
-          dataSource={apiKeys}
-          columns={columns}
-          rowKey="id"
-          pagination={false}
-        />
+        <Table dataSource={apiKeys} columns={columns} rowKey="id" pagination={false} />
       </Card>
 
       {/* Create Modal */}
@@ -383,7 +406,9 @@ export default function ApiKeysPage() {
 
           <Form.Item>
             <Space>
-              <Button type="primary" htmlType="submit">添加</Button>
+              <Button type="primary" htmlType="submit">
+                添加
+              </Button>
               <Button onClick={() => setModalVisible(false)}>取消</Button>
             </Space>
           </Form.Item>

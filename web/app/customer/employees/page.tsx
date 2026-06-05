@@ -1,10 +1,38 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Tag, Space, Modal, Form, Input, Select, Switch, message, Popconfirm, Avatar, Descriptions } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined, KeyOutlined, LoginOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Table,
+  Button,
+  Tag,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Switch,
+  message,
+  Popconfirm,
+  Avatar,
+  Descriptions,
+} from 'antd';
+import {
+  PlusOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  KeyOutlined,
+  LoginOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { getEmployees, createEmployee, updateEmployee, resetEmployeePassword, deleteEmployee, type Employee } from '@/services/employee';
+import {
+  getEmployees,
+  createEmployee,
+  updateEmployee,
+  resetEmployeePassword,
+  deleteEmployee,
+  type Employee,
+} from '@/services/employee';
 
 const { Option } = Select;
 
@@ -30,7 +58,7 @@ export default function EmployeeManagementPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [form] = Form.useForm();
-  
+
   // 获取当前用户ID（从 localStorage 或 context）
   const currentUserId = 'demo-user'; // TODO: 从登录状态获取
 
@@ -117,9 +145,7 @@ export default function EmployeeManagementPage() {
       width: 200,
       render: (_, record) => (
         <Space>
-          <Avatar style={{ backgroundColor: '#1890ff' }}>
-            {record.name?.charAt(0) || '?'}
-          </Avatar>
+          <Avatar style={{ backgroundColor: '#1890ff' }}>{record.name?.charAt(0) || '?'}</Avatar>
           <div>
             <div style={{ fontWeight: 500 }}>{record.name}</div>
             <div style={{ fontSize: 12, color: '#999' }}>{record.phone}</div>
@@ -154,7 +180,7 @@ export default function EmployeeManagementPage() {
       dataIndex: 'lastLoginAt',
       key: 'lastLoginAt',
       width: 180,
-      render: (t: string) => t ? new Date(t).toLocaleString('zh-CN') : '从未登录',
+      render: (t: string) => (t ? new Date(t).toLocaleString('zh-CN') : '从未登录'),
     },
     { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 180 },
     {
@@ -163,10 +189,20 @@ export default function EmployeeManagementPage() {
       width: 220,
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
             编辑
           </Button>
-          <Button type="link" size="small" icon={<KeyOutlined />} onClick={() => handleResetPassword(record.id)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<KeyOutlined />}
+            onClick={() => handleResetPassword(record.id)}
+          >
             重置密码
           </Button>
           <Popconfirm title="确定删除该员工?" onConfirm={() => handleDelete(record.id)}>
@@ -214,7 +250,11 @@ export default function EmployeeManagementPage() {
           <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
             <Input placeholder="员工姓名" />
           </Form.Item>
-          <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
+          <Form.Item
+            name="phone"
+            label="手机号"
+            rules={[{ required: true, message: '请输入手机号' }]}
+          >
             <Input placeholder="登录手机号" disabled={!!editingEmployee} />
           </Form.Item>
           {!editingEmployee && (
@@ -235,7 +275,9 @@ export default function EmployeeManagementPage() {
           <Form.Item name="permissions" label="权限" help="根据角色自动分配，可手动调整">
             <Select mode="multiple" placeholder="选择权限">
               {PERMISSIONS_OPTIONS.map(p => (
-                <Option key={p.value} value={p.value}>{p.label}</Option>
+                <Option key={p.value} value={p.value}>
+                  {p.label}
+                </Option>
               ))}
             </Select>
           </Form.Item>

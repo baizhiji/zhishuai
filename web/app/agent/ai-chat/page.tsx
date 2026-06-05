@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Card,
   Input,
@@ -16,7 +16,7 @@ import {
   Tooltip,
   List,
   Modal,
-} from 'antd'
+} from 'antd';
 import {
   SendOutlined,
   RobotOutlined,
@@ -33,30 +33,30 @@ import {
   FileTextOutlined,
   ExperimentOutlined,
   AppstoreOutlined,
-} from '@ant-design/icons'
-import { v4 as uuidv4 } from 'uuid'
+} from '@ant-design/icons';
+import { v4 as uuidv4 } from 'uuid';
 
-const { Title, Text, Paragraph } = Typography
-const { TextArea } = Input
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
 
 // 消息类型
 interface Message {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp: Date
-  model?: string
-  provider?: string
-  isFallback?: boolean
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  model?: string;
+  provider?: string;
+  isFallback?: boolean;
 }
 
 // 对话会话类型
 interface Conversation {
-  id: string
-  title: string
-  messages: Message[]
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  title: string;
+  messages: Message[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // 预设提示词
@@ -81,7 +81,7 @@ const QUICK_PROMPTS = [
     title: '战略规划',
     prompt: '请帮我制定公司未来3年的发展战略规划',
   },
-]
+];
 
 // 模型选项
 const MODEL_OPTIONS = [
@@ -91,67 +91,72 @@ const MODEL_OPTIONS = [
   { value: 'qwen-plus', label: '通义千问 Plus', description: '均衡性能，日常对话' },
   { value: 'qwen-turbo', label: '通义千问 Turbo', description: '快速响应，效率优先' },
   { value: 'hunyuan-2.0-instruct-20251111', label: '腾讯混元', description: '腾讯混元大模型' },
-]
+];
 
 export default function AIChatPage() {
   // 状态
-  const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('auto')
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('auto');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Refs
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<any>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<any>(null);
 
   // 自动滚动到底部
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, scrollToBottom])
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   // 发送消息
   const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return
+    if (!inputValue.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: uuidv4(),
       role: 'user',
       content: inputValue.trim(),
       timestamp: new Date(),
-    }
+    };
 
     // 添加用户消息
-    setMessages(prev => [...prev, userMessage])
-    setInputValue('')
-    setIsLoading(true)
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsLoading(true);
 
     // 如果是新对话，创建会话
     if (!currentConversationId) {
-      const newConversationId = uuidv4()
-      setCurrentConversationId(newConversationId)
-      setConversations(prev => [{
-        id: newConversationId,
-        title: inputValue.trim().slice(0, 30) + (inputValue.length > 30 ? '...' : ''),
-        messages: [userMessage],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }, ...prev])
+      const newConversationId = uuidv4();
+      setCurrentConversationId(newConversationId);
+      setConversations(prev => [
+        {
+          id: newConversationId,
+          title: inputValue.trim().slice(0, 30) + (inputValue.length > 30 ? '...' : ''),
+          messages: [userMessage],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        ...prev,
+      ]);
     } else {
       // 更新现有会话
-      setConversations(prev => prev.map(conv =>
-        conv.id === currentConversationId
-          ? { ...conv, messages: [...conv.messages, userMessage], updatedAt: new Date() }
-          : conv
-      ))
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === currentConversationId
+            ? { ...conv, messages: [...conv.messages, userMessage], updatedAt: new Date() }
+            : conv
+        )
+      );
     }
 
     try {
@@ -167,13 +172,13 @@ export default function AIChatPage() {
           modelKey: selectedModel,
           stream: false,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error('请求失败')
+        throw new Error('请求失败');
       }
 
-      const result = await response.json()
+      const result = await response.json();
 
       if (result.success) {
         const assistantMessage: Message = {
@@ -184,18 +189,20 @@ export default function AIChatPage() {
           model: result.data.modelName,
           provider: result.data.provider,
           isFallback: result.data.isFallback,
-        }
+        };
 
-        setMessages(prev => [...prev, assistantMessage])
+        setMessages(prev => [...prev, assistantMessage]);
 
         // 更新会话
-        setConversations(prev => prev.map(conv =>
-          conv.id === currentConversationId
-            ? { ...conv, messages: [...conv.messages, assistantMessage], updatedAt: new Date() }
-            : conv
-        ))
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === currentConversationId
+              ? { ...conv, messages: [...conv.messages, assistantMessage], updatedAt: new Date() }
+              : conv
+          )
+        );
       } else {
-        throw new Error(result.error || 'AI服务异常')
+        throw new Error(result.error || 'AI服务异常');
       }
     } catch (error: any) {
       const errorMessage: Message = {
@@ -203,69 +210,71 @@ export default function AIChatPage() {
         role: 'assistant',
         content: `抱歉，发生了错误：${error.message || '请稍后重试'}`,
         timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   // 使用快捷提示
   const handleQuickPrompt = (prompt: string) => {
-    setInputValue(prompt)
-    inputRef.current?.focus()
-  }
+    setInputValue(prompt);
+    inputRef.current?.focus();
+  };
 
   // 新建对话
   const handleNewConversation = () => {
-    setMessages([])
-    setCurrentConversationId(null)
-    inputRef.current?.focus()
-  }
+    setMessages([]);
+    setCurrentConversationId(null);
+    inputRef.current?.focus();
+  };
 
   // 切换会话
   const handleSwitchConversation = (convId: string) => {
-    const conv = conversations.find(c => c.id === convId)
+    const conv = conversations.find(c => c.id === convId);
     if (conv) {
-      setMessages(conv.messages)
-      setCurrentConversationId(convId)
-      setShowHistory(false)
+      setMessages(conv.messages);
+      setCurrentConversationId(convId);
+      setShowHistory(false);
     }
-  }
+  };
 
   // 删除会话
   const handleDeleteConversation = (convId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setConversations(prev => prev.filter(c => c.id !== convId))
+    e.stopPropagation();
+    setConversations(prev => prev.filter(c => c.id !== convId));
     if (currentConversationId === convId) {
-      handleNewConversation()
+      handleNewConversation();
     }
-  }
+  };
 
   // 清空当前对话
   const handleClearMessages = () => {
-    setMessages([])
+    setMessages([]);
     if (currentConversationId) {
-      setConversations(prev => prev.map(conv =>
-        conv.id === currentConversationId
-          ? { ...conv, messages: [], updatedAt: new Date() }
-          : conv
-      ))
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === currentConversationId
+            ? { ...conv, messages: [], updatedAt: new Date() }
+            : conv
+        )
+      );
     }
-  }
+  };
 
   // 复制消息
   const handleCopyMessage = (messageId: string, content: string) => {
-    navigator.clipboard.writeText(content)
-    setCopiedId(messageId)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
+    navigator.clipboard.writeText(content);
+    setCopiedId(messageId);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // 格式化时间
   const formatTime = (date: Date) => {
-    const d = new Date(date)
-    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  }
+    const d = new Date(date);
+    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#f0f2f5' }}>
@@ -298,7 +307,7 @@ export default function AIChatPage() {
           <List
             dataSource={conversations}
             locale={{ emptyText: '暂无历史对话' }}
-            renderItem={(conv) => (
+            renderItem={conv => (
               <List.Item
                 key={conv.id}
                 style={{
@@ -310,10 +319,7 @@ export default function AIChatPage() {
                 onClick={() => handleSwitchConversation(conv.id)}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    ellipsis
-                    style={{ display: 'block', fontWeight: 500 }}
-                  >
+                  <Text ellipsis style={{ display: 'block', fontWeight: 500 }}>
                     {conv.title || '新对话'}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>
@@ -324,7 +330,7 @@ export default function AIChatPage() {
                   type="text"
                   size="small"
                   danger
-                  onClick={(e) => handleDeleteConversation(conv.id, e)}
+                  onClick={e => handleDeleteConversation(conv.id, e)}
                 >
                   删除
                 </Button>
@@ -350,7 +356,9 @@ export default function AIChatPage() {
           <Space>
             <Avatar icon={<RobotOutlined />} style={{ background: '#1890ff' }} />
             <div>
-              <Title level={5} style={{ margin: 0 }}>智枢AI助手</Title>
+              <Title level={5} style={{ margin: 0 }}>
+                智枢AI助手
+              </Title>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 基于多模型混合的智能诊断与对话系统
               </Text>
@@ -383,7 +391,10 @@ export default function AIChatPage() {
                 <Avatar
                   size={80}
                   icon={<RobotOutlined />}
-                  style={{ background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)', marginBottom: 24 }}
+                  style={{
+                    background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
+                    marginBottom: 24,
+                  }}
                 />
                 <Title level={2}>欢迎使用智枢AI助手</Title>
                 <Paragraph type="secondary" style={{ fontSize: 16 }}>
@@ -402,11 +413,7 @@ export default function AIChatPage() {
                     style={{ cursor: 'pointer' }}
                   >
                     <Space>
-                      <Avatar
-                        size="small"
-                        icon={item.icon}
-                        style={{ background: '#1890ff' }}
-                      />
+                      <Avatar size="small" icon={item.icon} style={{ background: '#1890ff' }} />
                       <Text strong>{item.title}</Text>
                     </Space>
                     <Paragraph
@@ -431,7 +438,7 @@ export default function AIChatPage() {
                     { icon: '🔄', text: '智能降级 - 主模型不可用时自动切换到备用模型' },
                     { icon: '📊', text: '多模型对比 - 支持腾讯混元、阿里通义、DeepSeek等主流模型' },
                   ]}
-                  renderItem={(item) => (
+                  renderItem={item => (
                     <List.Item>
                       <Space>
                         <Text>{item.icon}</Text>
@@ -444,7 +451,7 @@ export default function AIChatPage() {
             </div>
           ) : (
             <div style={{ maxWidth: 800, margin: '0 auto' }}>
-              {messages.map((message) => (
+              {messages.map(message => (
                 <div
                   key={message.id}
                   style={{
@@ -559,13 +566,13 @@ export default function AIChatPage() {
             <TextArea
               ref={inputRef}
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={e => setInputValue(e.target.value)}
               placeholder="输入您的问题，AI将为您提供专业的分析和建议..."
               autoSize={{ minRows: 2, maxRows: 6 }}
-              onPressEnter={(e) => {
+              onPressEnter={e => {
                 if (!e.shiftKey) {
-                  e.preventDefault()
-                  handleSend()
+                  e.preventDefault();
+                  handleSend();
                 }
               }}
               style={{ borderRadius: 12 }}
@@ -596,22 +603,17 @@ export default function AIChatPage() {
         onCancel={() => setShowSettings(false)}
         footer={null}
       >
-        <Paragraph>
-          AI对话功能使用多模型混合调度系统，根据问题类型自动选择最合适的模型。
-        </Paragraph>
+        <Paragraph>AI对话功能使用多模型混合调度系统，根据问题类型自动选择最合适的模型。</Paragraph>
         <List
           header={<Text strong>可用模型</Text>}
           dataSource={MODEL_OPTIONS}
-          renderItem={(item) => (
+          renderItem={item => (
             <List.Item>
-              <List.Item.Meta
-                title={item.label}
-                description={item.description}
-              />
+              <List.Item.Meta title={item.label} description={item.description} />
             </List.Item>
           )}
         />
       </Modal>
     </div>
-  )
+  );
 }

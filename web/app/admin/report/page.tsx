@@ -1,8 +1,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Row, Col, Select, DatePicker, Button, Table, Space, Modal, Spin, message } from 'antd';
-import { FileExcelOutlined, FileTextOutlined, DownloadOutlined, TableOutlined } from '@ant-design/icons';
+import {
+  Card,
+  Row,
+  Col,
+  Select,
+  DatePicker,
+  Button,
+  Table,
+  Space,
+  Modal,
+  Spin,
+  message,
+} from 'antd';
+import {
+  FileExcelOutlined,
+  FileTextOutlined,
+  DownloadOutlined,
+  TableOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { getReportTypes, generateReport, type ReportType } from '@/services/report';
 import * as XLSX from 'xlsx';
@@ -118,14 +135,12 @@ export default function ReportExportPage() {
       <h1 style={{ marginBottom: 24 }}>数据报表导出</h1>
 
       <Card title="选择报表类型" style={{ marginBottom: 24 }}>
-        <Row gutter={16}>
-          {reportCards}
-        </Row>
+        <Row gutter={16}>{reportCards}</Row>
       </Card>
 
       <Card title="报表设置">
         <Space wrap style={{ marginBottom: 24 }}>
-          <RangePicker onChange={(dates) => setDateRange(dates || [])} />
+          <RangePicker onChange={dates => setDateRange(dates || [])} />
           <Button
             type="primary"
             icon={<TableOutlined />}
@@ -155,7 +170,10 @@ export default function ReportExportPage() {
             <strong>已选择：</strong>
             {reportTypes.find(r => r.key === selectedType)?.name}
             {dateRange.length === 2 && (
-              <span>，时间范围：{dateRange[0].format('YYYY-MM-DD')} 至 {dateRange[1].format('YYYY-MM-DD')}</span>
+              <span>
+                ，时间范围：{dateRange[0].format('YYYY-MM-DD')} 至{' '}
+                {dateRange[1].format('YYYY-MM-DD')}
+              </span>
             )}
           </div>
         )}
@@ -167,7 +185,12 @@ export default function ReportExportPage() {
         onCancel={() => setPreviewVisible(false)}
         width="90%"
         footer={[
-          <Button key="export" type="primary" icon={<FileExcelOutlined />} onClick={handleExportExcel}>
+          <Button
+            key="export"
+            type="primary"
+            icon={<FileExcelOutlined />}
+            onClick={handleExportExcel}
+          >
             导出 Excel
           </Button>,
           <Button key="close" onClick={() => setPreviewVisible(false)}>

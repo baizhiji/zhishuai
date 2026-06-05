@@ -1,8 +1,8 @@
-'use client'
+'use client';
 
-import { Card, Typography } from 'antd'
+import { Card, Typography } from 'antd';
 
-const { Title, Paragraph } = Typography
+const { Title, Paragraph } = Typography;
 
 export default function PlaceholderPage({ featureName }: { featureName: string }) {
   return (
@@ -12,5 +12,5 @@ export default function PlaceholderPage({ featureName }: { featureName: string }
         <Paragraph type="secondary">该功能即将上线，敬请期待！</Paragraph>
       </Card>
     </div>
-  )
+  );
 }

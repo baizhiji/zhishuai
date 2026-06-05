@@ -194,10 +194,14 @@ export default function SettingsPage() {
             <Form.Item label="姓名" name="name" rules={[{ required: true, message: '请输入姓名' }]}>
               <Input placeholder="请输入姓名" />
             </Form.Item>
-            <Form.Item label="邮箱" name="email" rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入正确的邮箱格式' },
-            ]}>
+            <Form.Item
+              label="邮箱"
+              name="email"
+              rules={[
+                { required: true, message: '请输入邮箱' },
+                { type: 'email', message: '请输入正确的邮箱格式' },
+              ]}
+            >
               <Input placeholder="请输入邮箱" />
             </Form.Item>
             <Form.Item label="手机号" name="phone">
@@ -269,7 +273,7 @@ export default function SettingsPage() {
                 actions={[
                   <Switch
                     checked={settings?.security.twoFactor}
-                    onChange={(checked) => {
+                    onChange={checked => {
                       Modal.confirm({
                         title: '确认开启两步验证',
                         content: '启用后，登录时需要输入手机验证码',
@@ -289,7 +293,7 @@ export default function SettingsPage() {
                 actions={[
                   <Switch
                     checked={settings?.security.loginAlerts}
-                    onChange={(checked) => handleNotificationChange('loginAlerts', checked)}
+                    onChange={checked => handleNotificationChange('loginAlerts', checked)}
                   />,
                 ]}
               >
@@ -320,7 +324,7 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.email}
-                  onChange={(checked) => handleNotificationChange('email', checked)}
+                  onChange={checked => handleNotificationChange('email', checked)}
                 />,
               ]}
             >
@@ -334,7 +338,7 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.sms}
-                  onChange={(checked) => handleNotificationChange('sms', checked)}
+                  onChange={checked => handleNotificationChange('sms', checked)}
                 />,
               ]}
             >
@@ -348,7 +352,7 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.push}
-                  onChange={(checked) => handleNotificationChange('push', checked)}
+                  onChange={checked => handleNotificationChange('push', checked)}
                 />,
               ]}
             >
@@ -421,7 +425,7 @@ export default function SettingsPage() {
           <Title level={5}>已连接的应用</Title>
           <List
             dataSource={settings?.connectedApps}
-            renderItem={(app) => (
+            renderItem={app => (
               <List.Item
                 actions={[
                   <Button
@@ -455,22 +459,20 @@ export default function SettingsPage() {
       children: (
         <Card>
           <Title level={4}>智枢AI APP 下载</Title>
-          <Text type="secondary">
-            下载并安装智枢AI移动端应用，随时随地管理您的业务
-          </Text>
-          
+          <Text type="secondary">下载并安装智枢AI移动端应用，随时随地管理您的业务</Text>
+
           <div style={{ marginTop: 24 }}>
             <Row gutter={[24, 24]}>
               <Col xs={24} md={12}>
-                <Card 
-                  title="Android 版本" 
+                <Card
+                  title="Android 版本"
                   extra={<AndroidOutlined style={{ fontSize: 24, color: '#13c2c2' }} />}
                   style={{ textAlign: 'center' }}
                 >
                   <Title level={3}>v1.0.0</Title>
                   <Text type="secondary">大小：45.6 MB</Text>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     size="large"
                     icon={<DownloadOutlined />}
                     onClick={() => window.open('/app/zhishuai.apk', '_blank')}
@@ -481,8 +483,8 @@ export default function SettingsPage() {
                 </Card>
               </Col>
               <Col xs={24} md={12}>
-                <Card 
-                  title="安装教程" 
+                <Card
+                  title="安装教程"
                   extra={<QuestionCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
                   style={{ textAlign: 'center' }}
                 >
@@ -501,7 +503,7 @@ export default function SettingsPage() {
               </Col>
             </Row>
           </div>
-          
+
           <Alert
             type="info"
             showIcon
@@ -516,7 +518,15 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh', maxWidth: 800, margin: '0 auto' }}>
+    <div
+      style={{
+        padding: 24,
+        background: '#f0f2f5',
+        minHeight: '100vh',
+        maxWidth: 800,
+        margin: '0 auto',
+      }}
+    >
       <Card>
         <Title level={3}>账户设置</Title>
         <Tabs

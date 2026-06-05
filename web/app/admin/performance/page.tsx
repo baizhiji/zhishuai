@@ -15,7 +15,7 @@ import {
   Button,
   Modal,
   Descriptions,
-  Statistic
+  Statistic,
 } from 'antd';
 import {
   TeamOutlined,
@@ -23,7 +23,7 @@ import {
   MoneyCollectOutlined,
   RiseOutlined,
   BarChartOutlined,
-  EyeOutlined
+  EyeOutlined,
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -60,7 +60,7 @@ export default function AgentPerformancePage() {
     totalAgents: 0,
     totalCustomers: 0,
     totalRevenue: 0,
-    totalCommission: 0
+    totalCommission: 0,
   });
 
   useEffect(() => {
@@ -73,12 +73,14 @@ export default function AgentPerformancePage() {
       const res = await request.get('/api/admin/agents/performance');
       if (res.data) {
         setAgents(res.data.agents || generateMockData());
-        setStats(res.data.stats || {
-          totalAgents: 12,
-          totalCustomers: 456,
-          totalRevenue: 1285000,
-          totalCommission: 256000
-        });
+        setStats(
+          res.data.stats || {
+            totalAgents: 12,
+            totalCustomers: 456,
+            totalRevenue: 1285000,
+            totalCommission: 256000,
+          }
+        );
       }
     } catch (error) {
       setAgents(generateMockData() as any);
@@ -86,7 +88,7 @@ export default function AgentPerformancePage() {
         totalAgents: 12,
         totalCustomers: 456,
         totalRevenue: 1285000,
-        totalCommission: 256000
+        totalCommission: 256000,
       });
     } finally {
       setLoading(false);
@@ -105,7 +107,7 @@ export default function AgentPerformancePage() {
       commission: 72000,
       commissionRate: 20,
       status: 'active',
-      joinDate: '2023-06-15'
+      joinDate: '2023-06-15',
     },
     {
       id: '2',
@@ -118,7 +120,7 @@ export default function AgentPerformancePage() {
       commission: 58800,
       commissionRate: 20,
       status: 'active',
-      joinDate: '2023-07-20'
+      joinDate: '2023-07-20',
     },
     {
       id: '3',
@@ -131,7 +133,7 @@ export default function AgentPerformancePage() {
       commission: 51000,
       commissionRate: 20,
       status: 'active',
-      joinDate: '2023-08-10'
+      joinDate: '2023-08-10',
     },
     {
       id: '4',
@@ -144,7 +146,7 @@ export default function AgentPerformancePage() {
       commission: 45600,
       commissionRate: 20,
       status: 'active',
-      joinDate: '2023-09-05'
+      joinDate: '2023-09-05',
     },
     {
       id: '5',
@@ -157,8 +159,8 @@ export default function AgentPerformancePage() {
       commission: 31200,
       commissionRate: 20,
       status: 'frozen',
-      joinDate: '2023-10-18'
-    }
+      joinDate: '2023-10-18',
+    },
   ];
 
   const showDetail = (agent: AgentPerformance) => {
@@ -178,12 +180,12 @@ export default function AgentPerformancePage() {
             <div className="text-gray-400 text-sm">{record.agentPhone}</div>
           </div>
         </Space>
-      )
+      ),
     },
     {
       title: '区域',
       dataIndex: 'region',
-      key: 'region'
+      key: 'region',
     },
     {
       title: '客户数',
@@ -193,13 +195,13 @@ export default function AgentPerformancePage() {
           <div className="font-medium">{record.customers}</div>
           <div className="text-green-500 text-sm">+{record.newCustomers} 本月新增</div>
         </div>
-      )
+      ),
     },
     {
       title: '营收',
       dataIndex: 'revenue',
       key: 'revenue',
-      render: (val: number) => `¥${val.toLocaleString()}`
+      render: (val: number) => `¥${val.toLocaleString()}`,
     },
     {
       title: '分成',
@@ -209,7 +211,7 @@ export default function AgentPerformancePage() {
           <div className="font-medium text-orange-500">¥{record.commission.toLocaleString()}</div>
           <div className="text-gray-400 text-sm">{record.commissionRate}%</div>
         </div>
-      )
+      ),
     },
     {
       title: '状态',
@@ -219,7 +221,7 @@ export default function AgentPerformancePage() {
         <Tag color={status === 'active' ? 'green' : 'red'}>
           {status === 'active' ? '正常' : '已冻结'}
         </Tag>
-      )
+      ),
     },
     {
       title: '操作',
@@ -228,8 +230,8 @@ export default function AgentPerformancePage() {
         <Button type="link" onClick={() => showDetail(record)}>
           查看详情
         </Button>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -268,7 +270,7 @@ export default function AgentPerformancePage() {
               value={stats.totalRevenue}
               prefix={<MoneyCollectOutlined />}
               valueStyle={{ color: '#faad14' }}
-              formatter={(value) => `¥${Number(value).toLocaleString()}`}
+              formatter={value => `¥${Number(value).toLocaleString()}`}
             />
           </Card>
         </Col>
@@ -279,7 +281,7 @@ export default function AgentPerformancePage() {
               value={stats.totalCommission}
               prefix={<RiseOutlined />}
               valueStyle={{ color: '#722ed1' }}
-              formatter={(value) => `¥${Number(value).toLocaleString()}`}
+              formatter={value => `¥${Number(value).toLocaleString()}`}
             />
           </Card>
         </Col>
@@ -309,15 +311,9 @@ export default function AgentPerformancePage() {
             <Descriptions.Item label="代理商姓名" span={2}>
               {selectedAgent.agentName}
             </Descriptions.Item>
-            <Descriptions.Item label="手机号">
-              {selectedAgent.agentPhone}
-            </Descriptions.Item>
-            <Descriptions.Item label="负责区域">
-              {selectedAgent.region}
-            </Descriptions.Item>
-            <Descriptions.Item label="客户总数">
-              {selectedAgent.customers} 人
-            </Descriptions.Item>
+            <Descriptions.Item label="手机号">{selectedAgent.agentPhone}</Descriptions.Item>
+            <Descriptions.Item label="负责区域">{selectedAgent.region}</Descriptions.Item>
+            <Descriptions.Item label="客户总数">{selectedAgent.customers} 人</Descriptions.Item>
             <Descriptions.Item label="本月新增">
               <Text type="success">+{selectedAgent.newCustomers} 人</Text>
             </Descriptions.Item>
@@ -327,17 +323,13 @@ export default function AgentPerformancePage() {
             <Descriptions.Item label="分成金额">
               <Text type="warning">¥{selectedAgent.commission.toLocaleString()}</Text>
             </Descriptions.Item>
-            <Descriptions.Item label="分成比例">
-              {selectedAgent.commissionRate}%
-            </Descriptions.Item>
+            <Descriptions.Item label="分成比例">{selectedAgent.commissionRate}%</Descriptions.Item>
             <Descriptions.Item label="状态">
               <Tag color={selectedAgent.status === 'active' ? 'green' : 'red'}>
                 {selectedAgent.status === 'active' ? '正常' : '已冻结'}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="加入时间">
-              {selectedAgent.joinDate}
-            </Descriptions.Item>
+            <Descriptions.Item label="加入时间">{selectedAgent.joinDate}</Descriptions.Item>
           </Descriptions>
         )}
       </Modal>

@@ -19,7 +19,7 @@ import {
   Row,
   Col,
   Descriptions,
-  Timeline
+  Timeline,
 } from 'antd';
 import {
   PlusOutlined,
@@ -27,7 +27,7 @@ import {
   DeleteOutlined,
   CalendarOutlined,
   VideoCameraOutlined,
-  PhoneOutlined
+  PhoneOutlined,
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -66,7 +66,7 @@ export default function InterviewPage() {
     total: 0,
     scheduled: 0,
     completed: 0,
-    today: 0
+    today: 0,
   });
 
   useEffect(() => {
@@ -82,18 +82,21 @@ export default function InterviewPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/recruitment/interviews', {
-        userId
+        userId,
       });
       setInterviews(res.data?.interviews || []);
-      
+
       const today = dayjs().format('YYYY-MM-DD');
       setStats({
         total: res.data?.interviews?.length || 0,
-        scheduled: res.data?.interviews?.filter((i: Interview) => i.status === 'scheduled').length || 0,
-        completed: res.data?.interviews?.filter((i: Interview) => i.status === 'completed').length || 0,
-        today: res.data?.interviews?.filter((i: Interview) => 
-          dayjs(i.scheduledTime).format('YYYY-MM-DD') === today
-        ).length || 0
+        scheduled:
+          res.data?.interviews?.filter((i: Interview) => i.status === 'scheduled').length || 0,
+        completed:
+          res.data?.interviews?.filter((i: Interview) => i.status === 'completed').length || 0,
+        today:
+          res.data?.interviews?.filter(
+            (i: Interview) => dayjs(i.scheduledTime).format('YYYY-MM-DD') === today
+          ).length || 0,
       });
     } catch (error) {
       message.error('获取面试记录失败');
@@ -107,13 +110,13 @@ export default function InterviewPage() {
       if (editingInterview) {
         await request.put(`/api/recruitment/interviews/${editingInterview.id}`, {
           ...values,
-          userId
+          userId,
         });
         message.success('更新成功');
       } else {
         await request.post('/api/recruitment/interviews', {
           ...values,
-          userId
+          userId,
         });
         message.success('创建成功');
       }
@@ -139,7 +142,7 @@ export default function InterviewPage() {
     try {
       await request.put(`/api/recruitment/interviews/${selectedInterview?.id}/feedback`, {
         ...values,
-        userId
+        userId,
       });
       message.success('反馈提交成功');
       setDetailVisible(false);
@@ -155,7 +158,7 @@ export default function InterviewPage() {
     if (interview.feedback) {
       feedbackForm.setFieldsValue({
         feedback: interview.feedback,
-        rating: interview.rating
+        rating: interview.rating,
       });
     }
     setDetailVisible(true);
@@ -166,7 +169,7 @@ export default function InterviewPage() {
       scheduled: 'blue',
       completed: 'green',
       cancelled: 'red',
-      rescheduled: 'orange'
+      rescheduled: 'orange',
     };
     return colors[status] || 'default';
   };
@@ -176,7 +179,7 @@ export default function InterviewPage() {
       scheduled: '已安排',
       completed: '已完成',
       cancelled: '已取消',
-      rescheduled: '已改期'
+      rescheduled: '已改期',
     };
     return texts[status] || status;
   };
@@ -185,7 +188,7 @@ export default function InterviewPage() {
     const icons: Record<string, React.ReactNode> = {
       video: <VideoCameraOutlined />,
       phone: <PhoneOutlined />,
-      onsite: <CalendarOutlined />
+      onsite: <CalendarOutlined />,
     };
     return icons[type] || <CalendarOutlined />;
   };
@@ -194,24 +197,24 @@ export default function InterviewPage() {
     {
       title: '候选人',
       dataIndex: 'candidateName',
-      key: 'candidateName'
+      key: 'candidateName',
     },
     {
       title: '岗位',
       dataIndex: 'position',
-      key: 'position'
+      key: 'position',
     },
     {
       title: '面试时间',
       dataIndex: 'scheduledTime',
       key: 'scheduledTime',
-      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm')
+      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
     },
     {
       title: '时长',
       dataIndex: 'duration',
       key: 'duration',
-      render: (min: number) => `${min}分钟`
+      render: (min: number) => `${min}分钟`,
     },
     {
       title: '方式',
@@ -222,20 +225,18 @@ export default function InterviewPage() {
           {getTypeIcon(type)}
           {type === 'video' ? '视频' : type === 'phone' ? '电话' : '现场'}
         </Space>
-      )
+      ),
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
-      )
+      render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>,
     },
     {
       title: '面试官',
       dataIndex: 'interviewer',
-      key: 'interviewer'
+      key: 'interviewer',
     },
     {
       title: '操作',
@@ -245,14 +246,18 @@ export default function InterviewPage() {
           <Button type="link" size="small" onClick={() => showDetail(record)}>
             详情
           </Button>
-          <Button type="link" size="small" onClick={() => {
-            setEditingInterview(record);
-            form.setFieldsValue({
-              ...record,
-              scheduledTime: dayjs(record.scheduledTime)
-            });
-            setModalVisible(true);
-          }}>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              setEditingInterview(record);
+              form.setFieldsValue({
+                ...record,
+                scheduledTime: dayjs(record.scheduledTime),
+              });
+              setModalVisible(true);
+            }}
+          >
             编辑
           </Button>
           <Popconfirm title="确定删除?" onConfirm={() => handleDelete(record.id)}>
@@ -261,8 +266,8 @@ export default function InterviewPage() {
             </Button>
           </Popconfirm>
         </Space>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -298,11 +303,15 @@ export default function InterviewPage() {
       <Card
         title="面试列表"
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-            setEditingInterview(null);
-            form.resetFields();
-            setModalVisible(true);
-          }}>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditingInterview(null);
+              form.resetFields();
+              setModalVisible(true);
+            }}
+          >
             新增面试
           </Button>
         }
@@ -372,17 +381,26 @@ export default function InterviewPage() {
           <Tabs defaultActiveKey="info">
             <TabPane tab="基本信息" key="info">
               <Descriptions column={2} bordered>
-                <Descriptions.Item label="候选人">{selectedInterview.candidateName}</Descriptions.Item>
+                <Descriptions.Item label="候选人">
+                  {selectedInterview.candidateName}
+                </Descriptions.Item>
                 <Descriptions.Item label="应聘岗位">{selectedInterview.position}</Descriptions.Item>
                 <Descriptions.Item label="面试时间">
                   {dayjs(selectedInterview.scheduledTime).format('YYYY-MM-DD HH:mm')}
                 </Descriptions.Item>
-                <Descriptions.Item label="面试时长">{selectedInterview.duration}分钟</Descriptions.Item>
-                <Descriptions.Item label="面试方式">
-                  {selectedInterview.type === 'video' ? '视频面试' : 
-                   selectedInterview.type === 'phone' ? '电话面试' : '现场面试'}
+                <Descriptions.Item label="面试时长">
+                  {selectedInterview.duration}分钟
                 </Descriptions.Item>
-                <Descriptions.Item label="面试官">{selectedInterview.interviewer}</Descriptions.Item>
+                <Descriptions.Item label="面试方式">
+                  {selectedInterview.type === 'video'
+                    ? '视频面试'
+                    : selectedInterview.type === 'phone'
+                      ? '电话面试'
+                      : '现场面试'}
+                </Descriptions.Item>
+                <Descriptions.Item label="面试官">
+                  {selectedInterview.interviewer}
+                </Descriptions.Item>
                 <Descriptions.Item label="状态">
                   <Tag color={getStatusColor(selectedInterview.status)}>
                     {getStatusText(selectedInterview.status)}
@@ -396,7 +414,11 @@ export default function InterviewPage() {
                 </Descriptions.Item>
                 {selectedInterview.meetingLink && (
                   <Descriptions.Item label="会议链接" span={2}>
-                    <a href={selectedInterview.meetingLink} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={selectedInterview.meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       {selectedInterview.meetingLink}
                     </a>
                   </Descriptions.Item>
@@ -417,7 +439,9 @@ export default function InterviewPage() {
                     <Select.Option value={1}>1分 - 不合适</Select.Option>
                   </Select>
                 </Form.Item>
-                <Button type="primary" htmlType="submit">提交反馈</Button>
+                <Button type="primary" htmlType="submit">
+                  提交反馈
+                </Button>
               </Form>
             </TabPane>
           </Tabs>

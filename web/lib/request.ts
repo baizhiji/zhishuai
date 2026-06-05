@@ -1,4 +1,9 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import { message } from 'antd';
 import type { ApiResponse } from '@/types/api';
 
@@ -21,7 +26,7 @@ request.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
   }
 );
@@ -42,7 +47,7 @@ request.interceptors.response.use(
     message.error(data.message || data.msg || '请求失败');
     return Promise.reject(new Error(data.message || data.msg || '请求失败'));
   },
-  (error) => {
+  error => {
     const { response } = error;
 
     if (response) {

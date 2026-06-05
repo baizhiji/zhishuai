@@ -86,16 +86,16 @@ export function PermissionWrapper({
   fallback = null,
   children,
 }: PermissionWrapperProps) {
-  const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } = usePermissionCheck();
+  const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } =
+    usePermissionCheck();
 
   let hasAccess = true;
 
   if (permission) {
     hasAccess = checkPermission(permission);
   } else if (permissions && permissions.length > 0) {
-    hasAccess = mode === 'all'
-      ? permissions.every(p => checkPermission(p))
-      : checkAnyPermission(permissions);
+    hasAccess =
+      mode === 'all' ? permissions.every(p => checkPermission(p)) : checkAnyPermission(permissions);
   }
 
   return <>{hasAccess ? children : fallback}</>;
@@ -129,25 +129,29 @@ export function withPermission<P extends object>(
   mode: 'all' | 'any' = 'any'
 ) {
   return function PermissionGuardComponent(props: P) {
-    const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } = usePermissionCheck();
+    const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } =
+      usePermissionCheck();
 
     let hasAccess = true;
 
     if (permission) {
       hasAccess = checkPermission(permission);
     } else if (permissions && permissions.length > 0) {
-      hasAccess = mode === 'all'
-        ? permissions.every(p => checkPermission(p))
-        : checkAnyPermission(permissions);
+      hasAccess =
+        mode === 'all'
+          ? permissions.every(p => checkPermission(p))
+          : checkAnyPermission(permissions);
     }
 
     if (!hasAccess) {
       return (
-        <div style={{
-          padding: '40px',
-          textAlign: 'center',
-          color: '#999'
-        }}>
+        <div
+          style={{
+            padding: '40px',
+            textAlign: 'center',
+            color: '#999',
+          }}
+        >
           <h2>无权限访问</h2>
           <p>您没有权限访问此页面</p>
         </div>

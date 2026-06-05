@@ -19,7 +19,7 @@ import {
   Col,
   Typography,
   Divider,
-  Alert
+  Alert,
 } from 'antd';
 import {
   PlusOutlined,
@@ -28,7 +28,7 @@ import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   MessageOutlined,
-  ThunderboltOutlined
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import request from '@/utils/request';
 
@@ -107,11 +107,11 @@ export default function AutoReplyPage() {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      
+
       const res = editingRule
         ? await request.put(`/api/auto-reply/rules/${editingRule.id}`, values)
         : await request.post('/api/auto-reply/rules', values);
-      
+
       if (res.code === 0) {
         message.success(editingRule ? '规则更新成功' : '规则创建成功');
         setModalVisible(false);
@@ -207,7 +207,7 @@ export default function AutoReplyPage() {
       render: (enabled: boolean, record: ReplyRule) => (
         <Switch
           checked={enabled}
-          onChange={(checked) => handleToggle(record.id, checked)}
+          onChange={checked => handleToggle(record.id, checked)}
           checkedChildren="启用"
           unCheckedChildren="禁用"
         />
@@ -224,11 +224,7 @@ export default function AutoReplyPage() {
       key: 'action',
       render: (_: any, record: ReplyRule) => (
         <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => openEditModal(record)}
-          >
+          <Button type="link" icon={<EditOutlined />} onClick={() => openEditModal(record)}>
             编辑
           </Button>
           <Popconfirm
@@ -250,18 +246,14 @@ export default function AutoReplyPage() {
     <div style={{ padding: 24 }}>
       <Title level={4}>自动回复</Title>
       <Text type="secondary">配置关键词自动回复规则，当用户发送包含关键词的消息时自动回复</Text>
-      
+
       <Divider />
 
       {/* 统计卡片 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card>
-            <Statistic
-              title="规则总数"
-              value={stats.totalRules}
-              prefix={<MessageOutlined />}
-            />
+            <Statistic title="规则总数" value={stats.totalRules} prefix={<MessageOutlined />} />
           </Card>
         </Col>
         <Col span={6}>
@@ -320,7 +312,7 @@ export default function AutoReplyPage() {
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 条规则`,
+            showTotal: total => `共 ${total} 条规则`,
           }}
         />
       </Card>
@@ -339,18 +331,14 @@ export default function AutoReplyPage() {
         cancelText="取消"
         width={600}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{ enabled: true }}
-        >
+        <Form form={form} layout="vertical" initialValues={{ enabled: true }}>
           <Form.Item
             name="platform"
             label="平台"
             rules={[{ required: true, message: '请选择平台' }]}
           >
             <Select placeholder="请选择平台">
-              {PLATFORMS.map((p) => (
+              {PLATFORMS.map(p => (
                 <Option key={p.id} value={p.id}>
                   {p.name}
                 </Option>
@@ -371,19 +359,10 @@ export default function AutoReplyPage() {
             label="回复内容"
             rules={[{ required: true, message: '请输入回复内容' }]}
           >
-            <TextArea
-              rows={4}
-              placeholder="请输入自动回复的内容"
-              maxLength={500}
-              showCount
-            />
+            <TextArea rows={4} placeholder="请输入自动回复的内容" maxLength={500} showCount />
           </Form.Item>
 
-          <Form.Item
-            name="enabled"
-            label="启用状态"
-            valuePropName="checked"
-          >
+          <Form.Item name="enabled" label="启用状态" valuePropName="checked">
             <Switch checkedChildren="启用" unCheckedChildren="禁用" />
           </Form.Item>
         </Form>

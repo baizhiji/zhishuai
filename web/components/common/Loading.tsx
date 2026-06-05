@@ -1,10 +1,10 @@
-import React from 'react'
-import { Spin } from 'antd'
+import React from 'react';
+import { Spin } from 'antd';
 
 interface LoadingProps {
-  size?: 'small' | 'default' | 'large'
-  tip?: string
-  spinning?: boolean
+  size?: 'small' | 'default' | 'large';
+  tip?: string;
+  spinning?: boolean;
 }
 
 export default function Loading({ size = 'default', tip, spinning = true }: LoadingProps) {
@@ -12,7 +12,7 @@ export default function Loading({ size = 'default', tip, spinning = true }: Load
     <div className="flex items-center justify-center min-h-screen">
       <Spin size={size} tip={tip} spinning={spinning} />
     </div>
-  )
+  );
 }
 
 export function PageLoading({ tip = '加载中...' }: { tip?: string }) {
@@ -20,7 +20,7 @@ export function PageLoading({ tip = '加载中...' }: { tip?: string }) {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
       <Spin size="large" tip={tip} />
     </div>
-  )
+  );
 }
 
 export function InlineLoading({ tip }: { tip?: string }) {
@@ -28,5 +28,5 @@ export function InlineLoading({ tip }: { tip?: string }) {
     <div className="flex items-center justify-center py-8">
       <Spin tip={tip} />
     </div>
-  )
+  );
 }

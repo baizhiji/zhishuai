@@ -214,9 +214,7 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className={styles.cta}>
         <Title level={2}>准备好开始了吗？</Title>
-        <Paragraph>
-          加入我们，开启智能化运营新时代，让 AI 为您赋能
-        </Paragraph>
+        <Paragraph>加入我们，开启智能化运营新时代，让 AI 为您赋能</Paragraph>
         <Space size="large">
           <Link href="/register">
             <Button type="primary" size="large">

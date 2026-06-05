@@ -14,7 +14,7 @@ import {
   Space,
   Empty,
   Typography,
-  Popconfirm
+  Popconfirm,
 } from 'antd';
 import {
   MobileOutlined,
@@ -23,7 +23,7 @@ import {
   QrcodeOutlined,
   DeleteOutlined,
   CheckCircleOutlined,
-  LoadingOutlined
+  LoadingOutlined,
 } from '@ant-design/icons';
 import request from '@/utils/request';
 
@@ -63,7 +63,9 @@ export default function SocialAccountsPage() {
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [qrSession, setQrSession] = useState<QrcodeSession | null>(null);
   const [qrPolling, setQrPolling] = useState(false);
-  const [qrStatus, setQrStatus] = useState<'waiting' | 'scanned' | 'success' | 'expired'>('waiting');
+  const [qrStatus, setQrStatus] = useState<'waiting' | 'scanned' | 'success' | 'expired'>(
+    'waiting'
+  );
 
   // 加载已绑定的账号
   const loadAccounts = async () => {
@@ -89,15 +91,15 @@ export default function SocialAccountsPage() {
     try {
       const res = await request.post('/api/social/session/create', {
         platform,
-        userId: 'current-user'
+        userId: 'current-user',
       });
-      
+
       if (res.code === 0) {
         const platformInfo = PLATFORMS.find(p => p.id === platform);
         setQrSession({
           sessionId: res.data.sessionId,
           qrcodeImage: res.data.qrcodeImage,
-          platformName: platformInfo?.name || platform
+          platformName: platformInfo?.name || platform,
         });
         setQrModalVisible(true);
         setQrStatus('waiting');
@@ -117,7 +119,7 @@ export default function SocialAccountsPage() {
     const pollStatus = async () => {
       try {
         const res = await request.get(`/api/social/session/${qrSession.sessionId}/status`);
-        
+
         if (res.code === 0) {
           const status = res.data.status;
           setQrStatus(status);
@@ -174,12 +176,12 @@ export default function SocialAccountsPage() {
             <span>{text}</span>
           </Space>
         );
-      }
+      },
     },
     {
       title: '账号',
       dataIndex: 'accountName',
-      key: 'accountName'
+      key: 'accountName',
     },
     {
       title: '状态',
@@ -189,13 +191,13 @@ export default function SocialAccountsPage() {
         <Tag color={status === 'active' ? 'green' : 'default'}>
           {status === 'active' ? '已连接' : '未连接'}
         </Tag>
-      )
+      ),
     },
     {
       title: '最后同步',
       dataIndex: 'lastSyncTime',
       key: 'lastSyncTime',
-      render: (time: string) => time ? new Date(time).toLocaleString() : '-'
+      render: (time: string) => (time ? new Date(time).toLocaleString() : '-'),
     },
     {
       title: '操作',
@@ -211,8 +213,8 @@ export default function SocialAccountsPage() {
             解绑
           </Button>
         </Popconfirm>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -230,16 +232,14 @@ export default function SocialAccountsPage() {
             <Col xs={12} sm={8} md={6} lg={4} key={platform.id}>
               <Card
                 hoverable
-                style={{ 
+                style={{
                   textAlign: 'center',
                   borderColor: isBound ? platform.color : undefined,
-                  opacity: isBound ? 0.7 : 1
+                  opacity: isBound ? 0.7 : 1,
                 }}
                 onClick={() => !isBound && generateQrcode(platform.id)}
               >
-                <div style={{ fontSize: 40, marginBottom: 8 }}>
-                  {platform.icon}
-                </div>
+                <div style={{ fontSize: 40, marginBottom: 8 }}>{platform.icon}</div>
                 <div style={{ fontWeight: 500 }}>{platform.name}</div>
                 {isBound && (
                   <Tag color="green" style={{ marginTop: 8 }}>
@@ -259,17 +259,9 @@ export default function SocialAccountsPage() {
             <Spin />
           </div>
         ) : accounts.length > 0 ? (
-          <Table
-            columns={columns}
-            dataSource={accounts}
-            rowKey="id"
-            pagination={false}
-          />
+          <Table columns={columns} dataSource={accounts} rowKey="id" pagination={false} />
         ) : (
-          <Empty 
-            description="暂无已连接的账号" 
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
+          <Empty description="暂无已连接的账号" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         )}
       </Card>
 
@@ -287,10 +279,10 @@ export default function SocialAccountsPage() {
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           {qrSession?.qrcodeImage ? (
             <div style={{ marginBottom: 20 }}>
-              <img 
-                src={qrSession.qrcodeImage} 
-                alt="登录二维码" 
-                style={{ width: 200, height: 200 }} 
+              <img
+                src={qrSession.qrcodeImage}
+                alt="登录二维码"
+                style={{ width: 200, height: 200 }}
               />
             </div>
           ) : (
@@ -320,7 +312,10 @@ export default function SocialAccountsPage() {
               <>
                 <Text type="danger">二维码已过期</Text>
                 <br />
-                <Button type="primary" onClick={() => generateQrcode(qrSession?.platformName || '')}>
+                <Button
+                  type="primary"
+                  onClick={() => generateQrcode(qrSession?.platformName || '')}
+                >
                   重新生成
                 </Button>
               </>

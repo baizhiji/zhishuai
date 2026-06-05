@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   Button,
@@ -22,7 +22,7 @@ import {
   Switch,
   Spin,
   Empty,
-} from 'antd'
+} from 'antd';
 import {
   SearchOutlined,
   LockOutlined,
@@ -33,36 +33,36 @@ import {
   PlusOutlined,
   SettingOutlined,
   ReloadOutlined,
-} from '@ant-design/icons'
-import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
 
-const { Title, Text } = Typography
-const { Search } = Input
-const { Option } = Select
+const { Title, Text } = Typography;
+const { Search } = Input;
+const { Option } = Select;
 
 interface Customer {
-  id: string
-  name: string
-  phone: string
-  status: 'active' | 'frozen'
-  package: 'basic' | 'pro' | 'enterprise'
+  id: string;
+  name: string;
+  phone: string;
+  status: 'active' | 'frozen';
+  package: 'basic' | 'pro' | 'enterprise';
   features: {
-    media: boolean
-    recruitment: boolean
-    acquisition: boolean
-    sharing: boolean
-    referral: boolean
-  }
-  createdAt: string
-  expireAt: string
-  users: number
-  published: number
-  acquired: number
+    media: boolean;
+    recruitment: boolean;
+    acquisition: boolean;
+    sharing: boolean;
+    referral: boolean;
+  };
+  createdAt: string;
+  expireAt: string;
+  users: number;
+  published: number;
+  acquired: number;
   // 计费相关
-  monthlyPayment: number  // 当月支付金额
-  totalPayment: number    // 累计支付金额
-  agentName?: string      // 所属代理商名称
+  monthlyPayment: number; // 当月支付金额
+  totalPayment: number; // 累计支付金额
+  agentName?: string; // 所属代理商名称
 }
 
 // 到期时间选项
@@ -74,7 +74,7 @@ const expireOptions = [
   { value: 24, label: '2年' },
   { value: 36, label: '3年' },
   { value: -1, label: '永久' },
-]
+];
 
 // Mock 数据
 const mockCustomers: Customer[] = [
@@ -84,7 +84,13 @@ const mockCustomers: Customer[] = [
     phone: '139****2002',
     status: 'active',
     package: 'pro',
-    features: { media: true, recruitment: true, acquisition: false, sharing: true, referral: false },
+    features: {
+      media: true,
+      recruitment: true,
+      acquisition: false,
+      sharing: true,
+      referral: false,
+    },
     createdAt: '2024-02-15',
     expireAt: '2025-02-15',
     users: 20,
@@ -92,7 +98,7 @@ const mockCustomers: Customer[] = [
     acquired: 0,
     monthlyPayment: 299,
     totalPayment: 3588,
-    agentName: '张三代理商'
+    agentName: '张三代理商',
   },
   {
     id: '3',
@@ -100,7 +106,13 @@ const mockCustomers: Customer[] = [
     phone: '137****3003',
     status: 'frozen',
     package: 'basic',
-    features: { media: true, recruitment: false, acquisition: false, sharing: false, referral: false },
+    features: {
+      media: true,
+      recruitment: false,
+      acquisition: false,
+      sharing: false,
+      referral: false,
+    },
     createdAt: '2024-03-20',
     expireAt: '2024-06-20',
     users: 5,
@@ -108,7 +120,7 @@ const mockCustomers: Customer[] = [
     acquired: 0,
     monthlyPayment: 0,
     totalPayment: 897,
-    agentName: '李四代理商'
+    agentName: '李四代理商',
   },
   {
     id: '5',
@@ -124,112 +136,123 @@ const mockCustomers: Customer[] = [
     acquired: 156,
     monthlyPayment: 499,
     totalPayment: 5988,
-    agentName: '张三代理商'
+    agentName: '张三代理商',
   },
-]
+];
 
 export default function AdminCustomersPage() {
-  const [loading, setLoading] = useState(true)
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [searchText, setSearchText] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [editVisible, setEditVisible] = useState(false)
-  const [featureVisible, setFeatureVisible] = useState(false)
-  const [createVisible, setCreateVisible] = useState(false)
-  const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
-  const [form] = Form.useForm()
-  const [createForm] = Form.useForm()
-  const [featureForm] = Form.useForm()
+  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [editVisible, setEditVisible] = useState(false);
+  const [featureVisible, setFeatureVisible] = useState(false);
+  const [createVisible, setCreateVisible] = useState(false);
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
+  const [form] = Form.useForm();
+  const [createForm] = Form.useForm();
+  const [featureForm] = Form.useForm();
 
   // 模拟加载数据
   useEffect(() => {
     const timer = setTimeout(() => {
-      setCustomers(mockCustomers)
-      setLoading(false)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [])
+      setCustomers(mockCustomers);
+      setLoading(false);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
+    return customers.filter(c => {
       const matchSearch =
-        !searchText || c.name.toLowerCase().includes(searchText.toLowerCase()) || c.phone.includes(searchText)
-      const matchStatus = statusFilter === 'all' || c.status === statusFilter
-      return matchSearch && matchStatus
-    })
-  }, [customers, searchText, statusFilter])
+        !searchText ||
+        c.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        c.phone.includes(searchText);
+      const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+  }, [customers, searchText, statusFilter]);
 
   const handleToggleStatus = (customer: Customer) => {
-    setCustomers((prev) =>
-      prev.map((c) => (c.id === customer.id ? { ...c, status: c.status === 'active' ? 'frozen' : 'active' } : c))
-    )
-    message.success(`${customer.name} 已${customer.status === 'active' ? '冻结' : '解冻'}`)
-  }
+    setCustomers(prev =>
+      prev.map(c =>
+        c.id === customer.id ? { ...c, status: c.status === 'active' ? 'frozen' : 'active' } : c
+      )
+    );
+    message.success(`${customer.name} 已${customer.status === 'active' ? '冻结' : '解冻'}`);
+  };
 
   const handleEdit = (customer: Customer) => {
-    setEditCustomer(customer)
-    form.setFieldsValue(customer)
-    setEditVisible(true)
-  }
+    setEditCustomer(customer);
+    form.setFieldsValue(customer);
+    setEditVisible(true);
+  };
 
   const handleSave = () => {
-    form.validateFields().then((values) => {
-      setCustomers((prev) => prev.map((c) => (c.id === editCustomer?.id ? { ...c, ...values } : c)))
-      message.success('信息已更新')
-      setEditVisible(false)
-    })
-  }
+    form.validateFields().then(values => {
+      setCustomers(prev => prev.map(c => (c.id === editCustomer?.id ? { ...c, ...values } : c)));
+      message.success('信息已更新');
+      setEditVisible(false);
+    });
+  };
 
   const handleDelete = (customer: Customer) => {
-    setCustomers((prev) => prev.filter((c) => c.id !== customer.id))
-    message.success(`${customer.name} 已删除`)
-  }
+    setCustomers(prev => prev.filter(c => c.id !== customer.id));
+    message.success(`${customer.name} 已删除`);
+  };
 
   const handleOpenFeatures = (customer: Customer) => {
-    setEditCustomer(customer)
+    setEditCustomer(customer);
     featureForm.setFieldsValue({
       name: customer.name,
       phone: customer.phone,
-      features: customer.features
-    })
-    setFeatureVisible(true)
-  }
+      features: customer.features,
+    });
+    setFeatureVisible(true);
+  };
 
   const handleSaveFeatures = () => {
-    featureForm.validateFields().then((values) => {
-      setCustomers((prev) => 
-        prev.map((c) => c.id === editCustomer?.id ? { ...c, features: values.features } : c)
-      )
-      message.success('功能权限已更新')
-      setFeatureVisible(false)
-    })
-  }
+    featureForm.validateFields().then(values => {
+      setCustomers(prev =>
+        prev.map(c => (c.id === editCustomer?.id ? { ...c, features: values.features } : c))
+      );
+      message.success('功能权限已更新');
+      setFeatureVisible(false);
+    });
+  };
 
   const handleOpenCreateModal = () => {
-    createForm.resetFields()
+    createForm.resetFields();
     createForm.setFieldsValue({
       status: 'active',
       price: 299,
       priceQuantity: 1,
       priceUnit: 'month',
       expireMonths: 12,
-    })
-    setCreateVisible(true)
-  }
+    });
+    setCreateVisible(true);
+  };
 
   const handleCreate = () => {
-    createForm.validateFields().then((values) => {
-      const expireValue = values.expireMonths
-      const expireAt = expireValue === -1 ? '2099-12-31' : dayjs().add(expireValue, 'month').format('YYYY-MM-DD')
-      
+    createForm.validateFields().then(values => {
+      const expireValue = values.expireMonths;
+      const expireAt =
+        expireValue === -1 ? '2099-12-31' : dayjs().add(expireValue, 'month').format('YYYY-MM-DD');
+
       // 根据计费周期计算显示文本
-      let unitText = ''
+      let unitText = '';
       switch (values.priceUnit) {
-        case 'quarter': unitText = '季'; break
-        case 'year': unitText = '年'; break
-        default: unitText = '月'; break
+        case 'quarter':
+          unitText = '季';
+          break;
+        case 'year':
+          unitText = '年';
+          break;
+        default:
+          unitText = '月';
+          break;
       }
-      
+
       const newCustomer: Customer = {
         id: Date.now().toString(),
         name: values.name,
@@ -251,21 +274,23 @@ export default function AdminCustomersPage() {
         monthlyPayment: values.price || 0,
         totalPayment: values.price || 0,
         agentName: values.agentName || '-',
-      }
-      setCustomers((prev) => [newCustomer, ...prev])
-      message.success(`已成功开通：${values.name}，价格 ¥${values.price || 0} × ${values.priceQuantity || 1}${unitText}，登录账号：${values.phone}，初始密码：123456`)
-      setCreateVisible(false)
-    })
-  }
+      };
+      setCustomers(prev => [newCustomer, ...prev]);
+      message.success(
+        `已成功开通：${values.name}，价格 ¥${values.price || 0} × ${values.priceQuantity || 1}${unitText}，登录账号：${values.phone}，初始密码：123456`
+      );
+      setCreateVisible(false);
+    });
+  };
 
   const handleRefresh = () => {
-    setLoading(true)
+    setLoading(true);
     setTimeout(() => {
-      setCustomers(mockCustomers)
-      setLoading(false)
-      message.success('数据已刷新')
-    }, 500)
-  }
+      setCustomers(mockCustomers);
+      setLoading(false);
+      message.success('数据已刷新');
+    }, 500);
+  };
 
   const columns: ColumnsType<Customer> = [
     {
@@ -276,7 +301,9 @@ export default function AdminCustomersPage() {
           <TeamOutlined style={{ color: '#52c41a', fontSize: 18 }} />
           <div>
             <div style={{ fontWeight: 600, color: '#262626' }}>{record.name}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.phone}
+            </Text>
           </div>
         </Space>
       ),
@@ -286,7 +313,7 @@ export default function AdminCustomersPage() {
       dataIndex: 'agentName',
       key: 'agentName',
       width: 120,
-      render: (text: string) => text || '-'
+      render: (text: string) => text || '-',
     },
     {
       title: '状态',
@@ -319,7 +346,9 @@ export default function AdminCustomersPage() {
       render: (_, record) => (
         <div>
           <div style={{ color: '#52c41a' }}>¥{record.monthlyPayment || 0}</div>
-          <Text type="secondary" style={{ fontSize: 12 }}>累计 ¥{record.totalPayment || 0}</Text>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            累计 ¥{record.totalPayment || 0}
+          </Text>
         </div>
       ),
     },
@@ -340,7 +369,9 @@ export default function AdminCustomersPage() {
             size="small"
             icon={record.status === 'active' ? <LockOutlined /> : <UnlockOutlined />}
             onClick={() => handleToggleStatus(record)}
-            style={record.status === 'active' ? {} : { background: '#52c41a', borderColor: '#52c41a' }}
+            style={
+              record.status === 'active' ? {} : { background: '#52c41a', borderColor: '#52c41a' }
+            }
           >
             {record.status === 'active' ? '冻结' : '解冻'}
           </Button>
@@ -356,26 +387,37 @@ export default function AdminCustomersPage() {
         </Space>
       ),
     },
-  ]
+  ];
 
   const stats = useMemo(() => {
-    const total = customers.length
-    const active = customers.filter((c) => c.status === 'active').length
-    const frozen = customers.filter((c) => c.status === 'frozen').length
-    const totalUsers = customers.reduce((sum, c) => sum + c.users, 0)
-    return { total, active, frozen, totalUsers }
-  }, [customers])
+    const total = customers.length;
+    const active = customers.filter(c => c.status === 'active').length;
+    const frozen = customers.filter(c => c.status === 'frozen').length;
+    const totalUsers = customers.reduce((sum, c) => sum + c.users, 0);
+    return { total, active, frozen, totalUsers };
+  }, [customers]);
 
   return (
     <div style={{ padding: 24 }}>
       {/* 页面标题 */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <div>
-          <Title level={3} style={{ margin: 0 }}>终端客户管理</Title>
+          <Title level={3} style={{ margin: 0 }}>
+            终端客户管理
+          </Title>
           <Text type="secondary">管理所有终端客户，开通账号、设置功能权限、冻结/解冻</Text>
         </div>
         <Space>
-          <Button icon={<ReloadOutlined />} onClick={handleRefresh}>刷新</Button>
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh}>
+            刷新
+          </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenCreateModal}>
             开通客户
           </Button>
@@ -386,19 +428,19 @@ export default function AdminCustomersPage() {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card loading={loading}>
-            <Statistic 
-              title="客户总数" 
-              value={stats.total} 
-              prefix={<TeamOutlined style={{ color: '#1890ff' }} />} 
+            <Statistic
+              title="客户总数"
+              value={stats.total}
+              prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
         </Col>
         <Col span={6}>
           <Card loading={loading}>
-            <Statistic 
-              title="正常" 
-              value={stats.active} 
+            <Statistic
+              title="正常"
+              value={stats.active}
               valueStyle={{ color: '#52c41a' }}
               suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>户</span>}
             />
@@ -406,9 +448,9 @@ export default function AdminCustomersPage() {
         </Col>
         <Col span={6}>
           <Card loading={loading}>
-            <Statistic 
-              title="已冻结" 
-              value={stats.frozen} 
+            <Statistic
+              title="已冻结"
+              value={stats.frozen}
               valueStyle={{ color: '#ff4d4f' }}
               suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>户</span>}
             />
@@ -416,9 +458,9 @@ export default function AdminCustomersPage() {
         </Col>
         <Col span={6}>
           <Card loading={loading}>
-            <Statistic 
-              title="总用户数" 
-              value={stats.totalUsers} 
+            <Statistic
+              title="总用户数"
+              value={stats.totalUsers}
               prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
               valueStyle={{ color: '#722ed1' }}
             />
@@ -430,9 +472,9 @@ export default function AdminCustomersPage() {
       <Card>
         <div style={{ marginBottom: 16 }}>
           <Space wrap>
-            <Input.Search 
-              placeholder="搜索姓名或手机号" 
-              onChange={(e) => setSearchText(e.target.value)} 
+            <Input.Search
+              placeholder="搜索姓名或手机号"
+              onChange={e => setSearchText(e.target.value)}
               style={{ width: 220 }}
               allowClear
               prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
@@ -446,19 +488,19 @@ export default function AdminCustomersPage() {
         </div>
 
         <Spin spinning={loading}>
-          <Table 
-            columns={columns} 
-            dataSource={filteredCustomers} 
-            rowKey="id" 
-            pagination={{ 
+          <Table
+            columns={columns}
+            dataSource={filteredCustomers}
+            rowKey="id"
+            pagination={{
               pageSize: 10,
               showSizeChanger: true,
               showQuickJumper: true,
-              showTotal: (total) => `共 ${total} 条记录`,
+              showTotal: total => `共 ${total} 条记录`,
             }}
             locale={{
               emptyText: (
-                <Empty 
+                <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description={
                     <span>
@@ -467,10 +509,12 @@ export default function AdminCustomersPage() {
                   }
                 >
                   {!searchText && statusFilter === 'all' && (
-                    <Button type="primary" onClick={handleOpenCreateModal}>开通第一个客户</Button>
+                    <Button type="primary" onClick={handleOpenCreateModal}>
+                      开通第一个客户
+                    </Button>
                   )}
                 </Empty>
-              )
+              ),
             }}
           />
         </Spin>
@@ -486,16 +530,30 @@ export default function AdminCustomersPage() {
         cancelText="取消"
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="用户名" rules={[{ required: true, message: '请输入用户名' }]}>
+          <Form.Item
+            name="name"
+            label="用户名"
+            rules={[{ required: true, message: '请输入用户名' }]}
+          >
             <Input placeholder="请输入用户名" />
           </Form.Item>
-          <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号码' }]}>
+          <Form.Item
+            name="phone"
+            label="手机号"
+            rules={[{ required: true, message: '请输入手机号码' }]}
+          >
             <Input placeholder="请输入手机号码" />
           </Form.Item>
-          <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true, message: '请选择有效时间' }]}>
+          <Form.Item
+            name="expireMonths"
+            label="有效时间"
+            rules={[{ required: true, message: '请选择有效时间' }]}
+          >
             <Select placeholder="选择有效时间">
               {expireOptions.map(opt => (
-                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                <Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Option>
               ))}
             </Select>
           </Form.Item>
@@ -528,7 +586,15 @@ export default function AdminCustomersPage() {
           <Form.Item name="features" label="功能权限" style={{ marginBottom: 0 }}>
             <Card size="small">
               <Space direction="vertical" style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f0f0f0',
+                  }}
+                >
                   <Space>
                     <Tag color="cyan">自媒体</Tag>
                     <Text>自媒体运营</Text>
@@ -537,7 +603,15 @@ export default function AdminCustomersPage() {
                     <Switch />
                   </Form.Item>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f0f0f0',
+                  }}
+                >
                   <Space>
                     <Tag color="purple">招聘</Tag>
                     <Text>招聘助手</Text>
@@ -546,7 +620,15 @@ export default function AdminCustomersPage() {
                     <Switch />
                   </Form.Item>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f0f0f0',
+                  }}
+                >
                   <Space>
                     <Tag color="orange">获客</Tag>
                     <Text>智能获客</Text>
@@ -555,7 +637,15 @@ export default function AdminCustomersPage() {
                     <Switch />
                   </Form.Item>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                    borderBottom: '1px solid #f0f0f0',
+                  }}
+                >
                   <Space>
                     <Tag color="green">分享</Tag>
                     <Text>推荐分享</Text>
@@ -564,7 +654,14 @@ export default function AdminCustomersPage() {
                     <Switch />
                   </Form.Item>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 0',
+                  }}
+                >
                   <Space>
                     <Tag color="gold">转介</Tag>
                     <Text>转介绍</Text>
@@ -595,7 +692,7 @@ export default function AdminCustomersPage() {
             label="用户名"
             rules={[
               { required: true, message: '请输入用户名' },
-              { min: 2, max: 20, message: '用户名长度2-20个字符' }
+              { min: 2, max: 20, message: '用户名长度2-20个字符' },
             ]}
           >
             <Input placeholder="请输入用户名" />
@@ -606,33 +703,36 @@ export default function AdminCustomersPage() {
             label="手机号码（登录账号）"
             rules={[
               { required: true, message: '请输入手机号码' },
-              { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' }
+              { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码' },
             ]}
           >
             <Input placeholder="请输入11位手机号码" maxLength={11} />
           </Form.Item>
 
-          <Form.Item
-            name="agentName"
-            label="所属代理商"
-          >
+          <Form.Item name="agentName" label="所属代理商">
             <Select placeholder="请选择代理商（可选）" allowClear>
               <Option value="张三代理商">张三代理商</Option>
               <Option value="李四代理商">李四代理商</Option>
             </Select>
           </Form.Item>
 
-          <Form.Item
-            label="价格"
-          >
+          <Form.Item label="价格">
             <Space.Compact>
               <Form.Item name="price" noStyle rules={[{ required: true, message: '请输入价格' }]}>
                 <Input type="number" prefix="¥" placeholder="金额" min={0} style={{ width: 120 }} />
               </Form.Item>
-              <Form.Item name="priceQuantity" noStyle rules={[{ required: true, message: '请输入时间' }]}>
+              <Form.Item
+                name="priceQuantity"
+                noStyle
+                rules={[{ required: true, message: '请输入时间' }]}
+              >
                 <InputNumber placeholder="时间" min={1} style={{ width: 80 }} />
               </Form.Item>
-              <Form.Item name="priceUnit" noStyle rules={[{ required: true, message: '请选择单位' }]}>
+              <Form.Item
+                name="priceUnit"
+                noStyle
+                rules={[{ required: true, message: '请选择单位' }]}
+              >
                 <Select style={{ width: 80 }} defaultValue="month">
                   <Option value="month">月</Option>
                   <Option value="quarter">季</Option>
@@ -649,7 +749,9 @@ export default function AdminCustomersPage() {
           >
             <Select placeholder="请选择">
               {expireOptions.map(opt => (
-                <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                <Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Option>
               ))}
             </Select>
           </Form.Item>
@@ -665,7 +767,8 @@ export default function AdminCustomersPage() {
             <Space>
               <Tag color="green">提示</Tag>
               <Text type="secondary">
-                登录账号：手机号码<br />
+                登录账号：手机号码
+                <br />
                 初始密码：<span style={{ color: '#faad14' }}>123456</span>（用户自行修改）
               </Text>
             </Space>
@@ -673,5 +776,5 @@ export default function AdminCustomersPage() {
         </Form>
       </Modal>
     </div>
-  )
+  );
 }

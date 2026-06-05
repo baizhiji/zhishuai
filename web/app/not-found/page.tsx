@@ -8,13 +8,15 @@ export default function NotFoundPage() {
   const router = useRouter();
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh',
-      background: '#f0f2f5'
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: '#f0f2f5',
+      }}
+    >
       <Card>
         <Result
           status="404"
@@ -22,9 +24,7 @@ export default function NotFoundPage() {
           subTitle="抱歉，您访问的页面不存在"
           extra={
             <div>
-              <p style={{ marginBottom: 16 }}>
-                可能的原因：
-              </p>
+              <p style={{ marginBottom: 16 }}>可能的原因：</p>
               <ul style={{ textAlign: 'left', marginBottom: 24 }}>
                 <li>页面已被删除或移动</li>
                 <li>URL 地址输入错误</li>

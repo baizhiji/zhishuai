@@ -114,9 +114,36 @@ export default function DigitalHumanPage() {
     },
   ]);
   const [templates] = useState<VideoTemplate[]>([
-    { id: '1', name: '企业宣传片', thumbnail: '', duration: 60, style: 'professional', scenes: 5, usageCount: 45, createdAt: '2024-03-10' },
-    { id: '2', name: '产品介绍', thumbnail: '', duration: 30, style: 'friendly', scenes: 3, usageCount: 78, createdAt: '2024-03-12' },
-    { id: '3', name: '招聘宣讲', thumbnail: '', duration: 120, style: 'friendly', scenes: 8, usageCount: 23, createdAt: '2024-03-14' },
+    {
+      id: '1',
+      name: '企业宣传片',
+      thumbnail: '',
+      duration: 60,
+      style: 'professional',
+      scenes: 5,
+      usageCount: 45,
+      createdAt: '2024-03-10',
+    },
+    {
+      id: '2',
+      name: '产品介绍',
+      thumbnail: '',
+      duration: 30,
+      style: 'friendly',
+      scenes: 3,
+      usageCount: 78,
+      createdAt: '2024-03-12',
+    },
+    {
+      id: '3',
+      name: '招聘宣讲',
+      thumbnail: '',
+      duration: 120,
+      style: 'friendly',
+      scenes: 8,
+      usageCount: 23,
+      createdAt: '2024-03-14',
+    },
   ]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingHuman, setEditingHuman] = useState<DigitalHuman | null>(null);
@@ -186,17 +213,27 @@ export default function DigitalHumanPage() {
       key: 'action',
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<VideoCameraOutlined />} onClick={() => {
-            videoForm.setFieldsValue({ humanId: record.id });
-            setVideoModalVisible(true);
-          }}>
+          <Button
+            type="link"
+            size="small"
+            icon={<VideoCameraOutlined />}
+            onClick={() => {
+              videoForm.setFieldsValue({ humanId: record.id });
+              setVideoModalVisible(true);
+            }}
+          >
             生成视频
           </Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => {
-            setEditingHuman(record);
-            form.setFieldsValue(record);
-            setModalVisible(true);
-          }}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setEditingHuman(record);
+              form.setFieldsValue(record);
+              setModalVisible(true);
+            }}
+          >
             编辑
           </Button>
           <Button type="link" size="small" danger icon={<DeleteOutlined />}>
@@ -211,15 +248,25 @@ export default function DigitalHumanPage() {
     { title: '模板名称', dataIndex: 'name', key: 'name' },
     { title: '时长', dataIndex: 'duration', key: 'duration', render: (d: number) => `${d}秒` },
     { title: '场景数', dataIndex: 'scenes', key: 'scenes', render: (s: number) => `${s}个` },
-    { title: '使用次数', dataIndex: 'usageCount', key: 'usageCount', render: (c: number) => `${c}次` },
+    {
+      title: '使用次数',
+      dataIndex: 'usageCount',
+      key: 'usageCount',
+      render: (c: number) => `${c}次`,
+    },
     {
       title: '操作',
       key: 'action',
       render: (_, record) => (
-        <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => {
-          videoForm.setFieldsValue({ templateId: record.id });
-          setVideoModalVisible(true);
-        }}>
+        <Button
+          type="primary"
+          size="small"
+          icon={<PlayCircleOutlined />}
+          onClick={() => {
+            videoForm.setFieldsValue({ templateId: record.id });
+            setVideoModalVisible(true);
+          }}
+        >
           使用模板
         </Button>
       ),
@@ -229,16 +276,19 @@ export default function DigitalHumanPage() {
   const handleSubmit = () => {
     form.validateFields().then(values => {
       if (editingHuman) {
-        setHumans(humans.map(h => h.id === editingHuman.id ? { ...h, ...values } : h));
+        setHumans(humans.map(h => (h.id === editingHuman.id ? { ...h, ...values } : h)));
         message.success('数字人已更新');
       } else {
-        setHumans([...humans, {
-          ...values,
-          id: Date.now().toString(),
-          status: 'active',
-          usageCount: 0,
-          createdAt: new Date().toISOString().split('T')[0],
-        }]);
+        setHumans([
+          ...humans,
+          {
+            ...values,
+            id: Date.now().toString(),
+            status: 'active',
+            usageCount: 0,
+            createdAt: new Date().toISOString().split('T')[0],
+          },
+        ]);
         message.success('数字人已创建');
       }
       setModalVisible(false);
@@ -274,16 +324,24 @@ export default function DigitalHumanPage() {
       {/* 统计卡片 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card><Statistic title="数字人形象" value={humans.length} prefix={<RobotOutlined />} /></Card>
+          <Card>
+            <Statistic title="数字人形象" value={humans.length} prefix={<RobotOutlined />} />
+          </Card>
         </Col>
         <Col span={6}>
-          <Card><Statistic title="视频模板" value={templates.length} prefix={<VideoCameraOutlined />} /></Card>
+          <Card>
+            <Statistic title="视频模板" value={templates.length} prefix={<VideoCameraOutlined />} />
+          </Card>
         </Col>
         <Col span={6}>
-          <Card><Statistic title="已生成视频" value={156} prefix={<PlayCircleOutlined />} /></Card>
+          <Card>
+            <Statistic title="已生成视频" value={156} prefix={<PlayCircleOutlined />} />
+          </Card>
         </Col>
         <Col span={6}>
-          <Card><Statistic title="本月生成" value={23} suffix="个" valueStyle={{ color: '#52c41a' }} /></Card>
+          <Card>
+            <Statistic title="本月生成" value={23} suffix="个" valueStyle={{ color: '#52c41a' }} />
+          </Card>
         </Col>
       </Row>
 
@@ -299,22 +357,47 @@ export default function DigitalHumanPage() {
 
       <Card>
         <Tabs defaultActiveKey="humans">
-          <TabPane tab={<span><RobotOutlined /> 数字人管理</span>} key="humans">
+          <TabPane
+            tab={
+              <span>
+                <RobotOutlined /> 数字人管理
+              </span>
+            }
+            key="humans"
+          >
             <div style={{ marginBottom: 16, textAlign: 'right' }}>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-                setEditingHuman(null);
-                form.resetFields();
-                setModalVisible(true);
-              }}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setEditingHuman(null);
+                  form.resetFields();
+                  setModalVisible(true);
+                }}
+              >
                 创建数字人
               </Button>
             </div>
             <Table columns={columns} dataSource={humans} rowKey="id" />
           </TabPane>
-          <TabPane tab={<span><VideoCameraOutlined /> 视频模板</span>} key="templates">
+          <TabPane
+            tab={
+              <span>
+                <VideoCameraOutlined /> 视频模板
+              </span>
+            }
+            key="templates"
+          >
             <Table columns={templateColumns} dataSource={templates} rowKey="id" />
           </TabPane>
-          <TabPane tab={<span><PlayCircleOutlined /> 生成记录</span>} key="records">
+          <TabPane
+            tab={
+              <span>
+                <PlayCircleOutlined /> 生成记录
+              </span>
+            }
+            key="records"
+          >
             <div style={{ textAlign: 'center', padding: 48 }}>
               <Text type="secondary">暂无生成记录</Text>
             </div>
@@ -341,8 +424,12 @@ export default function DigitalHumanPage() {
             <Col span={12}>
               <Form.Item name="gender" label="性别" rules={[{ required: true }]}>
                 <Select>
-                  <Select.Option value="female"><WomanOutlined /> 女声</Select.Option>
-                  <Select.Option value="male"><ManOutlined /> 男声</Select.Option>
+                  <Select.Option value="female">
+                    <WomanOutlined /> 女声
+                  </Select.Option>
+                  <Select.Option value="male">
+                    <ManOutlined /> 男声
+                  </Select.Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -351,7 +438,9 @@ export default function DigitalHumanPage() {
                 <Select>
                   {STYLE_OPTIONS.map(s => (
                     <Select.Option key={s.value} value={s.value}>
-                      <Space>{s.icon} {s.label}</Space>
+                      <Space>
+                        {s.icon} {s.label}
+                      </Space>
                     </Select.Option>
                   ))}
                 </Select>
@@ -395,14 +484,16 @@ export default function DigitalHumanPage() {
             <Col span={12}>
               <Form.Item name="humanId" label="选择数字人" rules={[{ required: true }]}>
                 <Select placeholder="请选择">
-                  {humans.filter(h => h.status === 'active').map(h => (
-                    <Select.Option key={h.id} value={h.id}>
-                      <Space>
-                        {h.name}
-                        <Tag>{h.gender === 'female' ? '女' : '男'}</Tag>
-                      </Space>
-                    </Select.Option>
-                  ))}
+                  {humans
+                    .filter(h => h.status === 'active')
+                    .map(h => (
+                      <Select.Option key={h.id} value={h.id}>
+                        <Space>
+                          {h.name}
+                          <Tag>{h.gender === 'female' ? '女' : '男'}</Tag>
+                        </Space>
+                      </Select.Option>
+                    ))}
                 </Select>
               </Form.Item>
             </Col>

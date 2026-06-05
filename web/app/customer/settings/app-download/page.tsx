@@ -1,18 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Button,
-  QRCode,
-  Space,
-  Tag,
-  Divider,
-  Alert,
-} from 'antd';
+import { Card, Row, Col, Typography, Button, QRCode, Space, Tag, Divider, Alert } from 'antd';
 import {
   AndroidOutlined,
   DownloadOutlined,
@@ -48,9 +37,10 @@ export default function AppDownloadPage() {
     forceUpdate: false,
   });
 
-  const downloadUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}${version.downloadUrl}`
-    : version.downloadUrl;
+  const downloadUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${version.downloadUrl}`
+      : version.downloadUrl;
 
   const handleDownload = () => {
     setLoading(true);
@@ -70,7 +60,7 @@ export default function AppDownloadPage() {
     <div>
       <Title level={3}>智枢AI APP下载</Title>
       <Text type="secondary">下载并安装智枢AI移动应用，随时随地管理您的业务</Text>
-      
+
       <Divider />
 
       {/* 下载卡片 */}
@@ -81,8 +71,12 @@ export default function AppDownloadPage() {
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               {/* 版本号 */}
               <div>
-                <Tag color="blue" style={{ marginBottom: 8 }}>最新版本</Tag>
-                <Title level={3} style={{ margin: 0 }}>v{version.version}</Title>
+                <Tag color="blue" style={{ marginBottom: 8 }}>
+                  最新版本
+                </Tag>
+                <Title level={3} style={{ margin: 0 }}>
+                  v{version.version}
+                </Title>
                 <Text type="secondary">Build {version.buildNumber}</Text>
               </div>
 
@@ -94,28 +88,44 @@ export default function AppDownloadPage() {
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
                   更新内容
                 </Text>
-                <Paragraph style={{ color: '#666' }}>
-                  {version.changelog}
-                </Paragraph>
+                <Paragraph style={{ color: '#666' }}>{version.changelog}</Paragraph>
               </div>
 
               {/* 版本信息 */}
               <Row gutter={16}>
                 <Col span={12}>
-                  <div style={{ textAlign: 'center', padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: 16,
+                      background: '#f5f5f5',
+                      borderRadius: 8,
+                    }}
+                  >
                     <MobileOutlined style={{ fontSize: 24, color: '#1890ff' }} />
                     <div style={{ marginTop: 8 }}>
                       <Text type="secondary">版本</Text>
-                      <div><Text strong>v{version.version}</Text></div>
+                      <div>
+                        <Text strong>v{version.version}</Text>
+                      </div>
                     </div>
                   </div>
                 </Col>
                 <Col span={12}>
-                  <div style={{ textAlign: 'center', padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: 16,
+                      background: '#f5f5f5',
+                      borderRadius: 8,
+                    }}
+                  >
                     <AndroidOutlined style={{ fontSize: 24, color: '#52c41a' }} />
                     <div style={{ marginTop: 8 }}>
                       <Text type="secondary">大小</Text>
-                      <div><Text strong>{version.size}</Text></div>
+                      <div>
+                        <Text strong>{version.size}</Text>
+                      </div>
                     </div>
                   </div>
                 </Col>
@@ -161,11 +171,7 @@ export default function AppDownloadPage() {
           {/* 右侧：二维码 */}
           <Col xs={24} md={10}>
             <div style={{ textAlign: 'center' }}>
-              <QRCode
-                value={downloadUrl}
-                size={180}
-                style={{ marginBottom: 16 }}
-              />
+              <QRCode value={downloadUrl} size={180} style={{ marginBottom: 16 }} />
               <Text type="secondary" style={{ display: 'block' }}>
                 扫码下载 App
               </Text>
@@ -200,18 +206,14 @@ export default function AppDownloadPage() {
           </div>
           <div>
             <Text strong>4. 打开 App</Text>
-            <Paragraph type="secondary">
-              安装完成后，打开 {appName} App 并登录使用。
-            </Paragraph>
+            <Paragraph type="secondary">安装完成后，打开 {appName} App 并登录使用。</Paragraph>
           </div>
         </Space>
       </Card>
 
       {/* 底部信息 */}
       <div style={{ textAlign: 'center', marginTop: 24, color: '#999' }}>
-        <Text style={{ color: '#999' }}>
-          © 2024 {appName} · 智能商业解决方案
-        </Text>
+        <Text style={{ color: '#999' }}>© 2024 {appName} · 智能商业解决方案</Text>
       </div>
     </div>
   );

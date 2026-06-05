@@ -132,7 +132,7 @@ export default function HotTopicsPage() {
 
   const handleCopyContent = () => {
     if (!generatedContent) return;
-    
+
     const text = `${generatedContent.title}\n\n${generatedContent.content}\n\n${generatedContent.hashtags.map(t => '#' + t).join(' ')}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -157,7 +157,8 @@ export default function HotTopicsPage() {
       width: 80,
       render: (rank: number) => (
         <div className={`text-center font-bold ${rank <= 3 ? 'text-red-500' : ''}`}>
-          {rank <= 3 ? '🔥' : ''}{rank}
+          {rank <= 3 ? '🔥' : ''}
+          {rank}
         </div>
       ),
     },
@@ -167,7 +168,7 @@ export default function HotTopicsPage() {
       key: 'title',
       render: (title: string, record) => (
         <div>
-          <div 
+          <div
             className="font-medium cursor-pointer hover:text-blue-500"
             onClick={() => handleGenerateContent(record)}
           >
@@ -175,9 +176,7 @@ export default function HotTopicsPage() {
           </div>
           <div className="flex items-center gap-2 mt-1">
             <Tag>{record.category}</Tag>
-            <span className="text-gray-400 text-sm">
-              {formatHeat(record.heat)} 热度
-            </span>
+            <span className="text-gray-400 text-sm">{formatHeat(record.heat)} 热度</span>
             {trendIcon[record.trend]}
           </div>
         </div>
@@ -217,7 +216,7 @@ export default function HotTopicsPage() {
           <Col span={8}>
             <Select
               value={platform}
-              onChange={(value) => setPlatform(value)}
+              onChange={value => setPlatform(value)}
               options={platformOptions}
               style={{ width: '100%' }}
             />
@@ -225,7 +224,7 @@ export default function HotTopicsPage() {
           <Col span={8}>
             <Select
               value={category}
-              onChange={(value) => setCategory(value)}
+              onChange={value => setCategory(value)}
               options={categoryOptions}
               style={{ width: '100%' }}
               placeholder="选择分类"
@@ -239,32 +238,28 @@ export default function HotTopicsPage() {
         {/* 统计信息 */}
         <Row gutter={16} className="mb-4">
           <Col span={6}>
-            <Statistic 
-              title="总话题数" 
-              value={topics.length} 
-              prefix={<ThunderboltOutlined />}
-            />
+            <Statistic title="总话题数" value={topics.length} prefix={<ThunderboltOutlined />} />
           </Col>
           <Col span={6}>
-            <Statistic 
-              title="上升中" 
-              value={topics.filter(t => t.trend === 'up').length} 
+            <Statistic
+              title="上升中"
+              value={topics.filter(t => t.trend === 'up').length}
               valueStyle={{ color: '#f5222d' }}
               prefix={<RiseOutlined />}
             />
           </Col>
           <Col span={6}>
-            <Statistic 
-              title="趋于平稳" 
-              value={topics.filter(t => t.trend === 'stable').length} 
+            <Statistic
+              title="趋于平稳"
+              value={topics.filter(t => t.trend === 'stable').length}
               valueStyle={{ color: '#999' }}
               prefix={<MinusOutlined />}
             />
           </Col>
           <Col span={6}>
-            <Statistic 
-              title="热度下降" 
-              value={topics.filter(t => t.trend === 'down').length} 
+            <Statistic
+              title="热度下降"
+              value={topics.filter(t => t.trend === 'down').length}
               valueStyle={{ color: '#52c41a' }}
               prefix={<FallOutlined />}
             />
@@ -332,7 +327,7 @@ export default function HotTopicsPage() {
                 <Text strong>标题：</Text>
                 <div className="text-lg font-medium">{generatedContent.title}</div>
               </div>
-              
+
               <div className="mb-4">
                 <Text strong>正文内容：</Text>
                 <div className="mt-2 p-3 bg-gray-50 rounded whitespace-pre-wrap">

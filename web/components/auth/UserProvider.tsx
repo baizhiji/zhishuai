@@ -139,14 +139,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 权限检查
-  const hasPermission = useCallback((permission: Permission): boolean => {
-    return permissions.includes(permission);
-  }, [permissions]);
+  const hasPermission = useCallback(
+    (permission: Permission): boolean => {
+      return permissions.includes(permission);
+    },
+    [permissions]
+  );
 
   // 功能开关检查
-  const isFeatureEnabled = useCallback((key: string): boolean => {
-    return featureToggles[key] ?? false;
-  }, [featureToggles]);
+  const isFeatureEnabled = useCallback(
+    (key: string): boolean => {
+      return featureToggles[key] ?? false;
+    },
+    [featureToggles]
+  );
 
   const value: UserContextType = {
     user,
@@ -160,11 +166,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     isFeatureEnabled,
   };
 
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 // 自定义hook

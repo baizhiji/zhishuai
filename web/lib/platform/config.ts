@@ -1,24 +1,27 @@
 // 平台枚举
 export enum Platform {
-  DOUYIN = 'douyin',           // 抖音
-  KUAISHOU = 'kuaishou',       // 快手
-  BILIBILI = 'bilibili',       // B站
+  DOUYIN = 'douyin', // 抖音
+  KUAISHOU = 'kuaishou', // 快手
+  BILIBILI = 'bilibili', // B站
   XIAOHONGSHU = 'xiaohongshu', // 小红书
-  WECHAT = 'wechat',           // 微信视频号
-  WEIBO = 'weibo',             // 微博
-  TIKTOK = 'tiktok',           // TikTok（海外）
-  YOUTUBE = 'youtube',         // YouTube（海外）
+  WECHAT = 'wechat', // 微信视频号
+  WEIBO = 'weibo', // 微博
+  TIKTOK = 'tiktok', // TikTok（海外）
+  YOUTUBE = 'youtube', // YouTube（海外）
 }
 
 // 平台配置
-export const platformConfig: Record<Platform, {
-  label: string
-  icon: string
-  color: string
-  maxScheduledDays: number  // 最大定时发布天数
-  maxVideosPerDay: number   // 每日最多发布视频数
-  supportsBatch: boolean    // 是否支持批量发布
-}> = {
+export const platformConfig: Record<
+  Platform,
+  {
+    label: string;
+    icon: string;
+    color: string;
+    maxScheduledDays: number; // 最大定时发布天数
+    maxVideosPerDay: number; // 每日最多发布视频数
+    supportsBatch: boolean; // 是否支持批量发布
+  }
+> = {
   [Platform.DOUYIN]: {
     label: '抖音',
     icon: 'FireOutlined',
@@ -83,18 +86,18 @@ export const platformConfig: Record<Platform, {
     maxVideosPerDay: 1,
     supportsBatch: false,
   },
-}
+};
 
 // 平台账号接口
 export interface PlatformAccount {
-  id: string
-  platform: Platform
-  accountName: string
-  avatar: string
-  fans: number
-  status: 'active' | 'inactive' | 'expired'
-  lastSync: string
-  autoPublish: boolean
+  id: string;
+  platform: Platform;
+  accountName: string;
+  avatar: string;
+  fans: number;
+  status: 'active' | 'inactive' | 'expired';
+  lastSync: string;
+  autoPublish: boolean;
 }
 
 // 模拟账号数据
@@ -164,4 +167,4 @@ export const mockAccounts: PlatformAccount[] = [
     lastSync: '2024-01-15 10:05:00',
     autoPublish: true,
   },
-]
+];

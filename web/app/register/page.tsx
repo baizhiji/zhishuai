@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import { Form, Input, Button, Card, message, Space } from 'antd';
-import {
-  MobileOutlined,
-  LockOutlined,
-  UserOutlined,
-  SafetyOutlined
-} from '@ant-design/icons';
+import { MobileOutlined, LockOutlined, UserOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import apiAdapter from '@/services/apiAdapter';
 import { setAuthToken, setUserInfo } from '@/lib/request';
@@ -55,7 +50,7 @@ export default function RegisterPage() {
     // 开始倒计时
     setCountdown(60);
     const timer = setInterval(() => {
-      setCountdown((prev) => {
+      setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(timer);
           return 0;
@@ -80,7 +75,7 @@ export default function RegisterPage() {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '20px'
+        padding: '20px',
       }}
     >
       <Card
@@ -88,65 +83,39 @@ export default function RegisterPage() {
           width: '100%',
           maxWidth: 420,
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          borderRadius: '16px'
+          borderRadius: '16px',
         }}
         bordered={false}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <img
-            src="/logo.png"
-            alt="智枢AI"
-            style={{ width: 60, height: 60, marginBottom: 16 }}
-          />
+          <img src="/logo.png" alt="智枢AI" style={{ width: 60, height: 60, marginBottom: 16 }} />
           <h1 style={{ fontSize: 28, fontWeight: 600, margin: 0 }}>注册账号</h1>
           <p style={{ color: '#666', marginTop: 8 }}>创建您的智枢AI账号</p>
         </div>
 
-        <Form
-          name="register"
-          onFinish={handleRegister}
-          autoComplete="off"
-          layout="vertical"
-        >
-          <Form.Item
-            name="name"
-            rules={[{ required: true, message: '请输入姓名' }]}
-          >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="请输入姓名"
-              size="large"
-            />
+        <Form name="register" onFinish={handleRegister} autoComplete="off" layout="vertical">
+          <Form.Item name="name" rules={[{ required: true, message: '请输入姓名' }]}>
+            <Input prefix={<UserOutlined />} placeholder="请输入姓名" size="large" />
           </Form.Item>
 
           <Form.Item
             name="phone"
             rules={[
               { required: true, message: '请输入手机号' },
-              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
+              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
             ]}
           >
-            <Input
-              prefix={<MobileOutlined />}
-              placeholder="请输入手机号"
-              size="large"
-            />
+            <Input prefix={<MobileOutlined />} placeholder="请输入手机号" size="large" />
           </Form.Item>
 
-          <Form.Item
-            name="code"
-            rules={[{ required: true, message: '请输入验证码' }]}
-          >
+          <Form.Item name="code" rules={[{ required: true, message: '请输入验证码' }]}>
             <Space.Compact style={{ width: '100%' }}>
-              <Input
-                prefix={<SafetyOutlined />}
-                placeholder="请输入验证码"
-                size="large"
-              />
+              <Input prefix={<SafetyOutlined />} placeholder="请输入验证码" size="large" />
               <Button
                 size="large"
                 onClick={() => {
-                  const phone = (document.querySelector('input[name="phone"]') as HTMLInputElement)?.value;
+                  const phone = (document.querySelector('input[name="phone"]') as HTMLInputElement)
+                    ?.value;
                   handleGetCode(phone);
                 }}
                 disabled={countdown > 0}
@@ -161,7 +130,7 @@ export default function RegisterPage() {
             name="password"
             rules={[
               { required: true, message: '请输入密码' },
-              { min: 6, message: '密码至少6位' }
+              { min: 6, message: '密码至少6位' },
             ]}
           >
             <Input.Password
@@ -182,25 +151,15 @@ export default function RegisterPage() {
                     return Promise.resolve();
                   }
                   return Promise.reject(new Error('两次密码输入不一致'));
-                }
-              })
+                },
+              }),
             ]}
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="请确认密码"
-              size="large"
-            />
+            <Input.Password prefix={<LockOutlined />} placeholder="请确认密码" size="large" />
           </Form.Item>
 
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-              size="large"
-            >
+            <Button type="primary" htmlType="submit" loading={loading} block size="large">
               注册
             </Button>
           </Form.Item>

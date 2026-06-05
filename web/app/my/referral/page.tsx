@@ -1,34 +1,104 @@
-'use client'
+'use client';
 
-import { Card, Row, Col, Typography, Table, Tag, Button, QRCode, Input, message, Space, Avatar } from 'antd'
-import { ShareAltOutlined, CheckCircleOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons'
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Table,
+  Tag,
+  Button,
+  QRCode,
+  Input,
+  message,
+  Space,
+  Avatar,
+} from 'antd';
+import {
+  ShareAltOutlined,
+  CheckCircleOutlined,
+  CopyOutlined,
+  DownloadOutlined,
+} from '@ant-design/icons';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 interface ReferralRecord {
-  id: number
-  name: string
-  avatar: string
-  code: string
-  registerTime: string
-  activateTime?: string
-  status: 'pending' | 'active'
-  level: number
+  id: number;
+  name: string;
+  avatar: string;
+  code: string;
+  registerTime: string;
+  activateTime?: string;
+  status: 'pending' | 'active';
+  level: number;
 }
 
 export default function MyReferralPage() {
-  const referralLink = 'https://zhishuai.app/download?ref=ZL2024001'
-  const referralCode = 'ZL2024001'
+  const referralLink = 'https://zhishuai.app/download?ref=ZL2024001';
+  const referralCode = 'ZL2024001';
 
   // Mock 数据
   const mockRecords: ReferralRecord[] = [
-    { id: 1, name: '李明', avatar: 'LM', code: 'ZL2024001', registerTime: '2024-03-15', activateTime: '2024-03-16', status: 'active', level: 1 },
-    { id: 2, name: '王芳', avatar: 'WF', code: 'ZL2024002', registerTime: '2024-03-18', activateTime: '2024-03-20', status: 'active', level: 1 },
-    { id: 3, name: '张伟', avatar: 'ZW', code: 'ZL2024003', registerTime: '2024-03-20', activateTime: '2024-03-22', status: 'active', level: 1 },
-    { id: 4, name: '刘洋', avatar: 'LY', code: 'ZL2024004', registerTime: '2024-03-22', status: 'pending', level: 1 },
-    { id: 5, name: '陈静', avatar: 'CJ', code: 'ZL2024005', registerTime: '2024-03-25', activateTime: '2024-03-26', status: 'active', level: 1 },
-    { id: 6, name: '赵强', avatar: 'ZQ', code: 'ZL2024006', registerTime: '2024-03-28', status: 'pending', level: 1 },
-  ]
+    {
+      id: 1,
+      name: '李明',
+      avatar: 'LM',
+      code: 'ZL2024001',
+      registerTime: '2024-03-15',
+      activateTime: '2024-03-16',
+      status: 'active',
+      level: 1,
+    },
+    {
+      id: 2,
+      name: '王芳',
+      avatar: 'WF',
+      code: 'ZL2024002',
+      registerTime: '2024-03-18',
+      activateTime: '2024-03-20',
+      status: 'active',
+      level: 1,
+    },
+    {
+      id: 3,
+      name: '张伟',
+      avatar: 'ZW',
+      code: 'ZL2024003',
+      registerTime: '2024-03-20',
+      activateTime: '2024-03-22',
+      status: 'active',
+      level: 1,
+    },
+    {
+      id: 4,
+      name: '刘洋',
+      avatar: 'LY',
+      code: 'ZL2024004',
+      registerTime: '2024-03-22',
+      status: 'pending',
+      level: 1,
+    },
+    {
+      id: 5,
+      name: '陈静',
+      avatar: 'CJ',
+      code: 'ZL2024005',
+      registerTime: '2024-03-25',
+      activateTime: '2024-03-26',
+      status: 'active',
+      level: 1,
+    },
+    {
+      id: 6,
+      name: '赵强',
+      avatar: 'ZQ',
+      code: 'ZL2024006',
+      registerTime: '2024-03-28',
+      status: 'pending',
+      level: 1,
+    },
+  ];
 
   const columns = [
     {
@@ -59,22 +129,24 @@ export default function MyReferralPage() {
         </Tag>
       ),
     },
-  ]
+  ];
 
   const copyLink = () => {
-    navigator.clipboard.writeText(referralLink)
-    message.success('推荐链接已复制到剪贴板')
-  }
+    navigator.clipboard.writeText(referralLink);
+    message.success('推荐链接已复制到剪贴板');
+  };
 
   const copyCode = () => {
-    navigator.clipboard.writeText(referralCode)
-    message.success('推荐码已复制到剪贴板')
-  }
+    navigator.clipboard.writeText(referralCode);
+    message.success('推荐码已复制到剪贴板');
+  };
 
   return (
     <div className="p-6">
       <div className="mb-6">
-        <Title level={2} className="mb-2">我的转介绍</Title>
+        <Title level={2} className="mb-2">
+          我的转介绍
+        </Title>
         <Text type="secondary">分享智枢 AI，邀请好友加入</Text>
       </div>
 
@@ -174,5 +246,5 @@ export default function MyReferralPage() {
         </Col>
       </Row>
     </div>
-  )
+  );
 }

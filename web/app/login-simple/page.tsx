@@ -2,12 +2,7 @@
 
 import { useState } from 'react';
 import { Form, Input, Button, Card, Tabs, message, Divider, Space } from 'antd';
-import {
-  UserOutlined,
-  LockOutlined,
-  MobileOutlined,
-  SafetyOutlined
-} from '@ant-design/icons';
+import { UserOutlined, LockOutlined, MobileOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPageSimple() {
@@ -63,7 +58,7 @@ export default function LoginPageSimple() {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '20px'
+        padding: '20px',
       }}
     >
       <Card
@@ -71,16 +66,12 @@ export default function LoginPageSimple() {
           width: '100%',
           maxWidth: 420,
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          borderRadius: '16px'
+          borderRadius: '16px',
         }}
         bordered={false}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <img
-            src="/logo.png"
-            alt="智枢AI"
-            style={{ width: 60, height: 60, marginBottom: 16 }}
-          />
+          <img src="/logo.png" alt="智枢AI" style={{ width: 60, height: 60, marginBottom: 16 }} />
           <h1 style={{ fontSize: 28, fontWeight: 600, margin: 0 }}>智枢AI</h1>
           <p style={{ color: '#666', marginTop: 8 }}>智能内容创作与营销平台</p>
         </div>
@@ -104,20 +95,13 @@ export default function LoginPageSimple() {
                     name="phone"
                     rules={[
                       { required: true, message: '请输入手机号' },
-                      { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
+                      { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
                     ]}
                   >
-                    <Input
-                      prefix={<MobileOutlined />}
-                      placeholder="请输入手机号"
-                      size="large"
-                    />
+                    <Input prefix={<MobileOutlined />} placeholder="请输入手机号" size="large" />
                   </Form.Item>
 
-                  <Form.Item
-                    name="password"
-                    rules={[{ required: true, message: '请输入密码' }]}
-                  >
+                  <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]}>
                     <Input.Password
                       prefix={<LockOutlined />}
                       placeholder="请输入密码"
@@ -126,18 +110,12 @@ export default function LoginPageSimple() {
                   </Form.Item>
 
                   <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                      size="large"
-                    >
+                    <Button type="primary" htmlType="submit" loading={loading} block size="large">
                       登录
                     </Button>
                   </Form.Item>
                 </Form>
-              )
+              ),
             },
             {
               key: 'code',
@@ -153,50 +131,29 @@ export default function LoginPageSimple() {
                     name="phone"
                     rules={[
                       { required: true, message: '请输入手机号' },
-                      { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
+                      { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
                     ]}
                   >
-                    <Input
-                      prefix={<MobileOutlined />}
-                      placeholder="请输入手机号"
-                      size="large"
-                    />
+                    <Input prefix={<MobileOutlined />} placeholder="请输入手机号" size="large" />
                   </Form.Item>
 
-                  <Form.Item
-                    name="code"
-                    rules={[{ required: true, message: '请输入验证码' }]}
-                  >
+                  <Form.Item name="code" rules={[{ required: true, message: '请输入验证码' }]}>
                     <Space.Compact style={{ width: '100%' }}>
-                      <Input
-                        prefix={<SafetyOutlined />}
-                        placeholder="请输入验证码"
-                        size="large"
-                      />
-                      <Button
-                        size="large"
-                        onClick={handleGetCode}
-                        style={{ width: 120 }}
-                      >
+                      <Input prefix={<SafetyOutlined />} placeholder="请输入验证码" size="large" />
+                      <Button size="large" onClick={handleGetCode} style={{ width: 120 }}>
                         获取验证码
                       </Button>
                     </Space.Compact>
                   </Form.Item>
 
                   <Form.Item>
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                      size="large"
-                    >
+                    <Button type="primary" htmlType="submit" loading={loading} block size="large">
                       登录
                     </Button>
                   </Form.Item>
                 </Form>
-              )
-            }
+              ),
+            },
           ]}
         />
 

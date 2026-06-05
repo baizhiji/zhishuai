@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Layout, Dropdown, Avatar, Space, Typography, MenuProps, Modal, Form, Input, message, Result } from 'antd';
+import {
+  Layout,
+  Dropdown,
+  Avatar,
+  Space,
+  Typography,
+  MenuProps,
+  Modal,
+  Form,
+  Input,
+  message,
+  Result,
+} from 'antd';
 import { UserOutlined, LockOutlined, LogoutOutlined } from '@ant-design/icons';
 import AdminNavbar from './layout/Navbar';
 import { useRouter } from 'next/navigation';
@@ -9,11 +21,7 @@ import { useRouter } from 'next/navigation';
 const { Header, Content } = Layout;
 const { Text } = Typography;
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [userInfo, setUserInfo] = useState({ username: '管理员', phone: '' });
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
@@ -25,18 +33,18 @@ export default function AdminLayout({
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     const viewingRole = localStorage.getItem('viewing_role');
-    
+
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         const currentRole = viewingRole || user.role;
-        
+
         if (user.role === 'admin' && (currentRole === 'admin' || !viewingRole)) {
           setIsAuthorized(true);
         } else {
           setIsAuthorized(false);
         }
-        
+
         const stored = localStorage.getItem('userInfo');
         if (stored) {
           const info = JSON.parse(stored);
@@ -62,7 +70,7 @@ export default function AdminLayout({
   };
 
   const handlePasswordChange = () => {
-    form.validateFields().then((values) => {
+    form.validateFields().then(values => {
       if (values.newPassword !== values.confirmPassword) {
         message.error('两次输入的密码不一致');
         return;
@@ -74,7 +82,7 @@ export default function AdminLayout({
   };
 
   const handleProfileUpdate = () => {
-    profileForm.validateFields().then((values) => {
+    profileForm.validateFields().then(values => {
       localStorage.setItem('userInfo', JSON.stringify(values));
       message.success('个人信息更新成功');
       setProfileModalVisible(false);
@@ -87,17 +95,19 @@ export default function AdminLayout({
         status="403"
         title="无权限访问"
         subTitle="您没有权限访问管理员后台，请使用管理员账号登录或切换到正确的角色。"
-        extra={
-          <button onClick={() => router.push('/')}>
-            返回首页
-          </button>
-        }
+        extra={<button onClick={() => router.push('/')}>返回首页</button>}
       />
     );
   }
 
   if (isAuthorized === null) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>加载中...</div>;
+    return (
+      <div
+        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
+      >
+        加载中...
+      </div>
+    );
   }
 
   const userMenuItems: MenuProps['items'] = [
@@ -127,7 +137,17 @@ export default function AdminLayout({
     <Layout style={{ minHeight: '100vh' }}>
       <AdminNavbar />
       <Layout>
-        <Header style={{ padding: '0 24px', marginLeft: 220, background: '#fff', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <Header
+          style={{
+            padding: '0 24px',
+            marginLeft: 220,
+            background: '#fff',
+            borderBottom: '1px solid #f0f0f0',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+          }}
+        >
           <Space size="large">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
@@ -137,7 +157,14 @@ export default function AdminLayout({
             </Dropdown>
           </Space>
         </Header>
-        <Content style={{ padding: 24, marginLeft: 220, background: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
+        <Content
+          style={{
+            padding: 24,
+            marginLeft: 220,
+            background: '#f0f2f5',
+            minHeight: 'calc(100vh - 64px)',
+          }}
+        >
           {children}
         </Content>
       </Layout>

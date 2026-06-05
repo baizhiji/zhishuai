@@ -11,14 +11,14 @@ import {
   DatePicker,
   Button,
   Modal,
-  Descriptions
+  Descriptions,
 } from 'antd';
 import {
   LoginOutlined,
   LogoutOutlined,
   DesktopOutlined,
   MobileOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -51,7 +51,7 @@ export default function LoginLogsPage() {
     userType: undefined as string | undefined,
     action: undefined as string | undefined,
     status: undefined as string | undefined,
-    dateRange: undefined as [dayjs.Dayjs, dayjs.Dayjs] | undefined
+    dateRange: undefined as [dayjs.Dayjs, dayjs.Dayjs] | undefined,
   });
   const [userId, setUserId] = useState<string>('');
 
@@ -69,7 +69,7 @@ export default function LoginLogsPage() {
     try {
       const res = await request.get('/api/auth/login-logs', {
         userId,
-        ...filters
+        ...filters,
       });
       setLogs(res.data?.logs || generateMockData());
     } catch (error) {
@@ -87,7 +87,7 @@ export default function LoginLogsPage() {
     const browsers = ['Chrome 120', 'Firefox 121', 'Safari 17', 'Edge 120'];
     const osList = ['Windows 11', 'macOS 14', 'iOS 17', 'Android 14'];
     const locations = ['北京市', '上海市', '广州市', '深圳市', '杭州市'];
-    
+
     for (let i = 0; i < 30; i++) {
       const action = actions[Math.floor(Math.random() * actions.length)];
       logs.push({
@@ -103,7 +103,7 @@ export default function LoginLogsPage() {
         location: locations[Math.floor(Math.random() * locations.length)],
         status: Math.random() > 0.1 ? 'success' : 'failed',
         failReason: Math.random() > 0.9 ? '密码错误' : undefined,
-        createdAt: dayjs().subtract(i, 'hour').format('YYYY-MM-DD HH:mm:ss')
+        createdAt: dayjs().subtract(i, 'hour').format('YYYY-MM-DD HH:mm:ss'),
       });
     }
     return logs;
@@ -119,7 +119,7 @@ export default function LoginLogsPage() {
       admin: 'red',
       agent: 'blue',
       customer: 'green',
-      employee: 'purple'
+      employee: 'purple',
     };
     return colors[type] || 'default';
   };
@@ -129,7 +129,7 @@ export default function LoginLogsPage() {
       admin: '管理员',
       agent: '代理商',
       customer: '客户',
-      employee: '员工'
+      employee: '员工',
     };
     return texts[type] || type;
   };
@@ -138,7 +138,7 @@ export default function LoginLogsPage() {
     const icons: Record<string, React.ReactNode> = {
       desktop: <DesktopOutlined />,
       mobile: <MobileOutlined />,
-      tablet: <MobileOutlined />
+      tablet: <MobileOutlined />,
     };
     return icons[device] || <DesktopOutlined />;
   };
@@ -156,17 +156,20 @@ export default function LoginLogsPage() {
             </Tag>
           </div>
         </Space>
-      )
+      ),
     },
     {
       title: '操作',
       dataIndex: 'action',
       key: 'action',
       render: (action: string) => (
-        <Tag color={action === 'login' ? 'green' : 'orange'} icon={action === 'login' ? <LoginOutlined /> : <LogoutOutlined />}>
+        <Tag
+          color={action === 'login' ? 'green' : 'orange'}
+          icon={action === 'login' ? <LoginOutlined /> : <LogoutOutlined />}
+        >
           {action === 'login' ? '登录' : '登出'}
         </Tag>
-      )
+      ),
     },
     {
       title: '设备',
@@ -175,11 +178,19 @@ export default function LoginLogsPage() {
         <Space direction="vertical" size={0}>
           <Space>
             {getDeviceIcon(record.device)}
-            <Text>{record.device === 'desktop' ? '桌面端' : record.device === 'mobile' ? '移动端' : '平板'}</Text>
+            <Text>
+              {record.device === 'desktop'
+                ? '桌面端'
+                : record.device === 'mobile'
+                  ? '移动端'
+                  : '平板'}
+            </Text>
           </Space>
-          <Text type="secondary" className="text-xs">{record.browser}</Text>
+          <Text type="secondary" className="text-xs">
+            {record.browser}
+          </Text>
         </Space>
-      )
+      ),
     },
     {
       title: 'IP / 位置',
@@ -191,7 +202,7 @@ export default function LoginLogsPage() {
             <EnvironmentOutlined /> {record.location}
           </Text>
         </Space>
-      )
+      ),
     },
     {
       title: '状态',
@@ -203,16 +214,18 @@ export default function LoginLogsPage() {
             {status === 'success' ? '成功' : '失败'}
           </Tag>
           {record.failReason && (
-            <Text type="danger" className="text-xs">{record.failReason}</Text>
+            <Text type="danger" className="text-xs">
+              {record.failReason}
+            </Text>
           )}
         </Space>
-      )
+      ),
     },
     {
       title: '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       title: '操作',
@@ -221,8 +234,8 @@ export default function LoginLogsPage() {
         <Button type="link" size="small" onClick={() => showDetail(record)}>
           详情
         </Button>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -240,7 +253,7 @@ export default function LoginLogsPage() {
             allowClear
             style={{ width: 120 }}
             value={filters.userType}
-            onChange={(val) => setFilters({ ...filters, userType: val })}
+            onChange={val => setFilters({ ...filters, userType: val })}
           >
             <Select.Option value="admin">管理员</Select.Option>
             <Select.Option value="agent">代理商</Select.Option>
@@ -252,7 +265,7 @@ export default function LoginLogsPage() {
             allowClear
             style={{ width: 120 }}
             value={filters.action}
-            onChange={(val) => setFilters({ ...filters, action: val })}
+            onChange={val => setFilters({ ...filters, action: val })}
           >
             <Select.Option value="login">登录</Select.Option>
             <Select.Option value="logout">登出</Select.Option>
@@ -262,15 +275,19 @@ export default function LoginLogsPage() {
             allowClear
             style={{ width: 100 }}
             value={filters.status}
-            onChange={(val) => setFilters({ ...filters, status: val })}
+            onChange={val => setFilters({ ...filters, status: val })}
           >
             <Select.Option value="success">成功</Select.Option>
             <Select.Option value="failed">失败</Select.Option>
           </Select>
           <RangePicker
-            onChange={(dates) => setFilters({ ...filters, dateRange: dates as [any, any] || undefined })}
+            onChange={dates =>
+              setFilters({ ...filters, dateRange: (dates as [any, any]) || undefined })
+            }
           />
-          <Button type="primary" onClick={fetchLogs}>查询</Button>
+          <Button type="primary" onClick={fetchLogs}>
+            查询
+          </Button>
         </Space>
       </Card>
 
@@ -311,7 +328,11 @@ export default function LoginLogsPage() {
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="设备类型">
-              {selectedLog.device === 'desktop' ? '桌面端' : selectedLog.device === 'mobile' ? '移动端' : '平板'}
+              {selectedLog.device === 'desktop'
+                ? '桌面端'
+                : selectedLog.device === 'mobile'
+                  ? '移动端'
+                  : '平板'}
             </Descriptions.Item>
             <Descriptions.Item label="浏览器">{selectedLog.browser}</Descriptions.Item>
             <Descriptions.Item label="操作系统">{selectedLog.os}</Descriptions.Item>

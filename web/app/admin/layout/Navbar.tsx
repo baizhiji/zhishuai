@@ -119,8 +119,8 @@ const AdminNavbar: React.FC = () => {
   };
 
   return (
-    <Sider 
-      width={220} 
+    <Sider
+      width={220}
       style={{
         background: '#001529',
         height: '100vh',
@@ -129,16 +129,18 @@ const AdminNavbar: React.FC = () => {
         top: 0,
       }}
     >
-      <div style={{ 
-        height: 64, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        color: 'white',
-        fontSize: 18,
-        fontWeight: 'bold',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-      }}>
+      <div
+        style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: 18,
+          fontWeight: 'bold',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+        }}
+      >
         智枢AI 总后台
       </div>
       <Menu

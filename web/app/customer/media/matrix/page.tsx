@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Row,
@@ -21,7 +21,7 @@ import {
   Divider,
   List,
   Progress,
-} from 'antd'
+} from 'antd';
 import {
   PlusOutlined,
   UserOutlined,
@@ -34,29 +34,29 @@ import {
   GlobalOutlined,
   TeamOutlined,
   FundViewOutlined,
-} from '@ant-design/icons'
-import Link from 'next/link'
-import request from '@/utils/request'
+} from '@ant-design/icons';
+import Link from 'next/link';
+import request from '@/utils/request';
 
-const { Title, Text, Paragraph } = Typography
+const { Title, Text, Paragraph } = Typography;
 
 interface Account {
-  id: string
-  platform: string
-  platformName: string
-  accountId: string
-  accountName: string
-  avatar?: string
-  fans?: number
-  status: 'active' | 'expired' | 'error'
-  lastSyncTime?: string
+  id: string;
+  platform: string;
+  platformName: string;
+  accountId: string;
+  accountName: string;
+  avatar?: string;
+  fans?: number;
+  status: 'active' | 'expired' | 'error';
+  lastSyncTime?: string;
 }
 
 interface Stats {
-  total: number
-  active: number
-  expired: number
-  byPlatform: Record<string, number>
+  total: number;
+  active: number;
+  expired: number;
+  byPlatform: Record<string, number>;
 }
 
 const platformColors: Record<string, string> = {
@@ -65,7 +65,7 @@ const platformColors: Record<string, string> = {
   xiaohongshu: '#fe2c25',
   weibo: '#e6162d',
   boss: '#15c15a',
-}
+};
 
 const platformIcons: Record<string, React.ReactNode> = {
   douyin: <span style={{ fontSize: 24 }}>🎵</span>,
@@ -73,39 +73,39 @@ const platformIcons: Record<string, React.ReactNode> = {
   xiaohongshu: <span style={{ fontSize: 24 }}>📕</span>,
   weibo: <span style={{ fontSize: 24 }}>🌐</span>,
   boss: <span style={{ fontSize: 24 }}>💼</span>,
-}
+};
 
 export default function MatrixManagementPage() {
-  const [accounts, setAccounts] = useState<Account[]>([])
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [bindModalVisible, setBindModalVisible] = useState(false)
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
-  const [sessionId, setSessionId] = useState<string | null>(null)
-  const [qrcodeImage, setQrcodeImage] = useState<string | null>(null)
-  const [sessionStatus, setSessionStatus] = useState<string>('pending')
-  const [userId] = useState('default-user')
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [bindModalVisible, setBindModalVisible] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [qrcodeImage, setQrcodeImage] = useState<string | null>(null);
+  const [sessionStatus, setSessionStatus] = useState<string>('pending');
+  const [userId] = useState('default-user');
 
   useEffect(() => {
-    fetchData()
-  }, [userId])
+    fetchData();
+  }, [userId]);
 
   const fetchData = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const [accountsRes, statsRes] = await Promise.all([
         request.get('/social/accounts', { params: { userId } }),
         request.get('/social/accounts/stats', { params: { userId } }),
-      ])
-      
+      ]);
+
       if (accountsRes.code === 0) {
-        setAccounts(accountsRes.data)
+        setAccounts(accountsRes.data);
       }
       if (statsRes.code === 0) {
-        setStats(statsRes.data)
+        setStats(statsRes.data);
       }
     } catch (error) {
-      console.error('获取数据失败:', error)
+      console.error('获取数据失败:', error);
       // 使用演示数据
       setAccounts([
         {
@@ -118,96 +118,96 @@ export default function MatrixManagementPage() {
           status: 'active',
           lastSyncTime: new Date().toISOString(),
         },
-      ])
+      ]);
       setStats({
         total: 1,
         active: 1,
         expired: 0,
         byPlatform: { douyin: 1 },
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleBind = async (platform: string) => {
-    setSelectedPlatform(platform)
-    setBindModalVisible(true)
-    
+    setSelectedPlatform(platform);
+    setBindModalVisible(true);
+
     try {
       const res = await request.post('/social/session/create', {
         platform,
         userId,
-      })
-      
+      });
+
       if (res.code === 0) {
-        setSessionId(res.data.sessionId)
-        setQrcodeImage(res.data.qrcodeImage)
-        setSessionStatus('pending')
-        
+        setSessionId(res.data.sessionId);
+        setQrcodeImage(res.data.qrcodeImage);
+        setSessionStatus('pending');
+
         // 开始轮询
-        pollSessionStatus(res.data.sessionId)
+        pollSessionStatus(res.data.sessionId);
       }
     } catch (error) {
-      message.error('创建会话失败')
+      message.error('创建会话失败');
     }
-  }
+  };
 
   const pollSessionStatus = (sid: string) => {
     const interval = setInterval(async () => {
       try {
-        const res = await request.get(`/social/session/${sid}/status`)
+        const res = await request.get(`/social/session/${sid}/status`);
         if (res.code === 0) {
-          setSessionStatus(res.data.status)
-          
+          setSessionStatus(res.data.status);
+
           if (res.data.status === 'confirmed') {
-            clearInterval(interval)
-            handleLogin(sid)
+            clearInterval(interval);
+            handleLogin(sid);
           } else if (res.data.status === 'failed') {
-            clearInterval(interval)
-            message.error('登录失败，请重试')
+            clearInterval(interval);
+            message.error('登录失败，请重试');
           }
         }
       } catch (error) {
-        clearInterval(interval)
+        clearInterval(interval);
       }
-    }, 2000)
-  }
+    }, 2000);
+  };
 
   const handleLogin = async (sid: string) => {
     try {
-      const res = await request.post(`/social/session/${sid}/login`)
+      const res = await request.post(`/social/session/${sid}/login`);
       if (res.code === 0) {
-        message.success('绑定成功！')
-        setBindModalVisible(false)
-        resetBindState()
-        fetchData()
+        message.success('绑定成功！');
+        setBindModalVisible(false);
+        resetBindState();
+        fetchData();
       } else {
-        message.error(res.message || '登录失败')
+        message.error(res.message || '登录失败');
       }
     } catch (error) {
-      message.error('登录失败')
+      message.error('登录失败');
     }
-  }
+  };
 
   const resetBindState = () => {
-    setSelectedPlatform(null)
-    setSessionId(null)
-    setQrcodeImage(null)
-    setSessionStatus('pending')
-  }
+    setSelectedPlatform(null);
+    setSessionId(null);
+    setQrcodeImage(null);
+    setSessionStatus('pending');
+  };
 
   const handleUnbind = async (accountId: string) => {
     try {
-      const res = await request.delete(`/social/accounts/${accountId}`)
+      const res = await request.delete(`/social/accounts/${accountId}`);
       if (res.code === 0) {
-        message.success('解绑成功')
-        fetchData()
+        message.success('解绑成功');
+        fetchData();
       }
     } catch (error) {
-      message.error('解绑失败')
+      message.error('解绑失败');
     }
-  }
+  };
 
   const columns = [
     {
@@ -219,7 +219,9 @@ export default function MatrixManagementPage() {
           {platformIcons[platform] || <MobileOutlined />}
           <div>
             <div style={{ fontWeight: 500 }}>{record.platformName}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.accountName}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.accountName}
+            </Text>
           </div>
         </Space>
       ),
@@ -239,91 +241,112 @@ export default function MatrixManagementPage() {
           active: { color: 'success', text: '正常' },
           expired: { color: 'warning', text: '已过期' },
           error: { color: 'error', text: '异常' },
-        }
-        const { color, text } = statusMap[status as keyof typeof statusMap] || statusMap.error
-        return <Badge status={color as any} text={text} />
+        };
+        const { color, text } = statusMap[status as keyof typeof statusMap] || statusMap.error;
+        return <Badge status={color as any} text={text} />;
       },
     },
     {
       title: '最后同步',
       dataIndex: 'lastSyncTime',
       key: 'lastSyncTime',
-      render: (time: string) => time ? new Date(time).toLocaleString() : '-',
+      render: (time: string) => (time ? new Date(time).toLocaleString() : '-'),
     },
     {
       title: '操作',
       key: 'action',
       render: (_: any, record: Account) => (
-        <Button
-          type="link"
-          danger
-          size="small"
-          onClick={() => handleUnbind(record.id)}
-        >
+        <Button type="link" danger size="small" onClick={() => handleUnbind(record.id)}>
           解绑
         </Button>
       ),
     },
-  ]
+  ];
 
   return (
     <div style={{ padding: 24 }}>
       {/* 页面标题 */}
       <div style={{ marginBottom: 24 }}>
-        <Title level={4} style={{ margin: 0 }}>📱 矩阵管理系统</Title>
+        <Title level={4} style={{ margin: 0 }}>
+          📱 矩阵管理系统
+        </Title>
         <Text type="secondary">一站式管理多平台社交账号，实现内容统一发布和数据分析</Text>
       </div>
 
       {/* 快捷入口 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card hoverable style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+          <Card
+            hoverable
+            style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+            }}
+          >
             <Link href="/media/matrix/accounts" style={{ color: 'white' }}>
               <Space direction="vertical" size={0}>
                 <TeamOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>账号管理</Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>
-                  绑定和解绑社交媒体账号
-                </Text>
+                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
+                  账号管理
+                </Title>
+                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>绑定和解绑社交媒体账号</Text>
               </Space>
             </Link>
           </Card>
         </Col>
         <Col span={6}>
-          <Card hoverable style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+          <Card
+            hoverable
+            style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              color: 'white',
+            }}
+          >
             <Link href="/media/matrix/publish" style={{ color: 'white' }}>
               <Space direction="vertical" size={0}>
                 <GlobalOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>内容发布</Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>
-                  一键发布内容到多平台
-                </Text>
+                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
+                  内容发布
+                </Title>
+                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>一键发布内容到多平台</Text>
               </Space>
             </Link>
           </Card>
         </Col>
         <Col span={6}>
-          <Card hoverable style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+          <Card
+            hoverable
+            style={{
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              color: 'white',
+            }}
+          >
             <Link href="/media/matrix/stats" style={{ color: 'white' }}>
               <Space direction="vertical" size={0}>
                 <FundViewOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>数据统计</Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>
-                  多平台数据汇总分析
-                </Text>
+                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
+                  数据统计
+                </Title>
+                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>多平台数据汇总分析</Text>
               </Space>
             </Link>
           </Card>
         </Col>
         <Col span={6}>
-          <Card hoverable style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+          <Card
+            hoverable
+            style={{
+              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+              color: 'white',
+            }}
+          >
             <Link href="/media/matrix/automation" style={{ color: 'white' }}>
               <Space direction="vertical" size={0}>
                 <SyncOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>自动化</Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>
-                  设置自动发布任务
-                </Text>
+                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
+                  自动化
+                </Title>
+                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>设置自动发布任务</Text>
               </Space>
             </Link>
           </Card>
@@ -381,17 +404,16 @@ export default function MatrixManagementPage() {
           <div style={{ textAlign: 'center', padding: 40 }}>
             <MobileOutlined style={{ fontSize: 48, color: '#ccc', marginBottom: 16 }} />
             <Paragraph>暂未绑定任何账号</Paragraph>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setBindModalVisible(true)}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setBindModalVisible(true)}
+            >
               绑定第一个账号
             </Button>
           </div>
         ) : (
-          <Table
-            columns={columns}
-            dataSource={accounts}
-            rowKey="id"
-            pagination={false}
-          />
+          <Table columns={columns} dataSource={accounts} rowKey="id" pagination={false} />
         )}
       </Card>
 
@@ -399,8 +421,8 @@ export default function MatrixManagementPage() {
       <BindAccountModal
         visible={bindModalVisible}
         onClose={() => {
-          setBindModalVisible(false)
-          resetBindState()
+          setBindModalVisible(false);
+          resetBindState();
         }}
         platforms={[
           { id: 'douyin', name: '抖音', icon: '🎵' },
@@ -415,34 +437,34 @@ export default function MatrixManagementPage() {
         onSelectPlatform={handleBind}
         onSimulateScan={async () => {
           if (sessionId) {
-            await request.post(`/social/session/${sessionId}/scan`)
-            setSessionStatus('scanning')
+            await request.post(`/social/session/${sessionId}/scan`);
+            setSessionStatus('scanning');
           }
         }}
         onSimulateConfirm={async () => {
           if (sessionId) {
-            await request.post(`/social/session/${sessionId}/confirm`)
-            setSessionStatus('confirmed')
+            await request.post(`/social/session/${sessionId}/confirm`);
+            setSessionStatus('confirmed');
           }
         }}
         loading={!qrcodeImage && selectedPlatform !== null}
       />
     </div>
-  )
+  );
 }
 
 // 绑定账号弹窗组件
 interface BindModalProps {
-  visible: boolean
-  onClose: () => void
-  platforms: { id: string; name: string; icon: string }[]
-  selectedPlatform: string | null
-  qrcodeImage: string | null
-  sessionStatus: string
-  onSelectPlatform: (platform: string) => void
-  onSimulateScan: () => void
-  onSimulateConfirm: () => void
-  loading: boolean
+  visible: boolean;
+  onClose: () => void;
+  platforms: { id: string; name: string; icon: string }[];
+  selectedPlatform: string | null;
+  qrcodeImage: string | null;
+  sessionStatus: string;
+  onSelectPlatform: (platform: string) => void;
+  onSimulateScan: () => void;
+  onSimulateConfirm: () => void;
+  loading: boolean;
 }
 
 function BindAccountModal({
@@ -459,14 +481,20 @@ function BindAccountModal({
 }: BindModalProps) {
   const getStatusText = () => {
     switch (sessionStatus) {
-      case 'pending': return '等待扫码'
-      case 'scanning': return '已扫码，等待确认'
-      case 'confirmed': return '已确认，正在登录...'
-      case 'success': return '登录成功'
-      case 'failed': return '登录失败'
-      default: return sessionStatus
+      case 'pending':
+        return '等待扫码';
+      case 'scanning':
+        return '已扫码，等待确认';
+      case 'confirmed':
+        return '已确认，正在登录...';
+      case 'success':
+        return '登录成功';
+      case 'failed':
+        return '登录失败';
+      default:
+        return sessionStatus;
     }
-  }
+  };
 
   return (
     <Modal
@@ -503,26 +531,36 @@ function BindAccountModal({
         ) : (
           <>
             <Paragraph>
-              请使用<Text strong>{platforms.find(p => p.id === selectedPlatform)?.name}</Text>扫码绑定
+              请使用<Text strong>{platforms.find(p => p.id === selectedPlatform)?.name}</Text>
+              扫码绑定
             </Paragraph>
-            <div style={{ background: '#f5f5f5', padding: 20, borderRadius: 8, display: 'inline-block' }}>
+            <div
+              style={{
+                background: '#f5f5f5',
+                padding: 20,
+                borderRadius: 8,
+                display: 'inline-block',
+              }}
+            >
               <img src={qrcodeImage} alt="二维码" style={{ width: 200, height: 200 }} />
             </div>
             <div style={{ margin: '16px 0' }}>
-              <Tag color={
-                sessionStatus === 'pending' ? 'blue' :
-                sessionStatus === 'scanning' ? 'orange' :
-                sessionStatus === 'confirmed' || sessionStatus === 'success' ? 'green' : 'red'
-              }>
+              <Tag
+                color={
+                  sessionStatus === 'pending'
+                    ? 'blue'
+                    : sessionStatus === 'scanning'
+                      ? 'orange'
+                      : sessionStatus === 'confirmed' || sessionStatus === 'success'
+                        ? 'green'
+                        : 'red'
+                }
+              >
                 {getStatusText()}
               </Tag>
             </div>
             <Space>
-              <Button
-                size="small"
-                onClick={onSimulateScan}
-                disabled={sessionStatus !== 'pending'}
-              >
+              <Button size="small" onClick={onSimulateScan} disabled={sessionStatus !== 'pending'}>
                 模拟扫码
               </Button>
               <Button
@@ -540,5 +578,5 @@ function BindAccountModal({
         )}
       </div>
     </Modal>
-  )
+  );
 }

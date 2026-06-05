@@ -159,7 +159,7 @@ export default function CustomerManagementPage() {
   const fetchCustomerDetail = async (id: string) => {
     try {
       const res = await getCustomerStats(id);
-      setSelectedCustomer(prev => prev ? { ...prev, ...res.data } : null);
+      setSelectedCustomer(prev => (prev ? { ...prev, ...res.data } : null));
     } catch (error) {
       console.error('获取客户详情失败');
     }
@@ -186,7 +186,7 @@ export default function CustomerManagementPage() {
         return f;
       });
       setFeatures(updatedFeatures);
-      
+
       await updateCustomerFeatures(selectedCustomer!.id, updatedFeatures);
       message.success('功能开关已更新');
     } catch (error) {
@@ -235,11 +235,7 @@ export default function CustomerManagementPage() {
       key: 'status',
       width: 100,
       render: (status: string) =>
-        status === 'active' ? (
-          <Tag color="success">正常</Tag>
-        ) : (
-          <Tag color="error">已冻结</Tag>
-        ),
+        status === 'active' ? <Tag color="success">正常</Tag> : <Tag color="error">已冻结</Tag>,
     },
     {
       title: '注册时间',
@@ -253,14 +249,14 @@ export default function CustomerManagementPage() {
       dataIndex: 'monthlyFee',
       key: 'monthlyFee',
       width: 100,
-      render: (fee: number) => fee ? `¥${fee}` : '-',
+      render: (fee: number) => (fee ? `¥${fee}` : '-'),
     },
     {
       title: '累计付费',
       dataIndex: 'totalPaid',
       key: 'totalPaid',
       width: 100,
-      render: (amount: number) => amount ? `¥${amount}` : '-',
+      render: (amount: number) => (amount ? `¥${amount}` : '-'),
     },
     {
       title: '操作',
@@ -293,10 +289,7 @@ export default function CustomerManagementPage() {
           >
             {record.status === 'active' ? '冻结' : '解冻'}
           </Button>
-          <Popconfirm
-            title="确认重置密码？"
-            onConfirm={() => handleResetPassword(record)}
-          >
+          <Popconfirm title="确认重置密码？" onConfirm={() => handleResetPassword(record)}>
             <Button type="link" size="small" danger>
               重置密码
             </Button>
@@ -387,10 +380,18 @@ export default function CustomerManagementPage() {
               <Form.Item name="price" noStyle rules={[{ required: true, message: '请输入价格' }]}>
                 <Input type="number" prefix="¥" placeholder="金额" min={0} style={{ width: 120 }} />
               </Form.Item>
-              <Form.Item name="priceQuantity" noStyle rules={[{ required: true, message: '请输入时间' }]}>
+              <Form.Item
+                name="priceQuantity"
+                noStyle
+                rules={[{ required: true, message: '请输入时间' }]}
+              >
                 <InputNumber placeholder="时间" min={1} style={{ width: 80 }} />
               </Form.Item>
-              <Form.Item name="priceUnit" noStyle rules={[{ required: true, message: '请选择单位' }]}>
+              <Form.Item
+                name="priceUnit"
+                noStyle
+                rules={[{ required: true, message: '请选择单位' }]}
+              >
                 <Select style={{ width: 80 }} defaultValue="month">
                   <Select.Option value="month">月</Select.Option>
                   <Select.Option value="quarter">季</Select.Option>

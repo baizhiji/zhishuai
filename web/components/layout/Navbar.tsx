@@ -1,19 +1,8 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
-import {
-  Layout,
-  Menu,
-  Dropdown,
-  Avatar,
-  Space,
-  Button,
-  theme,
-  Image,
-  Modal,
-  Radio,
-} from 'antd'
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Layout, Menu, Dropdown, Avatar, Space, Button, theme, Image, Modal, Radio } from 'antd';
 import {
   HomeOutlined,
   PictureOutlined,
@@ -34,28 +23,28 @@ import {
   SwapOutlined,
   QrcodeOutlined,
   MessageOutlined,
-} from '@ant-design/icons'
-import { useAuth } from '@/contexts/AuthContext'
+} from '@ant-design/icons';
+import { useAuth } from '@/contexts/AuthContext';
 
-const { Header, Content } = Layout
-const { useToken } = theme
+const { Header, Content } = Layout;
+const { useToken } = theme;
 
 // 角色类型
-type Role = 'admin' | 'agent' | 'customer'
+type Role = 'admin' | 'agent' | 'customer';
 
 // 角色选项
 const roleOptions = [
   { value: 'admin' as Role, label: '开发者总后台', icon: '👑' },
   { value: 'agent' as Role, label: '区域代理后台', icon: '🏢' },
   { value: 'customer' as Role, label: '终端客户后台', icon: '👤' },
-]
+];
 
 interface NavigationItem {
-  key: string
-  label: string
-  icon: React.ReactNode
-  path?: string
-  children?: NavigationItem[]
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  path?: string;
+  children?: NavigationItem[];
 }
 
 // 根据角色获取导航菜单
@@ -80,10 +69,30 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '自媒体运营',
           icon: <VideoCameraOutlined />,
           children: [
-            { key: 'media-factory', label: '内容工厂', icon: <ThunderboltOutlined />, path: '/media/factory' },
-            { key: 'media-matrix', label: '矩阵管理', icon: <TeamOutlined />, path: '/media/matrix' },
-            { key: 'media-publish', label: '发布中心', icon: <ShareAltOutlined />, path: '/media/publish' },
-            { key: 'media-report', label: '数据报表', icon: <PieChartOutlined />, path: '/media/report' },
+            {
+              key: 'media-factory',
+              label: '内容工厂',
+              icon: <ThunderboltOutlined />,
+              path: '/media/factory',
+            },
+            {
+              key: 'media-matrix',
+              label: '矩阵管理',
+              icon: <TeamOutlined />,
+              path: '/media/matrix',
+            },
+            {
+              key: 'media-publish',
+              label: '发布中心',
+              icon: <ShareAltOutlined />,
+              path: '/media/publish',
+            },
+            {
+              key: 'media-report',
+              label: '数据报表',
+              icon: <PieChartOutlined />,
+              path: '/media/report',
+            },
           ],
         },
         {
@@ -91,12 +100,42 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '招聘助手',
           icon: <TeamOutlined />,
           children: [
-            { key: 'recruit-platforms', label: '平台授权', icon: <QrcodeOutlined />, path: '/customer/recruitment/platforms' },
-            { key: 'recruit-auto', label: '智能沟通', icon: <MessageOutlined />, path: '/customer/recruitment/auto' },
-            { key: 'recruitment-publish', label: '职位发布', icon: <ShareAltOutlined />, path: '/recruitment/publish' },
-            { key: 'recruitment-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/recruitment/screen' },
-            { key: 'recruitment-interview', label: '面试管理', icon: <TeamOutlined />, path: '/recruitment/interview' },
-            { key: 'recruitment-board', label: '招聘看板', icon: <PieChartOutlined />, path: '/recruitment/board' },
+            {
+              key: 'recruit-platforms',
+              label: '平台授权',
+              icon: <QrcodeOutlined />,
+              path: '/customer/recruitment/platforms',
+            },
+            {
+              key: 'recruit-auto',
+              label: '智能沟通',
+              icon: <MessageOutlined />,
+              path: '/customer/recruitment/auto',
+            },
+            {
+              key: 'recruitment-publish',
+              label: '职位发布',
+              icon: <ShareAltOutlined />,
+              path: '/recruitment/publish',
+            },
+            {
+              key: 'recruitment-screen',
+              label: '简历筛选',
+              icon: <UserAddOutlined />,
+              path: '/recruitment/screen',
+            },
+            {
+              key: 'recruitment-interview',
+              label: '面试管理',
+              icon: <TeamOutlined />,
+              path: '/recruitment/interview',
+            },
+            {
+              key: 'recruitment-board',
+              label: '招聘看板',
+              icon: <PieChartOutlined />,
+              path: '/recruitment/board',
+            },
           ],
         },
         {
@@ -104,9 +143,24 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '智能获客',
           icon: <UserAddOutlined />,
           children: [
-            { key: 'acquisition-discover', label: '潜客发现', icon: <UserAddOutlined />, path: '/acquisition/discover' },
-            { key: 'acquisition-task', label: '引流任务', icon: <ShareAltOutlined />, path: '/acquisition/task' },
-            { key: 'acquisition-board', label: '获客看板', icon: <PieChartOutlined />, path: '/acquisition/board' },
+            {
+              key: 'acquisition-discover',
+              label: '潜客发现',
+              icon: <UserAddOutlined />,
+              path: '/acquisition/discover',
+            },
+            {
+              key: 'acquisition-task',
+              label: '引流任务',
+              icon: <ShareAltOutlined />,
+              path: '/acquisition/task',
+            },
+            {
+              key: 'acquisition-board',
+              label: '获客看板',
+              icon: <PieChartOutlined />,
+              path: '/acquisition/board',
+            },
           ],
         },
         {
@@ -115,8 +169,18 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <ShareAltOutlined />,
           children: [
             { key: 'share-code', label: '码生成', icon: <PictureOutlined />, path: '/share/code' },
-            { key: 'share-track', label: '推荐追踪', icon: <PieChartOutlined />, path: '/share/track' },
-            { key: 'share-board', label: '分享看板', icon: <BarChartOutlined />, path: '/share/board' },
+            {
+              key: 'share-track',
+              label: '推荐追踪',
+              icon: <PieChartOutlined />,
+              path: '/share/track',
+            },
+            {
+              key: 'share-board',
+              label: '分享看板',
+              icon: <BarChartOutlined />,
+              path: '/share/board',
+            },
           ],
         },
         {
@@ -124,10 +188,24 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '账号与配置',
           icon: <SettingOutlined />,
           children: [
-
-            { key: 'account-api', label: 'API服务商配置', icon: <ApiOutlined />, path: '/account/api' },
-            { key: 'account-knowledge', label: '知识库管理', icon: <ThunderboltOutlined />, path: '/account/knowledge' },
-            { key: 'account-log', label: '操作日志', icon: <PieChartOutlined />, path: '/account/log' },
+            {
+              key: 'account-api',
+              label: 'API服务商配置',
+              icon: <ApiOutlined />,
+              path: '/account/api',
+            },
+            {
+              key: 'account-knowledge',
+              label: '知识库管理',
+              icon: <ThunderboltOutlined />,
+              path: '/account/knowledge',
+            },
+            {
+              key: 'account-log',
+              label: '操作日志',
+              icon: <PieChartOutlined />,
+              path: '/account/log',
+            },
           ],
         },
         {
@@ -135,9 +213,24 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '系统设置',
           icon: <SettingOutlined />,
           children: [
-            { key: 'settings-company', label: '公司信息', icon: <TeamOutlined />, path: '/settings/company' },
-            { key: 'settings-security', label: '安全设置', icon: <SettingOutlined />, path: '/settings/security' },
-            { key: 'settings-theme', label: '主题设置', icon: <PictureOutlined />, path: '/settings/theme' },
+            {
+              key: 'settings-company',
+              label: '公司信息',
+              icon: <TeamOutlined />,
+              path: '/settings/company',
+            },
+            {
+              key: 'settings-security',
+              label: '安全设置',
+              icon: <SettingOutlined />,
+              path: '/settings/security',
+            },
+            {
+              key: 'settings-theme',
+              label: '主题设置',
+              icon: <PictureOutlined />,
+              path: '/settings/theme',
+            },
           ],
         },
         // 预留扩展
@@ -146,7 +239,12 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '电商运营',
           icon: <ShopOutlined />,
           children: [
-            { key: 'ecommerce-placeholder', label: '即将上线', icon: <ShopOutlined />, path: '/ecommerce' },
+            {
+              key: 'ecommerce-placeholder',
+              label: '即将上线',
+              icon: <ShopOutlined />,
+              path: '/ecommerce',
+            },
           ],
         },
         {
@@ -163,10 +261,15 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '营销功能',
           icon: <ShareAltOutlined />,
           children: [
-            { key: 'marketing-placeholder', label: '即将上线', icon: <ShareAltOutlined />, path: '/marketing' },
+            {
+              key: 'marketing-placeholder',
+              label: '即将上线',
+              icon: <ShareAltOutlined />,
+              path: '/marketing',
+            },
           ],
         },
-      ]
+      ];
     case 'agent':
       return [
         {
@@ -186,8 +289,18 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '数据看板',
           icon: <PieChartOutlined />,
           children: [
-            { key: 'agent-referrals', label: '推荐数据', icon: <ShareAltOutlined />, path: '/agent/referrals' },
-            { key: 'agent-usage', label: '使用数据', icon: <PieChartOutlined />, path: '/agent/usage' },
+            {
+              key: 'agent-referrals',
+              label: '推荐数据',
+              icon: <ShareAltOutlined />,
+              path: '/agent/referrals',
+            },
+            {
+              key: 'agent-usage',
+              label: '使用数据',
+              icon: <PieChartOutlined />,
+              path: '/agent/usage',
+            },
           ],
         },
         {
@@ -196,7 +309,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <ThunderboltOutlined />,
           path: '/agent/tickets',
         },
-      ]
+      ];
     case 'admin':
       return [
         {
@@ -235,9 +348,9 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <FileTextOutlined />,
           path: '/admin/logs',
         },
-      ]
+      ];
     default:
-      return []
+      return [];
   }
 }
 
@@ -245,17 +358,17 @@ function getNavigationItems(role: Role): NavigationItem[] {
 function getSelectedKeys(items: NavigationItem[], path: string): string[] {
   for (const item of items) {
     if (item.path === path) {
-      return [item.key]
+      return [item.key];
     }
     if (item.children) {
       for (const child of item.children) {
         if (child.path === path) {
-          return [child.key]
+          return [child.key];
         }
       }
     }
   }
-  return []
+  return [];
 }
 
 // 获取当前展开的菜单项
@@ -264,88 +377,88 @@ function getOpenKeysForPath(items: NavigationItem[], path: string): string[] {
     if (item.children) {
       for (const child of item.children) {
         if (child.path === path) {
-          return [item.key]
+          return [item.key];
         }
       }
     }
   }
-  return []
+  return [];
 }
 
 export default function Navbar({ children }: { children?: React.ReactNode }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const { token } = useToken()
-  const { user, logout, isAdmin } = useAuth()
+  const router = useRouter();
+  const pathname = usePathname();
+  const { token } = useToken();
+  const { user, logout, isAdmin } = useAuth();
 
   // Logo 图片加载状态
-  const [logoError, setLogoError] = useState(false)
+  const [logoError, setLogoError] = useState(false);
 
   // 角色切换弹窗状态
-  const [roleModalVisible, setRoleModalVisible] = useState(false)
+  const [roleModalVisible, setRoleModalVisible] = useState(false);
 
   // 从 localStorage 读取保存的角色，如果没有则使用用户实际角色
   const getSavedRole = (): Role => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('viewing_role')
+      const saved = localStorage.getItem('viewing_role');
       if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
-        return saved as Role
+        return saved as Role;
       }
     }
-    return user?.role as Role || 'customer'
-  }
+    return (user?.role as Role) || 'customer';
+  };
 
   // 当前查看的角色（用于界面展示）
-  const [currentRole, setCurrentRole] = useState<Role>(getSavedRole)
+  const [currentRole, setCurrentRole] = useState<Role>(getSavedRole);
 
   // 监听用户角色变化，同步到 currentRole
   useEffect(() => {
     if (user?.role) {
-      const savedRole = getSavedRole()
+      const savedRole = getSavedRole();
       // 只有当保存的角色不存在时才使用用户实际角色
       if (!localStorage.getItem('viewing_role')) {
-        setCurrentRole(user.role as Role)
+        setCurrentRole(user.role as Role);
       } else {
-        setCurrentRole(savedRole)
+        setCurrentRole(savedRole);
       }
     }
-  }, [user?.role])
+  }, [user?.role]);
 
   // 切换角色
   const handleRoleSwitch = (role: Role) => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('viewing_role', role)
+      localStorage.setItem('viewing_role', role);
     }
-    setCurrentRole(role)
-    setRoleModalVisible(false)
+    setCurrentRole(role);
+    setRoleModalVisible(false);
     // 根据角色跳转到对应页面
     if (role === 'admin') {
-      router.push('/admin/tenants')
+      router.push('/admin/tenants');
     } else if (role === 'agent') {
-      router.push('/agent/tenants')
+      router.push('/agent/tenants');
     } else {
-      router.push('/')
+      router.push('/');
     }
-  }
+  };
 
   // 使用 useMemo 缓存导航菜单项，避免每次渲染都创建新引用
-  const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole])
+  const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole]);
 
   // 管理菜单展开状态
-  const [openKeys, setOpenKeys] = useState<string[]>([])
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
 
   // 当路由变化时，自动更新菜单展开状态
   useEffect(() => {
-    const keysFromPath = getOpenKeysForPath(navItems, pathname)
+    const keysFromPath = getOpenKeysForPath(navItems, pathname);
     if (keysFromPath.length > 0) {
-      setOpenKeys(keysFromPath)
+      setOpenKeys(keysFromPath);
     }
-  }, [pathname, navItems])
+  }, [pathname, navItems]);
 
   // 用户手动展开/折叠菜单时
   const handleOpenChange = useCallback((keys: string[]) => {
-    setOpenKeys(keys)
-  }, [])
+    setOpenKeys(keys);
+  }, []);
 
   // 用户下拉菜单
   const userMenuItems = [
@@ -354,7 +467,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       label: '个人资料',
       icon: <UserOutlined />,
       onClick: () => {
-        console.log('查看个人资料')
+        console.log('查看个人资料');
       },
     },
     {
@@ -396,17 +509,21 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       danger: true,
       onClick: logout,
     },
-  ]
+  ];
 
   // 获取角色显示文本
   const getRoleDisplayText = (role: Role) => {
     switch (role) {
-      case 'admin': return '开发者总后台'
-      case 'agent': return '区域代理'
-      case 'customer': return '终端客户'
-      default: return '未知角色'
+      case 'admin':
+        return '开发者总后台';
+      case 'agent':
+        return '区域代理';
+      case 'customer':
+        return '终端客户';
+      default:
+        return '未知角色';
     }
-  }
+  };
 
   return (
     <Layout className="min-h-screen">
@@ -509,7 +626,11 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
           <Space size="middle">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
-                <Avatar size={32} icon={<UserOutlined />} style={{ background: token.colorPrimary }} />
+                <Avatar
+                  size={32}
+                  icon={<UserOutlined />}
+                  style={{ background: token.colorPrimary }}
+                />
                 <span style={{ color: token.colorText }}>{user?.name || '用户'}</span>
               </Space>
             </Dropdown>
@@ -552,14 +673,17 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       >
         <div className="py-4">
           <p className="text-gray-500 mb-4">
-            当前账号角色：<strong>{user?.role === 'admin' ? '管理员' : user?.role === 'agent' ? '代理商' : '客户'}</strong>
+            当前账号角色：
+            <strong>
+              {user?.role === 'admin' ? '管理员' : user?.role === 'agent' ? '代理商' : '客户'}
+            </strong>
           </p>
           <Radio.Group
             value={currentRole}
-            onChange={(e) => handleRoleSwitch(e.target.value)}
+            onChange={e => handleRoleSwitch(e.target.value)}
             className="flex flex-col gap-3"
           >
-            {roleOptions.map((opt) => (
+            {roleOptions.map(opt => (
               <Radio.Button
                 key={opt.value}
                 value={opt.value}
@@ -584,5 +708,5 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         </div>
       </Modal>
     </Layout>
-  )
+  );
 }

@@ -1,7 +1,19 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Card, Row, Col, Button, Tag, Typography, Statistic, Progress, Space, Timeline, message } from 'antd'
+import { useState } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Tag,
+  Typography,
+  Statistic,
+  Progress,
+  Space,
+  Timeline,
+  message,
+} from 'antd';
 import {
   CrownOutlined,
   CheckCircleOutlined,
@@ -9,10 +21,10 @@ import {
   ThunderboltOutlined,
   TeamOutlined,
   RocketOutlined,
-  SafetyOutlined
-} from '@ant-design/icons'
+  SafetyOutlined,
+} from '@ant-design/icons';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 export default function SubscribePage() {
   // 当前订阅信息
@@ -22,7 +34,7 @@ export default function SubscribePage() {
     endDate: '2025-12-31',
     daysLeft: 245,
     status: 'active',
-  })
+  });
 
   // 使用量统计
   const usageStats = [
@@ -31,7 +43,7 @@ export default function SubscribePage() {
     { name: '智能获客', used: 320, limit: '无限', percent: 100, icon: <RocketOutlined /> },
     { name: '数字人视频', used: 45, limit: '无限', percent: 100, icon: <ThunderboltOutlined /> },
     { name: '招聘助手', used: 89, limit: '无限', percent: 100, icon: <SafetyOutlined /> },
-  ]
+  ];
 
   // 套餐列表
   const plans = [
@@ -46,8 +58,8 @@ export default function SubscribePage() {
         '发布中心不限次数',
         '招聘助手基础功能',
         '智能获客100条/月',
-        '客服支持（工作日）'
-      ]
+        '客服支持（工作日）',
+      ],
     },
     {
       id: 'quarterly',
@@ -62,8 +74,8 @@ export default function SubscribePage() {
         '招聘助手高级功能',
         '智能获客500条/月',
         '客服支持（7x24小时）',
-        '优先功能体验'
-      ]
+        '优先功能体验',
+      ],
     },
     {
       id: 'yearly',
@@ -79,14 +91,16 @@ export default function SubscribePage() {
         '客服支持（7x24小时）',
         '专属客户经理',
         '优先功能体验',
-        'API接口调用'
-      ]
-    }
-  ]
+        'API接口调用',
+      ],
+    },
+  ];
 
   return (
     <div className="p-6">
-      <Title level={2} className="mb-6">套餐管理</Title>
+      <Title level={2} className="mb-6">
+        套餐管理
+      </Title>
 
       {/* 当前订阅信息 */}
       <Row gutter={16} className="mb-6">
@@ -99,7 +113,9 @@ export default function SubscribePage() {
               <Col>
                 <Title level={4} style={{ marginBottom: 8 }}>
                   {currentSubscription.planName}
-                  <Tag color="green" className="ml-2">当前</Tag>
+                  <Tag color="green" className="ml-2">
+                    当前
+                  </Tag>
                 </Title>
                 <Space>
                   <Text type="secondary">
@@ -112,9 +128,9 @@ export default function SubscribePage() {
         </Col>
         <Col span={8}>
           <Card>
-            <Statistic 
-              title="剩余天数" 
-              value={currentSubscription.daysLeft} 
+            <Statistic
+              title="剩余天数"
+              value={currentSubscription.daysLeft}
               suffix="天"
               valueStyle={{ color: '#faad14', fontSize: '32px' }}
             />
@@ -147,20 +163,17 @@ export default function SubscribePage() {
       {/* 套餐列表 */}
       <Card title="可选套餐">
         <Row gutter={16}>
-          {plans.map((plan) => (
+          {plans.map(plan => (
             <Col span={8} key={plan.id}>
               <Card
                 className={plan.popular ? 'border-primary' : ''}
-                style={{ 
+                style={{
                   borderColor: plan.popular ? plan.color : undefined,
-                  position: 'relative'
+                  position: 'relative',
                 }}
               >
                 {plan.popular && (
-                  <Tag 
-                    color={plan.color} 
-                    style={{ position: 'absolute', top: 12, right: 12 }}
-                  >
+                  <Tag color={plan.color} style={{ position: 'absolute', top: 12, right: 12 }}>
                     推荐
                   </Tag>
                 )}
@@ -171,19 +184,22 @@ export default function SubscribePage() {
                   </Title>
                   <Text type="secondary">{plan.duration}</Text>
                 </div>
-                
+
                 <div style={{ minHeight: '150px' }}>
                   {plan.features.map((feature, index) => (
-                    <div key={index} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+                    <div
+                      key={index}
+                      style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}
+                    >
                       <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
                       <Text>{feature}</Text>
                     </div>
                   ))}
                 </div>
-                
-                <Button 
+
+                <Button
                   type={plan.popular ? 'primary' : 'default'}
-                  block 
+                  block
                   size="large"
                   style={{ marginTop: '16px' }}
                   onClick={() => message.info('请联系管理员升级套餐')}
@@ -207,5 +223,5 @@ export default function SubscribePage() {
         />
       </Card>
     </div>
-  )
+  );
 }

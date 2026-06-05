@@ -1,7 +1,19 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Card, Row, Col, Statistic, Table, Tag, Progress, Select, DatePicker, Space, Typography } from 'antd'
+import { useState } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Tag,
+  Progress,
+  Select,
+  DatePicker,
+  Space,
+  Typography,
+} from 'antd';
 import {
   UserOutlined,
   TeamOutlined,
@@ -10,13 +22,23 @@ import {
   BarChartOutlined,
   CheckCircleOutlined,
   MessageOutlined,
-} from '@ant-design/icons'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+} from '@ant-design/icons';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from 'recharts';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 export default function AgentAnalyticsPage() {
-  const [timeRange, setTimeRange] = useState<string>('7d')
+  const [timeRange, setTimeRange] = useState<string>('7d');
 
   // 核心指标
   const stats = {
@@ -26,7 +48,7 @@ export default function AgentAnalyticsPage() {
     activeRate: 78.2,
     tickets: 23,
     pendingTickets: 5,
-  }
+  };
 
   // 趋势数据
   const trendData = [
@@ -37,7 +59,7 @@ export default function AgentAnalyticsPage() {
     { date: '周五', 新增客户: 55, 活跃客户: 278 },
     { date: '周六', 新增客户: 28, 活跃客户: 156 },
     { date: '周日', 新增客户: 21, 活跃客户: 123 },
-  ]
+  ];
 
   // 功能分布
   const featureData = [
@@ -45,14 +67,14 @@ export default function AgentAnalyticsPage() {
     { feature: '招聘助手', count: 312, rate: 24.8 },
     { feature: '智能获客', count: 289, rate: 23.0 },
     { feature: '推荐分享', count: 199, rate: 15.9 },
-  ]
+  ];
 
   // 工单统计
   const ticketStats = [
     { status: '待处理', count: 5, color: '#ff4d4f' },
     { status: '处理中', count: 8, color: '#fa8c16' },
     { status: '已完成', count: 10, color: '#52c41a' },
-  ]
+  ];
 
   // 客户排行
   const customerRanking = [
@@ -60,10 +82,20 @@ export default function AgentAnalyticsPage() {
     { id: 2, name: '李四', phone: '139****0022', customers: 76, growth: 12.8 },
     { id: 3, name: '王五', phone: '137****0033', customers: 65, growth: 10.5 },
     { id: 4, name: '赵六', phone: '136****0044', customers: 54, growth: 8.3 },
-  ]
+  ];
 
   const rankingColumns = [
-    { title: '排名', dataIndex: 'id', key: 'id', width: 60, render: (id: number) => <Tag color={id === 1 ? 'gold' : id === 2 ? 'silver' : id === 3 ? 'bronze' : 'default'}>{id}</Tag> },
+    {
+      title: '排名',
+      dataIndex: 'id',
+      key: 'id',
+      width: 60,
+      render: (id: number) => (
+        <Tag color={id === 1 ? 'gold' : id === 2 ? 'silver' : id === 3 ? 'bronze' : 'default'}>
+          {id}
+        </Tag>
+      ),
+    },
     { title: '姓名', dataIndex: 'name', key: 'name', width: 100 },
     { title: '手机', dataIndex: 'phone', key: 'phone', width: 120 },
     { title: '客户数', dataIndex: 'customers', key: 'customers', width: 100 },
@@ -72,15 +104,24 @@ export default function AgentAnalyticsPage() {
       dataIndex: 'growth',
       key: 'growth',
       width: 100,
-      render: (growth: number) => <Text type="success">+{growth}%</Text>
+      render: (growth: number) => <Text type="success">+{growth}%</Text>,
     },
-  ]
+  ];
 
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <div>
-          <Title level={2} style={{ margin: 0 }}>数据大盘</Title>
+          <Title level={2} style={{ margin: 0 }}>
+            数据大盘
+          </Title>
           <Text type="secondary">区域代理后台 - 客户数据分析</Text>
         </div>
         <Space>
@@ -147,7 +188,15 @@ export default function AgentAnalyticsPage() {
       {/* 图表区域 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
-          <Card bordered={false} title={<><LineChartOutlined style={{ marginRight: 8 }} />客户增长趋势</>}>
+          <Card
+            bordered={false}
+            title={
+              <>
+                <LineChartOutlined style={{ marginRight: 8 }} />
+                客户增长趋势
+              </>
+            }
+          >
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -161,7 +210,15 @@ export default function AgentAnalyticsPage() {
           </Card>
         </Col>
         <Col span={12}>
-          <Card bordered={false} title={<><BarChartOutlined style={{ marginRight: 8 }} />功能分布</>}>
+          <Card
+            bordered={false}
+            title={
+              <>
+                <BarChartOutlined style={{ marginRight: 8 }} />
+                功能分布
+              </>
+            }
+          >
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={featureData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -185,13 +242,24 @@ export default function AgentAnalyticsPage() {
                   <Text>{item.status}</Text>
                   <Text style={{ color: item.color }}>{item.count}</Text>
                 </div>
-                <Progress percent={Math.round((item.count / stats.tickets) * 100)} strokeColor={item.color} />
+                <Progress
+                  percent={Math.round((item.count / stats.tickets) * 100)}
+                  strokeColor={item.color}
+                />
               </div>
             ))}
           </Card>
         </Col>
         <Col span={16}>
-          <Card bordered={false} title={<><CheckCircleOutlined style={{ marginRight: 8 }} />客户排行</>}>
+          <Card
+            bordered={false}
+            title={
+              <>
+                <CheckCircleOutlined style={{ marginRight: 8 }} />
+                客户排行
+              </>
+            }
+          >
             <Table
               dataSource={customerRanking}
               columns={rankingColumns}
@@ -202,5 +270,5 @@ export default function AgentAnalyticsPage() {
         </Col>
       </Row>
     </div>
-  )
+  );
 }

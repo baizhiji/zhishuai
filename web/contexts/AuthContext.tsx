@@ -3,7 +3,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { message } from 'antd';
-import { getAuthToken, getUserInfo, setAuthToken, setUserInfo, removeAuthToken } from '@/lib/request';
+import {
+  getAuthToken,
+  getUserInfo,
+  setAuthToken,
+  setUserInfo,
+  removeAuthToken,
+} from '@/lib/request';
 import { isAuthenticated } from '@/lib/permissions';
 
 interface User {
@@ -50,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined') {
       return;
     }
-    
+
     setLoading(true);
 
     if (!isAuthenticated()) {
@@ -121,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     updateUser,
-    checkAuth
+    checkAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

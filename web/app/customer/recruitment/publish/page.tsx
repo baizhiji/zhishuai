@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
+import { useState } from 'react';
 import {
   Card,
   Row,
@@ -16,7 +16,7 @@ import {
   InputNumber,
   message,
   Modal,
-} from 'antd'
+} from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
@@ -27,24 +27,24 @@ import {
   EnvironmentOutlined,
   DollarOutlined,
   CalendarOutlined,
-} from '@ant-design/icons'
+} from '@ant-design/icons';
 
-const { Title, Text } = Typography
-const { TextArea } = Input
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 interface JobPosition {
-  id: string
-  title: string
-  department: string
-  location: string
-  salaryMin: number
-  salaryMax: number
-  experience: string
-  education: string
-  description?: string
-  status: 'active' | 'closed' | 'draft'
-  createdAt: string
-  applicants: number
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  salaryMin: number;
+  salaryMax: number;
+  experience: string;
+  education: string;
+  description?: string;
+  status: 'active' | 'closed' | 'draft';
+  createdAt: string;
+  applicants: number;
 }
 
 export default function JobPublishPage() {
@@ -75,16 +75,16 @@ export default function JobPublishPage() {
       createdAt: '2024-03-24',
       applicants: 28,
     },
-  ])
+  ]);
 
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [form] = Form.useForm()
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [form] = Form.useForm();
 
   const statusConfig = {
     active: { text: '招聘中', color: 'success' },
     closed: { text: '已关闭', color: 'default' },
     draft: { text: '草稿', color: 'warning' },
-  }
+  };
 
   const columns = [
     { title: '职位名称', dataIndex: 'title', key: 'title' },
@@ -92,9 +92,7 @@ export default function JobPublishPage() {
     {
       title: '薪资',
       key: 'salary',
-      render: (_: any, record: JobPosition) => (
-        `${record.salaryMin}-${record.salaryMax}K`
-      ),
+      render: (_: any, record: JobPosition) => `${record.salaryMin}-${record.salaryMax}K`,
     },
     { title: '工作地点', dataIndex: 'location', key: 'location' },
     { title: '经验要求', dataIndex: 'experience', key: 'experience' },
@@ -104,8 +102,8 @@ export default function JobPublishPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        const config = statusConfig[status as keyof typeof statusConfig]
-        return <Tag color={config.color}>{config.text}</Tag>
+        const config = statusConfig[status as keyof typeof statusConfig];
+        return <Tag color={config.color}>{config.text}</Tag>;
       },
     },
     { title: '投递人数', dataIndex: 'applicants', key: 'applicants' },
@@ -116,42 +114,50 @@ export default function JobPublishPage() {
       width: 200,
       render: (_: any, record: JobPosition) => (
         <Space size="small">
-          <Button type="link" icon={<EyeOutlined />}>查看</Button>
-          <Button type="link" icon={<EditOutlined />}>编辑</Button>
-          <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
+          <Button type="link" icon={<EyeOutlined />}>
+            查看
+          </Button>
+          <Button type="link" icon={<EditOutlined />}>
+            编辑
+          </Button>
+          <Button type="link" danger icon={<DeleteOutlined />}>
+            删除
+          </Button>
         </Space>
       ),
     },
-  ]
+  ];
 
   const handleAdd = () => {
-    setIsModalVisible(true)
-  }
+    setIsModalVisible(true);
+  };
 
   const handleModalOk = async () => {
     try {
-      const values = await form.validateFields()
+      const values = await form.validateFields();
       const newJob: JobPosition = {
         id: Date.now().toString(),
         ...values,
         status: 'active',
         createdAt: new Date().toLocaleDateString(),
         applicants: 0,
-      }
-      setJobs([...jobs, newJob])
-      setIsModalVisible(false)
-      form.resetFields()
-      message.success('发布成功')
+      };
+      setJobs([...jobs, newJob]);
+      setIsModalVisible(false);
+      form.resetFields();
+      message.success('发布成功');
     } catch (error) {
-      console.error('表单验证失败:', error)
+      console.error('表单验证失败:', error);
     }
-  }
+  };
 
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-          <Title level={2} className="mb-2">职位发布</Title>
+          <Title level={2} className="mb-2">
+            职位发布
+          </Title>
           <Text type="secondary">发布招聘职位，AI自动生成职位描述</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
@@ -199,12 +205,7 @@ export default function JobPublishPage() {
       </Row>
 
       <Card title="职位列表">
-        <Table
-          dataSource={jobs}
-          columns={columns}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-        />
+        <Table dataSource={jobs} columns={columns} rowKey="id" pagination={{ pageSize: 10 }} />
       </Card>
 
       <Modal
@@ -223,7 +224,12 @@ export default function JobPublishPage() {
             </Col>
             <Col span={12}>
               <Form.Item label="所属部门" name="department" rules={[{ required: true }]}>
-                <Select options={[{ label: '技术部', value: '技术部' }, { label: '产品部', value: '产品部' }]} />
+                <Select
+                  options={[
+                    { label: '技术部', value: '技术部' },
+                    { label: '产品部', value: '产品部' },
+                  ]}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -235,7 +241,12 @@ export default function JobPublishPage() {
             </Col>
             <Col span={12}>
               <Form.Item label="经验要求" name="experience" rules={[{ required: true }]}>
-                <Select options={[{ label: '1-3年', value: '1-3年' }, { label: '3-5年', value: '3-5年' }]} />
+                <Select
+                  options={[
+                    { label: '1-3年', value: '1-3年' },
+                    { label: '3-5年', value: '3-5年' },
+                  ]}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -252,7 +263,12 @@ export default function JobPublishPage() {
             </Col>
             <Col span={8}>
               <Form.Item label="学历要求" name="education" rules={[{ required: true }]}>
-                <Select options={[{ label: '本科', value: '本科' }, { label: '硕士', value: '硕士' }]} />
+                <Select
+                  options={[
+                    { label: '本科', value: '本科' },
+                    { label: '硕士', value: '硕士' },
+                  ]}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -262,5 +278,5 @@ export default function JobPublishPage() {
         </Form>
       </Modal>
     </div>
-  )
+  );
 }

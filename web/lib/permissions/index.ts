@@ -40,7 +40,10 @@ export function getUserPermissions(role: UserRole): Permission[] {
 /**
  * 检查功能开关是否启用
  */
-export function isFeatureEnabled(featureKey: string, enabledFeatures?: Record<string, boolean>): boolean {
+export function isFeatureEnabled(
+  featureKey: string,
+  enabledFeatures?: Record<string, boolean>
+): boolean {
   const feature = featureToggles.find(f => f.key === featureKey);
   if (!feature) return false;
   if (enabledFeatures && featureKey in enabledFeatures) {

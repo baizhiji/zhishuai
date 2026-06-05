@@ -66,7 +66,7 @@ export const permissions = {
     'settings:logs',
     'settings:api',
     'settings:knowledge',
-    'settings:staff'
+    'settings:staff',
   ],
 
   // 代理商权限
@@ -118,7 +118,7 @@ export const permissions = {
     // 系统设置（部分）
     'settings:read',
     'settings:api',
-    'settings:knowledge'
+    'settings:knowledge',
   ],
 
   // 客户权限
@@ -161,8 +161,8 @@ export const permissions = {
 
     // 系统设置（部分）
     'settings:read',
-    'settings:knowledge'
-  ]
+    'settings:knowledge',
+  ],
 };
 
 // 检查用户是否已登录

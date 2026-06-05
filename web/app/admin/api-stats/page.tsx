@@ -12,14 +12,14 @@ import {
   Space,
   Typography,
   Progress,
-  Statistic
+  Statistic,
 } from 'antd';
 import {
   ApiOutlined,
   AreaChartOutlined,
   FieldTimeOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -32,7 +32,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   BarChart,
-  Bar
+  Bar,
 } from 'recharts';
 
 const { Title, Text } = Typography;
@@ -74,7 +74,7 @@ export default function ApiStatsPage() {
     totalCalls: 0,
     totalTokens: 0,
     totalCost: 0,
-    avgSuccessRate: 0
+    avgSuccessRate: 0,
   });
 
   useEffect(() => {
@@ -89,12 +89,14 @@ export default function ApiStatsPage() {
         setUsage(res.data.usage || generateMockUsage());
         setTrendData(res.data.trendData || generateMockTrend());
         setProviderData(res.data.providerData || generateMockProvider());
-        setStats(res.data.stats || {
-          totalCalls: 156789,
-          totalTokens: 45678900,
-          totalCost: 1289.56,
-          avgSuccessRate: 98.5
-        });
+        setStats(
+          res.data.stats || {
+            totalCalls: 156789,
+            totalTokens: 45678900,
+            totalCost: 1289.56,
+            avgSuccessRate: 98.5,
+          }
+        );
       }
     } catch (error) {
       setUsage(generateMockUsage());
@@ -104,7 +106,7 @@ export default function ApiStatsPage() {
         totalCalls: 156789,
         totalTokens: 45678900,
         totalCost: 1289.56,
-        avgSuccessRate: 98.5
+        avgSuccessRate: 98.5,
       });
     } finally {
       setLoading(false);
@@ -123,7 +125,7 @@ export default function ApiStatsPage() {
       totalTokens: 12345678,
       cost: 456.78,
       avgLatency: 1.2,
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
+      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       id: '2',
@@ -136,7 +138,7 @@ export default function ApiStatsPage() {
       totalTokens: 8900000,
       cost: 567.89,
       avgLatency: 2.5,
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
+      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       id: '3',
@@ -149,8 +151,8 @@ export default function ApiStatsPage() {
       totalTokens: 5678900,
       cost: 234.56,
       avgLatency: 3.2,
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
-    }
+      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    },
   ];
 
   const generateMockTrend = () => {
@@ -160,7 +162,7 @@ export default function ApiStatsPage() {
         date: dayjs().subtract(i, 'day').format('MM-DD'),
         calls: Math.floor(Math.random() * 20000) + 15000,
         tokens: Math.floor(Math.random() * 5000000) + 3000000,
-        cost: Math.random() * 200 + 100
+        cost: Math.random() * 200 + 100,
       });
     }
     return data;
@@ -169,7 +171,7 @@ export default function ApiStatsPage() {
   const generateMockProvider = () => [
     { provider: 'coze-doubao', calls: 65000, cost: 890.23 },
     { provider: 'coze-vision', calls: 25000, cost: 234.56 },
-    { provider: 'coze-32k', calls: 40000, cost: 123.45 }
+    { provider: 'coze-32k', calls: 40000, cost: 123.45 },
   ];
 
   const columns = [
@@ -181,23 +183,27 @@ export default function ApiStatsPage() {
           <Text strong>{record.modelName}</Text>
           <Tag>{record.provider}</Tag>
         </Space>
-      )
+      ),
     },
     {
       title: '调用次数',
       dataIndex: 'totalCalls',
       key: 'totalCalls',
-      render: (val: number) => val.toLocaleString()
+      render: (val: number) => val.toLocaleString(),
     },
     {
       title: '成功/失败',
       key: 'result',
       render: (_: any, record: ApiUsage) => (
         <Space direction="vertical" size={0}>
-          <Text type="success"><CheckCircleOutlined /> {record.successCalls.toLocaleString()}</Text>
-          <Text type="danger"><CloseCircleOutlined /> {record.failedCalls.toLocaleString()}</Text>
+          <Text type="success">
+            <CheckCircleOutlined /> {record.successCalls.toLocaleString()}
+          </Text>
+          <Text type="danger">
+            <CloseCircleOutlined /> {record.failedCalls.toLocaleString()}
+          </Text>
         </Space>
-      )
+      ),
     },
     {
       title: '成功率',
@@ -208,34 +214,34 @@ export default function ApiStatsPage() {
           percent={rate}
           size="small"
           status={rate > 99 ? 'success' : 'active'}
-          format={(p) => `${p}%`}
+          format={p => `${p}%`}
         />
-      )
+      ),
     },
     {
       title: 'Tokens',
       dataIndex: 'totalTokens',
       key: 'totalTokens',
-      render: (val: number) => (val / 1000000).toFixed(2) + 'M'
+      render: (val: number) => (val / 1000000).toFixed(2) + 'M',
     },
     {
       title: '费用',
       dataIndex: 'cost',
       key: 'cost',
-      render: (val: number) => `¥${val.toFixed(2)}`
+      render: (val: number) => `¥${val.toFixed(2)}`,
     },
     {
       title: '平均延迟',
       dataIndex: 'avgLatency',
       key: 'avgLatency',
-      render: (val: number) => `${val}s`
+      render: (val: number) => `${val}s`,
     },
     {
       title: '最后调用',
       dataIndex: 'lastCallAt',
       key: 'lastCallAt',
-      render: (time: string) => dayjs(time).format('HH:mm:ss')
-    }
+      render: (time: string) => dayjs(time).format('HH:mm:ss'),
+    },
   ];
 
   return (
@@ -302,7 +308,13 @@ export default function ApiStatsPage() {
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
-                <Line yAxisId="left" type="monotone" dataKey="calls" stroke="#1890ff" name="调用次数" />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="calls"
+                  stroke="#1890ff"
+                  name="调用次数"
+                />
                 <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#faad14" name="费用" />
               </LineChart>
             </ResponsiveContainer>

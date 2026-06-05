@@ -1,47 +1,84 @@
-'use client'
+'use client';
 
-import { useState, useMemo } from 'react'
-import { Card, Row, Col, Typography, Table, Tag, Space, Button, Input, Select, Form, Modal, Progress, Badge, Avatar, Tabs, Statistic, message, Popconfirm } from 'antd'
-import { SearchOutlined, PlusOutlined, EnvironmentOutlined, UserOutlined, MessageOutlined, StarOutlined, FilterOutlined, SortAscendingOutlined, PhoneOutlined, WechatOutlined, AimOutlined, WomanOutlined, ManOutlined, RobotOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons'
+import { useState, useMemo } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Table,
+  Tag,
+  Space,
+  Button,
+  Input,
+  Select,
+  Form,
+  Modal,
+  Progress,
+  Badge,
+  Avatar,
+  Tabs,
+  Statistic,
+  message,
+  Popconfirm,
+} from 'antd';
+import {
+  SearchOutlined,
+  PlusOutlined,
+  EnvironmentOutlined,
+  UserOutlined,
+  MessageOutlined,
+  StarOutlined,
+  FilterOutlined,
+  SortAscendingOutlined,
+  PhoneOutlined,
+  WechatOutlined,
+  AimOutlined,
+  WomanOutlined,
+  ManOutlined,
+  RobotOutlined,
+  EyeOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 interface PotentialCustomer {
-  id: string
-  name: string
-  avatar?: string
-  platform: 'douyin' | 'kuaishou' | 'xiaohongshu' | 'bilibili'
-  platformName: string
-  gender: 'male' | 'female' | 'unknown'
-  age: number
-  location: string
-  industry: string
-  interest: string
-  intentLevel: 'high' | 'medium' | 'low'
-  intentScore: number
-  contactStatus: 'uncontacted' | 'contacted' | 'responded' | 'converted'
-  lastActivity: string
-  followers: number
-  bio: string
-  contactPhone?: string
-  wechat?: string
-  tags: string[]
-  note?: string
-  discoveredAt: string
-  source: string
+  id: string;
+  name: string;
+  avatar?: string;
+  platform: 'douyin' | 'kuaishou' | 'xiaohongshu' | 'bilibili';
+  platformName: string;
+  gender: 'male' | 'female' | 'unknown';
+  age: number;
+  location: string;
+  industry: string;
+  interest: string;
+  intentLevel: 'high' | 'medium' | 'low';
+  intentScore: number;
+  contactStatus: 'uncontacted' | 'contacted' | 'responded' | 'converted';
+  lastActivity: string;
+  followers: number;
+  bio: string;
+  contactPhone?: string;
+  wechat?: string;
+  tags: string[];
+  note?: string;
+  discoveredAt: string;
+  source: string;
 }
 
 export default function DiscoverPage() {
-  const [searchText, setSearchText] = useState('')
-  const [platformFilter, setPlatformFilter] = useState<string>('all')
-  const [intentFilter, setIntentFilter] = useState<string>('all')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [industryFilter, setIndustryFilter] = useState<string>('all')
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [detailVisible, setDetailVisible] = useState(false)
-  const [selectedCustomer, setSelectedCustomer] = useState<PotentialCustomer | null>(null)
-  const [batchModalVisible, setBatchModalVisible] = useState(false)
-  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchText, setSearchText] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [intentFilter, setIntentFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [industryFilter, setIndustryFilter] = useState<string>('all');
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<PotentialCustomer | null>(null);
+  const [batchModalVisible, setBatchModalVisible] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [customers] = useState<PotentialCustomer[]>([
     {
@@ -168,70 +205,74 @@ export default function DiscoverPage() {
       discoveredAt: '2024-03-19',
       source: '关键词搜索',
     },
-  ])
+  ]);
 
-  const [searchForm] = Form.useForm()
+  const [searchForm] = Form.useForm();
 
   // 统计数据
-  const stats = useMemo(() => ({
-    total: customers.length,
-    highIntent: customers.filter(c => c.intentLevel === 'high').length,
-    contacted: customers.filter(c => c.contactStatus !== 'uncontacted').length,
-    converted: customers.filter(c => c.contactStatus === 'converted').length,
-  }), [customers])
+  const stats = useMemo(
+    () => ({
+      total: customers.length,
+      highIntent: customers.filter(c => c.intentLevel === 'high').length,
+      contacted: customers.filter(c => c.contactStatus !== 'uncontacted').length,
+      converted: customers.filter(c => c.contactStatus === 'converted').length,
+    }),
+    [customers]
+  );
 
   // 筛选后的数据
   const filteredCustomers = useMemo(() => {
-    let result = [...customers]
+    let result = [...customers];
 
     if (searchText) {
-      const lower = searchText.toLowerCase()
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(lower) ||
-        c.industry.toLowerCase().includes(lower) ||
-        c.interest.toLowerCase().includes(lower) ||
-        c.tags.some(t => t.toLowerCase().includes(lower))
-      )
+      const lower = searchText.toLowerCase();
+      result = result.filter(
+        c =>
+          c.name.toLowerCase().includes(lower) ||
+          c.industry.toLowerCase().includes(lower) ||
+          c.interest.toLowerCase().includes(lower) ||
+          c.tags.some(t => t.toLowerCase().includes(lower))
+      );
     }
 
     if (platformFilter !== 'all') {
-      result = result.filter(c => c.platform === platformFilter)
+      result = result.filter(c => c.platform === platformFilter);
     }
 
     if (intentFilter !== 'all') {
-      result = result.filter(c => c.intentLevel === intentFilter)
+      result = result.filter(c => c.intentLevel === intentFilter);
     }
 
     if (statusFilter !== 'all') {
-      result = result.filter(c => c.contactStatus === statusFilter)
+      result = result.filter(c => c.contactStatus === statusFilter);
     }
 
     if (industryFilter !== 'all') {
-      result = result.filter(c => c.industry === industryFilter)
+      result = result.filter(c => c.industry === industryFilter);
     }
 
-    return result
-  }, [customers, searchText, platformFilter, intentFilter, statusFilter, industryFilter])
+    return result;
+  }, [customers, searchText, platformFilter, intentFilter, statusFilter, industryFilter]);
 
   const platformConfig: Record<string, { color: string; icon: string }> = {
     douyin: { color: '#fe2c55', icon: '抖音' },
     kuaishou: { color: '#ff4906', icon: '快手' },
     xiaohongshu: { color: '#fe2c55', icon: '小红书' },
     bilibili: { color: '#00a1d6', icon: 'B站' },
-  }
+  };
 
   const intentConfig: Record<string, { label: string; color: string }> = {
     high: { label: '高意向', color: 'success' },
     medium: { label: '中意向', color: 'warning' },
     low: { label: '低意向', color: 'default' },
-  }
+  };
 
   const statusConfig: Record<string, { label: string; color: string }> = {
     uncontacted: { label: '未联系', color: 'default' },
     contacted: { label: '已联系', color: 'processing' },
     responded: { label: '已回复', color: 'warning' },
     converted: { label: '已转化', color: 'success' },
-  }
+  };
 
   const columns = [
     {
@@ -241,16 +282,28 @@ export default function DiscoverPage() {
       width: 220,
       render: (_: any, record: PotentialCustomer) => (
         <div className="flex items-center gap-3">
-          <Avatar size={44} src={record.avatar} icon={<UserOutlined />} className={`bg-[${platformConfig[record.platform].color}]`} style={{ backgroundColor: platformConfig[record.platform].color }}>
+          <Avatar
+            size={44}
+            src={record.avatar}
+            icon={<UserOutlined />}
+            className={`bg-[${platformConfig[record.platform].color}]`}
+            style={{ backgroundColor: platformConfig[record.platform].color }}
+          >
             {record.name[0]}
           </Avatar>
           <div>
             <div className="font-medium flex items-center gap-2">
               {record.name}
-              <Tag color={platformConfig[record.platform].color} className="text-xs">{record.platformName}</Tag>
+              <Tag color={platformConfig[record.platform].color} className="text-xs">
+                {record.platformName}
+              </Tag>
             </div>
             <div className="text-xs text-gray-500 flex items-center gap-2">
-              {record.gender === 'male' ? <ManOutlined /> : record.gender === 'female' ? <WomanOutlined /> : null}
+              {record.gender === 'male' ? (
+                <ManOutlined />
+              ) : record.gender === 'female' ? (
+                <WomanOutlined />
+              ) : null}
               {record.age}岁 | {record.location}
             </div>
           </div>
@@ -276,7 +329,9 @@ export default function DiscoverPage() {
       sorter: (a: PotentialCustomer, b: PotentialCustomer) => a.intentScore - b.intentScore,
       render: (score: number, record: PotentialCustomer) => (
         <div className="flex flex-col">
-          <Tag color={intentConfig[record.intentLevel].color}>{intentConfig[record.intentLevel].label}</Tag>
+          <Tag color={intentConfig[record.intentLevel].color}>
+            {intentConfig[record.intentLevel].label}
+          </Tag>
           <Progress percent={score} showInfo={false} size="small" className="w-20 mt-1" />
           <span className="text-xs text-gray-400">{score}分</span>
         </div>
@@ -288,8 +343,16 @@ export default function DiscoverPage() {
       width: 130,
       render: (_: any, record: PotentialCustomer) => (
         <div className="text-sm">
-          {record.contactPhone && <div className="flex items-center gap-1"><PhoneOutlined className="text-gray-400" /> {record.contactPhone}</div>}
-          {record.wechat && <div className="flex items-center gap-1"><WechatOutlined className="text-gray-400" /> {record.wechat}</div>}
+          {record.contactPhone && (
+            <div className="flex items-center gap-1">
+              <PhoneOutlined className="text-gray-400" /> {record.contactPhone}
+            </div>
+          )}
+          {record.wechat && (
+            <div className="flex items-center gap-1">
+              <WechatOutlined className="text-gray-400" /> {record.wechat}
+            </div>
+          )}
           {!record.contactPhone && !record.wechat && <span className="text-gray-400">暂无</span>}
         </div>
       ),
@@ -300,7 +363,7 @@ export default function DiscoverPage() {
       key: 'followers',
       width: 100,
       sorter: (a: PotentialCustomer, b: PotentialCustomer) => a.followers - b.followers,
-      render: (f: number) => f >= 10000 ? `${(f / 10000).toFixed(1)}w` : f.toString(),
+      render: (f: number) => (f >= 10000 ? `${(f / 10000).toFixed(1)}w` : f.toString()),
     },
     {
       title: '跟进状态',
@@ -318,7 +381,9 @@ export default function DiscoverPage() {
       render: (_: any, record: PotentialCustomer) => (
         <div className="flex flex-wrap gap-1">
           {record.tags.slice(0, 2).map((tag, i) => (
-            <Tag key={i} className="text-xs">{tag}</Tag>
+            <Tag key={i} className="text-xs">
+              {tag}
+            </Tag>
           ))}
           {record.tags.length > 2 && <Tag className="text-xs">+{record.tags.length - 2}</Tag>}
         </div>
@@ -344,7 +409,15 @@ export default function DiscoverPage() {
       width: 140,
       render: (_: any, record: PotentialCustomer) => (
         <Space size="small">
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => { setSelectedCustomer(record); setDetailVisible(true) }}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => {
+              setSelectedCustomer(record);
+              setDetailVisible(true);
+            }}
+          >
             详情
           </Button>
           {record.contactStatus !== 'converted' && (
@@ -358,34 +431,38 @@ export default function DiscoverPage() {
         </Space>
       ),
     },
-  ]
+  ];
 
   const handleSearch = () => {
-    setSearchLoading(true)
-    const values = searchForm.getFieldsValue()
-    console.log('搜索条件：', values)
+    setSearchLoading(true);
+    const values = searchForm.getFieldsValue();
+    console.log('搜索条件：', values);
     setTimeout(() => {
-      setSearchLoading(false)
-      message.success('发现 156 个潜在客户')
-    }, 1500)
-  }
+      setSearchLoading(false);
+      message.success('发现 156 个潜在客户');
+    }, 1500);
+  };
 
   const handleBatchAction = (action: string) => {
-    message.success(`已对 ${selectedRowKeys.length} 个潜客执行 ${action === 'export' ? '导出' : action === 'contact' ? '批量联系' : '删除'} 操作`)
-    setBatchModalVisible(false)
-    setSelectedRowKeys([])
-  }
+    message.success(
+      `已对 ${selectedRowKeys.length} 个潜客执行 ${action === 'export' ? '导出' : action === 'contact' ? '批量联系' : '删除'} 操作`
+    );
+    setBatchModalVisible(false);
+    setSelectedRowKeys([]);
+  };
 
   const rowSelection = {
     selectedRowKeys,
     onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
-  }
+  };
 
   return (
     <div className="p-6">
       {/* 页面标题 */}
       <div className="mb-6">
-        <Title level={2} className="mb-2">潜客发现</Title>
+        <Title level={2} className="mb-2">
+          潜客发现
+        </Title>
         <Text type="secondary">精准发现潜在客户，按行业、关键词、互动行为筛选目标人群</Text>
       </div>
 
@@ -398,7 +475,12 @@ export default function DiscoverPage() {
         </Col>
         <Col span={6}>
           <Card className="border-l-4 border-l-green-500">
-            <Statistic title="高意向" value={stats.highIntent} valueStyle={{ color: '#52c41a' }} prefix={<StarOutlined />} />
+            <Statistic
+              title="高意向"
+              value={stats.highIntent}
+              valueStyle={{ color: '#52c41a' }}
+              prefix={<StarOutlined />}
+            />
           </Card>
         </Col>
         <Col span={6}>
@@ -464,7 +546,12 @@ export default function DiscoverPage() {
           </Form.Item>
           <Form.Item>
             <Space>
-              <Button type="primary" icon={<SearchOutlined />} loading={searchLoading} onClick={handleSearch}>
+              <Button
+                type="primary"
+                icon={<SearchOutlined />}
+                loading={searchLoading}
+                onClick={handleSearch}
+              >
                 搜索潜客
               </Button>
               <Button icon={<RobotOutlined />} onClick={() => message.info('AI智能分析功能开发中')}>
@@ -526,13 +613,21 @@ export default function DiscoverPage() {
               ]}
             />
           </Space>
-          
+
           <Space>
             <Text type="secondary">已选择 {selectedRowKeys.length} 个</Text>
-            <Button icon={<MessageOutlined />} disabled={selectedRowKeys.length === 0} onClick={() => setBatchModalVisible(true)}>
+            <Button
+              icon={<MessageOutlined />}
+              disabled={selectedRowKeys.length === 0}
+              onClick={() => setBatchModalVisible(true)}
+            >
               批量联系
             </Button>
-            <Button icon={<AimOutlined />} disabled={selectedRowKeys.length === 0} onClick={() => setBatchModalVisible(true)}>
+            <Button
+              icon={<AimOutlined />}
+              disabled={selectedRowKeys.length === 0}
+              onClick={() => setBatchModalVisible(true)}
+            >
               导出
             </Button>
           </Space>
@@ -549,7 +644,7 @@ export default function DiscoverPage() {
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
-            showTotal: (total) => `共 ${total} 个潜客`,
+            showTotal: total => `共 ${total} 个潜客`,
           }}
           scroll={{ x: 1500 }}
         />
@@ -561,26 +656,43 @@ export default function DiscoverPage() {
         open={detailVisible}
         onCancel={() => setDetailVisible(false)}
         footer={[
-          <Button key="close" onClick={() => setDetailVisible(false)}>关闭</Button>,
+          <Button key="close" onClick={() => setDetailVisible(false)}>
+            关闭
+          </Button>,
           <Button key="note">添加备注</Button>,
-          <Button key="contact" type="primary" icon={<MessageOutlined />}>发送引流</Button>,
+          <Button key="contact" type="primary" icon={<MessageOutlined />}>
+            发送引流
+          </Button>,
         ]}
         width={600}
       >
         {selectedCustomer && (
           <div className="py-4">
             <div className="flex gap-6 mb-6">
-              <Avatar size={80} src={selectedCustomer.avatar} style={{ backgroundColor: platformConfig[selectedCustomer.platform].color }}>
+              <Avatar
+                size={80}
+                src={selectedCustomer.avatar}
+                style={{ backgroundColor: platformConfig[selectedCustomer.platform].color }}
+              >
                 {selectedCustomer.name[0]}
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-xl font-bold">{selectedCustomer.name}</span>
-                  <Tag color={platformConfig[selectedCustomer.platform].color}>{selectedCustomer.platformName}</Tag>
-                  <Tag color={intentConfig[selectedCustomer.intentLevel].color}>{intentConfig[selectedCustomer.intentLevel].label}</Tag>
+                  <Tag color={platformConfig[selectedCustomer.platform].color}>
+                    {selectedCustomer.platformName}
+                  </Tag>
+                  <Tag color={intentConfig[selectedCustomer.intentLevel].color}>
+                    {intentConfig[selectedCustomer.intentLevel].label}
+                  </Tag>
                 </div>
                 <div className="text-gray-500 mb-2">
-                  {selectedCustomer.gender === 'male' ? '男' : selectedCustomer.gender === 'female' ? '女' : '未知'} | {selectedCustomer.age}岁 | {selectedCustomer.location}
+                  {selectedCustomer.gender === 'male'
+                    ? '男'
+                    : selectedCustomer.gender === 'female'
+                      ? '女'
+                      : '未知'}{' '}
+                  | {selectedCustomer.age}岁 | {selectedCustomer.location}
                 </div>
                 <div className="text-gray-500">
                   <EnvironmentOutlined /> 行业：{selectedCustomer.industry}
@@ -592,18 +704,26 @@ export default function DiscoverPage() {
               <Row gutter={16}>
                 <Col span={12}>
                   <div className="text-gray-500">意向评分</div>
-                  <div className="text-2xl font-bold text-green-500">{selectedCustomer.intentScore}分</div>
+                  <div className="text-2xl font-bold text-green-500">
+                    {selectedCustomer.intentScore}分
+                  </div>
                 </Col>
                 <Col span={12}>
                   <div className="text-gray-500">粉丝数</div>
-                  <div className="text-2xl font-bold">{selectedCustomer.followers >= 10000 ? `${(selectedCustomer.followers / 10000).toFixed(1)}w` : selectedCustomer.followers}</div>
+                  <div className="text-2xl font-bold">
+                    {selectedCustomer.followers >= 10000
+                      ? `${(selectedCustomer.followers / 10000).toFixed(1)}w`
+                      : selectedCustomer.followers}
+                  </div>
                 </Col>
               </Row>
               <div className="mt-3">
                 <div className="text-gray-500 mb-1">兴趣标签</div>
                 <div className="flex flex-wrap gap-2">
                   {selectedCustomer.tags.map((tag, i) => (
-                    <Tag key={i} color="blue">{tag}</Tag>
+                    <Tag key={i} color="blue">
+                      {tag}
+                    </Tag>
                   ))}
                 </div>
               </div>
@@ -612,10 +732,12 @@ export default function DiscoverPage() {
             <Card title="基本信息" size="small" className="mb-4">
               <Row gutter={16}>
                 <Col span={12}>
-                  <Text type="secondary">近期活动：</Text>{selectedCustomer.lastActivity}
+                  <Text type="secondary">近期活动：</Text>
+                  {selectedCustomer.lastActivity}
                 </Col>
                 <Col span={12}>
-                  <Text type="secondary">发现时间：</Text>{selectedCustomer.discoveredAt}
+                  <Text type="secondary">发现时间：</Text>
+                  {selectedCustomer.discoveredAt}
                 </Col>
               </Row>
               <div className="mt-2">
@@ -626,10 +748,14 @@ export default function DiscoverPage() {
 
             <Card title="联系方式" size="small">
               {selectedCustomer.contactPhone && (
-                <div className="mb-2"><PhoneOutlined /> {selectedCustomer.contactPhone}</div>
+                <div className="mb-2">
+                  <PhoneOutlined /> {selectedCustomer.contactPhone}
+                </div>
               )}
               {selectedCustomer.wechat && (
-                <div className="mb-2"><WechatOutlined /> 微信：{selectedCustomer.wechat}</div>
+                <div className="mb-2">
+                  <WechatOutlined /> 微信：{selectedCustomer.wechat}
+                </div>
               )}
               {!selectedCustomer.contactPhone && !selectedCustomer.wechat && (
                 <Text type="secondary">暂无联系方式</Text>
@@ -648,14 +774,27 @@ export default function DiscoverPage() {
         width={400}
       >
         <div className="py-4">
-          <p className="mb-4">已选择 <Text strong>{selectedRowKeys.length}</Text> 个潜客</p>
+          <p className="mb-4">
+            已选择 <Text strong>{selectedRowKeys.length}</Text> 个潜客
+          </p>
           <Space direction="vertical" className="w-full">
-            <Button block icon={<MessageOutlined />} onClick={() => handleBatchAction('contact')}>批量发送引流消息</Button>
-            <Button block icon={<AimOutlined />} onClick={() => handleBatchAction('export')}>导出潜客信息</Button>
-            <Button block danger icon={<DeleteOutlined />} onClick={() => handleBatchAction('delete')}>删除选中潜客</Button>
+            <Button block icon={<MessageOutlined />} onClick={() => handleBatchAction('contact')}>
+              批量发送引流消息
+            </Button>
+            <Button block icon={<AimOutlined />} onClick={() => handleBatchAction('export')}>
+              导出潜客信息
+            </Button>
+            <Button
+              block
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleBatchAction('delete')}
+            >
+              删除选中潜客
+            </Button>
           </Space>
         </div>
       </Modal>
     </div>
-  )
+  );
 }

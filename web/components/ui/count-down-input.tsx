@@ -39,7 +39,7 @@ export default function CountDownInput({
     if (!phone) {
       return;
     }
-    
+
     setLoading(true);
     try {
       const res = await AuthAPI.sendCode(phone);
@@ -59,7 +59,7 @@ export default function CountDownInput({
       <Input
         style={{ flex: 1 }}
         value={value}
-        onChange={(e) => onChange?.(e.target.value)}
+        onChange={e => onChange?.(e.target.value)}
         placeholder={placeholder}
         size={size}
         disabled={disabled}

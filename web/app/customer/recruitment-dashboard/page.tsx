@@ -13,7 +13,7 @@ import {
   Tag,
   Space,
   Typography,
-  Empty
+  Empty,
 } from 'antd';
 import {
   UserAddOutlined,
@@ -23,7 +23,7 @@ import {
   RiseOutlined,
   EyeOutlined,
   MessageOutlined,
-  TrophyOutlined
+  TrophyOutlined,
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -39,7 +39,7 @@ import {
   Bar,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from 'recharts';
 
 const { Title, Text } = Typography;
@@ -81,7 +81,7 @@ export default function RecruitmentDashboardPage() {
     interviewsScheduled: 0,
     interviewsCompleted: 0,
     hiredCount: 0,
-    conversionRate: 0
+    conversionRate: 0,
   });
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [positionData, setPositionData] = useState<PositionData[]>([]);
@@ -101,9 +101,9 @@ export default function RecruitmentDashboardPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/recruitment/dashboard', {
-        userId
+        userId,
       });
-      
+
       if (res.data) {
         setStats({
           totalPosts: res.data.stats?.totalPosts || 0,
@@ -113,17 +113,19 @@ export default function RecruitmentDashboardPage() {
           interviewsScheduled: res.data.stats?.interviewsScheduled || 0,
           interviewsCompleted: res.data.stats?.interviewsCompleted || 0,
           hiredCount: res.data.stats?.hiredCount || 0,
-          conversionRate: res.data.stats?.conversionRate || 0
+          conversionRate: res.data.stats?.conversionRate || 0,
         });
         setTrendData(res.data.trendData || generateMockTrendData());
         setPositionData(res.data.positionData || generateMockPositionData());
-        setSourceData(res.data.sourceData || [
-          { name: 'BOSS直聘', value: 35 },
-          { name: '前程无忧', value: 25 },
-          { name: '智联招聘', value: 20 },
-          { name: '猎聘网', value: 12 },
-          { name: '其他', value: 8 }
-        ]);
+        setSourceData(
+          res.data.sourceData || [
+            { name: 'BOSS直聘', value: 35 },
+            { name: '前程无忧', value: 25 },
+            { name: '智联招聘', value: 20 },
+            { name: '猎聘网', value: 12 },
+            { name: '其他', value: 8 },
+          ]
+        );
       }
     } catch (error) {
       // 使用模拟数据
@@ -135,7 +137,7 @@ export default function RecruitmentDashboardPage() {
         interviewsScheduled: 15,
         interviewsCompleted: 23,
         hiredCount: 8,
-        conversionRate: 5.1
+        conversionRate: 5.1,
       });
       setTrendData(generateMockTrendData());
       setPositionData(generateMockPositionData());
@@ -144,7 +146,7 @@ export default function RecruitmentDashboardPage() {
         { name: '前程无忧', value: 25 },
         { name: '智联招聘', value: 20 },
         { name: '猎聘网', value: 12 },
-        { name: '其他', value: 8 }
+        { name: '其他', value: 8 },
       ]);
     } finally {
       setLoading(false);
@@ -158,7 +160,7 @@ export default function RecruitmentDashboardPage() {
         date: dayjs().subtract(i, 'day').format('MM-DD'),
         views: Math.floor(Math.random() * 500) + 200,
         applications: Math.floor(Math.random() * 30) + 5,
-        interviews: Math.floor(Math.random() * 10) + 1
+        interviews: Math.floor(Math.random() * 10) + 1,
       });
     }
     return data;
@@ -170,7 +172,7 @@ export default function RecruitmentDashboardPage() {
       { position: '后端开发工程师', posts: 2, candidates: 38, hired: 1, rate: 65 },
       { position: '产品经理', posts: 2, candidates: 28, hired: 2, rate: 82 },
       { position: 'UI设计师', posts: 2, candidates: 22, hired: 1, rate: 70 },
-      { position: '运营专员', posts: 3, candidates: 35, hired: 2, rate: 75 }
+      { position: '运营专员', posts: 3, candidates: 35, hired: 2, rate: 75 },
     ];
   };
 
@@ -183,8 +185,8 @@ export default function RecruitmentDashboardPage() {
       title: '匹配率',
       dataIndex: 'rate',
       key: 'rate',
-      render: (rate: number) => <Progress percent={rate} size="small" />
-    }
+      render: (rate: number) => <Progress percent={rate} size="small" />,
+    },
   ];
 
   const COLORS = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1'];
@@ -252,9 +254,27 @@ export default function RecruitmentDashboardPage() {
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
-                <Line yAxisId="left" type="monotone" dataKey="views" stroke="#1890ff" name="浏览量" />
-                <Line yAxisId="right" type="monotone" dataKey="applications" stroke="#52c41a" name="投递数" />
-                <Line yAxisId="right" type="monotone" dataKey="interviews" stroke="#faad14" name="面试数" />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="views"
+                  stroke="#1890ff"
+                  name="浏览量"
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="applications"
+                  stroke="#52c41a"
+                  name="投递数"
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="interviews"
+                  stroke="#faad14"
+                  name="面试数"
+                />
               </LineChart>
             </ResponsiveContainer>
           </Card>
@@ -315,7 +335,9 @@ export default function RecruitmentDashboardPage() {
               </div>
               <div className="text-gray-300">→</div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-500">{stats.interviewsScheduled + stats.interviewsCompleted}</div>
+                <div className="text-3xl font-bold text-orange-500">
+                  {stats.interviewsScheduled + stats.interviewsCompleted}
+                </div>
                 <div className="text-gray-500">面试</div>
               </div>
               <div className="text-gray-300">→</div>
@@ -326,7 +348,9 @@ export default function RecruitmentDashboardPage() {
             </div>
             <div className="mt-4">
               <Text>整体转化率: </Text>
-              <Text strong type="success">{stats.conversionRate}%</Text>
+              <Text strong type="success">
+                {stats.conversionRate}%
+              </Text>
             </div>
           </Card>
         </Col>

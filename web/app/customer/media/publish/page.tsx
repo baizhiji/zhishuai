@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   Row,
@@ -32,8 +32,8 @@ import {
   InputNumber,
   TimePicker,
   Alert,
-} from 'antd'
-import type { UploadFile, UploadProps } from 'antd'
+} from 'antd';
+import type { UploadFile, UploadProps } from 'antd';
 import {
   SendOutlined,
   EditOutlined,
@@ -56,107 +56,114 @@ import {
   RobotOutlined,
   FontSizeOutlined,
   TagsOutlined,
-} from '@ant-design/icons'
-import dayjs, { Dayjs } from 'dayjs'
-import { ContentCategory, contentCategoryConfig } from '@/lib/content/types'
-import { Platform, platformConfig, PlatformAccount, mockAccounts } from '@/lib/platform/config'
+} from '@ant-design/icons';
+import dayjs, { Dayjs } from 'dayjs';
+import { ContentCategory, contentCategoryConfig } from '@/lib/content/types';
+import { Platform, platformConfig, PlatformAccount, mockAccounts } from '@/lib/platform/config';
 
-const { Title, Text } = Typography
-const { TextArea } = Input
-const { RangePicker } = DatePicker
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+const { RangePicker } = DatePicker;
 
 interface PublishTask {
-  id: string
-  type: 'text' | 'image' | 'video' | 'digital-human'
-  title: string
-  content: string
-  thumbnail?: string
-  file?: UploadFile
-  platforms: string[]
-  accounts: string[]  // 添加账号ID
-  tags: string[]  // 添加标签
-  scheduledTime?: string
-  status: 'pending' | 'scheduled' | 'publishing' | 'published' | 'failed'
-  createdAt: string
-  publishedAt?: string
-  error?: string
+  id: string;
+  type: 'text' | 'image' | 'video' | 'digital-human';
+  title: string;
+  content: string;
+  thumbnail?: string;
+  file?: UploadFile;
+  platforms: string[];
+  accounts: string[]; // 添加账号ID
+  tags: string[]; // 添加标签
+  scheduledTime?: string;
+  status: 'pending' | 'scheduled' | 'publishing' | 'published' | 'failed';
+  createdAt: string;
+  publishedAt?: string;
+  error?: string;
 }
 
 interface Material {
-  id: string
-  type: string
-  content: string
-  title: string
-  category: string  // 添加分类字段
-  timestamp: number
-  status: 'unused' | 'used'
+  id: string;
+  type: string;
+  content: string;
+  title: string;
+  category: string; // 添加分类字段
+  timestamp: number;
+  status: 'unused' | 'used';
 }
 
 interface Account {
-  id: string
-  platform: string
-  accountName: string
-  avatar: string
-  fans: number
-  status: 'active' | 'inactive' | 'expired'
-  lastSync: string
-  autoPublish: boolean
+  id: string;
+  platform: string;
+  accountName: string;
+  avatar: string;
+  fans: number;
+  status: 'active' | 'inactive' | 'expired';
+  lastSync: string;
+  autoPublish: boolean;
 }
 
 export default function PublishCenterPage() {
-  const [tasks, setTasks] = useState<PublishTask[]>([])
-  const [materials, setMaterials] = useState<Material[]>([])
-  const [accounts, setAccounts] = useState<PlatformAccount[]>([])
-  const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all')
-  const [isPublishModalVisible, setIsPublishModalVisible] = useState(false)
-  const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false)
-  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false)
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [publishing, setPublishing] = useState(false)
-  const [publishProgress, setPublishProgress] = useState(0)
-  const [publishType, setPublishType] = useState<'immediate' | 'scheduled' | 'continuous'>('immediate')
+  const [tasks, setTasks] = useState<PublishTask[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [accounts, setAccounts] = useState<PlatformAccount[]>([]);
+  const [materialCategoryFilter, setMaterialCategoryFilter] = useState<string>('all');
+  const [isPublishModalVisible, setIsPublishModalVisible] = useState(false);
+  const [isMaterialDrawerVisible, setIsMaterialDrawerVisible] = useState(false);
+  const [isBatchPublishModalVisible, setIsBatchPublishModalVisible] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [publishing, setPublishing] = useState(false);
+  const [publishProgress, setPublishProgress] = useState(0);
+  const [publishType, setPublishType] = useState<'immediate' | 'scheduled' | 'continuous'>(
+    'immediate'
+  );
 
   // 受控表单状态
   const [formData, setFormData] = useState({
     contentType: 'text' as 'text' | 'image' | 'video' | 'digital-human',
     title: '',
     content: '',
-    platform: '' as Platform,  // 单一平台
-    accounts: [] as string[],  // 该平台的账号
-    tags: [] as string[],  // 添加标签
-    publishType: 'immediate' as 'immediate' | 'scheduled' | 'continuous',  // 添加连续发布
+    platform: '' as Platform, // 单一平台
+    accounts: [] as string[], // 该平台的账号
+    tags: [] as string[], // 添加标签
+    publishType: 'immediate' as 'immediate' | 'scheduled' | 'continuous', // 添加连续发布
     scheduledTime: null as dayjs.Dayjs | null,
-    continuousDays: 1,  // 连续发布天数
-    continuousStartTime: null as dayjs.Dayjs | null,  // 连续发布开始时间
-  })
+    continuousDays: 1, // 连续发布天数
+    continuousStartTime: null as dayjs.Dayjs | null, // 连续发布开始时间
+  });
 
   // 批量发布状态
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([])  // 选中的素材ID列表
-  const [batchPublishProgress, setBatchPublishProgress] = useState(0)  // 批量发布进度
-  const [continuousStartDate, setContinuousStartDate] = useState<Dayjs | null>(dayjs())  // 连续发布开始日期
-  const [batchScheduledTime, setBatchScheduledTime] = useState<Dayjs | null>(dayjs().hour(10).minute(0))  // 每天定时发布时间
-  const [continuousDays, setContinuousDays] = useState(1)
+  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]); // 选中的素材ID列表
+  const [batchPublishProgress, setBatchPublishProgress] = useState(0); // 批量发布进度
+  const [continuousStartDate, setContinuousStartDate] = useState<Dayjs | null>(dayjs()); // 连续发布开始日期
+  const [batchScheduledTime, setBatchScheduledTime] = useState<Dayjs | null>(
+    dayjs().hour(10).minute(0)
+  ); // 每天定时发布时间
+  const [continuousDays, setContinuousDays] = useState(1);
 
   // 计算定时发布日期列表
   const scheduledDates = useMemo(() => {
-    if (!continuousStartDate || continuousDays <= 0) return []
+    if (!continuousStartDate || continuousDays <= 0) return [];
     return Array.from({ length: continuousDays }, (_, i) => {
-      const date = continuousStartDate.add(i, 'day')
+      const date = continuousStartDate.add(i, 'day');
       if (batchScheduledTime) {
-        return date.hour(batchScheduledTime.hour()).minute(batchScheduledTime.minute()).format('YYYY-MM-DD HH:mm')
+        return date
+          .hour(batchScheduledTime.hour())
+          .minute(batchScheduledTime.minute())
+          .format('YYYY-MM-DD HH:mm');
       }
-      return date.format('YYYY-MM-DD')
-    })
-  }, [continuousStartDate, continuousDays, batchScheduledTime])
+      return date.format('YYYY-MM-DD');
+    });
+  }, [continuousStartDate, continuousDays, batchScheduledTime]);
 
   // 生成定时日期列表（用于列表展示）
-  const generateScheduledDates = () => scheduledDates
+  const generateScheduledDates = () => scheduledDates;
 
   // 获取定时发布限制天数
   const getScheduledLimitDays = () => {
-    if (!formData.platform) return 30
-    return platformConfig[formData.platform]?.maxScheduledDays || 30
-  }
+    if (!formData.platform) return 30;
+    return platformConfig[formData.platform]?.maxScheduledDays || 30;
+  };
 
   // 常用标签
   const popularTags = [
@@ -170,67 +177,67 @@ export default function PublishCenterPage() {
     'AIGC',
     '自动化',
     '效率工具',
-  ]
+  ];
 
   // 从 localStorage 加载数据
   useEffect(() => {
     // 加载发布任务
-    const savedTasks = localStorage.getItem('publish-tasks')
+    const savedTasks = localStorage.getItem('publish-tasks');
     if (savedTasks) {
       try {
-        setTasks(JSON.parse(savedTasks))
+        setTasks(JSON.parse(savedTasks));
       } catch (error) {
-        console.error('加载发布任务失败:', error)
+        console.error('加载发布任务失败:', error);
       }
     }
 
     // 加载素材库
-    const savedMaterials = localStorage.getItem('materials')
+    const savedMaterials = localStorage.getItem('materials');
     if (savedMaterials) {
       try {
-        setMaterials(JSON.parse(savedMaterials))
+        setMaterials(JSON.parse(savedMaterials));
       } catch (error) {
-        console.error('加载素材库失败:', error)
+        console.error('加载素材库失败:', error);
       }
     }
 
     // 加载账号数据（使用mockAccounts作为默认数据）
-    const savedAccounts = localStorage.getItem('platform-accounts')
+    const savedAccounts = localStorage.getItem('platform-accounts');
     if (savedAccounts) {
       try {
-        setAccounts(JSON.parse(savedAccounts))
+        setAccounts(JSON.parse(savedAccounts));
       } catch (error) {
-        console.error('加载账号数据失败:', error)
-        setAccounts(mockAccounts)
+        console.error('加载账号数据失败:', error);
+        setAccounts(mockAccounts);
       }
     } else {
-      setAccounts(mockAccounts)
-      localStorage.setItem('platform-accounts', JSON.stringify(mockAccounts))
+      setAccounts(mockAccounts);
+      localStorage.setItem('platform-accounts', JSON.stringify(mockAccounts));
     }
-  }, [])
+  }, []);
 
   // 保存发布任务到 localStorage
   useEffect(() => {
-    localStorage.setItem('publish-tasks', JSON.stringify(tasks))
-  }, [tasks])
+    localStorage.setItem('publish-tasks', JSON.stringify(tasks));
+  }, [tasks]);
 
   // 检查定时任务并自动发布
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = dayjs().format('YYYY-MM-DD HH:mm:ss')
+      const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
       setTasks(prevTasks =>
         prevTasks.map(task => {
           if (task.status === 'scheduled' && task.scheduledTime && task.scheduledTime <= now) {
             // 开始发布
-            return { ...task, status: 'publishing' }
+            return { ...task, status: 'publishing' };
           }
-          return task
+          return task;
         })
-      )
-    }, 5000) // 每5秒检查一次
+      );
+    }, 5000); // 每5秒检查一次
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => clearInterval(interval);
+  }, []);
 
   // 平台选项
   const statusConfig = {
@@ -239,7 +246,7 @@ export default function PublishCenterPage() {
     publishing: { text: '发布中', color: 'processing', icon: <ReloadOutlined spin /> },
     published: { text: '已发布', color: 'success', icon: <CheckCircleOutlined /> },
     failed: { text: '失败', color: 'error', icon: null },
-  }
+  };
 
   // 内容类型配置
   const typeConfig = {
@@ -247,7 +254,7 @@ export default function PublishCenterPage() {
     image: { label: '图片', color: 'green', icon: <PictureOutlined /> },
     video: { label: '视频', color: 'purple', icon: <VideoCameraOutlined /> },
     'digital-human': { label: '数字人', color: 'orange', icon: <RobotOutlined /> },
-  }
+  };
 
   // 文件上传配置
   const uploadProps: UploadProps = {
@@ -255,20 +262,20 @@ export default function PublishCenterPage() {
     multiple: false,
     listType: 'picture-card',
     maxCount: 1,
-    beforeUpload: (file) => {
-      const isVideo = file.type.startsWith('video/')
-      const isImage = file.type.startsWith('image/')
+    beforeUpload: file => {
+      const isVideo = file.type.startsWith('video/');
+      const isImage = file.type.startsWith('image/');
       if (!isVideo && !isImage) {
-        message.error('只能上传视频或图片文件')
-        return false
+        message.error('只能上传视频或图片文件');
+        return false;
       }
-      return false // 阻止自动上传，只显示预览
+      return false; // 阻止自动上传，只显示预览
     },
-  }
+  };
 
   // 打开发布模态框
   const handleOpenPublishModal = () => {
-    setPublishType('immediate')
+    setPublishType('immediate');
     setFormData({
       contentType: 'text',
       title: '',
@@ -280,15 +287,15 @@ export default function PublishCenterPage() {
       scheduledTime: null,
       continuousDays: 1,
       continuousStartTime: null,
-    })
-    setIsPublishModalVisible(true)
-  }
+    });
+    setIsPublishModalVisible(true);
+  };
 
   // 关闭发布模态框
   const handleClosePublishModal = () => {
-    setPublishType('immediate')
-    setIsPublishModalVisible(false)
-  }
+    setPublishType('immediate');
+    setIsPublishModalVisible(false);
+  };
 
   // 从素材库选择素材
   const handleSelectMaterial = (material: Material) => {
@@ -297,41 +304,41 @@ export default function PublishCenterPage() {
       title: material.title || '',
       content: material.content,
       contentType: material.type as 'text' | 'image' | 'video',
-    })
-    setIsMaterialDrawerVisible(false)
-    message.success('已选择素材')
-  }
+    });
+    setIsMaterialDrawerVisible(false);
+    message.success('已选择素材');
+  };
 
   // 打开批量发布模态框
   const handleOpenBatchPublishModal = () => {
-    setSelectedMaterials([])
-    setIsBatchPublishModalVisible(true)
-  }
+    setSelectedMaterials([]);
+    setIsBatchPublishModalVisible(true);
+  };
 
   // 执行批量发布
   const handleBatchPublish = async () => {
     if (selectedMaterials.length === 0) {
-      message.warning('请至少选择一个素材')
-      return
+      message.warning('请至少选择一个素材');
+      return;
     }
 
     if (!formData.platform) {
-      message.warning('请选择发布平台')
-      return
+      message.warning('请选择发布平台');
+      return;
     }
 
     if (formData.accounts.length === 0) {
-      message.warning('请至少选择一个账号')
-      return
+      message.warning('请至少选择一个账号');
+      return;
     }
 
-    setIsBatchPublishModalVisible(false)
-    setPublishing(true)
+    setIsBatchPublishModalVisible(false);
+    setPublishing(true);
 
     // 为每个选中的素材创建发布任务
     for (let i = 0; i < selectedMaterials.length; i++) {
-      const materialId = selectedMaterials[i]
-      const material = materials.find(m => m.id === materialId)
+      const materialId = selectedMaterials[i];
+      const material = materials.find(m => m.id === materialId);
 
       if (material) {
         const task: PublishTask = {
@@ -344,70 +351,75 @@ export default function PublishCenterPage() {
           tags: formData.tags,
           status: formData.publishType === 'immediate' ? 'publishing' : 'scheduled',
           createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-        }
+        };
 
         if (formData.publishType === 'scheduled' && formData.scheduledTime) {
-          task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
+          task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss');
         }
 
-        setTasks(prevTasks => [task, ...prevTasks])
+        setTasks(prevTasks => [task, ...prevTasks]);
 
         // 更新进度
-        setBatchPublishProgress(Math.round(((i + 1) / selectedMaterials.length) * 100))
+        setBatchPublishProgress(Math.round(((i + 1) / selectedMaterials.length) * 100));
 
         // 模拟发布延迟
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
 
-    setPublishing(false)
-    setBatchPublishProgress(0)
-    message.success(`成功创建 ${selectedMaterials.length} 个发布任务`)
-  }
+    setPublishing(false);
+    setBatchPublishProgress(0);
+    message.success(`成功创建 ${selectedMaterials.length} 个发布任务`);
+  };
 
   // 提交发布任务
   const handlePublish = async () => {
     if (!formData.title) {
-      message.warning('请输入标题')
-      return
+      message.warning('请输入标题');
+      return;
     }
 
     if (!formData.content) {
-      message.warning('请输入内容')
-      return
+      message.warning('请输入内容');
+      return;
     }
 
     if (!formData.platform) {
-      message.warning('请选择发布平台')
-      return
+      message.warning('请选择发布平台');
+      return;
     }
 
     if (formData.accounts.length === 0) {
-      message.warning('请至少选择一个账号')
-      return
+      message.warning('请至少选择一个账号');
+      return;
     }
 
     if (formData.publishType === 'scheduled' && !formData.scheduledTime) {
-      message.warning('请选择发布时间')
-      return
+      message.warning('请选择发布时间');
+      return;
     }
 
     if (formData.publishType === 'continuous') {
       if (!formData.continuousStartTime) {
-        message.warning('请选择开始发布时间')
-        return
+        message.warning('请选择开始发布时间');
+        return;
       }
-      if (formData.continuousDays < 1 || formData.continuousDays > platformConfig[formData.platform].maxScheduledDays) {
-        message.warning(`连续发布天数必须在1-${platformConfig[formData.platform].maxScheduledDays}之间`)
-        return
+      if (
+        formData.continuousDays < 1 ||
+        formData.continuousDays > platformConfig[formData.platform].maxScheduledDays
+      ) {
+        message.warning(
+          `连续发布天数必须在1-${platformConfig[formData.platform].maxScheduledDays}之间`
+        );
+        return;
       }
     }
 
     // 如果是连续多天发布，创建多个任务
     if (formData.publishType === 'continuous') {
-      const newTasks: PublishTask[] = []
+      const newTasks: PublishTask[] = [];
       for (let i = 0; i < formData.continuousDays; i++) {
-        const scheduledTime = dayjs(formData.continuousStartTime).add(i, 'day')
+        const scheduledTime = dayjs(formData.continuousStartTime).add(i, 'day');
         const task: PublishTask = {
           id: `task_${Date.now()}_${i}`,
           type: formData.contentType,
@@ -419,13 +431,15 @@ export default function PublishCenterPage() {
           status: 'scheduled',
           createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
           scheduledTime: scheduledTime.format('YYYY-MM-DD HH:mm:ss'),
-        }
-        newTasks.push(task)
+        };
+        newTasks.push(task);
       }
-      setTasks([...newTasks, ...tasks])
-      setIsPublishModalVisible(false)
-      message.success(`已创建 ${formData.continuousDays} 个发布任务，将从 ${formData.continuousStartTime?.format('YYYY-MM-DD HH:mm:ss')} 开始连续发布`)
-      return
+      setTasks([...newTasks, ...tasks]);
+      setIsPublishModalVisible(false);
+      message.success(
+        `已创建 ${formData.continuousDays} 个发布任务，将从 ${formData.continuousStartTime?.format('YYYY-MM-DD HH:mm:ss')} 开始连续发布`
+      );
+      return;
     }
 
     // 单次发布
@@ -439,65 +453,65 @@ export default function PublishCenterPage() {
       tags: formData.tags,
       status: 'pending',
       createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    }
+    };
 
     // 如果是定时发布
     if (formData.publishType === 'scheduled' && formData.scheduledTime) {
-      task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss')
-      task.status = 'scheduled'
+      task.scheduledTime = formData.scheduledTime.format('YYYY-MM-DD HH:mm:ss');
+      task.status = 'scheduled';
     }
 
-    setTasks([task, ...tasks])
-    setIsPublishModalVisible(false)
+    setTasks([task, ...tasks]);
+    setIsPublishModalVisible(false);
 
     // 如果是立即发布
     if (formData.publishType === 'immediate') {
-      await handlePublishTask(task.id)
+      await handlePublishTask(task.id);
     } else {
-      message.success('发布任务创建成功')
+      message.success('发布任务创建成功');
     }
-  }
+  };
 
   // 发布单个任务
   const handlePublishTask = async (taskId: string) => {
-    setPublishing(true)
-    setPublishProgress(0)
+    setPublishing(true);
+    setPublishProgress(0);
 
     // 模拟发布进度
     const progressInterval = setInterval(() => {
-      setPublishProgress((prev) => {
+      setPublishProgress(prev => {
         if (prev >= 90) {
-          clearInterval(progressInterval)
-          return 90
+          clearInterval(progressInterval);
+          return 90;
         }
-        return prev + Math.random() * 15
-      })
-    }, 200)
+        return prev + Math.random() * 15;
+      });
+    }, 200);
 
     setTimeout(() => {
-      clearInterval(progressInterval)
-      setPublishProgress(100)
+      clearInterval(progressInterval);
+      setPublishProgress(100);
 
       setTasks(prevTasks =>
         prevTasks.map(task => {
           if (task.id === taskId) {
             // 模拟部分平台发布失败
-            const shouldFail = Math.random() > 0.8
+            const shouldFail = Math.random() > 0.8;
             return {
               ...task,
               status: shouldFail ? 'failed' : 'published',
               publishedAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
               error: shouldFail ? '平台接口调用失败，请重试' : undefined,
-            }
+            };
           }
-          return task
+          return task;
         })
-      )
+      );
 
-      setPublishing(false)
-      message.success('发布完成')
-    }, 3000)
-  }
+      setPublishing(false);
+      message.success('发布完成');
+    }, 3000);
+  };
 
   // 从素材库选择
   const handleSelectFromMaterial = (material: Material) => {
@@ -505,16 +519,16 @@ export default function PublishCenterPage() {
       ...formData,
       contentType: material.type as 'text' | 'image' | 'video' | 'digital-human',
       content: material.content,
-    })
-    setIsMaterialDrawerVisible(false)
-    message.success('已从素材库导入内容')
-  }
+    });
+    setIsMaterialDrawerVisible(false);
+    message.success('已从素材库导入内容');
+  };
 
   // 删除任务
   const handleDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter(t => t.id !== taskId))
-    message.success('删除成功')
-  }
+    setTasks(tasks.filter(t => t.id !== taskId));
+    message.success('删除成功');
+  };
 
   // 列配置
   const columns = [
@@ -524,12 +538,12 @@ export default function PublishCenterPage() {
       key: 'type',
       width: 80,
       render: (type: string) => {
-        const config = typeConfig[type as keyof typeof typeConfig]
+        const config = typeConfig[type as keyof typeof typeConfig];
         return (
           <Tooltip title={config.label}>
             <Tag color={config.color} icon={config.icon} />
           </Tooltip>
-        )
+        );
       },
     },
     {
@@ -546,9 +560,13 @@ export default function PublishCenterPage() {
       ellipsis: true,
       render: (content: string, record: PublishTask) => {
         if (record.thumbnail) {
-          return <Image src={record.thumbnail} width={60} height={40} />
+          return <Image src={record.thumbnail} width={60} height={40} />;
         }
-        return <Text type="secondary" ellipsis={{ tooltip: content }}>{content}</Text>
+        return (
+          <Text type="secondary" ellipsis={{ tooltip: content }}>
+            {content}
+          </Text>
+        );
       },
     },
     {
@@ -558,7 +576,7 @@ export default function PublishCenterPage() {
       width: 150,
       render: (platforms: string[]) => (
         <Space size={4} wrap>
-          {platforms.map((p) => (
+          {platforms.map(p => (
             <Tag key={p}>{platformConfig[p as Platform]?.label || p}</Tag>
           ))}
         </Space>
@@ -577,13 +595,13 @@ export default function PublishCenterPage() {
       key: 'status',
       width: 100,
       render: (status: string, record: PublishTask) => {
-        const config = statusConfig[status as keyof typeof statusConfig]
+        const config = statusConfig[status as keyof typeof statusConfig];
         return (
           <Space>
             {config.icon}
             <Tag color={config.color}>{config.text}</Tag>
           </Space>
-        )
+        );
       },
     },
     {
@@ -610,11 +628,7 @@ export default function PublishCenterPage() {
             </Button>
           )}
           {record.status === 'published' && (
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              onClick={() => message.success('查看详情')}
-            >
+            <Button type="link" icon={<EyeOutlined />} onClick={() => message.success('查看详情')}>
               查看
             </Button>
           )}
@@ -641,15 +655,15 @@ export default function PublishCenterPage() {
         </Space>
       ),
     },
-  ]
+  ];
 
   return (
     <div className="p-6">
       <div className="mb-6">
-        <Title level={2} className="mb-2">发布中心</Title>
-        <Text type="secondary">
-          从素材库选择内容，一键发布到多个平台
-        </Text>
+        <Title level={2} className="mb-2">
+          发布中心
+        </Title>
+        <Text type="secondary">从素材库选择内容，一键发布到多个平台</Text>
       </div>
 
       {/* 发布进度 */}
@@ -742,7 +756,7 @@ export default function PublishCenterPage() {
           rowSelection={{
             selectedRowKeys,
             onChange: setSelectedRowKeys,
-            getCheckboxProps: (record) => ({
+            getCheckboxProps: record => ({
               disabled: record.status === 'published' || record.status === 'publishing',
             }),
           }}
@@ -750,7 +764,7 @@ export default function PublishCenterPage() {
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 条记录`,
+            showTotal: total => `共 ${total} 条记录`,
           }}
           scroll={{ x: 1400 }}
         />
@@ -773,10 +787,7 @@ export default function PublishCenterPage() {
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               从素材库选择
             </label>
-            <Button
-              icon={<InboxOutlined />}
-              onClick={() => setIsMaterialDrawerVisible(true)}
-            >
+            <Button icon={<InboxOutlined />} onClick={() => setIsMaterialDrawerVisible(true)}>
               选择素材
             </Button>
             {formData.content && (
@@ -792,7 +803,7 @@ export default function PublishCenterPage() {
             </label>
             <Radio.Group
               value={formData.contentType}
-              onChange={(e) => setFormData({ ...formData, contentType: e.target.value })}
+              onChange={e => setFormData({ ...formData, contentType: e.target.value })}
             >
               <Radio value="text">文本</Radio>
               <Radio value="image">图片</Radio>
@@ -810,7 +821,7 @@ export default function PublishCenterPage() {
               maxLength={100}
               showCount
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={e => setFormData({ ...formData, title: e.target.value })}
             />
           </div>
 
@@ -824,7 +835,7 @@ export default function PublishCenterPage() {
               maxLength={2000}
               showCount
               value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              onChange={e => setFormData({ ...formData, content: e.target.value })}
             />
             <Button
               type="link"
@@ -846,20 +857,18 @@ export default function PublishCenterPage() {
               placeholder="请选择发布平台"
               style={{ width: '100%' }}
               value={formData.platform || undefined}
-              onChange={(value) => {
+              onChange={value => {
                 setFormData({
                   ...formData,
                   platform: value as Platform,
                   accounts: [], // 清空已选账号
-                })
+                });
               }}
             >
-              {Object.values(Platform).map((platform) => (
+              {Object.values(Platform).map(platform => (
                 <Select.Option key={platform} value={platform}>
                   <Space>
-                    <span style={{ color: platformConfig[platform].color }}>
-                      ●
-                    </span>
+                    <span style={{ color: platformConfig[platform].color }}>●</span>
                     {platformConfig[platform].label}
                   </Space>
                 </Select.Option>
@@ -867,8 +876,9 @@ export default function PublishCenterPage() {
             </Select>
             {formData.platform && (
               <Text type="secondary" style={{ fontSize: 12, marginTop: 4 }}>
-                {platformConfig[formData.platform].label} 最多可定时 {platformConfig[formData.platform].maxScheduledDays} 天，
-                每日最多发布 {platformConfig[formData.platform].maxVideosPerDay} 条内容
+                {platformConfig[formData.platform].label} 最多可定时{' '}
+                {platformConfig[formData.platform].maxScheduledDays} 天， 每日最多发布{' '}
+                {platformConfig[formData.platform].maxVideosPerDay} 条内容
               </Text>
             )}
           </div>
@@ -882,23 +892,24 @@ export default function PublishCenterPage() {
               {accounts.filter(a => a.platform === formData.platform).length > 0 ? (
                 <Checkbox.Group
                   value={formData.accounts}
-                  onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
+                  onChange={values => setFormData({ ...formData, accounts: values as string[] })}
                 >
                   <Space direction="vertical">
-                    {accounts.filter(a => a.platform === formData.platform).map((account) => (
-                      <Checkbox key={account.id} value={account.id}>
-                        <Space>
-                          <Avatar src={account.avatar} size="small" />
-                          <Text>{account.accountName}</Text>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {account.fans > 10000
-                              ? `${(account.fans / 10000).toFixed(1)}万粉丝`
-                              : `${account.fans}粉丝`
-                            }
-                          </Text>
-                        </Space>
-                      </Checkbox>
-                    ))}
+                    {accounts
+                      .filter(a => a.platform === formData.platform)
+                      .map(account => (
+                        <Checkbox key={account.id} value={account.id}>
+                          <Space>
+                            <Avatar src={account.avatar} size="small" />
+                            <Text>{account.accountName}</Text>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {account.fans > 10000
+                                ? `${(account.fans / 10000).toFixed(1)}万粉丝`
+                                : `${account.fans}粉丝`}
+                            </Text>
+                          </Space>
+                        </Checkbox>
+                      ))}
                   </Space>
                 </Checkbox.Group>
               ) : (
@@ -907,7 +918,11 @@ export default function PublishCenterPage() {
                   description={
                     <Space direction="vertical">
                       <Text type="secondary">该平台暂无账号</Text>
-                      <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
+                      <Button
+                        type="link"
+                        size="small"
+                        onClick={() => (window.location.href = '/media/matrix')}
+                      >
                         去添加账号
                       </Button>
                     </Space>
@@ -919,23 +934,21 @@ export default function PublishCenterPage() {
 
           {/* 标签选择 */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              话题/标签
-            </label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>话题/标签</label>
             <Checkbox.Group
               options={popularTags.map(tag => ({ label: tag, value: tag }))}
               value={formData.tags}
-              onChange={(values) => setFormData({ ...formData, tags: values as string[] })}
+              onChange={values => setFormData({ ...formData, tags: values as string[] })}
             />
             <div style={{ marginTop: 8 }}>
               <Input
                 placeholder="自定义标签（回车添加）"
-                onPressEnter={(e) => {
-                  const value = (e.target as HTMLInputElement).value.trim()
+                onPressEnter={e => {
+                  const value = (e.target as HTMLInputElement).value.trim();
                   if (value && !formData.tags.includes(value)) {
-                    setFormData({ ...formData, tags: [...formData.tags, value] })
+                    setFormData({ ...formData, tags: [...formData.tags, value] });
                   }
-                  (e.target as HTMLInputElement).value = ''
+                  (e.target as HTMLInputElement).value = '';
                 }}
               />
             </div>
@@ -949,8 +962,8 @@ export default function PublishCenterPage() {
                       onClose={() => {
                         setFormData({
                           ...formData,
-                          tags: formData.tags.filter((_, i) => i !== index)
-                        })
+                          tags: formData.tags.filter((_, i) => i !== index),
+                        });
                       }}
                     >
                       #{tag}
@@ -962,15 +975,13 @@ export default function PublishCenterPage() {
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              发布方式
-            </label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>发布方式</label>
             <Radio.Group
               value={formData.publishType}
-              onChange={(e) => {
-                const newPublishType = e.target.value
-                setPublishType(newPublishType)
-                setFormData({ ...formData, publishType: newPublishType })
+              onChange={e => {
+                const newPublishType = e.target.value;
+                setPublishType(newPublishType);
+                setFormData({ ...formData, publishType: newPublishType });
               }}
             >
               <Radio value="immediate">立即发布</Radio>
@@ -991,18 +1002,19 @@ export default function PublishCenterPage() {
                 format="YYYY-MM-DD HH:mm:ss"
                 placeholder="选择发布时间"
                 style={{ width: '100%' }}
-                disabledDate={(current) => {
-                  if (!current) return false
-                  const minDate = dayjs().endOf('day')
-                  const maxDays = platformConfig[formData.platform].maxScheduledDays
-                  const maxDate = dayjs().add(maxDays, 'day')
-                  return current < minDate || current > maxDate
+                disabledDate={current => {
+                  if (!current) return false;
+                  const minDate = dayjs().endOf('day');
+                  const maxDays = platformConfig[formData.platform].maxScheduledDays;
+                  const maxDate = dayjs().add(maxDays, 'day');
+                  return current < minDate || current > maxDate;
                 }}
                 value={formData.scheduledTime}
-                onChange={(date) => setFormData({ ...formData, scheduledTime: date })}
+                onChange={date => setFormData({ ...formData, scheduledTime: date })}
               />
               <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
-                根据{platformConfig[formData.platform].label}规则，最多可定时 {platformConfig[formData.platform].maxScheduledDays} 天
+                根据{platformConfig[formData.platform].label}规则，最多可定时{' '}
+                {platformConfig[formData.platform].maxScheduledDays} 天
               </Text>
             </div>
           )}
@@ -1018,11 +1030,12 @@ export default function PublishCenterPage() {
                   min={1}
                   max={platformConfig[formData.platform].maxScheduledDays}
                   value={formData.continuousDays}
-                  onChange={(value) => setFormData({ ...formData, continuousDays: value || 1 })}
+                  onChange={value => setFormData({ ...formData, continuousDays: value || 1 })}
                   style={{ width: '100%' }}
                 />
                 <Text type="secondary" style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
-                  根据{platformConfig[formData.platform].label}规则，最多连续发布 {platformConfig[formData.platform].maxScheduledDays} 天
+                  根据{platformConfig[formData.platform].label}规则，最多连续发布{' '}
+                  {platformConfig[formData.platform].maxScheduledDays} 天
                 </Text>
               </div>
 
@@ -1035,15 +1048,15 @@ export default function PublishCenterPage() {
                   format="YYYY-MM-DD HH:mm:ss"
                   placeholder="选择开始发布时间"
                   style={{ width: '100%' }}
-                  disabledDate={(current) => {
-                    if (!current) return false
-                    const minDate = dayjs().endOf('day')
-                    const maxDays = platformConfig[formData.platform].maxScheduledDays
-                    const maxDate = dayjs().add(maxDays, 'day')
-                    return current < minDate || current > maxDate
+                  disabledDate={current => {
+                    if (!current) return false;
+                    const minDate = dayjs().endOf('day');
+                    const maxDays = platformConfig[formData.platform].maxScheduledDays;
+                    const maxDate = dayjs().add(maxDays, 'day');
+                    return current < minDate || current > maxDate;
                   }}
                   value={formData.continuousStartTime}
-                  onChange={(date) => setFormData({ ...formData, continuousStartTime: date })}
+                  onChange={date => setFormData({ ...formData, continuousStartTime: date })}
                 />
               </div>
 
@@ -1076,13 +1089,10 @@ export default function PublishCenterPage() {
         ) : (
           <List
             dataSource={materials}
-            renderItem={(material) => (
+            renderItem={material => (
               <List.Item
                 actions={[
-                  <Button
-                    type="link"
-                    onClick={() => handleSelectMaterial(material)}
-                  >
+                  <Button type="link" onClick={() => handleSelectMaterial(material)}>
                     使用
                   </Button>,
                 ]}
@@ -1092,7 +1102,9 @@ export default function PublishCenterPage() {
                     <div className="w-12 h-12 rounded bg-blue-50 flex items-center justify-center">
                       {material.type === 'text' && <FileTextOutlined className="text-blue-500" />}
                       {material.type === 'image' && <PictureOutlined className="text-green-500" />}
-                      {material.type === 'video' && <VideoCameraOutlined className="text-purple-500" />}
+                      {material.type === 'video' && (
+                        <VideoCameraOutlined className="text-purple-500" />
+                      )}
                     </div>
                   }
                   title={
@@ -1148,40 +1160,52 @@ export default function PublishCenterPage() {
                 点击选择素材
               </Button>
               {selectedMaterials.length > 0 && (
-                <Alert
-                  type="info"
-                  message={`已选择 ${selectedMaterials.length} 个素材`}
-                  showIcon
-                />
+                <Alert type="info" message={`已选择 ${selectedMaterials.length} 个素材`} showIcon />
               )}
               {selectedMaterials.length > 0 && (
                 <div style={{ maxHeight: 150, overflowY: 'auto' }}>
                   <List
                     size="small"
                     dataSource={materials.filter(m => selectedMaterials.includes(m.id))}
-                    renderItem={(material) => (
+                    renderItem={material => (
                       <List.Item
                         actions={[
                           <Button
                             type="text"
                             danger
                             size="small"
-                            onClick={() => setSelectedMaterials(selectedMaterials.filter(id => id !== material.id))}
+                            onClick={() =>
+                              setSelectedMaterials(
+                                selectedMaterials.filter(id => id !== material.id)
+                              )
+                            }
                           >
                             移除
-                          </Button>
+                          </Button>,
                         ]}
                       >
                         <List.Item.Meta
                           avatar={
                             <div className="w-8 h-8 rounded bg-blue-50 flex items-center justify-center">
-                              {material.type === 'text' && <FileTextOutlined className="text-blue-500" />}
-                              {material.type === 'image' && <PictureOutlined className="text-green-500" />}
-                              {material.type === 'video' && <VideoCameraOutlined className="text-purple-500" />}
+                              {material.type === 'text' && (
+                                <FileTextOutlined className="text-blue-500" />
+                              )}
+                              {material.type === 'image' && (
+                                <PictureOutlined className="text-green-500" />
+                              )}
+                              {material.type === 'video' && (
+                                <VideoCameraOutlined className="text-purple-500" />
+                              )}
                             </div>
                           }
                           title={<Text>{material.title || '无标题'}</Text>}
-                          description={<Tag color={typeConfig[material.type as keyof typeof typeConfig]?.color}>{typeConfig[material.type as keyof typeof typeConfig]?.label}</Tag>}
+                          description={
+                            <Tag
+                              color={typeConfig[material.type as keyof typeof typeConfig]?.color}
+                            >
+                              {typeConfig[material.type as keyof typeof typeConfig]?.label}
+                            </Tag>
+                          }
                         />
                       </List.Item>
                     )}
@@ -1199,10 +1223,10 @@ export default function PublishCenterPage() {
             {accounts.length > 0 ? (
               <Checkbox.Group
                 value={formData.accounts}
-                onChange={(values) => setFormData({ ...formData, accounts: values as string[] })}
+                onChange={values => setFormData({ ...formData, accounts: values as string[] })}
               >
                 <Space direction="vertical">
-                  {accounts.map((account) => (
+                  {accounts.map(account => (
                     <Checkbox key={account.id} value={account.id}>
                       <Space>
                         <Avatar src={account.avatar} size="small" />
@@ -1221,7 +1245,11 @@ export default function PublishCenterPage() {
                 description={
                   <Space>
                     <Text type="secondary">暂无账号</Text>
-                    <Button type="link" size="small" onClick={() => window.location.href = '/media/matrix'}>
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => (window.location.href = '/media/matrix')}
+                    >
                       去添加
                     </Button>
                   </Space>
@@ -1232,23 +1260,21 @@ export default function PublishCenterPage() {
 
           {/* 标签选择 */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              话题/标签
-            </label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>话题/标签</label>
             <Checkbox.Group
               options={popularTags.map(tag => ({ label: tag, value: tag }))}
               value={formData.tags}
-              onChange={(values) => setFormData({ ...formData, tags: values as string[] })}
+              onChange={values => setFormData({ ...formData, tags: values as string[] })}
             />
             <div style={{ marginTop: 8 }}>
               <Input
                 placeholder="自定义标签（回车添加）"
-                onPressEnter={(e) => {
-                  const value = (e.target as HTMLInputElement).value.trim()
+                onPressEnter={e => {
+                  const value = (e.target as HTMLInputElement).value.trim();
                   if (value && !formData.tags.includes(value)) {
-                    setFormData({ ...formData, tags: [...formData.tags, value] })
+                    setFormData({ ...formData, tags: [...formData.tags, value] });
                   }
-                  (e.target as HTMLInputElement).value = ''
+                  (e.target as HTMLInputElement).value = '';
                 }}
               />
             </div>
@@ -1262,8 +1288,8 @@ export default function PublishCenterPage() {
                       onClose={() => {
                         setFormData({
                           ...formData,
-                          tags: formData.tags.filter((_, i) => i !== index)
-                        })
+                          tags: formData.tags.filter((_, i) => i !== index),
+                        });
                       }}
                     >
                       #{tag}
@@ -1275,15 +1301,13 @@ export default function PublishCenterPage() {
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              发布方式
-            </label>
+            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>发布方式</label>
             <Radio.Group
               value={formData.publishType}
-              onChange={(e) => {
-                const newPublishType = e.target.value
-                setPublishType(newPublishType)
-                setFormData({ ...formData, publishType: newPublishType })
+              onChange={e => {
+                const newPublishType = e.target.value;
+                setPublishType(newPublishType);
+                setFormData({ ...formData, publishType: newPublishType });
               }}
             >
               <Radio value="immediate">立即发布</Radio>
@@ -1306,7 +1330,7 @@ export default function PublishCenterPage() {
                         min={1}
                         max={30}
                         value={continuousDays}
-                        onChange={(value) => setContinuousDays(value || 1)}
+                        onChange={value => setContinuousDays(value || 1)}
                         style={{ width: '100%' }}
                         addonAfter="天"
                       />
@@ -1319,24 +1343,24 @@ export default function PublishCenterPage() {
                         placeholder="选择时间"
                         style={{ width: '100%' }}
                         value={batchScheduledTime}
-                        onChange={(time) => setBatchScheduledTime(time)}
+                        onChange={time => setBatchScheduledTime(time)}
                       />
                     </Form.Item>
                   </Col>
                 </Row>
-                
+
                 {/* 第二行：开始日期 */}
                 <Form.Item label="开始日期" style={{ marginBottom: 8 }}>
                   <DatePicker
                     format="YYYY-MM-DD"
                     placeholder="选择开始日期"
                     style={{ width: '100%' }}
-                    disabledDate={(current) => current && current < dayjs().startOf('day')}
+                    disabledDate={current => current && current < dayjs().startOf('day')}
                     value={continuousStartDate}
-                    onChange={(date) => setContinuousStartDate(date)}
+                    onChange={date => setContinuousStartDate(date)}
                   />
                 </Form.Item>
-                
+
                 {/* 第三行：定时发布日期列表预览 */}
                 {continuousDays > 0 && continuousStartDate && batchScheduledTime && (
                   <div style={{ marginTop: 12 }}>
@@ -1346,7 +1370,9 @@ export default function PublishCenterPage() {
                       showIcon
                       style={{ marginBottom: 8 }}
                     />
-                    <Text type="secondary" style={{ fontSize: 12 }}>发布日程：</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      发布日程：
+                    </Text>
                     <div style={{ maxHeight: 120, overflowY: 'auto', marginTop: 4 }}>
                       <List
                         size="small"
@@ -1363,13 +1389,12 @@ export default function PublishCenterPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {/* 提示信息 */}
                 <Text type="secondary" style={{ fontSize: 12 }}>
                   {formData.accounts.length > 0
                     ? `根据所选平台规则，最多可定时 ${getScheduledLimitDays()} 天`
-                    : '请先选择账号，系统将根据平台规则显示可定时范围'
-                  }
+                    : '请先选择账号，系统将根据平台规则显示可定时范围'}
                 </Text>
               </Card>
             </div>
@@ -1393,7 +1418,7 @@ export default function PublishCenterPage() {
                 <Button
                   type="primary"
                   size="small"
-                  onClick={() => window.location.href = '/media/factory'}
+                  onClick={() => (window.location.href = '/media/factory')}
                 >
                   去内容工厂生成
                 </Button>
@@ -1403,10 +1428,10 @@ export default function PublishCenterPage() {
         ) : (
           <List
             dataSource={materials}
-            renderItem={(material) => {
-              const categoryKey = material.category as ContentCategory
-              const categoryConfig = contentCategoryConfig[categoryKey]
-              if (!categoryConfig) return null
+            renderItem={material => {
+              const categoryKey = material.category as ContentCategory;
+              const categoryConfig = contentCategoryConfig[categoryKey];
+              if (!categoryConfig) return null;
 
               const iconMap: Partial<Record<ContentCategory, any>> = {
                 [ContentCategory.TITLE]: <FontSizeOutlined />,
@@ -1419,7 +1444,7 @@ export default function PublishCenterPage() {
                 [ContentCategory.VIDEO]: <VideoCameraOutlined />,
                 [ContentCategory.VIDEO_ANALYSIS]: <VideoCameraOutlined />,
                 [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
-              }
+              };
 
               return (
                 <List.Item
@@ -1427,9 +1452,13 @@ export default function PublishCenterPage() {
                     <Button
                       type="link"
                       onClick={() => {
-                        setFormData({ ...formData, content: material.content, title: material.title })
-                        setIsMaterialDrawerVisible(false)
-                        message.success('已选择素材')
+                        setFormData({
+                          ...formData,
+                          content: material.content,
+                          title: material.title,
+                        });
+                        setIsMaterialDrawerVisible(false);
+                        message.success('已选择素材');
                       }}
                     >
                       使用
@@ -1460,11 +1489,11 @@ export default function PublishCenterPage() {
                     }
                   />
                 </List.Item>
-              )
+              );
             }}
           />
         )}
       </Drawer>
     </div>
-  )
+  );
 }

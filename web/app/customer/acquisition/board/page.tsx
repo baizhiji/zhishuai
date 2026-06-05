@@ -1,23 +1,47 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Card, Row, Col, Statistic, Table, Tag, Button, Space, Select, DatePicker, Progress, Typography } from 'antd'
-import { 
-  UserAddOutlined, 
-  SendOutlined, 
+import { useState } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Tag,
+  Button,
+  Space,
+  Select,
+  DatePicker,
+  Progress,
+  Typography,
+} from 'antd';
+import {
+  UserAddOutlined,
+  SendOutlined,
   MessageOutlined,
   ScanOutlined,
   RiseOutlined,
   TeamOutlined,
   GlobalOutlined,
-  WhatsAppOutlined
-} from '@ant-design/icons'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+  WhatsAppOutlined,
+} from '@ant-design/icons';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 
-const { Title, Text } = Typography
+const { Title, Text } = Typography;
 
 export default function AcquisitionBoardPage() {
-  const [timeRange, setTimeRange] = useState<string>('7d')
+  const [timeRange, setTimeRange] = useState<string>('7d');
 
   // 统计数据
   const stats = {
@@ -30,7 +54,7 @@ export default function AcquisitionBoardPage() {
     replyRate: 19.5,
     scanRate: 51.2,
     conversionRate: 27.6,
-  }
+  };
 
   // 趋势数据
   const trendData = [
@@ -41,7 +65,7 @@ export default function AcquisitionBoardPage() {
     { date: '周五', 潜客: 612, 发送: 8234, 回复: 1678, 扫码: 834 },
     { date: '周六', 潜客: 345, 发送: 4567, 回复: 890, 扫码: 445 },
     { date: '周日', 潜客: 298, 发送: 3890, 回复: 756, 扫码: 389 },
-  ]
+  ];
 
   // 平台分布
   const platformData = [
@@ -50,7 +74,7 @@ export default function AcquisitionBoardPage() {
     { name: '小红书', value: 20, color: '#eb2f96' },
     { name: 'B站', value: 12, color: '#fa8c16' },
     { name: '其他', value: 8, color: '#8c8c8c' },
-  ]
+  ];
 
   // 获客渠道
   const channelData = [
@@ -59,46 +83,93 @@ export default function AcquisitionBoardPage() {
     { channel: '关键词搜索', count: 3124, rate: 19.9 },
     { channel: '话题采集', count: 2345, rate: 15.0 },
     { channel: '碰一碰采集', count: 1567, rate: 10.0 },
-  ]
+  ];
 
   // 潜客详情数据
   const customerData = [
-    { id: 1, name: '张明', platform: '抖音', industry: '教育培训', intention: 95, status: 'converted', followUp: '已扫码' },
-    { id: 2, name: '李华', platform: '快手', industry: '电商运营', intention: 88, status: 'following', followUp: '待联系' },
-    { id: 3, name: '王芳', platform: '小红书', industry: '美妆护肤', intention: 82, status: 'following', followUp: '已回复' },
-    { id: 4, name: '刘强', platform: 'B站', industry: '科技数码', intention: 76, status: 'pending', followUp: '待发送' },
-    { id: 5, name: '陈静', platform: '抖音', industry: '餐饮美食', intention: 92, status: 'converted', followUp: '已转化' },
-  ]
+    {
+      id: 1,
+      name: '张明',
+      platform: '抖音',
+      industry: '教育培训',
+      intention: 95,
+      status: 'converted',
+      followUp: '已扫码',
+    },
+    {
+      id: 2,
+      name: '李华',
+      platform: '快手',
+      industry: '电商运营',
+      intention: 88,
+      status: 'following',
+      followUp: '待联系',
+    },
+    {
+      id: 3,
+      name: '王芳',
+      platform: '小红书',
+      industry: '美妆护肤',
+      intention: 82,
+      status: 'following',
+      followUp: '已回复',
+    },
+    {
+      id: 4,
+      name: '刘强',
+      platform: 'B站',
+      industry: '科技数码',
+      intention: 76,
+      status: 'pending',
+      followUp: '待发送',
+    },
+    {
+      id: 5,
+      name: '陈静',
+      platform: '抖音',
+      industry: '餐饮美食',
+      intention: 92,
+      status: 'converted',
+      followUp: '已转化',
+    },
+  ];
 
   const columns = [
     { title: '潜客', dataIndex: 'name', key: 'name', width: 100 },
-    { 
-      title: '平台', 
-      dataIndex: 'platform', 
+    {
+      title: '平台',
+      dataIndex: 'platform',
       key: 'platform',
       width: 100,
       render: (platform: string) => {
-        const color = platform === '抖音' ? '#ff4d4f' : platform === '快手' ? '#722ed1' : platform === '小红书' ? '#eb2f96' : '#fa8c16'
-        return <Tag color={color}>{platform}</Tag>
-      }
+        const color =
+          platform === '抖音'
+            ? '#ff4d4f'
+            : platform === '快手'
+              ? '#722ed1'
+              : platform === '小红书'
+                ? '#eb2f96'
+                : '#fa8c16';
+        return <Tag color={color}>{platform}</Tag>;
+      },
     },
     { title: '行业', dataIndex: 'industry', key: 'industry', width: 120 },
-    { 
-      title: '意向度', 
-      dataIndex: 'intention', 
+    {
+      title: '意向度',
+      dataIndex: 'intention',
       key: 'intention',
       width: 120,
       render: (intention: number) => (
-        <Progress 
-          percent={intention} 
-          size="small" 
+        <Progress
+          percent={intention}
+          size="small"
           strokeColor={intention >= 90 ? '#52c41a' : intention >= 80 ? '#1890ff' : '#faad14'}
         />
-      )
+      ),
     },
-    { 
-      title: '状态', 
-      dataIndex: 'status', 
+    {
+      title: '状态',
+      dataIndex: 'status',
       key: 'status',
       width: 100,
       render: (status: string) => {
@@ -106,9 +177,11 @@ export default function AcquisitionBoardPage() {
           converted: { color: 'success', text: '已转化' },
           following: { color: 'processing', text: '跟进中' },
           pending: { color: 'warning', text: '待处理' },
-        }
-        return <Tag color={config[status]?.color || 'default'}>{config[status]?.text || status}</Tag>
-      }
+        };
+        return (
+          <Tag color={config[status]?.color || 'default'}>{config[status]?.text || status}</Tag>
+        );
+      },
     },
     { title: '跟进情况', dataIndex: 'followUp', key: 'followUp', width: 100 },
     {
@@ -117,20 +190,33 @@ export default function AcquisitionBoardPage() {
       width: 120,
       render: () => (
         <Space>
-          <Button type="link" size="small">详情</Button>
-          <Button type="link" size="small">跟进</Button>
+          <Button type="link" size="small">
+            详情
+          </Button>
+          <Button type="link" size="small">
+            跟进
+          </Button>
         </Space>
-      )
+      ),
     },
-  ]
+  ];
 
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title level={2} style={{ margin: 0 }}>获客看板</Title>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <Title level={2} style={{ margin: 0 }}>
+          获客看板
+        </Title>
         <Space>
-          <Select 
-            value={timeRange} 
+          <Select
+            value={timeRange}
             onChange={setTimeRange}
             style={{ width: 120 }}
             options={[
@@ -151,9 +237,7 @@ export default function AcquisitionBoardPage() {
               title="潜客总数"
               value={stats.totalCustomers}
               suffix={
-                <span style={{ fontSize: 14, color: '#52c41a' }}>
-                  +{stats.newCustomers} 新
-                </span>
+                <span style={{ fontSize: 14, color: '#52c41a' }}>+{stats.newCustomers} 新</span>
               }
               prefix={<UserAddOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a' }}
@@ -176,9 +260,7 @@ export default function AcquisitionBoardPage() {
               title="收到回复"
               value={stats.replies}
               suffix={
-                <span style={{ fontSize: 14, color: '#722ed1' }}>
-                  回复率 {stats.replyRate}%
-                </span>
+                <span style={{ fontSize: 14, color: '#722ed1' }}>回复率 {stats.replyRate}%</span>
               }
               prefix={<MessageOutlined style={{ color: '#722ed1' }} />}
               valueStyle={{ color: '#722ed14' }}
@@ -205,8 +287,12 @@ export default function AcquisitionBoardPage() {
       {/* 图表区域 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={16}>
-          <Card 
-            title={<><RiseOutlined /> 获客趋势</>}
+          <Card
+            title={
+              <>
+                <RiseOutlined /> 获客趋势
+              </>
+            }
             bordered={false}
           >
             <ResponsiveContainer width="100%" height={280}>
@@ -215,17 +301,45 @@ export default function AcquisitionBoardPage() {
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="潜客" stroke="#52c41a" strokeWidth={2} dot={{ fill: '#52c41a' }} />
-                <Line type="monotone" dataKey="发送" stroke="#1890ff" strokeWidth={2} dot={{ fill: '#1890ff' }} />
-                <Line type="monotone" dataKey="回复" stroke="#722ed1" strokeWidth={2} dot={{ fill: '#722ed1' }} />
-                <Line type="monotone" dataKey="扫码" stroke="#fa8c16" strokeWidth={2} dot={{ fill: '#fa8c16' }} />
+                <Line
+                  type="monotone"
+                  dataKey="潜客"
+                  stroke="#52c41a"
+                  strokeWidth={2}
+                  dot={{ fill: '#52c41a' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="发送"
+                  stroke="#1890ff"
+                  strokeWidth={2}
+                  dot={{ fill: '#1890ff' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="回复"
+                  stroke="#722ed1"
+                  strokeWidth={2}
+                  dot={{ fill: '#722ed1' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="扫码"
+                  stroke="#fa8c16"
+                  strokeWidth={2}
+                  dot={{ fill: '#fa8c16' }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </Card>
         </Col>
         <Col span={8}>
-          <Card 
-            title={<><GlobalOutlined /> 平台分布</>}
+          <Card
+            title={
+              <>
+                <GlobalOutlined /> 平台分布
+              </>
+            }
             bordered={false}
           >
             <ResponsiveContainer width="100%" height={280}>
@@ -254,19 +368,25 @@ export default function AcquisitionBoardPage() {
       {/* 转化漏斗和潜客详情 */}
       <Row gutter={16}>
         <Col span={8}>
-          <Card 
-            title={<><TeamOutlined /> 获客渠道</>}
+          <Card
+            title={
+              <>
+                <TeamOutlined /> 获客渠道
+              </>
+            }
             bordered={false}
           >
             <div style={{ padding: '20px 0' }}>
               {channelData.map((item, index) => (
                 <div key={index} style={{ marginBottom: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div
+                    style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}
+                  >
                     <Text>{item.channel}</Text>
                     <Text strong>{item.count}</Text>
                   </div>
-                  <Progress 
-                    percent={item.rate} 
+                  <Progress
+                    percent={item.rate}
                     showInfo={false}
                     strokeColor={['#1890ff', '#52c41a', '#722ed1', '#fa8c16', '#eb2f96'][index]}
                   />
@@ -276,8 +396,12 @@ export default function AcquisitionBoardPage() {
           </Card>
         </Col>
         <Col span={8}>
-          <Card 
-            title={<><SendOutlined /> 转化漏斗</>}
+          <Card
+            title={
+              <>
+                <SendOutlined /> 转化漏斗
+              </>
+            }
             bordered={false}
           >
             <div style={{ padding: '20px 0' }}>
@@ -312,7 +436,9 @@ export default function AcquisitionBoardPage() {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <Text strong>成功转化</Text>
-                  <Text strong style={{ color: '#52c41a' }}>1,234 (27.0%)</Text>
+                  <Text strong style={{ color: '#52c41a' }}>
+                    1,234 (27.0%)
+                  </Text>
                 </div>
                 <Progress percent={27} showInfo={false} strokeColor="#52c41a" />
               </div>
@@ -320,15 +446,19 @@ export default function AcquisitionBoardPage() {
           </Card>
         </Col>
         <Col span={8}>
-          <Card 
-            title={<><WhatsAppOutlined /> 最新潜客</>}
+          <Card
+            title={
+              <>
+                <WhatsAppOutlined /> 最新潜客
+              </>
+            }
             bordered={false}
             extra={<Button type="link">查看全部</Button>}
           >
-            <Table 
-              columns={columns} 
-              dataSource={customerData} 
-              rowKey="id" 
+            <Table
+              columns={columns}
+              dataSource={customerData}
+              rowKey="id"
               pagination={false}
               size="small"
             />
@@ -336,5 +466,5 @@ export default function AcquisitionBoardPage() {
         </Col>
       </Row>
     </div>
-  )
+  );
 }

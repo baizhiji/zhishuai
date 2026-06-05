@@ -108,11 +108,56 @@ export default function AgentDashboard() {
       };
 
       const mockCustomers: Customer[] = [
-        { id: 1, companyName: '科技有限公司', contactName: '张总', phone: '138****1234', status: 'active', createdAt: '2024-01-10', revenue: 28000, commission: 5600 },
-        { id: 2, companyName: '网络科技公司', contactName: '李总', phone: '139****5678', status: 'active', createdAt: '2024-01-08', revenue: 15600, commission: 3120 },
-        { id: 3, companyName: '文化传媒', contactName: '王总', phone: '137****9012', status: 'active', createdAt: '2024-01-05', revenue: 12000, commission: 2400 },
-        { id: 4, companyName: '电子商务', contactName: '赵总', phone: '136****3456', status: 'frozen', createdAt: '2024-01-03', revenue: 0, commission: 0 },
-        { id: 5, companyName: '软件开发', contactName: '钱总', phone: '135****7890', status: 'active', createdAt: '2024-01-01', revenue: 35000, commission: 7000 },
+        {
+          id: 1,
+          companyName: '科技有限公司',
+          contactName: '张总',
+          phone: '138****1234',
+          status: 'active',
+          createdAt: '2024-01-10',
+          revenue: 28000,
+          commission: 5600,
+        },
+        {
+          id: 2,
+          companyName: '网络科技公司',
+          contactName: '李总',
+          phone: '139****5678',
+          status: 'active',
+          createdAt: '2024-01-08',
+          revenue: 15600,
+          commission: 3120,
+        },
+        {
+          id: 3,
+          companyName: '文化传媒',
+          contactName: '王总',
+          phone: '137****9012',
+          status: 'active',
+          createdAt: '2024-01-05',
+          revenue: 12000,
+          commission: 2400,
+        },
+        {
+          id: 4,
+          companyName: '电子商务',
+          contactName: '赵总',
+          phone: '136****3456',
+          status: 'frozen',
+          createdAt: '2024-01-03',
+          revenue: 0,
+          commission: 0,
+        },
+        {
+          id: 5,
+          companyName: '软件开发',
+          contactName: '钱总',
+          phone: '135****7890',
+          status: 'active',
+          createdAt: '2024-01-01',
+          revenue: 35000,
+          commission: 7000,
+        },
       ];
 
       const mockTrend: RevenueTrend[] = [
@@ -180,9 +225,7 @@ export default function AgentDashboard() {
       dataIndex: 'commission',
       key: 'commission',
       render: (val: number) => (
-        <Text style={{ color: '#52c41a', fontWeight: 500 }}>
-          ¥{val.toLocaleString()}
-        </Text>
+        <Text style={{ color: '#52c41a', fontWeight: 500 }}>¥{val.toLocaleString()}</Text>
       ),
     },
   ];
@@ -190,9 +233,18 @@ export default function AgentDashboard() {
   return (
     <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
       {/* Header */}
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <div>
-          <Title level={3} style={{ margin: 0 }}>代理数据中心</Title>
+          <Title level={3} style={{ margin: 0 }}>
+            代理数据中心
+          </Title>
           <Text type="secondary">查看您的代理业务数据</Text>
         </div>
         <Space>
@@ -243,7 +295,7 @@ export default function AgentDashboard() {
               title="客户总营收"
               value={stats?.totalRevenue || 0}
               prefix={<DollarOutlined />}
-              formatter={(value) => `¥${Number(value).toLocaleString()}`}
+              formatter={value => `¥${Number(value).toLocaleString()}`}
             />
           </Card>
         </Col>
@@ -254,7 +306,7 @@ export default function AgentDashboard() {
               value={stats?.commission || 0}
               prefix={<RiseOutlined />}
               valueStyle={{ color: '#722ed1' }}
-              formatter={(value) => `¥${Number(value).toLocaleString()}`}
+              formatter={value => `¥${Number(value).toLocaleString()}`}
             />
             <div style={{ marginTop: 8 }}>
               <Text type="secondary">分成比例: </Text>
@@ -274,10 +326,12 @@ export default function AgentDashboard() {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="date" />
                   <YAxis />
-                  <Tooltip formatter={(value: number, name: string) => [
-                    `¥${value.toLocaleString()}`,
-                    name === 'revenue' ? '营收' : '分成'
-                  ]} />
+                  <Tooltip
+                    formatter={(value: number, name: string) => [
+                      `¥${value.toLocaleString()}`,
+                      name === 'revenue' ? '营收' : '分成',
+                    ]}
+                  />
                   <Area
                     type="monotone"
                     dataKey="revenue"
@@ -321,7 +375,9 @@ export default function AgentDashboard() {
             title="客户列表"
             extra={
               <Space>
-                <Button type="primary" href="/agent/customers">管理客户</Button>
+                <Button type="primary" href="/agent/customers">
+                  管理客户
+                </Button>
                 <Button href="/agent/settlement">查看分成</Button>
               </Space>
             }
@@ -342,40 +398,61 @@ export default function AgentDashboard() {
         <Col xs={24} sm={8}>
           <Card
             hoverable
-            cover={<div style={{ height: 80, background: '#e6f7ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TeamOutlined style={{ fontSize: 32, color: '#1890ff' }} />
-            </div>}
+            cover={
+              <div
+                style={{
+                  height: 80,
+                  background: '#e6f7ff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <TeamOutlined style={{ fontSize: 32, color: '#1890ff' }} />
+              </div>
+            }
           >
-            <Card.Meta
-              title="新增客户"
-              description="添加新客户账号"
-            />
+            <Card.Meta title="新增客户" description="添加新客户账号" />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
           <Card
             hoverable
-            cover={<div style={{ height: 80, background: '#f6ffed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <DollarOutlined style={{ fontSize: 32, color: '#52c41a' }} />
-            </div>}
+            cover={
+              <div
+                style={{
+                  height: 80,
+                  background: '#f6ffed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <DollarOutlined style={{ fontSize: 32, color: '#52c41a' }} />
+              </div>
+            }
           >
-            <Card.Meta
-              title="分成结算"
-              description="查看分成收益明细"
-            />
+            <Card.Meta title="分成结算" description="查看分成收益明细" />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
           <Card
             hoverable
-            cover={<div style={{ height: 80, background: '#fff7e6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <FileTextOutlined style={{ fontSize: 32, color: '#faad14' }} />
-            </div>}
+            cover={
+              <div
+                style={{
+                  height: 80,
+                  background: '#fff7e6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FileTextOutlined style={{ fontSize: 32, color: '#faad14' }} />
+              </div>
+            }
           >
-            <Card.Meta
-              title="业绩报表"
-              description="导出业绩数据"
-            />
+            <Card.Meta title="业绩报表" description="导出业绩数据" />
           </Card>
         </Col>
       </Row>

@@ -1,10 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Tag, Space, Modal, Form, Input, Select, DatePicker, message, Popconfirm } from 'antd';
+import {
+  Card,
+  Table,
+  Button,
+  Tag,
+  Space,
+  Modal,
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  message,
+  Popconfirm,
+} from 'antd';
 import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
-import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, type Announcement } from '@/services/version';
+import {
+  getAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+  type Announcement,
+} from '@/services/version';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -87,17 +106,23 @@ export default function AnnouncementManagementPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'warning': return 'orange';
-      case 'success': return 'green';
-      default: return 'blue';
+      case 'warning':
+        return 'orange';
+      case 'success':
+        return 'green';
+      default:
+        return 'blue';
     }
   };
 
   const getTypeText = (type: string) => {
     switch (type) {
-      case 'warning': return '重要';
-      case 'success': return '成功';
-      default: return '通知';
+      case 'warning':
+        return '重要';
+      case 'success':
+        return '成功';
+      default:
+        return '通知';
     }
   };
 
@@ -139,7 +164,12 @@ export default function AnnouncementManagementPage() {
       width: 150,
       render: (_, record) => (
         <Space>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+          >
             编辑
           </Button>
           <Popconfirm title="确定删除?" onConfirm={() => handleDelete(record.id)}>
