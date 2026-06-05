@@ -1,4 +1,4 @@
-import { apiConfig } from '@/config/api';
+import { API_CONFIG as apiConfig } from '@/config/api';
 import { message } from 'antd';
 
 // 导入真实API
