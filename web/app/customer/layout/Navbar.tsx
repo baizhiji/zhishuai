@@ -341,12 +341,56 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 角色切换弹窗状态
   const [roleModalVisible, setRoleModalVisible] = useState(false);
 
+  // 当前查看的角色
+  const [currentRole, setCurrentRole] = useState<Role>('customer');
+
   // 确保只在客户端挂载后渲染，避免 hydration 不匹配
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // 在服务端渲染时返回占位符
+  // 监听用户角色变化
+  useEffect(() => {
+    if (mounted) {
+      const isCustomerRoute = pathname.startsWith('/customer');
+      if (isCustomerRoute) {
+        setCurrentRole('customer');
+        return;
+      }
+      const saved = localStorage.getItem('viewing_role');
+      if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
+        setCurrentRole(saved as Role);
+      } else {
+        setCurrentRole((user?.role as Role) || 'customer');
+      }
+    }
+  }, [mounted, pathname, user?.role]);
+
+  // /customer 路由下强制使用 customer 角色
+  const isCustomerRoute = pathname.startsWith('/customer');
+
+  // 切换角色
+  const handleRoleSwitch = (role: Role) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('viewing_role', role);
+    }
+    setCurrentRole(role);
+    setRoleModalVisible(false);
+    if (role === 'admin') {
+      router.push('/admin/tenants');
+    } else if (role === 'agent') {
+      router.push('/agent/tenants');
+    } else {
+      router.push('/');
+    }
+  };
+
+  // 导航菜单项
+  const navItems = useMemo(() => {
+    return getNavigationItems('customer');
+  }, []);
+
+  // 服务端渲染时返回占位符
   if (!mounted) {
     return (
       <Layout style={{ minHeight: '100vh', background: '#fff' }}>
@@ -366,57 +410,6 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       </Layout>
     );
   }
-
-  // /customer 路由下强制使用 customer 角色，不受 viewing_role 影响
-  const isCustomerRoute = pathname.startsWith('/customer');
-
-  // 从 localStorage 读取保存的角色（仅在非 customer 路由时使用）
-  const getSavedRole = (): Role => {
-    // /customer 路由下强制使用 customer 角色
-    if (isCustomerRoute) {
-      return 'customer';
-    }
-    if (mounted && typeof window !== 'undefined') {
-      const saved = localStorage.getItem('viewing_role');
-      if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
-        return saved as Role;
-      }
-    }
-    return (user?.role as Role) || 'customer';
-  };
-
-  // 当前查看的角色
-  const [currentRole, setCurrentRole] = useState<Role>('customer');
-
-  // 监听用户角色变化（仅在非 customer 路由时需要）
-  useEffect(() => {
-    if (mounted) {
-      const role = getSavedRole();
-      setCurrentRole(role);
-    }
-  }, [mounted, isCustomerRoute, user?.role]);
-
-  // 切换角色
-  const handleRoleSwitch = (role: Role) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('viewing_role', role);
-    }
-    setCurrentRole(role);
-    setRoleModalVisible(false);
-    if (role === 'admin') {
-      router.push('/admin/tenants');
-    } else if (role === 'agent') {
-      router.push('/agent/tenants');
-    } else {
-      router.push('/');
-    }
-  };
-
-  // 导航菜单项（直接基于路由，不依赖状态避免闪烁）
-  const navItems = useMemo(() => {
-    // 始终使用 customer 角色
-    return getNavigationItems('customer');
-  }, []);
 
   // 菜单展开状态
   const [openKeys, setOpenKeys] = useState<string[]>([]);
