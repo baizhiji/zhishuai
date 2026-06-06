@@ -341,10 +341,31 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 角色切换弹窗状态
   const [roleModalVisible, setRoleModalVisible] = useState(false);
 
-  // 确保只在客户端挂载后渲染
+  // 确保只在客户端挂载后渲染，避免 hydration 不匹配
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 在服务端渲染时返回占位符
+  if (!mounted) {
+    return (
+      <Layout style={{ minHeight: '100vh', background: '#fff' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="ant-spin ant-spin-lg ant-spin-spinning">
+              <span className="ant-spin-dot ant-spin-dot-spin">
+                <i className="ant-spin-dot-item"></i>
+                <i className="ant-spin-dot-item"></i>
+                <i className="ant-spin-dot-item"></i>
+                <i className="ant-spin-dot-item"></i>
+              </span>
+            </div>
+            <div style={{ marginTop: 16, color: '#999' }}>加载中...</div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   // /customer 路由下强制使用 customer 角色，不受 viewing_role 影响
   const isCustomerRoute = pathname.startsWith('/customer');

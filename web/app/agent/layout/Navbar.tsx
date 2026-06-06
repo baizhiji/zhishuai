@@ -15,8 +15,13 @@ const { Sider } = Layout;
 
 const AgentNavbar: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState('');
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const menuItems = [
     {
@@ -64,6 +69,24 @@ const AgentNavbar: React.FC = () => {
       router.push(item.path);
     }
   };
+
+  // 服务端渲染时返回占位符，避免 hydration 不匹配
+  if (!mounted) {
+    return (
+      <Sider
+        width={220}
+        style={{
+          background: '#001529',
+          height: '100vh',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+        }}
+      >
+        <div style={{ height: 64 }} />
+      </Sider>
+    );
+  }
 
   return (
     <Sider
