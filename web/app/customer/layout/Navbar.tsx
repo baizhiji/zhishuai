@@ -81,12 +81,6 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <VideoCameraOutlined />,
           children: [
             {
-              key: 'social-account-auth',
-              label: '账号授权',
-              icon: <QrcodeOutlined />,
-              path: '/customer/social-accounts',
-            },
-            {
               key: 'media-factory',
               label: '内容工厂',
               icon: <ThunderboltOutlined />,
@@ -210,18 +204,6 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '登录日志',
           icon: <FileTextOutlined />,
           path: '/customer/login-logs',
-        },
-        {
-          key: 'social-accounts',
-          label: '社交账号',
-          icon: <ShareAltOutlined />,
-          path: '/customer/social-accounts',
-        },
-        {
-          key: 'auto-reply',
-          label: '自动回复',
-          icon: <CommentOutlined />,
-          path: '/customer/auto-reply',
         },
         {
           key: 'api-keys',
@@ -427,46 +409,21 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     );
   }
 
-  // 下载APK处理函数
-  const handleDownloadApk = () => {
-    const apkUrl = process.env.NEXT_PUBLIC_APK_DOWNLOAD_URL || '/zhishuai.apk';
-    const link = document.createElement('a');
-    link.href = apkUrl;
-    link.download = '智枢AI.apk';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    message.success('开始下载智枢AI APP');
+  // 退出登录
+  const handleLogout = () => {
+    logout();
+    message.success('已退出登录');
+    router.push('/login');
   };
 
-  // 用户下拉菜单
+  // 用户下拉菜单 - 只保留退出登录
   const userMenuItems = [
     {
-      key: 'download-apk',
-      label: '下载APP',
-      icon: <AndroidOutlined />,
-      onClick: handleDownloadApk,
-    },
-    { type: 'divider' as const },
-    {
-      key: 'profile',
-      label: '个人资料',
-      icon: <UserOutlined />,
-      onClick: () => {
-        console.log('查看个人资料');
-      },
-    },
-    {
-      key: 'referral',
-      label: '我的转介绍',
-      icon: <ShareAltOutlined />,
-      onClick: () => router.push('/my/referral'),
-    },
-    {
-      key: 'settings',
-      label: '设置',
-      icon: <SettingOutlined />,
-      onClick: () => router.push('/customer/settings'),
+      key: 'logout',
+      label: '退出登录',
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: handleLogout,
     },
   ];
 
