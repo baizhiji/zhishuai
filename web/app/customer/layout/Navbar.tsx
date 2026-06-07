@@ -390,6 +390,22 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     return getNavigationItems('customer');
   }, []);
 
+  // 菜单展开状态
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+
+  // 用户手动展开/折叠菜单
+  const handleOpenChange = useCallback((keys: string[]) => {
+    setOpenKeys(keys);
+  }, []);
+
+  // 路由变化时自动更新菜单展开状态
+  useEffect(() => {
+    const keysFromPath = getOpenKeysForPath(navItems, pathname);
+    if (keysFromPath.length > 0) {
+      setOpenKeys(keysFromPath);
+    }
+  }, [pathname, navItems]);
+
   // 服务端渲染时返回占位符
   if (!mounted) {
     return (
@@ -410,22 +426,6 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       </Layout>
     );
   }
-
-  // 菜单展开状态
-  const [openKeys, setOpenKeys] = useState<string[]>([]);
-
-  // 路由变化时自动更新菜单展开状态
-  useEffect(() => {
-    const keysFromPath = getOpenKeysForPath(navItems, pathname);
-    if (keysFromPath.length > 0) {
-      setOpenKeys(keysFromPath);
-    }
-  }, [pathname, navItems]);
-
-  // 用户手动展开/折叠菜单
-  const handleOpenChange = useCallback((keys: string[]) => {
-    setOpenKeys(keys);
-  }, []);
 
   // 下载APK处理函数
   const handleDownloadApk = () => {
