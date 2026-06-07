@@ -65,6 +65,11 @@ model User {
   // 话术模板
   scriptTemplates    ScriptTemplate[]
   
+  // 获客数据源配置
+  acquisitionSources  AcquisitionSource[]
+  acquisitionData     AcquisitionData[]
+  dataCollectionTasks DataCollectionTask[]
+  
   // 对话记录
   conversationLogs   ConversationLog[]
   
@@ -1315,3 +1320,6 @@ model HotspotCache {
   @@index([platform, cachedAt])
   @@index([heat])
 }
+
+// 添加到 User 模型的反向关系（在最后的 } 之前）
+// 这部分需要手动添加到 User 模型的字段中
