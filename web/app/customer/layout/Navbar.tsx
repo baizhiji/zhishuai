@@ -468,36 +468,28 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       icon: <SettingOutlined />,
       onClick: () => router.push('/customer/settings'),
     },
-    // 只有 admin 账号才能切换角色
-    ...(user?.role === 'admin'
-      ? [
-          {
-            key: 'role-switch',
-            label: '切换角色视角',
-            icon: <SwapOutlined />,
-            children: roleOptions.map(opt => ({
-              key: `role-${opt.value}`,
-              label: (
-                <Space>
-                  <span>{opt.icon}</span>
-                  <span>{opt.label}</span>
-                  {currentRole === opt.value && <span style={{ color: '#52c41a' }}>当前</span>}
-                </Space>
-              ),
-              onClick: () => handleRoleSwitch(opt.value),
-            })),
-          },
-        ]
-      : []),
-    { type: 'divider' as const },
-    {
-      key: 'logout',
-      label: '退出登录',
-      icon: <LogoutOutlined />,
-      danger: true,
-      onClick: logout,
-    },
   ];
+
+  // 角色切换菜单（使用 useMemo 确保稳定）
+  const roleSwitchMenu = useMemo(() => {
+    if (!mounted) return null;
+    return {
+      key: 'role-switch',
+      label: '切换角色视角',
+      icon: <SwapOutlined />,
+      children: roleOptions.map(opt => ({
+        key: `role-${opt.value}`,
+        label: (
+          <Space>
+            <span>{opt.icon}</span>
+            <span>{opt.label}</span>
+            {currentRole === opt.value && <span style={{ color: '#52c41a' }}>当前</span>}
+          </Space>
+        ),
+        onClick: () => handleRoleSwitch(opt.value),
+      })),
+    };
+  }, [mounted, currentRole]);
 
   // 获取角色显示文本
   const getRoleDisplayText = (role: Role) => {
@@ -610,7 +602,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
             <span style={{ fontSize: 14, color: token.colorTextSecondary }}>
               当前角色：{getRoleDisplayText('customer')}
             </span>
-            {isAdmin && (
+            {mounted && isAdmin && (
               <Button
                 type="link"
                 icon={<SwapOutlined />}
