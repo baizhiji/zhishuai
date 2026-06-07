@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
 import recruitmentRoutes from './routes/recruitment';
 import acquisitionRoutes from './routes/acquisition';
+import dataAcquisitionRoutes from './routes/data-acquisition';
 import shareRoutes from './routes/share';
 import materialsRoutes from './routes/materials';
 import matrixRoutes from './routes/matrix';
@@ -60,6 +61,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api/acquisition', acquisitionRoutes);
+app.use('/api/data-acquisition', dataAcquisitionRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/materials', materialsRoutes);
 app.use('/api/matrix', matrixRoutes);

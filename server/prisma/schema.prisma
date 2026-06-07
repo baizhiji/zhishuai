@@ -238,6 +238,96 @@ model ShareQrCode {
   shareRecords ShareRecord[]
 }
 
+// ==================== 获客数据源配置 ====================
+
+// 获客数据源配置
+model AcquisitionSource {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    // 天眼查, 高德地图, 抖音直播间等
+  type        String    // tianyancha, amap, douyin_live, kuaishou_live
+  config      Json?     // API密钥等配置
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([userId, type])
+}
+
+// 获客数据记录（从各平台采集的数据）
+model AcquisitionData {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source      String    // tianyancha, amap, douyin_live, kuaishou_live
+  sourceType  String    // enterprise, merchant, live_audience
+  
+  // 基本信息
+  name        String?
+  phone       String?
+  email       String?
+  wechat      String?   // 微信号
+  
+  // 企业信息（天眼查）
+  company     String?
+  position    String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  business    String?   // 主营业务
+  employeeCount String? // 员工规模
+  
+  // 直播间信息
+  roomId      String?   // 直播间ID
+  roomName    String?
+  platform    String?   // douyin, kuaishou
+  
+  // AI分析
+  intentScore Int?      // 意向评分 0-100
+  intentLevel String?    // 高, 中, 低
+  intentTags  String?    // 标签，多个逗号分隔
+  
+  // 状态
+  status      String    @default("new") // new, contacted, qualified, converted, invalid
+  followupAt  DateTime?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, source])
+  @@index([userId, status])
+  @@index([intentScore])
+}
+
+// 采集任务
+model DataCollectionTask {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  source      String    // 数据源类型
+  keywords    String?   // 搜索关键词
+  industry    String?   // 行业
+  region      String?   // 地区
+  radius      Int?      // 半径（米）
+  centerLat   Float?
+  centerLng   Float?
+  
+  status      String    @default("pending") // pending, running, completed, failed
+  totalCount  Int       @default(0)
+  collectedCount Int    @default(0)
+  
+  startedAt   DateTime?
+  completedAt DateTime?
+  error       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, status])
+}
+
 model Material {
   id          String    @id @default(uuid())
   userId      String

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   Row,
@@ -21,6 +21,13 @@ import {
   Statistic,
   message,
   Popconfirm,
+  Tooltip,
+  Divider,
+  Checkbox,
+  InputNumber,
+  Slider,
+  Alert,
+  Descriptions,
 } from 'antd';
 import {
   SearchOutlined,
@@ -28,6 +35,13 @@ import {
   EnvironmentOutlined,
   UserOutlined,
   MessageOutlined,
+  SettingOutlined,
+  VideoCameraOutlined,
+  CloudServerOutlined,
+  SafetyCertificateOutlined,
+  BranchesOutlined,
+} from '@ant-design/icons';
+import request from '@/lib/request';
   StarOutlined,
   FilterOutlined,
   SortAscendingOutlined,
@@ -78,7 +92,71 @@ export default function DiscoverPage() {
   const [detailVisible, setDetailVisible] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<PotentialCustomer | null>(null);
   const [batchModalVisible, setBatchModalVisible] = useState(false);
+  const [configVisible, setConfigVisible] = useState(false);
+  const [dataSources, setDataSources] = useState({
+    tianyancha: false,
+    amap: false,
+    liveRoom: false,
+  });
+  const [sourceConfig, setSourceConfig] = useState<Record<string, any>>({
+    tianyancha: { apiKey: '' },
+    amap: { apiKey: '' },
+    liveRoom: { platforms: ['douyin'] },
+  });
   const [searchLoading, setSearchLoading] = useState(false);
+  const [configForm] = Form.useForm();
+
+  // 加载数据源配置
+  const loadDataSourceConfig = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/data-acquisition/config', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data) {
+          setSourceConfig(JSON.parse(data.data.config));
+        }
+      }
+    } catch (error) {
+      console.error('加载数据源配置失败:', error);
+    }
+  };
+
+  // 保存配置
+  const handleSaveConfig = async () => {
+    await saveDataSourceConfig();
+  };
+
+  // 保存数据源配置
+  const saveDataSourceConfig = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/data-acquisition/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          config: JSON.stringify(sourceConfig),
+          sources: dataSources
+        })
+      });
+      if (response.ok) {
+        message.success('配置保存成功');
+        setConfigVisible(false);
+      }
+    } catch (error) {
+      console.error('保存数据源配置失败:', error);
+      message.error('配置保存失败');
+    }
+  };
+
+  useEffect(() => {
+    loadDataSourceConfig();
+  }, []);
 
   const [customers] = useState<PotentialCustomer[]>([
     {
@@ -793,6 +871,47 @@ export default function DiscoverPage() {
               删除选中潜客
             </Button>
           </Space>
+        </div>
+      </Modal>
+
+      {/* 数据源配置弹窗 */}
+      <Modal
+        title="数据源配置"
+        open={configVisible}
+        onCancel={() => setConfigVisible(false)}
+        footer={null}
+        width={600}
+      >
+        <div className="py-4">
+          <Alert
+            message="配置说明"
+            description="请填写各数据源的API密钥。配置完成后，系统将自动从多个平台采集意向客户数据。"
+            type="info"
+            showIcon
+            className="mb-4"
+          />
+          <Form form={configForm} layout="vertical">
+            <Form.Item label="天眼查API" name="tianyanchaKey" extra="用于获取企业工商信息">
+              <Input.Password placeholder="请输入天眼查API密钥" />
+            </Form.Item>
+            <Form.Item label="高德地图API" name="amapKey" extra="用于获取商家位置信息">
+              <Input.Password placeholder="请输入高德地图API密钥" />
+            </Form.Item>
+            <Form.Item label="抖音开放平台API" name="douyinKey" extra="用于获取直播间意向客户">
+              <Input.Password placeholder="请输入抖音开放平台API密钥" />
+            </Form.Item>
+            <Form.Item label="微信公众平台API" name="wechatKey" extra="用于获取公众号意向客户">
+              <Input.Password placeholder="请输入微信公众平台API密钥" />
+            </Form.Item>
+            <div className="flex gap-3 mt-4">
+              <Button type="primary" block onClick={handleSaveConfig}>
+                保存配置
+              </Button>
+              <Button block onClick={() => setConfigVisible(false)}>
+                取消
+              </Button>
+            </div>
+          </Form>
         </div>
       </Modal>
     </div>
