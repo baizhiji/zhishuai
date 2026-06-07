@@ -470,26 +470,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     },
   ];
 
-  // 角色切换菜单（使用 useMemo 确保稳定）
-  const roleSwitchMenu = useMemo(() => {
-    if (!mounted) return null;
-    return {
-      key: 'role-switch',
-      label: '切换角色视角',
-      icon: <SwapOutlined />,
-      children: roleOptions.map(opt => ({
-        key: `role-${opt.value}`,
-        label: (
-          <Space>
-            <span>{opt.icon}</span>
-            <span>{opt.label}</span>
-            {currentRole === opt.value && <span style={{ color: '#52c41a' }}>当前</span>}
-          </Space>
-        ),
-        onClick: () => handleRoleSwitch(opt.value),
-      })),
-    };
-  }, [mounted, currentRole]);
+
 
   // 获取角色显示文本
   const getRoleDisplayText = (role: Role) => {
