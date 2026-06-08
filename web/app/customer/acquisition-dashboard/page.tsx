@@ -102,14 +102,14 @@ export default function AcquisitionDashboardPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/acquisition/dashboard', {
-        userId,
+        params: { userId },
       });
 
-      if (res.data) {
-        setStats(res.data.stats || generateMockStats());
-        setTrendData(res.data.trendData || generateMockTrendData());
-        setLeadsData(res.data.leadsData || generateMockLeadsData());
-        setSourceData(res.data.sourceData || generateMockSourceData());
+      if (res) {
+        setStats(res.stats || generateMockStats());
+        setTrendData(res.trendData || generateMockTrendData());
+        setLeadsData(res.leadsData || generateMockLeadsData());
+        setSourceData(res.sourceData || generateMockSourceData());
       }
     } catch (error) {
       setStats(generateMockStats());
