@@ -76,6 +76,12 @@ model User {
   // 数字人
   digitalHumans      DigitalHuman[]
   
+  // 声音克隆
+  voiceClones        VoiceClone[]
+  
+  // 视频克隆
+  videoClones        VideoClone[]
+  
   // 视频任务
   videoTasks         VideoTask[]
   
@@ -443,6 +449,21 @@ model CrmCustomer {
   remark      String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  // 关联跟进记录
+  followUps   CrmFollowUp[]
+}
+
+model CrmFollowUp {
+  id              String    @id @default(uuid())
+  customerId      String
+  customer        CrmCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type            String    // call, visit, wechat, email, other
+  content         String
+  nextPlan        String?
+  nextFollowUpAt  DateTime?
+  createdBy       String
+  createdAt       DateTime  @default(now())
 }
 
 model CompanyInfo {
@@ -1096,6 +1117,50 @@ model DigitalHuman {
   
   // 关联视频任务
   videoTasks    VideoTask[]
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// 声音克隆模型
+model VoiceClone {
+  id            String    @id @default(uuid())
+  userId        String                      // 所属用户
+  name          String                      // 名称
+  gender        String    @default("female") // 性别
+  description   String?                     // 描述
+  audioUrl      String?                     // 音频文件URL
+  language      String    @default("zh-CN") // 语言
+  status        String    @default("ready") // 状态: ready, processing, failed
+  usageCount    Int       @default(0)        // 使用次数
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // 关联用户
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// 视频克隆模型
+model VideoClone {
+  id               String    @id @default(uuid())
+  userId           String                      // 所属用户
+  name             String                      // 名称
+  type             String    @default("digital_human") // 类型: digital_human, talking_photo, lip_sync
+  sourceVideoUrl   String?                     // 源视频URL
+  sourceImageUrl   String?                     // 源图片URL
+  videoUrl         String?                     // 生成后的视频URL
+  thumbnail        String?                     // 缩略图
+  description      String?                     // 描述
+  status           String    @default("processing") // 状态: processing, ready, failed
+  progress         Int       @default(0)        // 处理进度 0-100
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // 关联用户
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
   @@index([status])

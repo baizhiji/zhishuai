@@ -33,6 +33,7 @@ import employeeRoutes from './routes/employee';
 import ticketRoutes from './routes/ticket';
 import scriptRoutes from './routes/script';
 import digitalHumanRoutes from './routes/digital-human';
+import voiceCloneRoutes from './routes/voice-clone';
 import dashboardStatsRoutes from './routes/dashboard-stats';
 import referralRoutes from './routes/referral';
 import aiConfigRoutes from './routes/ai-config';
@@ -77,6 +78,7 @@ app.use('/api/version', versionRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/scripts', scriptRoutes);
 app.use('/api/digital-human', digitalHumanRoutes);
+app.use('/api/voice-clone', voiceCloneRoutes);
 app.use('/api/dashboard-stats', dashboardStatsRoutes);
 
 // Admin 功能开关管理
