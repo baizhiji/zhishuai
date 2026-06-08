@@ -82,10 +82,10 @@ export default function CustomerManagementPage() {
         pageSize: pagination.pageSize,
         keyword: searchKeyword,
       });
-      setCustomers(res.data?.list || []);
+      setCustomers(res.list || []);
       setPagination(prev => ({
         ...prev,
-        total: res.data?.total || 0,
+        total: res.total || 0,
       }));
     } catch (error) {
       message.error('获取客户列表失败');
@@ -159,7 +159,7 @@ export default function CustomerManagementPage() {
   const fetchCustomerDetail = async (id: string) => {
     try {
       const res = await getCustomerStats(id);
-      setSelectedCustomer(prev => (prev ? { ...prev, ...res.data } : null));
+      setSelectedCustomer(prev => (prev ? { ...prev, ...res } : null));
     } catch (error) {
       console.error('获取客户详情失败');
     }
@@ -169,7 +169,7 @@ export default function CustomerManagementPage() {
     setFeaturesLoading(true);
     try {
       const res = await getCustomerFeatures(id);
-      setFeatures(res.data || []);
+      setFeatures(res || []);
     } catch (error) {
       message.error('获取功能开关失败');
     } finally {
