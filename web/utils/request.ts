@@ -65,8 +65,8 @@ class Request {
     });
   }
 
-  async get<T = any>(url: string, params?: Record<string, string | number | boolean>): Promise<T> {
-    const queryString = params
+  async get<T = any>(url: string, options?: { params?: Record<string, string | number | boolean | undefined> }): Promise<T> {
+    const params = options?.params;
       ? '?' +
         new URLSearchParams(
           Object.entries(params)

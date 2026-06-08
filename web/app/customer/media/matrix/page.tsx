@@ -94,8 +94,8 @@ export default function MatrixManagementPage() {
     setLoading(true);
     try {
       const [accountsRes, statsRes] = await Promise.all([
-        request.get('/social/accounts', { params: { userId: userId as string } }),
-        request.get('/social/accounts/stats', { params: { userId: userId as string } }),
+        request.get('/social/accounts', { params: { userId } }),
+        request.get('/social/accounts/stats', { params: { userId } }),
       ]);
 
       if (accountsRes.code === 0) {
@@ -137,7 +137,7 @@ export default function MatrixManagementPage() {
     try {
       const res = await request.post('/social/session/create', {
         platform,
-        userId: userId as string,
+        userId,
       });
 
       if (res.code === 0) {
