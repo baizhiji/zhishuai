@@ -17,7 +17,7 @@ export interface AppVersion {
 }
 
 export async function getVersions(params?: { page?: number; pageSize?: number; platform?: string }) {
-  return request.get('/api/version/versions', params);
+  return request.get('/api/version/versions', { params });
 }
 
 export async function getLatestVersion(platform: string = 'android') {
@@ -51,7 +51,7 @@ export interface Announcement {
 }
 
 export async function getAnnouncements(params?: { page?: number; pageSize?: number; status?: string }) {
-  return request.get('/api/version/announcements', params);
+  return request.get('/api/version/announcements', { params });
 }
 
 export async function getLatestAnnouncements() {

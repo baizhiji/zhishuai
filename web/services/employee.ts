@@ -38,7 +38,7 @@ export async function getEmployees(params?: {
   keyword?: string;
   status?: string;
 }) {
-  return request.get('/api/employee/employees', params);
+  return request.get('/api/employee/employees', { params });
 }
 
 // 创建员工
@@ -75,5 +75,5 @@ export async function employeeLogin(phone: string, password: string): Promise<Lo
 
 // 获取登录日志
 export async function getEmployeeLoginLogs(id: string, params?: { page?: number; pageSize?: number }) {
-  return request.get(`/api/employee/employees/${id}/login-logs`, params);
+  return request.get(`/api/employee/employees/${id}/login-logs`, { params });
 }
