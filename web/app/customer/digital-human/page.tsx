@@ -327,7 +327,7 @@ export default function DigitalHumanPage() {
       key: 'name',
       render: (_, record) => (
         <Space>
-          <Avatar icon={<VideoOutlined />} style={{ background: '#fa8c16' }} />
+          <Avatar icon={<VideoCameraOutlined />} style={{ background: '#fa8c16' }} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.name}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -465,7 +465,7 @@ export default function DigitalHumanPage() {
                     <Statistic title="声音克隆" value={voices.length} prefix={<SoundOutlined />} />
                   </Col>
                   <Col span={6}>
-                    <Statistic title="视频克隆" value={videos.filter(v => v.status === 'ready').length} prefix={<VideoOutlined />} />
+                    <Statistic title="视频克隆" value={videos.filter(v => v.status === 'ready').length} prefix={<VideoCameraOutlined />} />
                   </Col>
                 </Row>
                 
@@ -502,7 +502,7 @@ export default function DigitalHumanPage() {
           {
             key: 'videos',
             label: (
-              <span><VideoOutlined /> 视频克隆</span>
+              <span><VideoCameraOutlined /> 视频克隆</span>
             ),
             children: (
               <Card>
@@ -653,7 +653,7 @@ export default function DigitalHumanPage() {
                 {getFieldValue('type') === 'lip_sync' && (
                   <Form.Item name="sourceVideoUrl" label="源视频" rules={[{ required: true }]}>
                     <Upload maxCount={1} accept="video/*">
-                      <Button icon={<VideoOutlined />}>上传视频</Button>
+                      <Button icon={<VideoCameraOutlined />}>上传视频</Button>
                     </Upload>
                   </Form.Item>
                 )}
