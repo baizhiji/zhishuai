@@ -98,7 +98,7 @@ export default function HotTopicsPage() {
         category: category || undefined,
         limit: 50,
       });
-      setTopics(res.data || []);
+      setTopics(res || []);
     } catch (error) {
       message.error('获取热点话题失败');
     } finally {
@@ -122,7 +122,7 @@ export default function HotTopicsPage() {
         contentType: 'text',
         style: 'popular',
       });
-      setGeneratedContent(res.data);
+      setGeneratedContent(res);
     } catch (error) {
       message.error('生成内容失败');
     } finally {
