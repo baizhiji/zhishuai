@@ -67,8 +67,8 @@ class Request {
 
   async get<T = any>(url: string, options?: { params?: Record<string, string | number | boolean | undefined> }): Promise<T> {
     const params = options?.params;
-      ? '?' +
-        new URLSearchParams(
+    const queryString = params
+      ? '?' + new URLSearchParams(
           Object.entries(params)
             .filter(([_, v]) => v !== undefined && v !== null)
             .map(([k, v]) => [k, String(v)])
