@@ -270,7 +270,7 @@ export default function AdminCRMPage() {
       width: 200,
       render: (_, record) => (
         <Space>
-          <Avatar icon={<UserOutlined />} src={record.avatar} />
+          <Avatar icon={<UserOutlined />} />
           <div>
             <div>{record.name || record.phone}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>
