@@ -69,7 +69,9 @@ export default function LoginLogsPage() {
     try {
       const res = await request.get('/api/auth/login-logs', {
         userId,
-        ...filters,
+        userType: filters.userType || undefined,
+        action: filters.action || undefined,
+        status: filters.status || undefined,
       });
       setLogs(res.data?.logs || generateMockData());
     } catch (error) {
