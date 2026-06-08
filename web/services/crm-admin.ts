@@ -119,8 +119,6 @@ export function exportCustomers(params?: {
   level?: string;
   agentId?: string;
 }) {
-  return request.get<Blob>('/api/crm/customers/export', { 
-    params,
-    responseType: 'blob',
-  });
+  // 导出功能暂不实现
+  return Promise.reject(new Error('导出功能暂未实现'));
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Form, Input, Button, Card, message, Space } from 'antd';
 import { MobileOutlined, LockOutlined, UserOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
-import apiAdapter from '@/services/apiAdapter';
+import request from '@/utils/request';
 import { setAuthToken, setUserInfo } from '@/lib/request';
 
 export default function RegisterPage() {
@@ -16,7 +16,11 @@ export default function RegisterPage() {
   const handleRegister = async (values: any) => {
     setLoading(true);
     try {
-      const result = await apiAdapter.auth.register(values);
+      const res = await request.post<{ token: string; user: any }>('/auth/register', values);
+      const result = res;
+      if (!result?.token || !result?.user) {
+        throw new Error('注册响应格式错误');
+      }
 
       // 保存token和用户信息
       setAuthToken(result.token);

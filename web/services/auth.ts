@@ -37,37 +37,37 @@ export interface AuthResponse {
 export const AuthAPI = {
   // 登录
   login: (data: LoginParams) => {
-    return request.post<any, AuthResponse>('/api/auth/login', data);
+    return request.post<AuthResponse>('/api/auth/login', data);
   },
 
   // 注册
   register: (data: RegisterParams) => {
-    return request.post<any, AuthResponse>('/api/auth/register', data);
+    return request.post<AuthResponse>('/api/auth/register', data);
   },
 
   // 发送注册验证码
   sendCode: (phone: string, type: string = 'register') => {
-    return request.post<any, { success: boolean; message: string; code?: string }>('/api/auth/send-code', { phone, type });
+    return request.post<{ success: boolean; message: string; code?: string }>('/api/auth/send-code', { phone, type });
   },
 
   // 获取用户信息
   getUserInfo: () => {
-    return request.get<any, any>('/api/auth/me');
+    return request.get<any>('/api/auth/me');
   },
 
   // 更新用户信息
   updateProfile: (data: any) => {
-    return request.put<any, any>('/api/auth/profile', data);
+    return request.put<any>('/api/auth/profile', data);
   },
 
   // 修改密码
   changePassword: (data: { oldPassword: string; newPassword: string }) => {
-    return request.post<any, any>('/api/auth/change-password', data);
+    return request.post<any>('/api/auth/change-password', data);
   },
 
   // 登出
   logout: () => {
-    return request.post<any, any>('/api/auth/logout', {});
+    return request.post<any>('/api/auth/logout', {});
   },
 };
 
@@ -75,12 +75,12 @@ export const AuthAPI = {
 export const ForgotPasswordAPI = {
   // 发送重置密码验证码
   sendCode: (phone: string) => {
-    return request.post<any, { success: boolean; message: string; code?: string }>('/api/auth/send-reset-code', { phone });
+    return request.post<{ success: boolean; message: string; code?: string }>('/api/auth/send-reset-code', { phone });
   },
 
   // 重置密码
   reset: (data: ForgotPasswordParams) => {
-    return request.post<any, { success: boolean; message: string }>('/api/auth/reset-password', {
+    return request.post<{ success: boolean; message: string }>('/api/auth/reset-password', {
       phone: data.phone,
       code: data.code,
       newPassword: data.newPassword,
