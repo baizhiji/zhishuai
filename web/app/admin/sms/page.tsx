@@ -67,7 +67,7 @@ export default function SmsConfigPage() {
     setLoading(true);
     try {
       const res = await getSmsConfigs();
-      setConfigs(res.data || []);
+      setConfigs(res || []);
     } catch (error) {
       message.error('获取配置失败');
     } finally {
@@ -81,10 +81,10 @@ export default function SmsConfigPage() {
         page: logsPagination.page,
         pageSize: logsPagination.pageSize,
       });
-      setLogs(res.data?.list || []);
+      setLogs(res.list || []);
       setLogsPagination(prev => ({
         ...prev,
-        total: res.data?.total || 0,
+        total: res.total || 0,
       }));
     } catch (error) {
       message.error('获取日志失败');
@@ -146,10 +146,10 @@ export default function SmsConfigPage() {
     setTestLoading(id);
     try {
       const res = await testSmsConfig(id);
-      if (res.data.success) {
+      if (res.success) {
         message.success('测试成功！请检查手机是否收到验证码');
       } else {
-        message.error(res.data.message || '测试失败');
+        message.error(res.message || '测试失败');
       }
     } catch (error: any) {
       message.error(error.message || '测试失败');
