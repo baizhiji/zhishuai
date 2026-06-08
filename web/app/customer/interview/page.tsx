@@ -82,21 +82,19 @@ export default function InterviewPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/recruitment/interviews', {
-        userId,
+        params: { userId },
       });
-      setInterviews(res.data?.interviews || []);
+      setInterviews(res.interviews || []);
 
       const today = dayjs().format('YYYY-MM-DD');
+      const interviews = res.interviews || [];
       setStats({
-        total: res.data?.interviews?.length || 0,
-        scheduled:
-          res.data?.interviews?.filter((i: Interview) => i.status === 'scheduled').length || 0,
-        completed:
-          res.data?.interviews?.filter((i: Interview) => i.status === 'completed').length || 0,
-        today:
-          res.data?.interviews?.filter(
-            (i: Interview) => dayjs(i.scheduledTime).format('YYYY-MM-DD') === today
-          ).length || 0,
+        total: interviews.length,
+        scheduled: interviews.filter((i: Interview) => i.status === 'scheduled').length,
+        completed: interviews.filter((i: Interview) => i.status === 'completed').length,
+        today: interviews.filter(
+          (i: Interview) => dayjs(i.scheduledTime).format('YYYY-MM-DD') === today
+        ).length,
       });
     } catch (error) {
       message.error('获取面试记录失败');

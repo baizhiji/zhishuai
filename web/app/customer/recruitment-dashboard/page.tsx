@@ -101,24 +101,24 @@ export default function RecruitmentDashboardPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/recruitment/dashboard', {
-        userId,
+        params: { userId },
       });
 
-      if (res.data) {
+      if (res) {
         setStats({
-          totalPosts: res.data.stats?.totalPosts || 0,
-          totalCandidates: res.data.stats?.totalCandidates || 0,
-          totalViews: res.data.stats?.totalViews || 0,
-          totalApplications: res.data.stats?.totalApplications || 0,
-          interviewsScheduled: res.data.stats?.interviewsScheduled || 0,
-          interviewsCompleted: res.data.stats?.interviewsCompleted || 0,
-          hiredCount: res.data.stats?.hiredCount || 0,
-          conversionRate: res.data.stats?.conversionRate || 0,
+          totalPosts: res.stats?.totalPosts || 0,
+          totalCandidates: res.stats?.totalCandidates || 0,
+          totalViews: res.stats?.totalViews || 0,
+          totalApplications: res.stats?.totalApplications || 0,
+          interviewsScheduled: res.stats?.interviewsScheduled || 0,
+          interviewsCompleted: res.stats?.interviewsCompleted || 0,
+          hiredCount: res.stats?.hiredCount || 0,
+          conversionRate: res.stats?.conversionRate || 0,
         });
-        setTrendData(res.data.trendData || generateMockTrendData());
-        setPositionData(res.data.positionData || generateMockPositionData());
+        setTrendData(res.trendData || generateMockTrendData());
+        setPositionData(res.positionData || generateMockPositionData());
         setSourceData(
-          res.data.sourceData || [
+          res.sourceData || [
             { name: 'BOSS直聘', value: 35 },
             { name: '前程无忧', value: 25 },
             { name: '智联招聘', value: 20 },
