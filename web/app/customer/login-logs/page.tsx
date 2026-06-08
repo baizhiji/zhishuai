@@ -67,12 +67,11 @@ export default function LoginLogsPage() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const res = await request.get('/api/auth/login-logs', {
-        userId,
-        userType: filters.userType || undefined,
-        action: filters.action || undefined,
-        status: filters.status || undefined,
-      });
+      const params: Record<string, string | number | boolean> = { userId };
+      if (filters.userType) params.userType = filters.userType;
+      if (filters.action) params.action = filters.action;
+      if (filters.status) params.status = filters.status;
+      const res = await request.get('/api/auth/login-logs', params);
       setLogs(res.data?.logs || generateMockData());
     } catch (error) {
       setLogs(generateMockData());
