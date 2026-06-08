@@ -40,8 +40,6 @@ import {
   CloudServerOutlined,
   SafetyCertificateOutlined,
   BranchesOutlined,
-} from '@ant-design/icons';
-import request from '@/lib/request';
   StarOutlined,
   FilterOutlined,
   SortAscendingOutlined,
