@@ -40,7 +40,7 @@ import {
   CheckCircleOutlined,
   LoadingOutlined,
   AudioOutlined,
-  VideoOutlined,
+  VideoCameraOutlined,
   EyeOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';

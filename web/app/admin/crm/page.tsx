@@ -131,10 +131,10 @@ export default function AdminCRMPage() {
         status: filterStatus || undefined,
         level: filterLevel || undefined,
       });
-      setCustomers(res.data?.list || []);
+      setCustomers(res.list || []);
       setPagination(prev => ({
         ...prev,
-        total: res.data?.total || 0,
+        total: res.total || 0,
       }));
     } catch (error: any) {
       message.error(error?.message || '获取客户列表失败');
@@ -147,7 +147,7 @@ export default function AdminCRMPage() {
   const fetchStats = async () => {
     try {
       const res = await getCustomerStats();
-      setStats(res.data);
+      setStats(res);
     } catch (error) {
       console.error('获取统计数据失败', error);
     }
@@ -218,7 +218,7 @@ export default function AdminCRMPage() {
     setFollowUpsLoading(true);
     try {
       const res = await getFollowUps(customerId);
-      setFollowUps(res.data?.list || []);
+      setFollowUps(res.list || []);
     } catch (error) {
       console.error('获取跟进记录失败', error);
     } finally {

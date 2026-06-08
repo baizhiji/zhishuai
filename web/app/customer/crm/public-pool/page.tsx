@@ -72,10 +72,10 @@ export default function PublicPoolPage() {
         pageSize: pagination.pageSize,
         keyword: searchKeyword || undefined,
       });
-      setCustomers(res.data?.list || []);
+      setCustomers(res.list || []);
       setPagination(prev => ({
         ...prev,
-        total: res.data?.total || 0,
+        total: res.total || 0,
       }));
     } catch (error: any) {
       message.error(error?.message || '获取公海池客户失败');
