@@ -247,3 +247,29 @@ const userData = localStorage.getItem('user');
 - `web/app/ecommerce/page.tsx` - 标记为预留
 - `web/app/marketing/page.tsx` - 标记为预留
 
+
+---
+
+## 2026-06-05 下午
+
+### 完成：CRM和数字人功能完善
+
+**CRM模块新增：**
+- 租户端客户管理页面 (`/customer/crm`)
+- 公海池页面 (`/customer/crm/public-pool`)
+- 后端API支持客户CRUD、跟进记录、公海池管理
+
+**数字人模块新增：**
+- 声音克隆API (`/api/digital-human/voice-clone`)
+- 视频克隆API (`/api/digital-human/videos`)
+- 数据模型：`VoiceClone`、`VideoClone`
+- WEB端数字人页面增强
+- APK端数字人页面完善
+
+**Bug修复：**
+- 批量修复 Next.js TypeScript 类型错误
+- 修复 API 响应 `.data` 访问问题
+- 修复 request.get params 类型定义
+- 简化 apiAdapter.ts 移除 mock API
+- 修复多个 services 文件泛型参数
+
