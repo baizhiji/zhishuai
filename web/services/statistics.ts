@@ -35,7 +35,7 @@ export async function getOverview(): Promise<OverviewStats> {
 
 // 获取趋势数据
 export async function getTrend(days: number = 7): Promise<TrendData[]> {
-  return request.get('/api/statistics/admin/trend', { days });
+  return request.get('/api/statistics/admin/trend', { params: { days } });
 }
 
 // 获取平台分布

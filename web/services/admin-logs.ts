@@ -38,5 +38,5 @@ export async function getLogs(params?: {
 }
 
 export async function getLogStats(days: number = 7): Promise<LogStats> {
-  return request.get('/api/admin/logs/stats', { days });
+  return request.get('/api/admin/logs/stats', { params: { days } });
 }

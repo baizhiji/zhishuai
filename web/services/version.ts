@@ -21,7 +21,7 @@ export async function getVersions(params?: { page?: number; pageSize?: number; p
 }
 
 export async function getLatestVersion(platform: string = 'android') {
-  return request.get('/api/version/latest', { platform });
+  return request.get('/api/version/latest', { params: { platform } });
 }
 
 export async function createVersion(data: Partial<AppVersion>) {
