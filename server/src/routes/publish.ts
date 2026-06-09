@@ -169,7 +169,7 @@ router.get('/tasks/:id', async (req: Request, res: Response) => {
       where: { id },
       include: {
         user: {
-          select: { name: true, email: true }
+          select: { name: true, phone: true }
         }
       }
     });

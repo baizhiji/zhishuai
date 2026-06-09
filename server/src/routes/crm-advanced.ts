@@ -327,8 +327,7 @@ router.post('/rules/execute', async (req, res) => {
                 userId,
                 title: '客户跟进提醒',
                 content: `客户 ${customer.name} 已超过${days}天未跟进，请及时处理`,
-                type: 'crm_reminder',
-                relatedId: customer.id
+                type: 'crm_reminder'
               }
             });
           }
