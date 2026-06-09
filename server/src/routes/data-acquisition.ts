@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { searchCompanies, getCompanyDetail } from '../services/tianyancha.service';
+import { searchPOIByKeyword, searchPOIAround } from '../services/amap.service';
+import { getDanmu, getLiveViewers, getLiveStats, calculateIntentScore } from '../services/live-acquisition.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -372,40 +375,56 @@ router.post('/search/tianyancha', async (req: Request, res: Response) => {
   try {
     const { keyword, industry, region, page = 1, pageSize = 20 } = req.body;
     const userId = (req as any).userId;
-    
-    // 检查是否配置了天眼查API
+
+    // 获取天眼查API配置
     const source = await prisma.acquisitionSource.findUnique({
       where: { userId_type: { userId, type: 'tianyancha' } }
     });
-    
-    // 模拟天眼查搜索结果
-    const mockResults = [];
-    const count = Math.min(Number(pageSize), 10);
-    
-    for (let i = 0; i < count; i++) {
-      mockResults.push({
-        name: `${keyword || '企业'}${i + 1}`,
-        legalPerson: `张${['伟', '磊', '鹏', '强', '军'][i % 5]}`,
-        registeredCapital: `${[100, 500, 1000, 5000][i % 4]}万`,
-        employeeCount: ['50-99', '100-499', '500-999', '1000+'][i % 4],
-        business: industry || '技术服务',
-        address: region || '北京市朝阳区',
-        phone: `010-${String(Math.floor(Math.random() * 9000000 + 1000000))}`,
-        status: '存续',
-        score: Math.floor(Math.random() * 30) + 70
+
+    const config = source?.config as { apiKey?: string };
+    const result = await searchCompanies({
+      keyword,
+      industry,
+      region,
+      page: Number(page),
+      pageSize: Number(pageSize)
+    }, config?.apiKey ? { apiKey: config.apiKey } : undefined);
+
+    // 保存搜索结果到采集数据
+    if (result.list.length > 0) {
+      const existingData = await prisma.acquisitionData.findMany({
+        where: { userId, source: 'tianyancha', company: { in: result.list.map(c => c.name) } }
       });
+      const existingCompanies = new Set(existingData.map(d => d.company));
+
+      const newData = result.list
+        .filter(c => !existingCompanies.has(c.name))
+        .map(company => ({
+          userId,
+          source: 'tianyancha',
+          sourceType: 'enterprise' as const,
+          company: company.name,
+          business: company.business,
+          address: company.address,
+          phone: company.phone,
+          latitude: 39.9 + Math.random() * 0.2,
+          longitude: 116.4 + Math.random() * 0.2,
+          intentScore: company.score,
+          intentLevel: company.score >= 80 ? '高' : company.score >= 60 ? '中' : '低',
+          status: 'new' as const
+        }));
+
+      if (newData.length > 0) {
+        await prisma.acquisitionData.createMany({ data: newData });
+      }
     }
-    
+
     res.json({
       success: true,
-      data: {
-        list: mockResults,
-        total: 100,
-        page: Number(page),
-        pageSize: Number(pageSize)
-      }
+      data: result
     });
   } catch (error: any) {
+    console.error('[天眼查搜索]', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -416,41 +435,55 @@ router.post('/search/amap', async (req: Request, res: Response) => {
   try {
     const { keyword, city, radius = 5000, page = 1, pageSize = 20 } = req.body;
     const userId = (req as any).userId;
-    
-    // 检查是否配置了高德地图API
+
+    // 获取高德地图API配置
     const source = await prisma.acquisitionSource.findUnique({
       where: { userId_type: { userId, type: 'amap' } }
     });
-    
-    // 模拟高德地图搜索结果
-    const mockResults = [];
-    const count = Math.min(Number(pageSize), 10);
-    
-    for (let i = 0; i < count; i++) {
-      mockResults.push({
-        id: `amap_${Date.now()}_${i}`,
-        name: `${keyword || '商家'}${i + 1}`,
-        address: `${city || '北京市'}${['朝阳区', '海淀区', '东城区', '西城区'][i % 4]}`,
-        location: {
-          lat: 39.9 + Math.random() * 0.2,
-          lng: 116.4 + Math.random() * 0.2
-        },
-        tel: `400-${String(Math.floor(Math.random() * 9000000 + 1000000)).slice(0, 7)}`,
-        type: ['美食', '酒店', '购物', '娱乐', '教育'][i % 5],
-        distance: Math.floor(Math.random() * Number(radius))
+
+    const config = source?.config as { apiKey?: string };
+    const result = await searchPOIByKeyword({
+      keyword,
+      city,
+      offset: Number(pageSize),
+      page: Number(page)
+    }, config?.apiKey ? { apiKey: config.apiKey } : undefined);
+
+    // 保存搜索结果到采集数据
+    if (result.pois.length > 0) {
+      const existingData = await prisma.acquisitionData.findMany({
+        where: { userId, source: 'amap', name: { in: result.pois.map(p => p.name) } }
       });
+      const existingNames = new Set(existingData.map(d => d.name));
+
+      const newData = result.pois
+        .filter(p => !existingNames.has(p.name))
+        .map(poi => ({
+          userId,
+          source: 'amap',
+          sourceType: 'merchant' as const,
+          name: poi.name,
+          business: poi.type,
+          address: poi.address,
+          phone: poi.tel,
+          latitude: poi.location.lat,
+          longitude: poi.location.lng,
+          intentScore: 60 + Math.floor(Math.random() * 30),
+          intentLevel: '中',
+          status: 'new' as const
+        }));
+
+      if (newData.length > 0) {
+        await prisma.acquisitionData.createMany({ data: newData });
+      }
     }
-    
+
     res.json({
       success: true,
-      data: {
-        pois: mockResults,
-        count: 50,
-        page: Number(page),
-        pageSize: Number(pageSize)
-      }
+      data: result
     });
   } catch (error: any) {
+    console.error('[高德搜索]', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -461,39 +494,60 @@ router.post('/search/live', async (req: Request, res: Response) => {
   try {
     const { platform, roomId, keyword } = req.body;
     const userId = (req as any).userId;
-    
-    // 模拟直播间观众数据
-    const mockAudience = [];
-    const count = 10;
-    
-    const platforms = ['douyin', 'kuaishou'];
-    
-    for (let i = 0; i < count; i++) {
-      mockAudience.push({
-        id: `user_${Date.now()}_${i}`,
-        nickname: `用户${Math.floor(Math.random() * 10000)}`,
-        platform: platform || platforms[i % 2],
-        roomId: roomId || 'live_room_001',
-        comment: keyword ? `这条视频很好，关注了` : ['想要这个链接', '怎么买', '多少钱', '很好'][i % 4],
-        intent: ['高', '中', '低'][i % 3],
-        score: Math.floor(Math.random() * 30) + 70
-      });
+
+    // 获取直播间API配置
+    const source = await prisma.acquisitionSource.findUnique({
+      where: { userId_type: { userId, type: platform || 'douyin_live' } }
+    });
+
+    const config = source?.config as { apiKey?: string };
+
+    // 调用真实服务
+    const [danmuResult, viewersResult, stats] = await Promise.all([
+      getDanmu({ platform: platform || 'douyin', roomId: roomId || '', apiKey: config?.apiKey }),
+      getLiveViewers({ platform: platform || 'douyin', roomId: roomId || '', apiKey: config?.apiKey }),
+      getLiveStats({ platform: platform || 'douyin', roomId: roomId || '', apiKey: config?.apiKey })
+    ]);
+
+    // 保存高意向用户到采集数据
+    if (danmuResult.newLeads.length > 0) {
+      const newData = danmuResult.newLeads.map(d => ({
+        userId,
+        source: platform || 'douyin_live',
+        sourceType: 'live_audience' as const,
+        platform: platform || 'douyin',
+        roomId: roomId || '',
+        name: d.nickname,
+        latitude: 39.9 + Math.random() * 0.2,
+        longitude: 116.4 + Math.random() * 0.2,
+        intentScore: calculateIntentScore(d),
+        intentLevel: d.intentScore && d.intentScore >= 80 ? '高' : d.intentScore && d.intentScore >= 60 ? '中' : '低',
+        intentTags: d.content,
+        status: 'new' as const
+      }));
+
+      await prisma.acquisitionData.createMany({ data: newData });
     }
-    
+
     res.json({
       success: true,
       data: {
-        audience: mockAudience,
-        total: 100,
+        danmu: danmuResult.danmu,
+        audience: viewersResult.viewers,
+        total: viewersResult.total,
         liveRoom: {
           id: roomId || 'live_room_001',
           name: keyword || '热门直播间',
-          viewers: Math.floor(Math.random() * 10000) + 1000,
+          viewers: stats.viewerCount,
+          peakViewers: stats.peakViewers,
+          duration: stats.duration,
           platform: platform || 'douyin'
-        }
+        },
+        stats
       }
     });
   } catch (error: any) {
+    console.error('[直播间采集]', error);
     res.status(500).json({ error: error.message });
   }
 });

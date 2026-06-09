@@ -11,6 +11,7 @@ import matrixRoutes from './routes/matrix';
 import publishRoutes from './routes/publish';
 import notificationsRoutes from './routes/notifications';
 import crmRoutes from './routes/crm';
+import crmAdvancedRoutes from './routes/crm-advanced';
 import statisticsRoutes from './routes/statistics';
 import aiChatRoutes from './routes/ai-chat';
 import adminFeaturesRoutes from './routes/admin-features';
@@ -42,6 +43,7 @@ import aiEnhancedRoutes from './routes/ai-enhanced';
 import aiWorkflowRoutes from './routes/ai-workflow';
 import tokenStatsRoutes from './routes/token-stats';
 import mediaRoutes from './routes/media';
+import exportRoutes from './routes/export';
 // import settlementRoutes from './routes/settlement';
 
 const app = express();
@@ -69,6 +71,7 @@ app.use('/api/matrix', matrixRoutes);
 app.use('/api/publish', publishRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/crm', crmRoutes);
+app.use('/api/crm-advanced', crmAdvancedRoutes);
 // app.use('/api/statistics', statisticsRoutes); // temporarily disabled
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/referral', referralRoutes);
@@ -125,6 +128,9 @@ app.use('/api/auto-reply', autoReplyRoutes);
 
 // 工单系统
 app.use('/api/tickets', ticketRoutes);
+
+// 数据导出
+app.use('/api/export', exportRoutes);
 
 // AI 能力配置 & 调用 & Token 统计
 app.use('/api/ai-config', aiConfigRoutes);

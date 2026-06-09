@@ -41,6 +41,9 @@ model User {
   publishedContents    PublishedContent[]
   notifications       Notification[]
   crmCustomers        CrmCustomer[]
+  crmTags             CrmTag[]
+  crmAutomationRules  CrmAutomationRule[]
+  crmReminders        CrmReminder[]
   recruitmentResumes  RecruitmentResume[]
   
   // 功能开关关联
@@ -474,11 +477,15 @@ model CrmCustomer {
   level       String?   // A, B, C, D
   status      String    @default("potential") // potential, active, inactive
   remark      String?
+  tags        String?   // JSON数组，标签ID列表
+  lastFollowUpAt DateTime? // 最后跟进时间
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
   // 关联跟进记录
   followUps   CrmFollowUp[]
+  // 关联提醒
+  reminders   CrmReminder[]
 }
 
 model CrmFollowUp {
@@ -491,6 +498,49 @@ model CrmFollowUp {
   nextFollowUpAt  DateTime?
   createdBy       String
   createdAt       DateTime  @default(now())
+}
+
+// CRM标签
+model CrmTag {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    // 标签名称
+  color       String    @default("#1890ff") // 标签颜色
+  createdAt   DateTime  @default(now())
+  
+  @@unique([userId, name])
+}
+
+// CRM自动化规则
+model CrmAutomationRule {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    // 规则名称
+  trigger     String    // trigger: follow_up_overdue, level_change, source_change, tag_added, days_inactive
+  condition   String    // JSON格式的条件
+  action      String    // JSON格式的动作: notify, assign, tag, status_change
+  isActive    Boolean   @default(true)
+  lastRunAt   DateTime?
+  runCount    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// CRM到期提醒
+model CrmReminder {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerId  String
+  type        String    // follow_up, contract, birthday, custom
+  title       String
+  remindAt    DateTime  // 提醒时间
+  isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId, remindAt])
 }
 
 model CompanyInfo {
