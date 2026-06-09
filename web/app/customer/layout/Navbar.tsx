@@ -573,21 +573,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
             alignItems: 'center',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ fontSize: 14, color: token.colorTextSecondary }}>
-              当前角色：{getRoleDisplayText('customer')}
-            </span>
-            {mounted && isAdmin && (
-              <Button
-                type="link"
-                icon={<SwapOutlined />}
-                size="small"
-                onClick={() => setRoleModalVisible(true)}
-              >
-                切换
-              </Button>
-            )}
-          </div>
+          {/* 左侧留空，终端客户不需要显示角色切换 */}
 
           {/* 用户信息 */}
           <Space size="middle">

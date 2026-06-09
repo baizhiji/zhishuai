@@ -80,15 +80,15 @@ interface Platform {
   status: 'coming' | 'available';
 }
 
-// 支持的平台列表
+// 支持的平台列表（当前可用）
 const platforms: Platform[] = [
   { id: 'douyin', name: '抖音', icon: '🎵', color: '#fe2c55', description: '短视频创作与分享', status: 'available' },
   { id: 'kuaishou', name: '快手', icon: '📹', color: '#ff4906', description: '老铁文化短视频社区', status: 'available' },
   { id: 'xiaohongshu', name: '小红书', icon: '📕', color: '#ff2442', description: '种草社区与生活方式', status: 'available' },
-  { id: 'weibo', name: '微博', icon: '🌐', color: '#e6162d', description: '社交媒体资讯平台', status: 'available' },
-  { id: 'bili', name: '哔哩哔哩', icon: '📺', color: '#00a1d6', description: '年轻人文化社区', status: 'available' },
-  { id: 'toutiao', name: '今日头条', icon: '📰', color: '#ff6900', description: '个性化资讯平台', status: 'available' },
-  { id: 'channels', name: '视频号', icon: '💬', color: '#07c160', description: '微信生态短视频', status: 'coming' },
+  { id: 'channels', name: '视频号', icon: '💬', color: '#07c160', description: '微信生态短视频', status: 'available' },
+  { id: 'weibo', name: '微博', icon: '🌐', color: '#e6162d', description: '社交媒体资讯平台', status: 'coming' },
+  { id: 'bili', name: '哔哩哔哩', icon: '📺', color: '#00a1d6', description: '年轻人文化社区', status: 'coming' },
+  { id: 'toutiao', name: '今日头条', icon: '📰', color: '#ff6900', description: '个性化资讯平台', status: 'coming' },
   { id: 'zhihu', name: '知乎', icon: '💬', color: '#0084ff', description: '知识问答社区', status: 'coming' },
 ];
 

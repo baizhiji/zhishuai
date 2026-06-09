@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Row,
@@ -16,18 +16,15 @@ import {
   Checkbox,
   Input,
   Form,
-  Upload,
   DatePicker,
   Radio,
   Drawer,
   List,
   Divider,
-  Progress,
   Tooltip,
   Popconfirm,
   Avatar,
   Empty,
-  InputNumber,
   Alert,
   Spin,
   Tabs,
@@ -35,43 +32,83 @@ import {
   Timeline,
   Statistic,
 } from 'antd';
-import type { UploadFile, UploadProps } from 'antd';
+import type { UploadFile } from 'antd';
 import {
   SendOutlined,
-  EditOutlined,
   DeleteOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
   PlusOutlined,
-  UploadOutlined,
   PictureOutlined,
   VideoCameraOutlined,
   CalendarOutlined,
   ReloadOutlined,
   FileTextOutlined,
   PlayCircleOutlined,
-  PauseCircleOutlined,
-  StopOutlined,
   SyncOutlined,
   EyeOutlined,
   ExclamationCircleOutlined,
   RocketOutlined,
   SafetyOutlined,
+  HeartOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
-import request from '@/utils/request';
-import { useAuth } from '@/contexts/AuthContext';
+import { ContentCategory } from '@/lib/content/types';
+
+// 内容类型配置
+const contentTypes = [
+  { key: ContentCategory.XIAOHONGSHU, label: '小红书图文', icon: <HeartOutlined />, color: '#FF2442' },
+  { key: ContentCategory.VIDEO, label: '短视频', icon: <VideoCameraOutlined />, color: '#1890FF' },
+  { key: ContentCategory.DIGITAL_HUMAN, label: '数字人短视频', icon: <RobotOutlined />, color: '#722ED1' },
+];
+
+// 内容素材接口
+interface Material {
+  id: string;
+  category: ContentCategory;
+  title: string;
+  content: string;
+  tags?: string[];
+  status: 'unused' | 'used';
+  timestamp: number;
+  mediaUrl?: string;
+  thumbnailUrl?: string;
+  metadata?: any;
+}
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
-const { Dragger } = Upload;
+
+// 只支持4个平台
+const supportedPlatforms = [
+  { key: 'douyin', name: '抖音', icon: '🎵', color: '#fe2c55' },
+  { key: 'kuaishou', name: '快手', icon: '📹', color: '#ff4906' },
+  { key: 'xiaohongshu', name: '小红书', icon: '📕', color: '#ff2442' },
+  { key: 'video', name: '视频号', icon: '🎬', color: '#07c160' },
+];
+
+// 矩阵账号接口
+interface MatrixAccount {
+  id: string;
+  platform: string;
+  platformName: string;
+  accountId: string;
+  accountName: string;
+  avatar?: string;
+  fans?: number;
+  status: 'active' | 'expired' | 'error';
+  isEnabled: boolean;
+}
 
 interface PublishTask {
   id: string;
+  materialId: string;
   title: string;
   content: string;
-  type: 'text' | 'image' | 'video' | 'digital-human';
+  type: ContentCategory;
+  tags?: string[];
   thumbnail?: string;
   platforms: PlatformPublish[];
   status: 'pending' | 'scheduled' | 'publishing' | 'published' | 'failed' | 'partially_failed';
@@ -103,17 +140,6 @@ interface PublishResult {
   publishedAt?: string;
 }
 
-interface Account {
-  id: string;
-  platform: string;
-  platformName: string;
-  accountId: string;
-  accountName: string;
-  avatar?: string;
-  fans?: number;
-  status: 'active' | 'expired' | 'error';
-}
-
 interface Stats {
   totalTasks: number;
   published: number;
@@ -122,193 +148,247 @@ interface Stats {
   todayPublished: number;
 }
 
-const platformConfig: Record<string, { name: string; icon: string; color: string }> = {
-  douyin: { name: '抖音', icon: '🎵', color: '#fe2c55' },
-  kuaishou: { name: '快手', icon: '📹', color: '#ff4906' },
-  xiaohongshu: { name: '小红书', icon: '📕', color: '#ff2442' },
-  weibo: { name: '微博', icon: '🌐', color: '#e6162d' },
-  bili: { name: '哔哩哔哩', icon: '📺', color: '#00a1d6' },
-  toutiao: { name: '今日头条', icon: '📰', color: '#ff6900' },
-};
-
 export default function PublishCenterPage() {
-  const { user } = useAuth();
-  const userId = user?.id || 'default';
-  
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [matrixAccounts, setMatrixAccounts] = useState<MatrixAccount[]>([]);
   const [tasks, setTasks] = useState<PublishTask[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  
+
   // 发布表单状态
   const [publishModalVisible, setPublishModalVisible] = useState(false);
   const [form] = Form.useForm();
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedAccounts, setSelectedAccounts] = useState<Record<string, string[]>>({});
-  const [contentType, setContentType] = useState<'text' | 'image' | 'video' | 'digital-human'>('text');
-  const [files, setFiles] = useState<UploadFile[]>([]);
+  const [publishMode, setPublishMode] = useState<'immediate' | 'scheduled'>('immediate');
+  const [scheduledTime, setScheduledTime] = useState<Dayjs | null>(null);
   const [publishing, setPublishing] = useState(false);
-  
+
   // 详情抽屉
   const [detailDrawerVisible, setDetailDrawerVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState<PublishTask | null>(null);
 
+  // 加载数据
   useEffect(() => {
-    fetchData();
-  }, [userId]);
+    loadData();
+  }, []);
 
-  const fetchData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [tasksRes, accountsRes, statsRes] = await Promise.all([
-        request.get('/publish/tasks', { params: { userId } }),
-        request.get('/social/accounts', { params: { userId } }),
-        request.get('/publish/stats', { params: { userId } }),
-      ]);
+      // 加载素材（从内容工厂）
+      const savedMaterials = localStorage.getItem('ai_materials');
+      if (savedMaterials) {
+        const allMaterials = JSON.parse(savedMaterials);
+        const filtered = allMaterials.filter((m: Material) =>
+          [ContentCategory.XIAOHONGSHU, ContentCategory.VIDEO, ContentCategory.DIGITAL_HUMAN].includes(m.category)
+        );
+        setMaterials(filtered);
+      }
 
-      if (tasksRes.success || tasksRes.code === 0) {
-        setTasks(tasksRes.data?.list || tasksRes.data || []);
+      // 加载矩阵账号
+      const savedAccounts = localStorage.getItem('matrix_accounts');
+      if (savedAccounts) {
+        const accounts = JSON.parse(savedAccounts);
+        // 只保留支持的4个平台
+        const filtered = accounts.filter((a: MatrixAccount) =>
+          supportedPlatforms.some(p => p.key === a.platform) && a.isEnabled
+        );
+        setMatrixAccounts(filtered);
+      } else {
+        // 使用演示数据
+        setMatrixAccounts([
+          { id: '1', platform: 'douyin', platformName: '抖音', accountId: '1', accountName: '智枢AI官方', status: 'active', isEnabled: true, fans: 12580 },
+          { id: '2', platform: 'xiaohongshu', platformName: '小红书', accountId: '2', accountName: 'AI创作助手', status: 'active', isEnabled: true, fans: 8650 },
+          { id: '3', platform: 'kuaishou', platformName: '快手', accountId: '3', accountName: '快手号', status: 'active', isEnabled: true, fans: 5600 },
+          { id: '4', platform: 'video', platformName: '视频号', accountId: '4', accountName: '视频号主', status: 'active', isEnabled: true, fans: 3200 },
+        ]);
       }
-      if (accountsRes.code === 0) {
-        setAccounts(accountsRes.data || []);
+
+      // 加载发布任务
+      const savedTasks = localStorage.getItem('publish_tasks');
+      if (savedTasks) {
+        setTasks(JSON.parse(savedTasks));
+      } else {
+        // 演示数据
+        setTasks([
+          {
+            id: '1',
+            materialId: '',
+            title: 'AI创作技巧分享',
+            content: '今天分享几个AI创作的小技巧...',
+            type: ContentCategory.XIAOHONGSHU,
+            tags: ['AI创作', '技巧分享'],
+            platforms: [
+              { platform: 'douyin', accountId: '1', accountName: '智枢AI官方', status: 'success', publishedUrl: 'https://douyin.com/xxx' },
+              { platform: 'xiaohongshu', accountId: '2', accountName: 'AI创作助手', status: 'success', publishedUrl: 'https://xiaohongshu.com/xxx' },
+            ],
+            status: 'published',
+            publishedAt: new Date().toISOString(),
+            results: [],
+            createdAt: new Date().toISOString(),
+          },
+        ]);
       }
-      if (statsRes.success || statsRes.code === 0) {
-        setStats(statsRes.data);
-      }
+
+      // 更新统计
+      updateStats();
     } catch (error) {
-      console.error('获取数据失败:', error);
-      // 使用演示数据
-      setTasks([
-        {
-          id: '1',
-          title: 'AI创作技巧分享',
-          content: '今天分享几个AI创作的小技巧...',
-          type: 'text',
-          platforms: [
-            { platform: 'douyin', accountId: '1', accountName: '智枢AI官方', status: 'success', publishedUrl: 'https://douyin.com/xxx' },
-            { platform: 'xiaohongshu', accountId: '2', accountName: 'AI创作助手', status: 'success', publishedUrl: 'https://xiaohongshu.com/xxx' },
-          ],
-          status: 'published',
-          publishedAt: new Date().toISOString(),
-          results: [],
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          title: '新品发布预告',
-          content: '智枢AI SaaS系统新品发布...',
-          type: 'image',
-          thumbnail: 'https://picsum.photos/200',
-          platforms: [
-            { platform: 'douyin', accountId: '1', accountName: '智枢AI官方', status: 'publishing' },
-            { platform: 'kuaishou', accountId: '3', accountName: '快手号', status: 'pending' },
-          ],
-          status: 'publishing',
-          results: [],
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: '3',
-          title: '端午节活动',
-          content: '端午节限时优惠活动...',
-          type: 'text',
-          platforms: [
-            { platform: 'weibo', accountId: '4', accountName: '微博账号', status: 'failed', error: '内容审核未通过' },
-          ],
-          status: 'failed',
-          error: '内容审核未通过',
-          results: [],
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ]);
-      setAccounts([
-        { id: '1', platform: 'douyin', platformName: '抖音', accountId: '1', accountName: '智枢AI官方', status: 'active', fans: 12580 },
-        { id: '2', platform: 'xiaohongshu', platformName: '小红书', accountId: '2', accountName: 'AI创作助手', status: 'active', fans: 8650 },
-        { id: '3', platform: 'kuaishou', platformName: '快手', accountId: '3', accountName: '快手号', status: 'active', fans: 5600 },
-        { id: '4', platform: 'weibo', platformName: '微博', accountId: '4', accountName: '微博账号', status: 'expired' },
-      ]);
-      setStats({
-        totalTasks: 3,
-        published: 1,
-        failed: 1,
-        scheduled: 0,
-        todayPublished: 2,
-      });
+      console.error('加载数据失败:', error);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
+  const updateStats = () => {
+    const savedTasks = localStorage.getItem('publish_tasks');
+    const taskList = savedTasks ? JSON.parse(savedTasks) : tasks;
+
+    const today = dayjs().startOf('day');
+    setStats({
+      totalTasks: taskList.length,
+      published: taskList.filter((t: PublishTask) => t.status === 'published').length,
+      failed: taskList.filter((t: PublishTask) => t.status === 'failed').length,
+      scheduled: taskList.filter((t: PublishTask) => t.status === 'scheduled').length,
+      todayPublished: taskList.filter((t: PublishTask) =>
+        t.status === 'published' && dayjs(t.publishedAt).isAfter(today)
+      ).length,
+    });
+  };
+
+  // 选择素材
+  const handleSelectMaterial = (materialId: string) => {
+    const material = materials.find(m => m.id === materialId);
+    if (material) {
+      setSelectedMaterial(material);
+      form.setFieldsValue({
+        title: material.title,
+        content: material.content,
+        tags: material.tags?.join(', '),
+      });
+    }
+  };
+
+  // 平台选择变化
+  const handlePlatformChange = (platforms: string[]) => {
+    setSelectedPlatforms(platforms);
+    // 自动选择每个平台的第一个账号
+    const accountsMap: Record<string, string[]> = {};
+    platforms.forEach(p => {
+      const platformAccounts = matrixAccounts.filter(a => a.platform === p && a.status === 'active');
+      if (platformAccounts.length > 0) {
+        accountsMap[p] = [platformAccounts[0].id];
+      }
+    });
+    setSelectedAccounts(accountsMap);
+  };
+
+  // 发布
   const handlePublish = async () => {
     try {
       const values = await form.validateFields();
-      
-      // 构建发布请求
-      const publishData = {
-        title: values.title,
-        content: values.content,
-        type: contentType,
-        platforms: selectedAccounts,
-        scheduledAt: values.scheduledAt?.toISOString(),
+
+      if (!selectedMaterial) {
+        message.error('请选择要发布的内容');
+        return;
+      }
+
+      if (selectedPlatforms.length === 0) {
+        message.error('请选择至少一个发布平台');
+        return;
+      }
+
+      // 检查每个平台是否都选择了账号
+      const hasAnyAccount = Object.values(selectedAccounts).some(arr => arr.length > 0);
+      if (!hasAnyAccount) {
+        message.error('请为每个平台选择至少一个账号');
+        return;
+      }
+
+      if (publishMode === 'scheduled' && !scheduledTime) {
+        message.error('请选择定时发布时间');
+        return;
+      }
+
+      // 构建发布任务
+      const newTask: PublishTask = {
+        id: `task_${Date.now()}`,
+        materialId: selectedMaterial.id,
+        title: selectedMaterial.title,
+        content: selectedMaterial.content,
+        type: selectedMaterial.category,
+        tags: selectedMaterial.tags,
+        platforms: selectedPlatforms.flatMap(platform => {
+          const accounts = selectedAccounts[platform] || [];
+          return accounts.map(accountId => {
+            const account = matrixAccounts.find(a => a.id === accountId);
+            return {
+              platform,
+              accountId,
+              accountName: account?.accountName || '',
+              status: 'pending' as const,
+            };
+          });
+        }),
+        status: publishMode === 'immediate' ? 'publishing' : 'scheduled',
+        scheduledAt: publishMode === 'scheduled' ? scheduledTime?.toISOString() : undefined,
+        results: [],
+        createdAt: new Date().toISOString(),
       };
 
-      setPublishing(true);
-      
-      const res = await request.post('/publish/tasks', publishData);
-      
-      if (res.success || res.code === 0) {
-        message.success('发布任务已创建');
-        setPublishModalVisible(false);
-        form.resetFields();
-        setFiles([]);
-        setSelectedPlatforms([]);
-        setSelectedAccounts({});
-        fetchData();
-      } else {
-        message.error(res.error || res.message || '创建发布任务失败');
+      // 保存任务
+      const savedTasks = localStorage.getItem('publish_tasks');
+      const taskList = savedTasks ? JSON.parse(savedTasks) : [];
+      taskList.unshift(newTask);
+      localStorage.setItem('publish_tasks', JSON.stringify(taskList));
+
+      // 更新素材状态
+      const savedMaterials = localStorage.getItem('ai_materials');
+      if (savedMaterials) {
+        const allMaterials = JSON.parse(savedMaterials);
+        const updated = allMaterials.map((m: Material) =>
+          m.id === selectedMaterial.id ? { ...m, status: 'used' } : m
+        );
+        localStorage.setItem('ai_materials', JSON.stringify(updated));
       }
+
+      message.success(publishMode === 'immediate' ? '发布任务已创建' : '定时发布任务已创建');
+      setPublishModalVisible(false);
+      form.resetFields();
+      setSelectedMaterial(null);
+      setSelectedPlatforms([]);
+      setSelectedAccounts({});
+      setPublishMode('immediate');
+      setScheduledTime(null);
+      loadData();
     } catch (error: any) {
       console.error('发布失败:', error);
       message.error(error.message || '创建发布任务失败');
-    } finally {
-      setPublishing(false);
     }
   };
 
-  const handleRetry = async (taskId: string) => {
-    try {
-      const res = await request.post(`/publish/tasks/${taskId}/retry`);
-      if (res.success || res.code === 0) {
-        message.success('重新发布任务已创建');
-        fetchData();
-      } else {
-        message.error(res.error || '重试失败');
-      }
-    } catch (error) {
-      message.error('重试失败');
+  // 删除任务
+  const handleDelete = (taskId: string) => {
+    const savedTasks = localStorage.getItem('publish_tasks');
+    if (savedTasks) {
+      const taskList = JSON.parse(savedTasks);
+      const updated = taskList.filter((t: PublishTask) => t.id !== taskId);
+      localStorage.setItem('publish_tasks', JSON.stringify(updated));
     }
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    message.success('删除成功');
+    updateStats();
   };
 
-  const handleDelete = async (taskId: string) => {
-    try {
-      const res = await request.delete(`/publish/tasks/${taskId}`);
-      if (res.success || res.code === 0) {
-        message.success('删除成功');
-        fetchData();
-      } else {
-        message.error(res.error || '删除失败');
-      }
-    } catch (error) {
-      message.error('删除失败');
-    }
-  };
-
+  // 查看详情
   const handleViewDetail = (task: PublishTask) => {
     setSelectedTask(task);
     setDetailDrawerVisible(true);
   };
 
+  // 获取状态标签
   const getStatusTag = (status: string) => {
     const config: Record<string, { color: string; text: string }> = {
       pending: { color: 'default', text: '待发布' },
@@ -322,66 +402,63 @@ export default function PublishCenterPage() {
     return <Tag color={color}>{text}</Tag>;
   };
 
-  const getPlatformStatus = (status: string) => {
-    const config: Record<string, { color: string; icon: React.ReactNode }> = {
-      pending: { color: 'default', icon: <ClockCircleOutlined /> },
-      publishing: { color: 'processing', icon: <SyncOutlined spin /> },
-      success: { color: 'success', icon: <CheckCircleOutlined /> },
-      failed: { color: 'error', icon: <ExclamationCircleOutlined /> },
-    };
-    const item = config[status] || config.pending;
-    return (
-      <Space>
-        {item.icon}
-        <span>{platformConfig[status]?.name || status}</span>
-      </Space>
-    );
+  // 过滤任务
+  const filteredTasks = (taskList: PublishTask[]) => {
+    if (activeTab === 'all') return taskList;
+    if (activeTab === 'published') return taskList.filter(t => t.status === 'published');
+    if (activeTab === 'failed') return taskList.filter(t => t.status === 'failed');
+    if (activeTab === 'scheduled') return taskList.filter(t => t.status === 'scheduled');
+    return taskList;
   };
 
-  const filteredTasks = useMemo(() => {
-    if (activeTab === 'all') return tasks;
-    if (activeTab === 'published') return tasks.filter(t => t.status === 'published');
-    if (activeTab === 'failed') return tasks.filter(t => t.status === 'failed');
-    if (activeTab === 'scheduled') return tasks.filter(t => t.status === 'scheduled');
-    return tasks;
-  }, [tasks, activeTab]);
-
+  // 表格列
   const columns = [
     {
       title: '内容',
       key: 'content',
-      render: (_: any, record: PublishTask) => (
-        <div>
-          <Text strong>{record.title}</Text>
-          <div style={{ marginTop: 4 }}>
-            <Space size={4}>
-              <Tag icon={record.type === 'text' ? <FileTextOutlined /> : record.type === 'image' ? <PictureOutlined /> : <VideoCameraOutlined />}>
-                {record.type === 'text' ? '图文' : record.type === 'image' ? '图片' : record.type === 'video' ? '视频' : '数字人'}
-              </Tag>
-              <Text type="secondary" ellipsis style={{ maxWidth: 300 }}>
-                {record.content.slice(0, 100)}...
-              </Text>
-            </Space>
+      render: (_: any, record: PublishTask) => {
+        const typeConfig = contentTypes.find(t => t.key === record.type);
+        return (
+          <div>
+            <Text strong>{record.title}</Text>
+            <div style={{ marginTop: 4 }}>
+              <Space size={4}>
+                <Tag icon={typeConfig?.icon} color={typeConfig?.color}>
+                  {typeConfig?.label}
+                </Tag>
+                {record.tags && record.tags.length > 0 && (
+                  <Text type="secondary">
+                    {record.tags.slice(0, 2).join(', ')}
+                    {record.tags.length > 2 && '...'}
+                  </Text>
+                )}
+              </Space>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: '发布平台',
       key: 'platforms',
-      width: 250,
+      width: 280,
       render: (_: any, record: PublishTask) => (
-        <Space wrap>
-          {record.platforms.map((p, i) => (
-            <Tag 
-              key={i} 
-              icon={platformConfig[p.platform]?.icon ? <span>{platformConfig[p.platform]?.icon}</span> : undefined}
-              color={platformConfig[p.platform]?.color}
-              style={{ opacity: p.status === 'failed' ? 0.5 : 1 }}
-            >
-              {p.accountName} {p.status === 'success' ? '✅' : p.status === 'failed' ? '❌' : p.status === 'publishing' ? '⏳' : ''}
-            </Tag>
-          ))}
+        <Space wrap size={4}>
+          {record.platforms.map((p, i) => {
+            const platform = supportedPlatforms.find(pl => pl.key === p.platform);
+            return (
+              <Tag
+                key={i}
+                color={platform?.color}
+                style={{ opacity: p.status === 'failed' ? 0.5 : 1 }}
+              >
+                {platform?.icon} {p.accountName}
+                {p.status === 'success' && ' ✅'}
+                {p.status === 'failed' && ' ❌'}
+                {p.status === 'publishing' && ' ⏳'}
+              </Tag>
+            );
+          })}
         </Space>
       ),
     },
@@ -408,11 +485,6 @@ export default function PublishCenterPage() {
           <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)}>
             详情
           </Button>
-          {record.status === 'failed' && (
-            <Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleRetry(record.id)}>
-              重试
-            </Button>
-          )}
           <Popconfirm
             title="确认删除此发布任务？"
             onConfirm={() => handleDelete(record.id)}
@@ -428,27 +500,17 @@ export default function PublishCenterPage() {
     },
   ];
 
-  const handlePlatformChange = (platforms: string[]) => {
-    setSelectedPlatforms(platforms);
-    // 初始化每个平台的账号选择
-    const accountsMap: Record<string, string[]> = {};
-    platforms.forEach(p => {
-      const platformAccounts = accounts.filter(a => a.platform === p && a.status === 'active');
-      if (platformAccounts.length > 0) {
-        accountsMap[p] = [platformAccounts[0].id];
-      }
-    });
-    setSelectedAccounts(accountsMap);
-  };
+  // 获取可用素材
+  const availableMaterials = materials.filter(m => m.status === 'unused');
 
   return (
     <div style={{ padding: 24 }}>
       {/* 页面标题 */}
       <div style={{ marginBottom: 24 }}>
         <Title level={4} style={{ margin: 0 }}>
-          🚀 内容发布中心
+          发布中心
         </Title>
-        <Text type="secondary">一键发布内容到多个平台，追踪发布状态和效果数据</Text>
+        <Text type="secondary">将内容工厂生成的内容一键发布到各大平台</Text>
       </div>
 
       {/* 统计卡片 */}
@@ -482,7 +544,9 @@ export default function PublishCenterPage() {
             创建发布任务
           </Button>
           <Text type="secondary">|</Text>
-          <Text type="secondary">已绑定 {accounts.filter(a => a.status === 'active').length} 个账号</Text>
+          <Text type="secondary">已绑定 {matrixAccounts.filter(a => a.status === 'active').length} 个账号</Text>
+          <Text type="secondary">|</Text>
+          <Text type="secondary">待发布 {availableMaterials.length} 条内容</Text>
         </Space>
       </Card>
 
@@ -498,7 +562,7 @@ export default function PublishCenterPage() {
         activeTabKey={activeTab}
         onTabChange={setActiveTab}
         extra={
-          <Button icon={<ReloadOutlined />} onClick={fetchData}>
+          <Button icon={<ReloadOutlined />} onClick={loadData}>
             刷新
           </Button>
         }
@@ -507,16 +571,16 @@ export default function PublishCenterPage() {
           <div style={{ textAlign: 'center', padding: 40 }}>
             <Spin size="large" />
           </div>
-        ) : filteredTasks.length === 0 ? (
+        ) : filteredTasks(tasks).length === 0 ? (
           <Empty description="暂无发布任务" image={Empty.PRESENTED_IMAGE_SIMPLE}>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setPublishModalVisible(true)}>
               创建第一个发布任务
             </Button>
           </Empty>
         ) : (
-          <Table 
-            dataSource={filteredTasks} 
-            columns={columns} 
+          <Table
+            dataSource={filteredTasks(tasks)}
+            columns={columns}
             rowKey="id"
             pagination={{ pageSize: 10 }}
           />
@@ -527,70 +591,39 @@ export default function PublishCenterPage() {
       <Modal
         title="创建发布任务"
         open={publishModalVisible}
-        onCancel={() => setPublishModalVisible(false)}
+        onCancel={() => {
+          setPublishModalVisible(false);
+          form.resetFields();
+          setSelectedMaterial(null);
+          setSelectedPlatforms([]);
+          setSelectedAccounts({});
+          setPublishMode('immediate');
+          setScheduledTime(null);
+        }}
         onOk={handlePublish}
-        okText={publishing ? '发布中...' : '立即发布'}
+        okText={publishing ? '发布中...' : publishMode === 'immediate' ? '立即发布' : '确认定时'}
         confirmLoading={publishing}
-        width={700}
+        width={800}
         destroyOnClose
       >
         <Form form={form} layout="vertical" preserve={false}>
-          <Form.Item label="内容类型" required>
-            <Radio.Group value={contentType} onChange={e => setContentType(e.target.value)}>
-              <Radio.Button value="text"><FileTextOutlined /> 图文</Radio.Button>
-              <Radio.Button value="image"><PictureOutlined /> 图片</Radio.Button>
-              <Radio.Button value="video"><VideoCameraOutlined /> 视频</Radio.Button>
-              <Radio.Button value="digital-human">数字人</Radio.Button>
-            </Radio.Group>
-          </Form.Item>
-
-          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
-            <Input placeholder="输入内容标题" maxLength={100} showCount />
-          </Form.Item>
-
-          <Form.Item name="content" label="内容" rules={[{ required: true, message: '请输入内容' }]}>
-            <TextArea 
-              placeholder="输入内容正文..." 
-              rows={6} 
-              maxLength={2000} 
-              showCount 
-            />
-          </Form.Item>
-
-          {(contentType === 'image' || contentType === 'video') && (
-            <Form.Item label="上传文件">
-              <Dragger
-                fileList={files}
-                onChange={({ fileList }) => setFiles(fileList)}
-                beforeUpload={() => false}
-                maxCount={contentType === 'video' ? 1 : 9}
-              >
-                <p className="ant-upload-drag-icon">
-                  {contentType === 'video' ? <VideoCameraOutlined /> : <PictureOutlined />}
-                </p>
-                <p className="ant-upload-text">点击或拖拽上传{contentType === 'video' ? '视频' : '图片'}</p>
-                <p className="ant-upload-hint">
-                  {contentType === 'video' ? '支持 MP4 格式，大小不超过 500MB' : '支持 JPG、PNG 格式，最多 9 张'}
-                </p>
-              </Dragger>
-            </Form.Item>
-          )}
-
-          <Form.Item label="选择平台" required>
+          {/* 选择内容 */}
+          <Form.Item label="选择内容" required>
             <Select
-              mode="multiple"
-              placeholder="选择要发布的平台"
-              value={selectedPlatforms}
-              onChange={handlePlatformChange}
+              placeholder="从内容工厂选择要发布的内容"
+              onChange={handleSelectMaterial}
+              value={selectedMaterial?.id}
+              notFoundContent={availableMaterials.length === 0 ? <Text type="secondary">暂无待发布内容，请先到内容工厂生成</Text> : null}
             >
-              {Object.entries(platformConfig).map(([key, config]) => {
-                const platformAccounts = accounts.filter(a => a.platform === key && a.status === 'active');
+              {availableMaterials.map(material => {
+                const typeConfig = contentTypes.find(t => t.key === material.category);
                 return (
-                  <Select.Option key={key} value={key} disabled={platformAccounts.length === 0}>
+                  <Select.Option key={material.id} value={material.id}>
                     <Space>
-                      <span>{config.icon}</span>
-                      <span>{config.name}</span>
-                      <Tag>{platformAccounts.length}个账号</Tag>
+                      <Tag icon={typeConfig?.icon} color={typeConfig?.color}>
+                        {typeConfig?.label}
+                      </Tag>
+                      <Text>{material.title}</Text>
                     </Space>
                   </Select.Option>
                 );
@@ -598,42 +631,162 @@ export default function PublishCenterPage() {
             </Select>
           </Form.Item>
 
-          {selectedPlatforms.map(platform => (
-            <Form.Item key={platform} label={`${platformConfig[platform]?.name || platform} 账号`}>
-              <Select
-                mode="multiple"
-                placeholder={`选择 ${platformConfig[platform]?.name} 账号`}
-                value={selectedAccounts[platform]}
-                onChange={values => setSelectedAccounts({ ...selectedAccounts, [platform]: values })}
+          {selectedMaterial && (
+            <>
+              {/* 内容预览 */}
+              <Alert
+                message="内容预览"
+                description={
+                  <div>
+                    <Paragraph>
+                      <Text strong>标题：</Text>{selectedMaterial.title}
+                    </Paragraph>
+                    <Paragraph ellipsis={{ rows: 2 }}>
+                      <Text strong>内容：</Text>{selectedMaterial.content}
+                    </Paragraph>
+                    {selectedMaterial.tags && selectedMaterial.tags.length > 0 && (
+                      <Paragraph>
+                        <Text strong>标签：</Text>
+                        {selectedMaterial.tags.map(tag => (
+                          <Tag key={tag} color="blue">{tag}</Tag>
+                        ))}
+                      </Paragraph>
+                    )}
+                  </div>
+                }
+                type="info"
+                style={{ marginBottom: 16 }}
+              />
+
+              {/* 标题（可编辑） */}
+              <Form.Item
+                name="title"
+                label="标题"
+                rules={[{ required: true, message: '请输入标题' }]}
               >
-                {accounts
-                  .filter(a => a.platform === platform && a.status === 'active')
-                  .map(account => (
-                    <Select.Option key={account.id} value={account.id}>
-                      <Space>
-                        <Avatar size="small" src={account.avatar}>
-                          {platformConfig[platform]?.icon}
-                        </Avatar>
-                        <span>{account.accountName}</span>
-                        <Tag>{account.fans?.toLocaleString()} 粉丝</Tag>
+                <Input placeholder="输入内容标题" maxLength={100} showCount />
+              </Form.Item>
+
+              {/* 内容（可编辑） */}
+              <Form.Item
+                name="content"
+                label="内容"
+                rules={[{ required: true, message: '请输入内容' }]}
+              >
+                <TextArea
+                  placeholder="输入内容正文..."
+                  rows={6}
+                  maxLength={2000}
+                  showCount
+                />
+              </Form.Item>
+
+              {/* 课题/标签（可编辑） */}
+              <Form.Item
+                name="tags"
+                label="课题/标签"
+              >
+                <Input placeholder="多个标签用逗号分隔，如：AI创作,技巧分享" />
+              </Form.Item>
+
+              <Divider />
+
+              {/* 账号选择 */}
+              <Form.Item label="账号选择" required>
+                <Select
+                  mode="multiple"
+                  placeholder="选择要发布的平台"
+                  value={selectedPlatforms}
+                  onChange={handlePlatformChange}
+                >
+                  {supportedPlatforms.map(platform => {
+                    const platformAccounts = matrixAccounts.filter(a => a.platform === platform.key && a.status === 'active');
+                    return (
+                      <Select.Option key={platform.key} value={platform.key}>
+                        <Space>
+                          <span>{platform.icon}</span>
+                          <span>{platform.name}</span>
+                          <Tag>{platformAccounts.length}个账号</Tag>
+                        </Space>
+                      </Select.Option>
+                    );
+                  })}
+                </Select>
+              </Form.Item>
+
+              {/* 每个平台的账号 */}
+              {selectedPlatforms.map(platformKey => {
+                const platform = supportedPlatforms.find(p => p.key === platformKey);
+                const platformAccounts = matrixAccounts.filter(a => a.platform === platformKey && a.status === 'active');
+                return (
+                  <Form.Item key={platformKey} label={`${platform?.name || platformKey} 账号`}>
+                    <Checkbox.Group
+                      value={selectedAccounts[platformKey] || []}
+                      onChange={values => setSelectedAccounts({ ...selectedAccounts, [platformKey]: values as string[] })}
+                    >
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        {platformAccounts.length === 0 ? (
+                          <Text type="secondary">该平台暂无已授权账号</Text>
+                        ) : (
+                          platformAccounts.map(account => (
+                            <Checkbox key={account.id} value={account.id}>
+                              <Space>
+                                <Avatar size="small" src={account.avatar}>
+                                  {platform?.icon}
+                                </Avatar>
+                                <span>{account.accountName}</span>
+                                <Tag>{account.fans?.toLocaleString()} 粉丝</Tag>
+                              </Space>
+                            </Checkbox>
+                          ))
+                        )}
                       </Space>
-                    </Select.Option>
-                  ))}
-              </Select>
-            </Form.Item>
-          ))}
+                    </Checkbox.Group>
+                  </Form.Item>
+                );
+              })}
 
-          <Divider />
+              <Divider />
 
-          <Form.Item name="scheduledAt" label="定时发布">
-            <DatePicker
-              showTime
-              format="YYYY-MM-DD HH:mm"
-              placeholder="留空则立即发布"
-              disabledDate={current => current && current < dayjs().endOf('minute')}
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
+              {/* 定时发布 */}
+              <Form.Item label="发布方式">
+                <Radio.Group value={publishMode} onChange={e => setPublishMode(e.target.value)}>
+                  <Space direction="vertical">
+                    <Radio value="immediate">
+                      <Space>
+                        <SendOutlined />
+                        <span>立即发布</span>
+                      </Space>
+                    </Radio>
+                    <Radio value="scheduled">
+                      <Space>
+                        <ClockCircleOutlined />
+                        <span>定时发布</span>
+                      </Space>
+                    </Radio>
+                  </Space>
+                </Radio.Group>
+              </Form.Item>
+
+              {publishMode === 'scheduled' && (
+                <Form.Item label="定时时间" required>
+                  <DatePicker
+                    showTime
+                    format="YYYY-MM-DD HH:mm"
+                    placeholder="选择发布时间"
+                    disabledDate={current => current && current < dayjs().endOf('minute')}
+                    value={scheduledTime}
+                    onChange={setScheduledTime}
+                    minuteStep={15}
+                    style={{ width: '100%' }}
+                  />
+                  <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                    提示：定时发布将根据各平台规则在指定时间自动执行
+                  </Text>
+                </Form.Item>
+              )}
+            </>
+          )}
         </Form>
       </Modal>
 
@@ -649,13 +802,31 @@ export default function PublishCenterPage() {
           <div>
             <Card title="基本信息" size="small">
               <p><Text strong>标题：</Text>{selectedTask.title}</p>
-              <p><Text strong>类型：</Text>{getStatusTag(selectedTask.type)}</p>
+              <p>
+                <Text strong>类型：</Text>
+                <Tag color={contentTypes.find(t => t.key === selectedTask.type)?.color}>
+                  {contentTypes.find(t => t.key === selectedTask.type)?.label}
+                </Tag>
+              </p>
               <p><Text strong>状态：</Text>{getStatusTag(selectedTask.status)}</p>
               <p><Text strong>创建时间：</Text>{dayjs(selectedTask.createdAt).format('YYYY-MM-DD HH:mm:ss')}</p>
               {selectedTask.publishedAt && (
                 <p><Text strong>发布时间：</Text>{dayjs(selectedTask.publishedAt).format('YYYY-MM-DD HH:mm:ss')}</p>
               )}
+              {selectedTask.scheduledAt && (
+                <p><Text strong>定时时间：</Text>{dayjs(selectedTask.scheduledAt).format('YYYY-MM-DD HH:mm:ss')}</p>
+              )}
             </Card>
+
+            {selectedTask.tags && selectedTask.tags.length > 0 && (
+              <Card title="标签" size="small" style={{ marginTop: 16 }}>
+                <Space wrap>
+                  {selectedTask.tags.map(tag => (
+                    <Tag key={tag} color="blue">{tag}</Tag>
+                  ))}
+                </Space>
+              </Card>
+            )}
 
             <Card title="发布内容" size="small" style={{ marginTop: 16 }}>
               <Text>{selectedTask.content}</Text>
@@ -668,32 +839,36 @@ export default function PublishCenterPage() {
 
             <Card title="发布结果" size="small" style={{ marginTop: 16 }}>
               <Timeline
-                items={selectedTask.platforms.map(p => ({
-                  color: p.status === 'success' ? 'green' : p.status === 'failed' ? 'red' : 'blue',
-                  children: (
-                    <div>
-                      <Space>
-                        <span style={{ fontSize: 16 }}>{platformConfig[p.platform]?.icon}</span>
-                        <Text strong>{p.accountName}</Text>
-                        {p.status === 'success' && <Tag color="success">成功</Tag>}
-                        {p.status === 'failed' && <Tag color="error">失败</Tag>}
-                        {p.status === 'publishing' && <Tag color="processing">发布中</Tag>}
-                      </Space>
-                      {p.publishedUrl && (
-                        <div style={{ marginTop: 4 }}>
-                          <a href={p.publishedUrl} target="_blank" rel="noopener noreferrer">
-                            查看链接
-                          </a>
-                        </div>
-                      )}
-                      {p.error && (
-                        <div style={{ marginTop: 4, color: '#ff4d4f' }}>
-                          <Text type="danger">{p.error}</Text>
-                        </div>
-                      )}
-                    </div>
-                  ),
-                }))}
+                items={selectedTask.platforms.map(p => {
+                  const platform = supportedPlatforms.find(pl => pl.key === p.platform);
+                  return {
+                    color: p.status === 'success' ? 'green' : p.status === 'failed' ? 'red' : 'blue',
+                    children: (
+                      <div>
+                        <Space>
+                          <span style={{ fontSize: 16 }}>{platform?.icon}</span>
+                          <Text strong>{p.accountName}</Text>
+                          {p.status === 'success' && <Tag color="success">成功</Tag>}
+                          {p.status === 'failed' && <Tag color="error">失败</Tag>}
+                          {p.status === 'publishing' && <Tag color="processing">发布中</Tag>}
+                          {p.status === 'pending' && <Tag color="default">待发布</Tag>}
+                        </Space>
+                        {p.publishedUrl && (
+                          <div style={{ marginTop: 4 }}>
+                            <a href={p.publishedUrl} target="_blank" rel="noopener noreferrer">
+                              查看链接
+                            </a>
+                          </div>
+                        )}
+                        {p.error && (
+                          <div style={{ marginTop: 4, color: '#ff4d4f' }}>
+                            <Text type="danger">{p.error}</Text>
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  };
+                })}
               />
             </Card>
           </div>
