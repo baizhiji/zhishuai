@@ -141,7 +141,7 @@ export default function CRMPage() {
   const fetchStats = async () => {
     try {
       const res = await getMyStats();
-      setStats(res.data);
+      setStats(res);
     } catch (error) {
       console.error('获取统计失败');
     }
@@ -150,7 +150,7 @@ export default function CRMPage() {
   const fetchTags = async () => {
     try {
       const res = await getTags();
-      setTags(res.data || []);
+      setTags(res || []);
     } catch (error) {
       console.error('获取标签失败');
     }
@@ -202,7 +202,7 @@ export default function CRMPage() {
     setDetailVisible(true);
     try {
       const res = await getFollowUps(record.id);
-      setFollowUps(res.data || []);
+      setFollowUps(res.list || []);
     } catch (error) {
       console.error('获取跟进记录失败');
     }
@@ -215,7 +215,7 @@ export default function CRMPage() {
       message.success('添加成功');
       followUpForm.resetFields();
       const res = await getFollowUps(selectedCustomer!.id);
-      setFollowUps(res.data || []);
+      setFollowUps(res.list || []);
       fetchStats();
     } catch (error) {
       // 表单验证或API错误
@@ -372,7 +372,7 @@ export default function CRMPage() {
           <Card>
             <Statistic
               title="超期未跟进"
-              value={stats?.overdueFollowUps || 0}
+              value={stats?.potentialCustomers || 0}
               valueStyle={{ color: '#ff4d4f' }}
               prefix={<WarningOutlined />}
               suffix={`/ ${stats?.totalCustomers || 0}`}
@@ -399,7 +399,7 @@ export default function CRMPage() {
               <Space direction="vertical" style={{ width: '100%' }}>
                 <WarningOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
                 <Text>公海池</Text>
-                <Text type="secondary">{stats?.publicPoolCount || 0} 客户</Text>
+                <Text type="secondary">公海池客户</Text>
               </Space>
             </Link>
           </Card>
@@ -432,7 +432,7 @@ export default function CRMPage() {
               <Space direction="vertical" style={{ width: '100%' }}>
                 <BellOutlined style={{ fontSize: 24, color: '#f5222d' }} />
                 <Text>提醒管理</Text>
-                <Text type="secondary">{stats?.pendingReminders || 0} 待处理</Text>
+                <Text type="secondary">待处理提醒</Text>
               </Space>
             </Link>
           </Card>
@@ -591,7 +591,7 @@ export default function CRMPage() {
                         {STATUS_MAP[selectedCustomer.status]?.label}
                       </Tag>
                     </Descriptions.Item>
-                    <Descriptions.Item label="来源">{SOURCE_MAP[selectedCustomer.source] || '-'}</Descriptions.Item>
+                    <Descriptions.Item label="来源">{selectedCustomer.source ? SOURCE_MAP[selectedCustomer.source] || '-' : '-'}</Descriptions.Item>
                     <Descriptions.Item label="备注" span={2}>{selectedCustomer.remark || '-'}</Descriptions.Item>
                   </Descriptions>
                 ),
@@ -641,7 +641,7 @@ export default function CRMPage() {
                 children: (
                   <Space wrap>
                     {tags.map(tag => {
-                      const customerTags: string[] = selectedCustomer.tags ? JSON.parse(selectedCustomer.tags) : [];
+                      const customerTags: string[] = (selectedCustomer as any).tags ? JSON.parse((selectedCustomer as any).tags) : [];
                       const hasTag = customerTags.includes(tag.id);
                       return (
                         <Tag

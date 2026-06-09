@@ -40,7 +40,7 @@ export default function TagsPage() {
     setLoading(true);
     try {
       const res = await getTags();
-      setTags(res.data || []);
+      setTags(res || []);
     } catch (error) {
       message.error('获取标签失败');
     } finally {

@@ -55,7 +55,7 @@ export default function RemindersPage() {
         upcoming: activeTab === 'upcoming',
         completed: activeTab === 'completed',
       });
-      setReminders(res.data || []);
+      setReminders(res || []);
     } catch (error) {
       message.error('获取提醒失败');
     } finally {
@@ -66,7 +66,7 @@ export default function RemindersPage() {
   const fetchCustomers = async () => {
     try {
       const res = await getMyCustomers({ page: 1, pageSize: 100 });
-      setCustomers(res.data?.list || []);
+      setCustomers(res.list || []);
     } catch (error) {
       console.error('获取客户列表失败');
     }

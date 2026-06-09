@@ -71,7 +71,7 @@ export default function EmployeeManagementPage() {
     try {
       const res = await getEmployees({ userId: currentUserId, page, pageSize });
       setEmployees(res.data || []);
-      setPagination({ total: res.total || 0, page, pageSize });
+      setPagination({ total: res.data?.total || 0, page, pageSize });
     } catch (error) {
       message.error('加载员工列表失败');
     } finally {
