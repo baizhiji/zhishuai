@@ -31,7 +31,7 @@ router.get('/tasks', async (req: Request, res: Response) => {
         take: Number(pageSize),
         include: {
           user: {
-            select: { name: true, email: true }
+            select: { name: true, phone: true }
           }
         }
       }),

@@ -17,6 +17,7 @@ interface Danmu {
   timestamp: Date;
   isFollower: boolean;
   isVIP: boolean;
+  intentScore?: number;
   gift?: {
     name: string;
     count: number;
