@@ -90,6 +90,9 @@ model User {
   
   // 支付记录
   payments           Payment[]
+  
+  // 发布记录
+  publishRecords     PublishRecord[]
 }
 
 model RecruitmentPost {

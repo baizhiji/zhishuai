@@ -129,8 +129,8 @@ export default function CRMPage() {
         level: filterLevel,
         status: filterStatus,
       });
-      setCustomers(res.data?.list || []);
-      setPagination(prev => ({ ...prev, total: res.data?.total || 0 }));
+      setCustomers(res.list || []);
+      setPagination(prev => ({ ...prev, total: res.total || 0 }));
     } catch (error) {
       message.error('获取客户列表失败');
     } finally {
