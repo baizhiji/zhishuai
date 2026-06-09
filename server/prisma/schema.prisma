@@ -349,10 +349,37 @@ model Material {
   fileUrl     String?
   fileType    String?   // pdf, doc, jpg, png, mp4, mp3
   thumbnail   String?
-  status      String    @default("unused") // unused, used
+  status      String    @default("unused") // unused, used, pending, publishing, published, failed, scheduled, partially_failed
   usedCount   Int       @default(0)
+  publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  publishRecords PublishRecord[]
+}
+
+// 发布记录
+model PublishRecord {
+  id            String    @id @default(uuid())
+  materialId    String
+  material      Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId     String
+  socialAccount SocialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  platform      String    // douyin, kuaishou, xiaohongshu, weibo, etc.
+  status        String    @default("pending") // pending, scheduled, publishing, success, failed
+  publishedUrl  String?
+  publishedId   String?
+  error         String?
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([materialId])
+  @@index([userId])
+  @@index([status])
 }
 
 model MatrixAccount {

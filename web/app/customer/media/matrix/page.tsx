@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Row,
@@ -21,6 +21,10 @@ import {
   Divider,
   List,
   Progress,
+  Spin,
+  Alert,
+  Tooltip,
+  Popconfirm,
 } from 'antd';
 import {
   PlusOutlined,
@@ -29,16 +33,24 @@ import {
   DeleteOutlined,
   CheckCircleOutlined,
   WarningOutlined,
-  ArrowRightOutlined,
   MobileOutlined,
   GlobalOutlined,
   TeamOutlined,
   FundViewOutlined,
+  QrcodeOutlined,
+  ReloadOutlined,
+  ExclamationCircleOutlined,
+  CloseCircleOutlined,
+  ClockCircleOutlined,
+  CheckOutlined,
+  ScanOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
 import request from '@/utils/request';
+import { useAuth } from '@/contexts/AuthContext';
 
 const { Title, Text, Paragraph } = Typography;
+const { Meta } = Card;
 
 interface Account {
   id: string;
@@ -59,38 +71,51 @@ interface Stats {
   byPlatform: Record<string, number>;
 }
 
-const platformColors: Record<string, string> = {
-  douyin: '#fe2c55',
-  kuaishou: '#ff4906',
-  xiaohongshu: '#fe2c25',
-  weibo: '#e6162d',
-  boss: '#15c15a',
-};
+interface Platform {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  description: string;
+  status: 'coming' | 'available';
+}
 
-const platformIcons: Record<string, React.ReactNode> = {
-  douyin: <span style={{ fontSize: 24 }}>🎵</span>,
-  kuaishou: <span style={{ fontSize: 24 }}>📹</span>,
-  xiaohongshu: <span style={{ fontSize: 24 }}>📕</span>,
-  weibo: <span style={{ fontSize: 24 }}>🌐</span>,
-  boss: <span style={{ fontSize: 24 }}>💼</span>,
-};
+// 支持的平台列表
+const platforms: Platform[] = [
+  { id: 'douyin', name: '抖音', icon: '🎵', color: '#fe2c55', description: '短视频创作与分享', status: 'available' },
+  { id: 'kuaishou', name: '快手', icon: '📹', color: '#ff4906', description: '老铁文化短视频社区', status: 'available' },
+  { id: 'xiaohongshu', name: '小红书', icon: '📕', color: '#ff2442', description: '种草社区与生活方式', status: 'available' },
+  { id: 'weibo', name: '微博', icon: '🌐', color: '#e6162d', description: '社交媒体资讯平台', status: 'available' },
+  { id: 'bili', name: '哔哩哔哩', icon: '📺', color: '#00a1d6', description: '年轻人文化社区', status: 'available' },
+  { id: 'toutiao', name: '今日头条', icon: '📰', color: '#ff6900', description: '个性化资讯平台', status: 'available' },
+  { id: 'channels', name: '视频号', icon: '💬', color: '#07c160', description: '微信生态短视频', status: 'coming' },
+  { id: 'zhihu', name: '知乎', icon: '💬', color: '#0084ff', description: '知识问答社区', status: 'coming' },
+];
 
 export default function MatrixManagementPage() {
+  const { user } = useAuth();
+  const userId = user?.id || 'default';
+  
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [bindModalVisible, setBindModalVisible] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
+  const [bindStep, setBindStep] = useState<'select' | 'scan' | 'success'>('select');
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [qrcodeImage, setQrcodeImage] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState<string>('pending');
-  const [userId] = useState('default-user');
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
+    return () => {
+      if (pollingInterval) clearInterval(pollingInterval);
+    };
   }, [userId]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [accountsRes, statsRes] = await Promise.all([
@@ -99,7 +124,7 @@ export default function MatrixManagementPage() {
       ]);
 
       if (accountsRes.code === 0) {
-        setAccounts(accountsRes.data);
+        setAccounts(accountsRes.data || []);
       }
       if (statsRes.code === 0) {
         setStats(statsRes.data);
@@ -118,83 +143,123 @@ export default function MatrixManagementPage() {
           status: 'active',
           lastSyncTime: new Date().toISOString(),
         },
+        {
+          id: '2',
+          platform: 'xiaohongshu',
+          platformName: '小红书',
+          accountId: 'xhs456',
+          accountName: 'AI创作助手',
+          fans: 8650,
+          status: 'active',
+          lastSyncTime: new Date().toISOString(),
+        },
       ]);
       setStats({
-        total: 1,
-        active: 1,
+        total: 2,
+        active: 2,
         expired: 0,
-        byPlatform: { douyin: 1 },
+        byPlatform: { douyin: 1, xiaohongshu: 1 },
       });
     } finally {
       setLoading(false);
     }
+  }, [userId]);
+
+  const handleOpenBindModal = () => {
+    setBindStep('select');
+    setBindModalVisible(true);
   };
 
-  const handleBind = async (platform: string) => {
+  const handleSelectPlatform = async (platform: Platform) => {
+    if (platform.status === 'coming') {
+      message.info(`${platform.name} 即将上线，敬请期待`);
+      return;
+    }
+
     setSelectedPlatform(platform);
-    setBindModalVisible(true);
+    setBindStep('scan');
 
     try {
-      const res = await request.post('/social/session/create', {
-        platform,
-        userId,
-      });
-
-      if (res.code === 0) {
+      const res = await request.post('/oauth/sessions', { platform: platform.id });
+      
+      if (res.success && res.data) {
         setSessionId(res.data.sessionId);
-        setQrcodeImage(res.data.qrcodeImage);
+        setQrcodeImage(res.data.qrcodeUrl);
         setSessionStatus('pending');
-
-        // 开始轮询
-        pollSessionStatus(res.data.sessionId);
+        
+        // 开始轮询授权状态
+        startPolling(res.data.sessionId);
+      } else {
+        message.error(res.error || '创建授权会话失败');
+        setBindStep('select');
       }
     } catch (error) {
-      message.error('创建会话失败');
+      console.error('创建会话失败:', error);
+      message.error('创建授权会话失败');
+      setBindStep('select');
     }
   };
 
-  const pollSessionStatus = (sid: string) => {
+  const startPolling = (sid: string) => {
+    if (pollingInterval) clearInterval(pollingInterval);
+    
     const interval = setInterval(async () => {
       try {
-        const res = await request.get(`/social/session/${sid}/status`);
-        if (res.code === 0) {
-          setSessionStatus(res.data.status);
+        const res = await request.get(`/oauth/sessions/${sid}`);
+        
+        if (res.success && res.data) {
+          const { status, accountInfo } = res.data;
+          setSessionStatus(status);
 
-          if (res.data.status === 'confirmed') {
+          if (status === 'confirmed') {
             clearInterval(interval);
-            handleLogin(sid);
-          } else if (res.data.status === 'failed') {
+            setBindStep('success');
+            message.success('授权成功！');
+            setTimeout(() => {
+              handleCloseBindModal();
+              fetchData();
+            }, 1500);
+          } else if (status === 'expired' || status === 'failed') {
             clearInterval(interval);
-            message.error('登录失败，请重试');
+            message.error(status === 'expired' ? '授权已过期，请重新扫码' : '授权失败，请重试');
           }
         }
       } catch (error) {
-        clearInterval(interval);
+        console.error('轮询状态失败:', error);
       }
     }, 2000);
+    
+    setPollingInterval(interval);
   };
 
-  const handleLogin = async (sid: string) => {
-    try {
-      const res = await request.post(`/social/session/${sid}/login`);
-      if (res.code === 0) {
-        message.success('绑定成功！');
-        setBindModalVisible(false);
-        resetBindState();
-        fetchData();
-      } else {
-        message.error(res.message || '登录失败');
-      }
-    } catch (error) {
-      message.error('登录失败');
+  const handleCloseBindModal = () => {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
     }
-  };
-
-  const resetBindState = () => {
+    setBindModalVisible(false);
+    setBindStep('select');
     setSelectedPlatform(null);
     setSessionId(null);
     setQrcodeImage(null);
     setSessionStatus('pending');
+  };
+
+  const handleRefreshAccount = async (accountId: string) => {
+    setSyncingId(accountId);
+    try {
+      const res = await request.post(`/oauth/accounts/${accountId}/refresh`);
+      if (res.success) {
+        message.success('刷新成功');
+        fetchData();
+      } else {
+        message.error(res.error || '刷新失败');
+      }
+    } catch (error) {
+      message.error('刷新失败');
+    } finally {
+      setSyncingId(null);
+    }
   };
 
   const handleUnbind = async (accountId: string) => {
@@ -203,24 +268,45 @@ export default function MatrixManagementPage() {
       if (res.code === 0) {
         message.success('解绑成功');
         fetchData();
+      } else {
+        message.error(res.message || '解绑失败');
       }
     } catch (error) {
       message.error('解绑失败');
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    const statusMap: Record<string, { color: string; text: string; icon: React.ReactNode }> = {
+      active: { color: 'success', text: '正常', icon: <CheckCircleOutlined /> },
+      expired: { color: 'warning', text: '已过期', icon: <ClockCircleOutlined /> },
+      error: { color: 'error', text: '异常', icon: <CloseCircleOutlined /> },
+    };
+    const config = statusMap[status] || statusMap.error;
+    return <Badge color={config.color} text={<Space size={4}>{config.icon}{config.text}</Space>} />;
+  };
+
   const columns = [
     {
       title: '平台账号',
-      dataIndex: 'platform',
       key: 'platform',
-      render: (platform: string, record: Account) => (
+      render: (_: any, record: Account) => (
         <Space>
-          {platformIcons[platform] || <MobileOutlined />}
+          <Avatar 
+            size={40} 
+            src={record.avatar} 
+            icon={<span style={{ fontSize: 20 }}>{platforms.find(p => p.id === record.platform)?.icon || '📱'}</span>}
+            style={{ backgroundColor: platforms.find(p => p.id === record.platform)?.color }}
+          />
           <div>
-            <div style={{ fontWeight: 500 }}>{record.platformName}</div>
+            <div style={{ fontWeight: 500 }}>
+              <Space>
+                {record.platformName}
+                {getStatusBadge(record.status)}
+              </Space>
+            </div>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.accountName}
+              {record.accountName || record.accountId}
             </Text>
           </div>
         </Space>
@@ -230,35 +316,45 @@ export default function MatrixManagementPage() {
       title: '粉丝数',
       dataIndex: 'fans',
       key: 'fans',
-      render: (fans: number) => fans?.toLocaleString() || '-',
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
-        const statusMap = {
-          active: { color: 'success', text: '正常' },
-          expired: { color: 'warning', text: '已过期' },
-          error: { color: 'error', text: '异常' },
-        };
-        const { color, text } = statusMap[status as keyof typeof statusMap] || statusMap.error;
-        return <Badge status={color as any} text={text} />;
-      },
+      render: (fans: number) => fans ? (
+        <Text strong style={{ color: '#1890ff' }}>{fans.toLocaleString()}</Text>
+      ) : '-',
     },
     {
       title: '最后同步',
       dataIndex: 'lastSyncTime',
       key: 'lastSyncTime',
-      render: (time: string) => (time ? new Date(time).toLocaleString() : '-'),
+      render: (time: string) => time ? (
+        <Text type="secondary">{new Date(time).toLocaleString()}</Text>
+      ) : '-',
     },
     {
       title: '操作',
       key: 'action',
+      width: 180,
       render: (_: any, record: Account) => (
-        <Button type="link" danger size="small" onClick={() => handleUnbind(record.id)}>
-          解绑
-        </Button>
+        <Space>
+          <Tooltip title="刷新账号状态">
+            <Button 
+              type="text" 
+              icon={<SyncOutlined spin={syncingId === record.id} />} 
+              onClick={() => handleRefreshAccount(record.id)}
+              disabled={syncingId === record.id}
+            />
+          </Tooltip>
+          <Popconfirm
+            title="确认解绑此账号？"
+            description="解绑后需要重新授权才能使用"
+            onConfirm={() => handleUnbind(record.id)}
+            okText="确认解绑"
+            cancelText="取消"
+            okButtonProps={{ danger: true }}
+          >
+            <Button type="text" danger icon={<DeleteOutlined />}>
+              解绑
+            </Button>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -268,100 +364,20 @@ export default function MatrixManagementPage() {
       {/* 页面标题 */}
       <div style={{ marginBottom: 24 }}>
         <Title level={4} style={{ margin: 0 }}>
-          📱 矩阵管理系统
+          📱 矩阵账号管理
         </Title>
         <Text type="secondary">一站式管理多平台社交账号，实现内容统一发布和数据分析</Text>
       </div>
 
-      {/* 快捷入口 */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card
-            hoverable
-            style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-            }}
-          >
-            <Link href="/media/matrix/accounts" style={{ color: 'white' }}>
-              <Space direction="vertical" size={0}>
-                <TeamOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
-                  账号管理
-                </Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>绑定和解绑社交媒体账号</Text>
-              </Space>
-            </Link>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card
-            hoverable
-            style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white',
-            }}
-          >
-            <Link href="/media/matrix/publish" style={{ color: 'white' }}>
-              <Space direction="vertical" size={0}>
-                <GlobalOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
-                  内容发布
-                </Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>一键发布内容到多平台</Text>
-              </Space>
-            </Link>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card
-            hoverable
-            style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              color: 'white',
-            }}
-          >
-            <Link href="/media/matrix/stats" style={{ color: 'white' }}>
-              <Space direction="vertical" size={0}>
-                <FundViewOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
-                  数据统计
-                </Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>多平台数据汇总分析</Text>
-              </Space>
-            </Link>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card
-            hoverable
-            style={{
-              background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-              color: 'white',
-            }}
-          >
-            <Link href="/media/matrix/automation" style={{ color: 'white' }}>
-              <Space direction="vertical" size={0}>
-                <SyncOutlined style={{ fontSize: 24 }} />
-                <Title level={4} style={{ color: 'white', margin: '8px 0' }}>
-                  自动化
-                </Title>
-                <Text style={{ color: 'rgba(255,255,255,0.8)' }}>设置自动发布任务</Text>
-              </Space>
-            </Link>
-          </Card>
-        </Col>
-      </Row>
-
       {/* 统计概览 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
-          <Card>
-            <Statistic title="绑定账号" value={stats?.total || 0} prefix={<MobileOutlined />} />
+          <Card hoverable>
+            <Statistic title="绑定账号" value={stats?.total || 0} prefix={<TeamOutlined />} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
+          <Card hoverable>
             <Statistic
               title="正常账号"
               value={stats?.active || 0}
@@ -371,7 +387,7 @@ export default function MatrixManagementPage() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
+          <Card hoverable>
             <Statistic
               title="已过期"
               value={stats?.expired || 0}
@@ -381,11 +397,12 @@ export default function MatrixManagementPage() {
           </Card>
         </Col>
         <Col span={6}>
-          <Card>
+          <Card hoverable>
             <Statistic
               title="覆盖平台"
               value={Object.keys(stats?.byPlatform || {}).length}
               suffix="个"
+              prefix={<GlobalOutlined />}
             />
           </Card>
         </Col>
@@ -394,189 +411,179 @@ export default function MatrixManagementPage() {
       {/* 账号列表 */}
       <Card
         title="已绑定的账号"
+        loading={loading}
         extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setBindModalVisible(true)}>
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenBindModal}>
             绑定新账号
           </Button>
         }
       >
         {accounts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: 40 }}>
-            <MobileOutlined style={{ fontSize: 48, color: '#ccc', marginBottom: 16 }} />
-            <Paragraph>暂未绑定任何账号</Paragraph>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setBindModalVisible(true)}
-            >
-              绑定第一个账号
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <QrcodeOutlined style={{ fontSize: 64, color: '#d9d9d9' }} />
+            <Title level={5} type="secondary" style={{ marginTop: 16 }}>
+              还没有绑定任何账号
+            </Title>
+            <Paragraph type="secondary">
+              点击上方「绑定新账号」开始添加你的社交媒体账号
+            </Paragraph>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleOpenBindModal}>
+              立即绑定
             </Button>
           </div>
         ) : (
-          <Table columns={columns} dataSource={accounts} rowKey="id" pagination={false} />
+          <Table 
+            dataSource={accounts} 
+            columns={columns} 
+            rowKey="id" 
+            pagination={false}
+            scroll={{ x: 800 }}
+          />
         )}
       </Card>
 
+      {/* 支持的平台 */}
+      <Card title="支持的平台" style={{ marginTop: 24 }}>
+        <Row gutter={[16, 16]}>
+          {platforms.map(platform => (
+            <Col span={6} key={platform.id}>
+              <Card
+                hoverable={platform.status === 'available'}
+                style={{ 
+                  textAlign: 'center',
+                  borderColor: selectedPlatform?.id === platform.id ? platform.color : undefined,
+                  opacity: platform.status === 'coming' ? 0.6 : 1,
+                }}
+                onClick={() => {
+                  if (platform.status === 'available') {
+                    setSelectedPlatform(platform);
+                    handleSelectPlatform(platform);
+                  }
+                }}
+              >
+                <div style={{ fontSize: 40, marginBottom: 8 }}>{platform.icon}</div>
+                <Title level={5}>{platform.name}</Title>
+                <Text type="secondary" style={{ fontSize: 12 }}>{platform.description}</Text>
+                {platform.status === 'coming' && (
+                  <Tag color="default" style={{ marginTop: 8 }}>即将上线</Tag>
+                )}
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Card>
+
       {/* 绑定账号弹窗 */}
-      <BindAccountModal
-        visible={bindModalVisible}
-        onClose={() => {
-          setBindModalVisible(false);
-          resetBindState();
-        }}
-        platforms={[
-          { id: 'douyin', name: '抖音', icon: '🎵' },
-          { id: 'kuaishou', name: '快手', icon: '📹' },
-          { id: 'xiaohongshu', name: '小红书', icon: '📕' },
-          { id: 'weibo', name: '微博', icon: '🌐' },
-          { id: 'boss', name: 'BOSS直聘', icon: '💼' },
-        ]}
-        selectedPlatform={selectedPlatform}
-        qrcodeImage={qrcodeImage}
-        sessionStatus={sessionStatus}
-        onSelectPlatform={handleBind}
-        onSimulateScan={async () => {
-          if (sessionId) {
-            await request.post(`/social/session/${sessionId}/scan`);
-            setSessionStatus('scanning');
-          }
-        }}
-        onSimulateConfirm={async () => {
-          if (sessionId) {
-            await request.post(`/social/session/${sessionId}/confirm`);
-            setSessionStatus('confirmed');
-          }
-        }}
-        loading={!qrcodeImage && selectedPlatform !== null}
-      />
-    </div>
-  );
-}
-
-// 绑定账号弹窗组件
-interface BindModalProps {
-  visible: boolean;
-  onClose: () => void;
-  platforms: { id: string; name: string; icon: string }[];
-  selectedPlatform: string | null;
-  qrcodeImage: string | null;
-  sessionStatus: string;
-  onSelectPlatform: (platform: string) => void;
-  onSimulateScan: () => void;
-  onSimulateConfirm: () => void;
-  loading: boolean;
-}
-
-function BindAccountModal({
-  visible,
-  onClose,
-  platforms,
-  selectedPlatform,
-  qrcodeImage,
-  sessionStatus,
-  onSelectPlatform,
-  onSimulateScan,
-  onSimulateConfirm,
-  loading,
-}: BindModalProps) {
-  const getStatusText = () => {
-    switch (sessionStatus) {
-      case 'pending':
-        return '等待扫码';
-      case 'scanning':
-        return '已扫码，等待确认';
-      case 'confirmed':
-        return '已确认，正在登录...';
-      case 'success':
-        return '登录成功';
-      case 'failed':
-        return '登录失败';
-      default:
-        return sessionStatus;
-    }
-  };
-
-  return (
-    <Modal
-      title="绑定社交账号"
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={500}
-      destroyOnClose
-    >
-      <div style={{ textAlign: 'center' }}>
-        {!selectedPlatform ? (
-          <>
-            <Paragraph>选择要绑定的平台</Paragraph>
-            <Row gutter={[12, 12]}>
-              {platforms.map(p => (
-                <Col span={8} key={p.id}>
+      <Modal
+        title={bindStep === 'select' ? '选择要绑定的平台' : bindStep === 'scan' ? `授权 ${selectedPlatform?.name}` : '授权成功'}
+        open={bindModalVisible}
+        onCancel={handleCloseBindModal}
+        footer={null}
+        width={450}
+        destroyOnClose
+      >
+        {bindStep === 'select' && (
+          <div>
+            <Paragraph type="secondary" style={{ marginBottom: 24 }}>
+              选择要绑定的社交媒体平台，扫码即可完成授权
+            </Paragraph>
+            <Row gutter={[16, 16]}>
+              {platforms.filter(p => p.status === 'available').map(platform => (
+                <Col span={8} key={platform.id}>
                   <Card
                     hoverable
-                    style={{ textAlign: 'center', cursor: 'pointer' }}
-                    onClick={() => onSelectPlatform(p.id)}
+                    style={{ textAlign: 'center' }}
+                    onClick={() => handleSelectPlatform(platform)}
                   >
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>{p.icon}</div>
-                    <div>{p.name}</div>
+                    <div style={{ fontSize: 36 }}>{platform.icon}</div>
+                    <Text strong>{platform.name}</Text>
                   </Card>
                 </Col>
               ))}
             </Row>
-          </>
-        ) : !qrcodeImage ? (
-          <div style={{ padding: 40 }}>
-            <Text type="secondary">正在准备授权...</Text>
           </div>
-        ) : (
-          <>
-            <Paragraph>
-              请使用<Text strong>{platforms.find(p => p.id === selectedPlatform)?.name}</Text>
-              扫码绑定
-            </Paragraph>
-            <div
-              style={{
-                background: '#f5f5f5',
-                padding: 20,
+        )}
+
+        {bindStep === 'scan' && (
+          <div style={{ textAlign: 'center' }}>
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <div style={{ 
+                background: '#f5f5f5', 
+                padding: 24, 
                 borderRadius: 8,
-                display: 'inline-block',
-              }}
-            >
-              <img src={qrcodeImage} alt="二维码" style={{ width: 200, height: 200 }} />
-            </div>
-            <div style={{ margin: '16px 0' }}>
-              <Tag
-                color={
-                  sessionStatus === 'pending'
-                    ? 'blue'
-                    : sessionStatus === 'scanning'
-                      ? 'orange'
-                      : sessionStatus === 'confirmed' || sessionStatus === 'success'
-                        ? 'green'
-                        : 'red'
-                }
-              >
-                {getStatusText()}
-              </Tag>
-            </div>
-            <Space>
-              <Button size="small" onClick={onSimulateScan} disabled={sessionStatus !== 'pending'}>
-                模拟扫码
-              </Button>
-              <Button
-                size="small"
-                onClick={onSimulateConfirm}
-                disabled={sessionStatus !== 'scanning'}
-              >
-                模拟确认
-              </Button>
-              <Button size="small" onClick={onClose}>
-                取消
+                position: 'relative'
+              }}>
+                {qrcodeImage ? (
+                  <img 
+                    src={qrcodeImage} 
+                    alt="授权二维码" 
+                    style={{ width: 200, height: 200 }} 
+                  />
+                ) : (
+                  <div style={{ width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Spin size="large" />
+                  </div>
+                )}
+                
+                {sessionStatus === 'scanning' && (
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(255,255,255,0.9)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 8,
+                  }}>
+                    <Space direction="vertical">
+                      <Spin size="large" />
+                      <Text>正在确认授权...</Text>
+                    </Space>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <Space>
+                  <ScanOutlined style={{ fontSize: 24, color: selectedPlatform?.color }} />
+                  <div style={{ textAlign: 'left' }}>
+                    <Text strong>打开 {selectedPlatform?.name} App</Text>
+                    <br />
+                    <Text type="secondary">扫描左侧二维码完成授权</Text>
+                  </div>
+                </Space>
+              </div>
+
+              {sessionStatus === 'pending' && (
+                <Alert
+                  type="info"
+                  showIcon
+                  icon={<ClockCircleOutlined />}
+                  message="二维码有效期10分钟"
+                  description="请在有效期内完成扫码授权"
+                />
+              )}
+
+              <Button onClick={() => setBindStep('select')} block>
+                返回选择其他平台
               </Button>
             </Space>
-          </>
+          </div>
         )}
-      </div>
-    </Modal>
+
+        {bindStep === 'success' && (
+          <div style={{ textAlign: 'center', padding: 24 }}>
+            <CheckCircleOutlined style={{ fontSize: 64, color: '#52c41a' }} />
+            <Title level={4} style={{ marginTop: 16 }}>授权成功！</Title>
+            <Paragraph type="secondary">
+              {selectedPlatform?.name} 账号已成功绑定
+            </Paragraph>
+          </div>
+        )}
+      </Modal>
+    </div>
   );
 }
