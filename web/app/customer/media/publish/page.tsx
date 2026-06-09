@@ -329,8 +329,13 @@ export default function PublishCenterPage() {
       success: { color: 'success', icon: <CheckCircleOutlined /> },
       failed: { color: 'error', icon: <ExclamationCircleOutlined /> },
     };
-    const { color, icon } = config[status] || config.pending;
-    return <Badge status={color as any} icon={icon} text={platformConfig[status]?.name || status} />;
+    const item = config[status] || config.pending;
+    return (
+      <Space>
+        {item.icon}
+        <span>{platformConfig[status]?.name || status}</span>
+      </Space>
+    );
   };
 
   const filteredTasks = useMemo(() => {
