@@ -369,7 +369,7 @@ model PublishRecord {
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accountId     String
-  socialAccount SocialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  socialAccount SocialAccount? @relation(fields: [accountId], references: [id])
   platform      String    // douyin, kuaishou, xiaohongshu, weibo, etc.
   status        String    @default("pending") // pending, scheduled, publishing, success, failed
   publishedUrl  String?
@@ -534,6 +534,7 @@ model CrmReminder {
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   customerId  String
+  customer    CrmCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   type        String    // follow_up, contract, birthday, custom
   title       String
   remindAt    DateTime  // 提醒时间

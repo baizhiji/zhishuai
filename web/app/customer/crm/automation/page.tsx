@@ -64,7 +64,7 @@ export default function AutomationPage() {
     setLoading(true);
     try {
       const res = await getAutomationRules();
-      setRules(res.data || []);
+      setRules(res || []);
     } catch (error) {
       message.error('获取规则失败');
     } finally {
