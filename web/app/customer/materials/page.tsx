@@ -37,7 +37,7 @@ import {
   contentCategoryConfig,
 } from '@/lib/content/types';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
 
 // 素材库存储键
@@ -223,9 +223,9 @@ export default function MaterialsPage() {
             </Space>
           }
           description={
-            <Text type="secondary" style={{ fontSize: 12 }} ellipsis={{ rows: 2 }}>
+            <Paragraph type="secondary" style={{ fontSize: 12, margin: 0 }} ellipsis={{ rows: 2 }}>
               {item.content}
-            </Text>
+            </Paragraph>
           }
         />
         <Text type="secondary" style={{ fontSize: 11, marginTop: 8, display: 'block' }}>
