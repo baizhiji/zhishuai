@@ -31,8 +31,8 @@ import {
   PhoneOutlined,
   ClockCircleOutlined,
   StarOutlined,
-  NavigationOutlined,
-  MapPinOutlined,
+  AimOutlined,
+  EnvironmentOutlined,
   PlusOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
@@ -375,7 +375,7 @@ export default function AMapPage() {
             extra={
               <Space>
                 <Button icon={<AimOutlined />} onClick={() => message.info('定位功能')}>定位</Button>
-                <Button icon={<NavigationOutlined />} onClick={() => setRouteVisible(true)}>路线</Button>
+                <Button icon={<AimOutlined />} onClick={() => setRouteVisible(true)}>路线</Button>
               </Space>
             }
           >
@@ -404,7 +404,7 @@ export default function AMapPage() {
                 renderItem={(poi) => (
                   <List.Item
                     actions={[
-                      <Button type="link" size="small" icon={<MapPinOutlined />} onClick={() => handleViewDetail(poi)}>
+                      <Button type="link" size="small" icon={<EnvironmentOutlined />} onClick={() => handleViewDetail(poi)}>
                         详情
                       </Button>,
                       <Button type="link" size="small" icon={<PlusOutlined />} onClick={() => handleAddFavorite(poi)}>
@@ -450,10 +450,10 @@ export default function AMapPage() {
               <Button block icon={<EnvironmentOutlined />} onClick={() => handleGeocode('北京市朝阳区建国路88号')}>
                 地理编码
               </Button>
-              <Button block icon={<NavigationOutlined />} onClick={() => setRouteVisible(true)}>
+              <Button block icon={<AimOutlined />} onClick={() => setRouteVisible(true)}>
                 路径规划
               </Button>
-              <Button block icon={<MapPinOutlined />} onClick={() => message.info('坐标拾取功能')}>
+              <Button block icon={<EnvironmentOutlined />} onClick={() => message.info('坐标拾取功能')}>
                 坐标拾取
               </Button>
             </Space>
@@ -505,7 +505,7 @@ export default function AMapPage() {
         open={poiDetailVisible}
         onCancel={() => setPoiDetailVisible(false)}
         footer={[
-          <Button key="nav" type="primary" icon={<NavigationOutlined />} onClick={() => {
+          <Button key="nav" type="primary" icon={<AimOutlined />} onClick={() => {
             message.info('开始导航');
             setPoiDetailVisible(false);
           }}>
@@ -565,7 +565,7 @@ export default function AMapPage() {
               <Select.Option value="driving"><CarOutlined /> 驾车</Select.Option>
               <Select.Option value="walking"><EnvironmentOutlined /> 步行</Select.Option>
               <Select.Option value="ride"><ClockCircleOutlined /> 骑行</Select.Option>
-              <Select.Option value="bus"><NavigationOutlined /> 公交</Select.Option>
+              <Select.Option value="bus"><AimOutlined /> 公交</Select.Option>
             </Select>
           </Form.Item>
           <Form.Item label="起点">
