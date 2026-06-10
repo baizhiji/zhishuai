@@ -177,25 +177,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
             },
           ],
         },
-        {
-          key: 'tools',
-          label: '企业工具',
-          icon: <ToolOutlined />,
-          children: [
-            {
-              key: 'tools-tianyancha',
-              label: '天眼查',
-              icon: <SafetyCertificateOutlined />,
-              path: '/customer/tools/tianyancha',
-            },
-            {
-              key: 'tools-amap',
-              label: '高德地图',
-              icon: <EnvironmentOutlined />,
-              path: '/customer/tools/amap',
-            },
-          ],
-        },
+
         {
           key: 'share',
           label: '推荐分享',
@@ -221,43 +203,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
             },
           ],
         },
-        {
-          key: 'crm',
-          label: '客户管理',
-          icon: <TeamOutlined />,
-          children: [
-            {
-              key: 'crm-list',
-              label: '客户列表',
-              icon: <TeamOutlined />,
-              path: '/customer/crm',
-            },
-            {
-              key: 'crm-public-pool',
-              label: '公海池',
-              icon: <SwapOutlined />,
-              path: '/customer/crm/public-pool',
-            },
-            {
-              key: 'crm-tags',
-              label: '标签管理',
-              icon: <AppstoreOutlined />,
-              path: '/customer/crm/tags',
-            },
-            {
-              key: 'crm-automation',
-              label: '自动化规则',
-              icon: <ThunderboltOutlined />,
-              path: '/customer/crm/automation',
-            },
-            {
-              key: 'crm-reminders',
-              label: '提醒管理',
-              icon: <CommentOutlined />,
-              path: '/customer/crm/reminders',
-            },
-          ],
-        },
+
         {
           key: 'tickets',
           label: '工单管理',

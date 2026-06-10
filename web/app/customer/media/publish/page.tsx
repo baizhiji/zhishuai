@@ -587,7 +587,7 @@ export default function PublishCenterPage() {
         )}
       </Card>
 
-      {/* 创建发布任务弹窗 */}
+      {/* 创建发布任务弹窗 - 平铺显示 */}
       <Modal
         title="创建发布任务"
         open={publishModalVisible}
@@ -600,65 +600,77 @@ export default function PublishCenterPage() {
           setPublishMode('immediate');
           setScheduledTime(null);
         }}
-        onOk={handlePublish}
-        okText={publishing ? '发布中...' : publishMode === 'immediate' ? '立即发布' : '确认定时'}
-        confirmLoading={publishing}
-        width={800}
+        footer={null}
+        width={1000}
         destroyOnClose
       >
         <Form form={form} layout="vertical" preserve={false}>
-          {/* 选择内容 */}
-          <Form.Item label="选择内容" required>
-            <Select
-              placeholder="从内容工厂选择要发布的内容"
-              onChange={handleSelectMaterial}
-              value={selectedMaterial?.id}
-              notFoundContent={availableMaterials.length === 0 ? <Text type="secondary">暂无待发布内容，请先到内容工厂生成</Text> : null}
-            >
-              {availableMaterials.map(material => {
-                const typeConfig = contentTypes.find(t => t.key === material.category);
-                return (
-                  <Select.Option key={material.id} value={material.id}>
-                    <Space>
-                      <Tag icon={typeConfig?.icon} color={typeConfig?.color}>
-                        {typeConfig?.label}
-                      </Tag>
-                      <Text>{material.title}</Text>
-                    </Space>
-                  </Select.Option>
-                );
-              })}
-            </Select>
-          </Form.Item>
+          {/* 第一行：内容类型 + 内容选择 */}
+          <Row gutter={16}>
+            {/* 内容类型 */}
+            <Col span={6}>
+              <Form.Item label="内容类型" required>
+                <Select
+                  placeholder="选择内容类型"
+                  value={selectedMaterial?.category}
+                  onChange={(value) => {
+                    // 切换类型时清空已选内容
+                    setSelectedMaterial(null);
+                    form.setFieldValue('title', '');
+                    form.setFieldValue('content', '');
+                  }}
+                >
+                  {contentTypes.map(type => (
+                    <Select.Option key={type.key} value={type.key}>
+                      <Space>
+                        <Tag icon={type.icon} color={type.color}>
+                          {type.label}
+                        </Tag>
+                      </Space>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            
+            {/* 内容选择 */}
+            <Col span={18}>
+              <Form.Item label="选择内容" required>
+                <Select
+                  placeholder="从素材库选择内容"
+                  value={selectedMaterial?.id}
+                  onChange={(id) => {
+                    const material = availableMaterials.find(m => m.id === id);
+                    setSelectedMaterial(material || null);
+                    if (material) {
+                      form.setFieldValue('title', material.title);
+                      form.setFieldValue('content', material.content);
+                      form.setFieldValue('tags', material.tags?.join(',') || '');
+                    }
+                  }}
+                  showSearch
+                  filterOption={(input, option) =>
+                    (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+                  }
+                >
+                  {availableMaterials.map(material => (
+                    <Select.Option key={material.id} value={material.id} label={material.title}>
+                      <Space>
+                        <Tag color={contentTypes.find(t => t.key === material.category)?.color}>
+                          {contentTypes.find(t => t.key === material.category)?.label}
+                        </Tag>
+                        <Text>{material.title}</Text>
+                      </Space>
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
 
-          {selectedMaterial && (
-            <>
-              {/* 内容预览 */}
-              <Alert
-                message="内容预览"
-                description={
-                  <div>
-                    <Paragraph>
-                      <Text strong>标题：</Text>{selectedMaterial.title}
-                    </Paragraph>
-                    <Paragraph ellipsis={{ rows: 2 }}>
-                      <Text strong>内容：</Text>{selectedMaterial.content}
-                    </Paragraph>
-                    {selectedMaterial.tags && selectedMaterial.tags.length > 0 && (
-                      <Paragraph>
-                        <Text strong>标签：</Text>
-                        {selectedMaterial.tags.map(tag => (
-                          <Tag key={tag} color="blue">{tag}</Tag>
-                        ))}
-                      </Paragraph>
-                    )}
-                  </div>
-                }
-                type="info"
-                style={{ marginBottom: 16 }}
-              />
-
-              {/* 标题（可编辑） */}
+          {/* 第二行：标题 + 内容 */}
+          <Row gutter={16}>
+            <Col span={24}>
               <Form.Item
                 name="title"
                 label="标题"
@@ -666,8 +678,11 @@ export default function PublishCenterPage() {
               >
                 <Input placeholder="输入内容标题" maxLength={100} showCount />
               </Form.Item>
-
-              {/* 内容（可编辑） */}
+            </Col>
+          </Row>
+          
+          <Row gutter={16}>
+            <Col span={24}>
               <Form.Item
                 name="content"
                 label="内容"
@@ -675,83 +690,25 @@ export default function PublishCenterPage() {
               >
                 <TextArea
                   placeholder="输入内容正文..."
-                  rows={6}
+                  rows={4}
                   maxLength={2000}
                   showCount
                 />
               </Form.Item>
+            </Col>
+          </Row>
 
-              {/* 课题/标签（可编辑） */}
-              <Form.Item
-                name="tags"
-                label="课题/标签"
-              >
-                <Input placeholder="多个标签用逗号分隔，如：AI创作,技巧分享" />
+          {/* 第三行：课题/标签 + 发布方式 */}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="tags" label="课题/标签">
+                <Input placeholder="多个标签用逗号分隔" />
               </Form.Item>
-
-              <Divider />
-
-              {/* 账号选择 */}
-              <Form.Item label="账号选择" required>
-                <Select
-                  mode="multiple"
-                  placeholder="选择要发布的平台"
-                  value={selectedPlatforms}
-                  onChange={handlePlatformChange}
-                >
-                  {supportedPlatforms.map(platform => {
-                    const platformAccounts = matrixAccounts.filter(a => a.platform === platform.key && a.status === 'active');
-                    return (
-                      <Select.Option key={platform.key} value={platform.key}>
-                        <Space>
-                          <span>{platform.icon}</span>
-                          <span>{platform.name}</span>
-                          <Tag>{platformAccounts.length}个账号</Tag>
-                        </Space>
-                      </Select.Option>
-                    );
-                  })}
-                </Select>
-              </Form.Item>
-
-              {/* 每个平台的账号 */}
-              {selectedPlatforms.map(platformKey => {
-                const platform = supportedPlatforms.find(p => p.key === platformKey);
-                const platformAccounts = matrixAccounts.filter(a => a.platform === platformKey && a.status === 'active');
-                return (
-                  <Form.Item key={platformKey} label={`${platform?.name || platformKey} 账号`}>
-                    <Checkbox.Group
-                      value={selectedAccounts[platformKey] || []}
-                      onChange={values => setSelectedAccounts({ ...selectedAccounts, [platformKey]: values as string[] })}
-                    >
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        {platformAccounts.length === 0 ? (
-                          <Text type="secondary">该平台暂无已授权账号</Text>
-                        ) : (
-                          platformAccounts.map(account => (
-                            <Checkbox key={account.id} value={account.id}>
-                              <Space>
-                                <Avatar size="small" src={account.avatar}>
-                                  {platform?.icon}
-                                </Avatar>
-                                <span>{account.accountName}</span>
-                                <Tag>{account.fans?.toLocaleString()} 粉丝</Tag>
-                              </Space>
-                            </Checkbox>
-                          ))
-                        )}
-                      </Space>
-                    </Checkbox.Group>
-                  </Form.Item>
-                );
-              })}
-
-              <Divider />
-
-              {/* 定时发布 */}
+            </Col>
+            <Col span={12}>
               <Form.Item label="发布方式">
                 <Radio.Group value={publishMode} onChange={e => setPublishMode(e.target.value)}>
-                  <Space direction="vertical">
+                  <Space>
                     <Radio value="immediate">
                       <Space>
                         <SendOutlined />
@@ -767,8 +724,13 @@ export default function PublishCenterPage() {
                   </Space>
                 </Radio.Group>
               </Form.Item>
+            </Col>
+          </Row>
 
-              {publishMode === 'scheduled' && (
+          {/* 定时发布时间 */}
+          {publishMode === 'scheduled' && (
+            <Row gutter={16}>
+              <Col span={12}>
                 <Form.Item label="定时时间" required>
                   <DatePicker
                     showTime
@@ -780,13 +742,105 @@ export default function PublishCenterPage() {
                     minuteStep={15}
                     style={{ width: '100%' }}
                   />
-                  <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-                    提示：定时发布将根据各平台规则在指定时间自动执行
-                  </Text>
                 </Form.Item>
-              )}
-            </>
+              </Col>
+            </Row>
           )}
+
+          <Divider />
+
+          {/* 第四行：平台选择 */}
+          <Form.Item label="选择平台" required>
+            <Checkbox.Group
+              value={selectedPlatforms}
+              onChange={(values) => handlePlatformChange(values as string[])}
+            >
+              <Row gutter={[16, 8]}>
+                {supportedPlatforms.map(platform => {
+                  const platformAccounts = matrixAccounts.filter(a => a.platform === platform.key && a.status === 'active');
+                  const hasAccounts = platformAccounts.length > 0;
+                  return (
+                    <Col key={platform.key} span={6}>
+                      <Checkbox value={platform.key} disabled={!hasAccounts}>
+                        <Space direction="vertical" size={0}>
+                          <Space>
+                            <span>{platform.icon}</span>
+                            <span>{platform.name}</span>
+                          </Space>
+                          {hasAccounts ? (
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {platformAccounts.length}个账号
+                            </Text>
+                          ) : (
+                            <Text type="danger" style={{ fontSize: 12 }}>
+                              暂无可用账号
+                            </Text>
+                          )}
+                        </Space>
+                      </Checkbox>
+                    </Col>
+                  );
+                })}
+              </Row>
+            </Checkbox.Group>
+          </Form.Item>
+
+          {/* 每个平台的账号选择 */}
+          {selectedPlatforms.map(platformKey => {
+            const platform = supportedPlatforms.find(p => p.key === platformKey);
+            const platformAccounts = matrixAccounts.filter(a => a.platform === platformKey && a.status === 'active');
+            return (
+              <Form.Item key={platformKey} label={`${platform?.name || platformKey} 账号`}>
+                <Checkbox.Group
+                  value={selectedAccounts[platformKey] || []}
+                  onChange={values => setSelectedAccounts({ ...selectedAccounts, [platformKey]: values as string[] })}
+                >
+                  <Row gutter={[8, 8]}>
+                    {platformAccounts.map(account => (
+                      <Col key={account.id} span={8}>
+                        <Checkbox value={account.id}>
+                          <Space>
+                            <Avatar size="small" src={account.avatar}>
+                              {platform?.icon}
+                            </Avatar>
+                            <span>{account.accountName}</span>
+                            <Tag>{account.fans?.toLocaleString()}</Tag>
+                          </Space>
+                        </Checkbox>
+                      </Col>
+                    ))}
+                  </Row>
+                </Checkbox.Group>
+                {platformAccounts.length === 0 && (
+                  <Alert 
+                    type="warning" 
+                    message={`请先到矩阵管理绑定${platform?.name}账号`}
+                    showIcon 
+                    style={{ marginTop: 8 }}
+                  />
+                )}
+              </Form.Item>
+            );
+          })}
+
+          <Divider />
+
+          {/* 操作按钮 */}
+          <Form.Item>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={() => setPublishModalVisible(false)}>
+                取消
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<SendOutlined />}
+                loading={publishing}
+                onClick={handlePublish}
+              >
+                {publishMode === 'immediate' ? '立即发布' : '确认定时'}
+              </Button>
+            </Space>
+          </Form.Item>
         </Form>
       </Modal>
 
