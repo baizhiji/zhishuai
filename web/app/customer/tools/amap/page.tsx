@@ -31,8 +31,6 @@ import {
   PhoneOutlined,
   ClockCircleOutlined,
   StarOutlined,
-  AimOutlined,
-  EnvironmentOutlined,
   PlusOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
