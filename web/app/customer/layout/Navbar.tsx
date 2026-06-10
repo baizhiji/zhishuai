@@ -34,6 +34,9 @@ import {
   AndroidOutlined,
   HomeOutlined,
   CommentOutlined,
+  ToolOutlined,
+  EnvironmentOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -165,6 +168,31 @@ function getNavigationItems(role: Role): NavigationItem[] {
               label: '获客看板',
               icon: <PieChartOutlined />,
               path: '/customer/acquisition/board',
+            },
+            {
+              key: 'acquisition-live',
+              label: '直播间采集',
+              icon: <VideoCameraOutlined />,
+              path: '/customer/acquisition/live-room',
+            },
+          ],
+        },
+        {
+          key: 'tools',
+          label: '企业工具',
+          icon: <ToolOutlined />,
+          children: [
+            {
+              key: 'tools-tianyancha',
+              label: '天眼查',
+              icon: <SafetyCertificateOutlined />,
+              path: '/customer/tools/tianyancha',
+            },
+            {
+              key: 'tools-amap',
+              label: '高德地图',
+              icon: <EnvironmentOutlined />,
+              path: '/customer/tools/amap',
             },
           ],
         },
