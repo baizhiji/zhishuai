@@ -2,6 +2,7 @@
 /*
 
 # 2. 只追踪配置文件、coze文件、web源代码、apk移动端
+!/ecosystem.config.js
 !/openclaw.json
 !/scripts
 !/.coze
