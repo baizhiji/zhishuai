@@ -58,10 +58,14 @@ class Request {
     }
 
     return response.json().then((result: ApiResponse<T>) => {
-      if (result.code !== 200) {
+      // 支持两种响应格式：
+      // 1. { success: true, data: {...} } - 认证相关API格式
+      // 2. { code: 200, data: {...} } - 其他API格式
+      if (result.code !== 200 && result.success !== true) {
         throw result;
       }
-      return result.data;
+      // 如果是 success 格式，返回整个 result；否则返回 result.data
+      return result.success === true ? result : result.data;
     });
   }
 
