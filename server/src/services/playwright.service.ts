@@ -38,9 +38,9 @@ export const PLATFORM_CONFIGS: Record<string, {
 }> = {
   douyin: {
     name: '抖音',
-    oauthUrl: 'https://open.douyin.com/platform/oauth/qrcode/connect',
+    oauthUrl: 'https://www.douyin.com/aweme/home',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/douyin',
-    qrSelector: 'img.qrcode-img, .qrcode-img, canvas, img[src*="qrcode"]',
+    qrSelector: 'img[src*="qr"]',
     successUrlPattern: '/creator-micro/'
   },
   kuaishou: {
@@ -267,7 +267,11 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
         const qrElement = await page.$(qrSelector);
         if (qrElement) {
           const screenshot = await qrElement.screenshot({ type: 'png' });
-          qrcodeUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+          // 正确处理 Buffer 类型转换为 base64
+          const base64Data = Buffer.isBuffer(screenshot) 
+            ? screenshot.toString('base64')
+            : Buffer.from(screenshot).toString('base64');
+          qrcodeUrl = `data:image/png;base64,${base64Data}`;
         }
       } catch (e) {
         console.log('截取二维码元素失败，尝试截取整页');
@@ -277,7 +281,11 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
     // 如果没找到二维码区域，截取整个页面
     if (!qrcodeUrl) {
       const screenshot = await page.screenshot({ type: 'png', fullPage: false });
-      qrcodeUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+      // 正确处理 Buffer 类型转换为 base64
+      const base64Data = Buffer.isBuffer(screenshot) 
+        ? screenshot.toString('base64')
+        : Buffer.from(screenshot).toString('base64');
+      qrcodeUrl = `data:image/png;base64,${base64Data}`;
     }
 
     return { qrcodeUrl, browserId, contextId };
