@@ -149,50 +149,26 @@ export async function createAuthSession(platform: string): Promise<{
     
     // 访问登录页面 - 使用更长超时和更灵活的等待策略
     await page.goto(config.loginUrl, { 
-      waitUntil: 'domcontentloaded',
+      waitUntil: 'networkidle',
       timeout: 60000 
     });
     
-    // 等待页面加载完成
-    await page.waitForTimeout(3000);
+    // 等待页面完全加载，包括动态内容
+    await page.waitForTimeout(5000);
     
-    // 滚动到可能包含二维码的区域
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
-    await page.waitForTimeout(1000);
-    
-    // 尝试找到二维码并截图
+    // 截图整个页面
     let qrcodeDataUrl = '';
-    
     try {
-      const qrElement = await page.$(config.qrSelector);
-      if (qrElement) {
-        const screenshot = await qrElement.screenshot({ type: 'png' });
-        qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
-      }
+      const screenshot = await page.screenshot({ type: 'png', fullPage: false });
+      qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
     } catch (e) {
-      console.log(`[Auth] 未找到 ${config.qrSelector}，尝试全页面截图`);
+      console.error('[Auth] 截图失败:', e);
     }
     
-    // 如果没找到二维码，截取整个登录区域
+    // 确保至少有一个截图
     if (!qrcodeDataUrl) {
-      try {
-        const body = await page.$('body');
-        if (body) {
-          const screenshot = await body.screenshot({ type: 'png' });
-          qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
-        }
-      } catch (e) {
-        console.error('[Auth] 截图失败:', e);
-      }
-    }
-    
-    // 如果还是没截到，生成一个占位图
-    if (!qrcodeDataUrl) {
-      // 生成一个提示图片
-      qrcodeDataUrl = await qrcode.toDataURL(
-        `请手动访问: ${config.loginUrl}\n平台: ${config.name}\n会话ID: ${sessionId}`,
-        { width: 300, margin: 2 }
-      );
+      const screenshot = await page.screenshot({ type: 'png', fullPage: true });
+      qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
     }
     
     // 保存会话
