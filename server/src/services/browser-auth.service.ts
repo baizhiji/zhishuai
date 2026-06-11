@@ -189,7 +189,11 @@ export async function createAuthSession(platform: string): Promise<{
                 height: Math.min(box.height + 40, 800) 
               }
             });
-            qrcodeDataUrl = `data:image/png;base64,${Buffer.from(screenshot).toString('base64')}`;
+            // 确保正确处理 Buffer/Uint8Array
+            const base64Data = Buffer.isBuffer(screenshot) 
+              ? screenshot.toString('base64')
+              : Buffer.from(screenshot as unknown as Buffer).toString('base64');
+            qrcodeDataUrl = `data:image/png;base64,${base64Data}`;
             console.log(`[Auth] 找到二维码区域: ${selector}, 尺寸: ${box.width}x${box.height}`);
             break;
           }
@@ -203,7 +207,10 @@ export async function createAuthSession(platform: string): Promise<{
     if (!qrcodeDataUrl) {
       console.log('[Auth] 未找到特定区域，使用整页截图');
       const screenshot = await page.screenshot({ type: 'png', fullPage: false });
-      qrcodeDataUrl = `data:image/png;base64,${Buffer.from(screenshot).toString('base64')}`;
+      const base64Data = Buffer.isBuffer(screenshot) 
+        ? screenshot.toString('base64')
+        : Buffer.from(screenshot as unknown as Buffer).toString('base64');
+      qrcodeDataUrl = `data:image/png;base64,${base64Data}`;
     }
     
     console.log(`[Auth] 二维码截图完成，长度: ${qrcodeDataUrl.length}`);
