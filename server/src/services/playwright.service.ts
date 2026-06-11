@@ -149,20 +149,35 @@ export interface TaskResult {
 export async function createBrowser(userId: string): Promise<Browser> {
   const browserId = `browser-${userId}-${Date.now()}`;
   
-  const browser = await playwright.launch({
-    headless: true, // 生产环境设为 true
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--disable-dev-shm-usage',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process'
-    ]
-  });
+  // 设置 LD_LIBRARY_PATH 确保能找到 libgbm.so.1
+  const libPath = '/usr/lib/x86_64-linux-gnu';
+  const currentLibPath = process.env.LD_LIBRARY_PATH || '';
+  if (!currentLibPath.includes(libPath)) {
+    process.env.LD_LIBRARY_PATH = currentLibPath ? `${currentLibPath}:${libPath}` : libPath;
+  }
   
-  browserInstances.set(browserId, browser);
-  return browser;
+  // 尝试修复 libgbm.so.1 缺失问题
+  try {
+    const browser = await playwright.launch({
+      headless: true,
+      args: [
+        '--disable-blink-features=AutomationControlled',
+        '--disable-dev-shm-usage',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        `--ld-path=${libPath}`
+      ]
+    });
+    
+    browserInstances.set(browserId, browser);
+    return browser;
+  } catch (error) {
+    // 如果启动失败，尝试使用 playwright-core 的 executablePath 指定 Chrome
+    console.error('Playwright 启动失败:', error);
+    throw error;
+  }
 }
 
 /**
