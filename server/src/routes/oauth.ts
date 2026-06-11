@@ -7,12 +7,9 @@ import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import * as qrcode from 'qrcode';
 import {
-  createBrowser,
-  createContext,
-  waitForLogin,
-  closeContext,
-  closeBrowser,
-  generateLoginQRCode,
+  startQRCodeLogin,
+  checkLoginStatus,
+  closeQRCodeLogin,
   PLATFORM_CONFIGS,
   BrowserSession
 } from '../services/playwright.service';
@@ -42,7 +39,7 @@ router.get('/platforms', async (req: Request, res: Response) => {
 });
 
 /**
- * 创建授权会话，获取二维码 - 需要登录
+ * 创建授权会话，获取真实二维码 - 需要登录
  */
 router.post('/sessions', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -69,170 +66,25 @@ router.post('/sessions', authMiddleware, async (req: Request, res: Response) => 
       }
     });
     
-    // 生成二维码
-    const qrcodeData = JSON.stringify({
-      sessionId,
-      platform,
-      state,
-      authUrl: `/api/oauth/authorize?sessionId=${sessionId}`
-    });
+    // 启动浏览器，获取真实二维码
+    const qrResult = await startQRCodeLogin(platform, sessionId);
     
-    const qrcodeUrl = await qrcode.toDataURL(qrcodeData, {
-      width: 200,
-      margin: 2
-    });
+    if (!qrResult) {
+      return res.status(500).json({ success: false, error: '启动扫码登录失败，请检查Playwright是否正确安装' });
+    }
     
     res.json({
       success: true,
       data: {
         sessionId,
         platform,
-        qrcodeUrl,
+        qrcodeUrl: qrResult.qrcodeUrl,
         expiresAt: oauthSession.expiresAt
       }
     });
     
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * 执行扫码授权（内部接口，由前端轮询触发）- 需要登录
- */
-router.post('/authorize', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).userId;
-    const { sessionId, platform } = req.body;
-    
-    if (!sessionId || !platform) {
-      return res.status(400).json({ success: false, error: '缺少参数' });
-    }
-    
-    // 验证会话
-    const oauthSession = await prisma.oAuthSession.findUnique({
-      where: { sessionId }
-    });
-    
-    if (!oauthSession) {
-      return res.status(404).json({ success: false, error: '会话不存在' });
-    }
-    
-    if (oauthSession.userId !== userId) {
-      return res.status(403).json({ success: false, error: '无权操作此会话' });
-    }
-    
-    if (oauthSession.status !== 'pending') {
-      return res.json({
-        success: true,
-        data: { status: oauthSession.status }
-      });
-    }
-    
-    if (new Date() > oauthSession.expiresAt) {
-      await prisma.oAuthSession.update({
-        where: { sessionId },
-        data: { status: 'expired' }
-      });
-      return res.json({
-        success: true,
-        data: { status: 'expired' }
-      });
-    }
-    
-    // 更新会话状态为扫描中
-    await prisma.oAuthSession.update({
-      where: { sessionId },
-      data: { status: 'scanning' }
-    });
-    
-    // 创建浏览器上下文
-    const browser = await createBrowser(userId);
-    const context = await createContext(browser, userId);
-    const page = await context.newPage();
-    
-    const browserId = `browser-${sessionId}`;
-    const contextId = `context-${sessionId}`;
-    
-    browserSessions.set(sessionId, {
-      browserId,
-      contextId,
-      platform,
-      cookies: [],
-      createdAt: new Date()
-    });
-    
-    const config = PLATFORM_CONFIGS[platform];
-    
-    // 访问登录页面
-    await page.goto(config.loginUrl, { waitUntil: 'networkidle', timeout: 30000 });
-    
-    // 等待登录成功
-    const loginSelectors = getLoginSuccessSelectors(platform);
-    let loginSuccess = false;
-    
-    for (const selector of loginSelectors) {
-      try {
-        await page.waitForSelector(selector, { timeout: 60000 });
-        loginSuccess = true;
-        break;
-      } catch (e) {
-        // 继续等待
-      }
-    }
-    
-    if (loginSuccess) {
-      // 获取cookies和账号信息
-      const cookies = await context.cookies();
-      const accountInfo = await extractAccountInfo(page, platform);
-      
-      // 保存到数据库
-      await prisma.oAuthSession.update({
-        where: { sessionId },
-        data: {
-          status: 'confirmed',
-          cookies: JSON.stringify(cookies),
-          accountInfo,
-          completedAt: new Date()
-        }
-      });
-      
-      // 保存账号
-      await prisma.socialAccount.create({
-        data: {
-          userId,
-          platform,
-          accountId: accountInfo?.id,
-          accountName: accountInfo?.name,
-          avatar: accountInfo?.avatar,
-          cookies: JSON.stringify(cookies),
-          status: 'active',
-          lastSyncAt: new Date()
-        }
-      });
-      
-      // 清理浏览器资源
-      await page.close();
-      await context.close();
-      await browser.close();
-      browserSessions.delete(sessionId);
-      
-      res.json({
-        success: true,
-        data: {
-          status: 'confirmed',
-          account: accountInfo
-        }
-      });
-    } else {
-      // 继续等待
-      res.json({
-        success: true,
-        data: { status: 'scanning' }
-      });
-    }
-    
-  } catch (error: any) {
+    console.error('创建授权会话失败:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -257,6 +109,91 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
       return res.status(403).json({ success: false, error: '无权查看此会话' });
     }
     
+    // 如果会话处于 pending 或 scanning 状态，检查浏览器中的登录状态
+    if (session.status === 'pending' || session.status === 'scanning') {
+      // 更新为扫描中
+      if (session.status === 'pending') {
+        await prisma.oAuthSession.update({
+          where: { sessionId },
+          data: { status: 'scanning' }
+        });
+      }
+      
+      // 检查浏览器中的登录状态
+      const loginResult = await checkLoginStatus(sessionId, session.platform);
+      
+      if (loginResult.success) {
+        // 登录成功，保存结果
+        const browserSession = browserSessions.get(sessionId);
+        
+        await prisma.oAuthSession.update({
+          where: { sessionId },
+          data: {
+            status: 'confirmed',
+            cookies: JSON.stringify(loginResult.cookies || []),
+            accountInfo: loginResult.accountInfo,
+            completedAt: new Date()
+          }
+        });
+        
+        // 保存账号
+        await prisma.socialAccount.create({
+          data: {
+            userId,
+            platform: session.platform,
+            accountId: loginResult.accountInfo?.id,
+            accountName: loginResult.accountInfo?.name,
+            avatar: loginResult.accountInfo?.avatar,
+            cookies: JSON.stringify(loginResult.cookies || []),
+            status: 'active',
+            lastSyncAt: new Date()
+          }
+        });
+        
+        // 清理浏览器
+        await closeQRCodeLogin(sessionId);
+        
+        return res.json({
+          success: true,
+          data: {
+            sessionId: session.sessionId,
+            platform: session.platform,
+            status: 'confirmed',
+            accountInfo: loginResult.accountInfo
+          }
+        });
+      }
+      
+      // 检查是否过期
+      if (new Date() > session.expiresAt) {
+        await prisma.oAuthSession.update({
+          where: { sessionId },
+          data: { status: 'expired' }
+        });
+        await closeQRCodeLogin(sessionId);
+        
+        return res.json({
+          success: true,
+          data: {
+            sessionId: session.sessionId,
+            platform: session.platform,
+            status: 'expired'
+          }
+        });
+      }
+      
+      // 仍在等待扫码
+      return res.json({
+        success: true,
+        data: {
+          sessionId: session.sessionId,
+          platform: session.platform,
+          status: 'scanning'
+        }
+      });
+    }
+    
+    // 已完成的会话
     const accountInfo = session.status === 'confirmed' ? session.accountInfo : null;
     
     res.json({
@@ -273,6 +210,7 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
     });
     
   } catch (error: any) {
+    console.error('查询会话状态失败:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -294,16 +232,7 @@ router.delete('/sessions/:sessionId', authMiddleware, async (req: Request, res: 
     }
     
     // 清理浏览器资源
-    const browserSession = browserSessions.get(sessionId);
-    if (browserSession) {
-      try {
-        await closeContext(browserSession.contextId);
-        await closeBrowser(browserSession.browserId);
-      } catch (e) {
-        // 忽略清理错误
-      }
-      browserSessions.delete(sessionId);
-    }
+    await closeQRCodeLogin(sessionId);
     
     // 删除会话
     await prisma.oAuthSession.delete({
