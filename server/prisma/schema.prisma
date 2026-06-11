@@ -871,7 +871,7 @@ model SocialAccount {
   accountId     String?                     // 平台账号ID
   accountName   String?                     // 平台账号名称
   avatar        String?                     // 头像
-  cookies       String?                     // 登录cookies（加密存储）
+  cookies       String?   @db.Text                     // 登录cookies（加密存储）
   headers       String?                     // 请求头（加密存储）
   accessToken   String?                     // OAuth access token
   refreshToken  String?                     // OAuth refresh token
@@ -947,7 +947,7 @@ model OAuthSession {
   redirectUrl   String?                     // 回调URL
   qrcodeUrl     String?                     // 二维码URL
   status        String    @default("pending") // pending, scanning, confirmed, expired, failed
-  cookies       String?                     // 授权后cookies
+  cookies       String?   @db.Text                     // 授权后cookies
   accountInfo   Json?                       // 账号信息
   expiresAt     DateTime                    // 过期时间
   completedAt   DateTime?                   // 完成时间

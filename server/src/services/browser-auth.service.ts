@@ -147,14 +147,18 @@ export async function createAuthSession(platform: string): Promise<{
     
     console.log(`[Auth] 正在打开 ${config.name} 登录页面...`);
     
-    // 访问登录页面
+    // 访问登录页面 - 使用更长超时和更灵活的等待策略
     await page.goto(config.loginUrl, { 
-      waitUntil: 'networkidle',
-      timeout: 30000 
+      waitUntil: 'domcontentloaded',
+      timeout: 60000 
     });
     
-    // 等待二维码出现
-    await page.waitForTimeout(2000);
+    // 等待页面加载完成
+    await page.waitForTimeout(3000);
+    
+    // 滚动到可能包含二维码的区域
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+    await page.waitForTimeout(1000);
     
     // 尝试找到二维码并截图
     let qrcodeDataUrl = '';
