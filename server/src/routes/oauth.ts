@@ -16,6 +16,7 @@ import {
   PLATFORM_CONFIGS,
   BrowserSession
 } from '../services/playwright.service';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -41,9 +42,9 @@ router.get('/platforms', async (req: Request, res: Response) => {
 });
 
 /**
- * 创建授权会话，获取二维码
+ * 创建授权会话，获取二维码 - 需要登录
  */
-router.post('/sessions', async (req: Request, res: Response) => {
+router.post('/sessions', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { platform } = req.body;
@@ -97,9 +98,9 @@ router.post('/sessions', async (req: Request, res: Response) => {
 });
 
 /**
- * 执行扫码授权（内部接口，由前端轮询触发）
+ * 执行扫码授权（内部接口，由前端轮询触发）- 需要登录
  */
-router.post('/authorize', async (req: Request, res: Response) => {
+router.post('/authorize', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { sessionId, platform } = req.body;
@@ -239,7 +240,7 @@ router.post('/authorize', async (req: Request, res: Response) => {
 /**
  * 获取授权会话状态
  */
-router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
+router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { sessionId } = req.params;
@@ -279,7 +280,7 @@ router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
 /**
  * 取消授权会话
  */
-router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
+router.delete('/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { sessionId } = req.params;
@@ -319,7 +320,7 @@ router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
 /**
  * 获取已授权账号列表
  */
-router.get('/accounts', async (req: Request, res: Response) => {
+router.get('/accounts', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { platform } = req.query;
@@ -357,7 +358,7 @@ router.get('/accounts', async (req: Request, res: Response) => {
 /**
  * 删除授权账号
  */
-router.delete('/accounts/:id', async (req: Request, res: Response) => {
+router.delete('/accounts/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { id } = req.params;
@@ -384,7 +385,7 @@ router.delete('/accounts/:id', async (req: Request, res: Response) => {
 /**
  * 刷新账号授权状态
  */
-router.post('/accounts/:id/refresh', async (req: Request, res: Response) => {
+router.post('/accounts/:id/refresh', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     const { id } = req.params;
