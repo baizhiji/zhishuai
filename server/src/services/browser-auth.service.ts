@@ -148,24 +148,61 @@ export async function createAuthSession(platform: string): Promise<{
     console.log(`[Auth] 正在打开 ${config.name} 登录页面...`);
     
     // 访问登录页面 - 使用 domcontentloaded 避免 networkidle 超时
-    await page.goto(config.loginUrl, { 
+    // 确保访问的是登录页面而非主页
+    const loginUrl = config.loginUrl.includes('login') ? config.loginUrl : `${config.loginUrl}/login`;
+    await page.goto(loginUrl, { 
       waitUntil: 'domcontentloaded',
       timeout: 60000 
     });
     
     // 等待页面完全加载，包括动态内容
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(5000);
     
-    // 截图整个页面
+    // 尝试多种方式截取二维码
     let qrcodeDataUrl = '';
-    try {
-      const screenshot = await page.screenshot({ type: 'png', fullPage: false });
-      qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
-    } catch (e) {
-      console.error('[Auth] 截图失败:', e);
+    
+    // 方式1: 查找并截取登录框/二维码容器
+    const qrSelectors = [
+      '.login-qrcode', 
+      '.qrcode', 
+      '[class*="qr-code"]', 
+      '[class*="qrcode"]',
+      '[class*="login"] [class*="code"]',
+      'img[src*="qr"]',
+      '.login-box',
+      '.login-container'
+    ];
+    
+    for (const selector of qrSelectors) {
+      try {
+        const element = await page.$(selector);
+        if (element) {
+          const box = await element.boundingBox();
+          if (box && box.width > 50 && box.height > 50) {
+            const screenshot = await page.screenshot({ 
+              type: 'png',
+              clip: { x: box.x, y: box.y, width: Math.min(box.width + 40, 1280), height: Math.min(box.height + 40, 720) }
+            });
+            qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+            console.log(`[Auth] 找到二维码区域: ${selector}`);
+            break;
+          }
+        }
+      } catch (e) {
+        // 继续尝试下一个选择器
+      }
     }
     
-    // 确保至少有一个截图
+    // 方式2: 如果没找到特定区域，截图整个登录区域（页面左侧）
+    if (!qrcodeDataUrl) {
+      const screenshot = await page.screenshot({ 
+        type: 'png',
+        clip: { x: 0, y: 0, width: 640, height: 720 }  // 截取左半部分，通常包含登录/二维码
+      });
+      qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+    }
+    
+    // 如果仍然没有，尝试全页截图
     if (!qrcodeDataUrl) {
       const screenshot = await page.screenshot({ type: 'png', fullPage: true });
       qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
