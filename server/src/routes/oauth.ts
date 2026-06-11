@@ -11,7 +11,9 @@ import {
   checkLoginStatus,
   closeQRCodeLogin,
   PLATFORM_CONFIGS,
-  BrowserSession
+  BrowserSession,
+  createBrowser,
+  createContext
 } from '../services/playwright.service';
 import { authMiddleware } from '../middleware/auth';
 
@@ -29,7 +31,7 @@ router.get('/platforms', async (req: Request, res: Response) => {
     const platforms = Object.entries(PLATFORM_CONFIGS).map(([key, config]) => ({
       code: key,
       name: config.name,
-      loginType: config.selectors.qrContainer ? 'qrcode' : 'password'
+      loginType: config.qrSelector ? 'qrcode' : 'password'
     }));
     
     res.json({ success: true, data: platforms });
@@ -341,7 +343,7 @@ router.post('/accounts/:id/refresh', authMiddleware, async (req: Request, res: R
       const page = await context.newPage();
       const config = PLATFORM_CONFIGS[account.platform];
       
-      await page.goto(config?.loginUrl || '', { waitUntil: 'networkidle', timeout: 30000 });
+      await page.goto(config?.oauthUrl || '', { waitUntil: 'networkidle', timeout: 30000 });
       
       // 检测是否仍然登录
       const loginSelectors = getLoginSuccessSelectors(account.platform);

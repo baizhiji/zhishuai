@@ -11,6 +11,15 @@ import { v4 as uuidv4 } from 'uuid';
 const browserInstances: Map<string, Browser> = new Map();
 const contextCache: Map<string, BrowserContext> = new Map();
 
+// 浏览器会话缓存
+const browserSessions: Map<string, {
+  browserId: string;
+  contextId: string;
+  platform: string;
+  cookies: any[];
+  createdAt: Date;
+}> = new Map();
+
 // 平台配置 - 各平台OAuth扫码授权页面
 export const PLATFORM_CONFIGS: Record<string, {
   name: string;
@@ -44,6 +53,7 @@ export const PLATFORM_CONFIGS: Record<string, {
   xiaohongshu: {
     name: '小红书',
     oauthUrl: 'https://creator.xiaohongshu.com/creator/post',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/xiaohongshu',
     qrSelector: '.login-qrcode, .qrcode, canvas',
     clickToShowQr: 'button:has-text("扫码登录")',
     successUrlPattern: '/creator/'
@@ -58,42 +68,49 @@ export const PLATFORM_CONFIGS: Record<string, {
   boss: {
     name: 'BOSS直聘',
     oauthUrl: 'https://www.zhipin.com/web/geek/login',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/boss',
     qrSelector: '.qrcode, img.qrcode-img, canvas',
     successUrlPattern: '/web/geek/home'
   },
   channels: {
     name: '视频号',
     oauthUrl: 'https://channels.weixin.qq.com/login',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/channels',
     qrSelector: '.qrcode, img.qrcode-img, canvas',
     successUrlPattern: '/login'
   },
   zhihu: {
     name: '知乎',
     oauthUrl: 'https://www.zhihu.com/signin',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/zhihu',
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/people/'
   },
   baijiahao: {
     name: '百家号',
     oauthUrl: 'https://baijiahao.baidu.com/login',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/baijiahao',
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/'
   },
   toutiao: {
     name: '今日头条',
     oauthUrl: 'https://mp.toutiao.com/auth/page/login',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/toutiao',
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/profile'
   },
   liepin: {
     name: '前程无忧',
     oauthUrl: 'https://www.liepin.com/login/',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/liepin',
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/myaccount/'
   },
   zhilian: {
     name: '智联招聘',
     oauthUrl: 'https://www.zhaopin.com/login/',
+    redirectUri: 'https://baizhiji.net/api/oauth/callback/zhilian',
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/jobs/'
   }
@@ -387,7 +404,7 @@ export async function waitForLogin(page: Page, platform: string, timeout: number
   
   try {
     // 访问登录页面
-    await page.goto(config.loginUrl, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(config.oauthUrl, { waitUntil: 'networkidle', timeout: 30000 });
     
     // 等待登录成功（通过检测用户信息元素）
     const loginSelectors = getLoginSuccessSelectors(platform);
@@ -414,23 +431,6 @@ export async function waitForLogin(page: Page, platform: string, timeout: number
   } catch (error: any) {
     return { success: false, error: error.message };
   }
-}
-
-/**
- * 获取登录成功的检测选择器
- */
-function getLoginSuccessSelectors(platform: string): string[] {
-  const selectors: Record<string, string[]> = {
-    douyin: ['.creator-left-menu', '[data-e2e="creator-nav"]', '.user-info'],
-    kuaishou: ['.profile-header', '.user-name'],
-    xiaohongshu: ['.user-info', '.creator-header'],
-    weibo: ['.WB_frame .WB_main_login'],
-    boss: ['.boss-header', '.user-info'],
-    lagou: ['.user-logo', '.header-user-info'],
-    zhipin: ['.user-info', '.header-user']
-  };
-  
-  return selectors[platform] || ['body'];
 }
 
 /**
