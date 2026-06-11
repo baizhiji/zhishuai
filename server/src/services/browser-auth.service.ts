@@ -179,34 +179,34 @@ export async function createAuthSession(platform: string): Promise<{
         if (element) {
           const box = await element.boundingBox();
           if (box && box.width > 50 && box.height > 50) {
+            // 截取更大的区域以包含完整二维码
             const screenshot = await page.screenshot({ 
               type: 'png',
-              clip: { x: box.x, y: box.y, width: Math.min(box.width + 40, 1280), height: Math.min(box.height + 40, 720) }
+              clip: { 
+                x: Math.max(0, box.x - 20), 
+                y: Math.max(0, box.y - 20), 
+                width: Math.min(box.width + 40, 800), 
+                height: Math.min(box.height + 40, 800) 
+              }
             });
-            qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
-            console.log(`[Auth] 找到二维码区域: ${selector}`);
+            qrcodeDataUrl = `data:image/png;base64,${Buffer.from(screenshot).toString('base64')}`;
+            console.log(`[Auth] 找到二维码区域: ${selector}, 尺寸: ${box.width}x${box.height}`);
             break;
           }
         }
       } catch (e) {
-        // 继续尝试下一个选择器
+        console.log(`[Auth] 选择器 ${selector} 失败: ${e.message}`);
       }
     }
     
     // 方式2: 如果没找到特定区域，截图整个登录区域（页面左侧）
     if (!qrcodeDataUrl) {
-      const screenshot = await page.screenshot({ 
-        type: 'png',
-        clip: { x: 0, y: 0, width: 640, height: 720 }  // 截取左半部分，通常包含登录/二维码
-      });
-      qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
+      console.log('[Auth] 未找到特定区域，使用整页截图');
+      const screenshot = await page.screenshot({ type: 'png', fullPage: false });
+      qrcodeDataUrl = `data:image/png;base64,${Buffer.from(screenshot).toString('base64')}`;
     }
     
-    // 如果仍然没有，尝试全页截图
-    if (!qrcodeDataUrl) {
-      const screenshot = await page.screenshot({ type: 'png', fullPage: true });
-      qrcodeDataUrl = `data:image/png;base64,${screenshot.toString('base64')}`;
-    }
+    console.log(`[Auth] 二维码截图完成，长度: ${qrcodeDataUrl.length}`);
     
     // 保存会话
     sessions.set(sessionId, {
