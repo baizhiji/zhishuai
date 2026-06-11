@@ -46,7 +46,7 @@ router.get('/platforms', async (req: Request, res: Response) => {
  */
 router.post('/sessions', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { platform } = req.body;
     
     if (!platform || !PLATFORM_CONFIGS[platform]) {
@@ -102,7 +102,7 @@ router.post('/sessions', authMiddleware, async (req: Request, res: Response) => 
  */
 router.post('/authorize', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { sessionId, platform } = req.body;
     
     if (!sessionId || !platform) {
@@ -242,7 +242,7 @@ router.post('/authorize', authMiddleware, async (req: Request, res: Response) =>
  */
 router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { sessionId } = req.params;
     
     const session = await prisma.oAuthSession.findUnique({
@@ -282,7 +282,7 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
  */
 router.delete('/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { sessionId } = req.params;
     
     const session = await prisma.oAuthSession.findUnique({
@@ -322,7 +322,7 @@ router.delete('/sessions/:sessionId', authMiddleware, async (req: Request, res: 
  */
 router.get('/accounts', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { platform } = req.query;
     
     const where: any = { userId };
@@ -360,7 +360,7 @@ router.get('/accounts', authMiddleware, async (req: Request, res: Response) => {
  */
 router.delete('/accounts/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { id } = req.params;
     
     const account = await prisma.socialAccount.findUnique({
@@ -387,7 +387,7 @@ router.delete('/accounts/:id', authMiddleware, async (req: Request, res: Respons
  */
 router.post('/accounts/:id/refresh', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
     const { id } = req.params;
     
     const account = await prisma.socialAccount.findUnique({
