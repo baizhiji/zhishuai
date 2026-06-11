@@ -147,14 +147,14 @@ export async function createAuthSession(platform: string): Promise<{
     
     console.log(`[Auth] 正在打开 ${config.name} 登录页面...`);
     
-    // 访问登录页面 - 使用更长超时和更灵活的等待策略
+    // 访问登录页面 - 使用 domcontentloaded 避免 networkidle 超时
     await page.goto(config.loginUrl, { 
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
       timeout: 60000 
     });
     
     // 等待页面完全加载，包括动态内容
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(3000);
     
     // 截图整个页面
     let qrcodeDataUrl = '';
