@@ -57,7 +57,7 @@ class Request {
       };
     }
 
-    return response.json().then((result: ApiResponse<T>) => {
+    return response.json().then((result: any) => {
       // 支持两种响应格式：
       // 1. { success: true, data: {...} } - 认证相关API格式
       // 2. { code: 200, data: {...} } - 其他API格式
