@@ -93,7 +93,7 @@ router.post('/sessions', authMiddleware, async (req: Request, res: Response) => 
         sessionId: result.sessionId,
         platform: result.platform,
         platformName: result.platformName,
-        qrcodeUrl: result.qrcodeUrl,
+        qrcodeImage: result.qrcodeUrl,  // 前端期望 qrcodeImage
         expiresAt: result.expiresAt
       }
     });
