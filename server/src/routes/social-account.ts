@@ -93,6 +93,15 @@ router.post('/session/create', async (req: Request, res: Response) => {
     try {
       const result = await startQRCodeLogin(platform, sessionId);
       
+      if (!result || !result.qrcodeUrl) {
+        console.error(`[Auth] 获取二维码失败，平台: ${PLATFORM_CONFIGS[platform].name}`);
+        loginSessions.delete(sessionId);
+        return res.json({ 
+          code: 500, 
+          message: `无法获取${PLATFORM_CONFIGS[platform]?.name || platform}登录二维码，请检查浏览器环境` 
+        });
+      }
+      
       console.log(`[Auth] 会话 ${sessionId} 创建成功，平台: ${PLATFORM_CONFIGS[platform].name}`);
       
       res.json({
