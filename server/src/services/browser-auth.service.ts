@@ -31,7 +31,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     name: '抖音',
     icon: '🎵',
     color: '#fe2c55',
-    loginUrl: 'https://www.douyin.com/aweme/home',
+    loginUrl: 'https://www.douyin.com/aweme/home/login',
     qrSelector: 'img[src*="qr"]',
     successSelectors: ['.login-mode', '.header-user-info', '[data-e2e*="user"]'],
     userInfoSelector: '.user-name, .nickname',
