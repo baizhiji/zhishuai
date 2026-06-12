@@ -63,6 +63,14 @@ router.post('/sessions', authMiddleware, async (req: Request, res: Response) => 
     // 创建授权会话
     const result = await createAuthSession(platform);
     
+    console.log('[OAuth] createAuthSession 返回:', {
+      hasResult: !!result,
+      sessionId: result?.sessionId,
+      hasQrcodeUrl: !!result?.qrcodeUrl,
+      qrcodeUrlLength: result?.qrcodeUrl?.length || 0,
+      qrcodeUrlPrefix: result?.qrcodeUrl?.substring(0, 50) || '无'
+    });
+    
     if (!result) {
       return res.status(500).json({ success: false, error: '创建授权会话失败，请重试' });
     }
