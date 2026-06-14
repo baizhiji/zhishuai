@@ -94,6 +94,12 @@ export default function SocialAccountsPage() {
         userId: 'current-user',
       });
 
+      // 调试日志
+      console.log('API Response:', res);
+      console.log('res.code:', res?.code);
+      console.log('res.data:', res?.data);
+      console.log('res.data.qrcodeImage:', res?.data?.qrcodeImage);
+
       if (res.code === 0) {
         const platformInfo = PLATFORMS.find(p => p.id === platform);
         setQrSession({
@@ -105,10 +111,11 @@ export default function SocialAccountsPage() {
         setQrStatus('waiting');
         setQrPolling(true);
       } else {
-        message.error('生成二维码失败');
+        message.error('生成二维码失败: ' + (res.message || '未知错误'));
       }
-    } catch (error) {
-      message.error('生成二维码失败');
+    } catch (error: any) {
+      console.error('API Error:', error);
+      message.error('生成二维码失败: ' + (error.message || '网络错误'));
     }
   };
 

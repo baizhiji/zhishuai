@@ -72,23 +72,19 @@ class ApiClient {
   }
 
   public async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.get<ApiResponse<T>>(url, config);
-    return response.data as T;
+    return this.client.get<ApiResponse<T>>(url, config) as Promise<T>;
   }
 
   public async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.post<ApiResponse<T>>(url, data, config);
-    return response.data as T;
+    return this.client.post<ApiResponse<T>>(url, data, config) as Promise<T>;
   }
 
   public async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.put<ApiResponse<T>>(url, data, config);
-    return response.data as T;
+    return this.client.put<ApiResponse<T>>(url, data, config) as Promise<T>;
   }
 
   public async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
-    const response = await this.client.delete<ApiResponse<T>>(url, config);
-    return response.data as T;
+    return this.client.delete<ApiResponse<T>>(url, config) as Promise<T>;
   }
 
   public async upload<T = any>(
