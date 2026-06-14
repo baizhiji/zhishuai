@@ -515,6 +515,7 @@ export default function MatrixManagementPage() {
                 borderRadius: 8,
                 position: 'relative'
               }}>
+                {console.log('[Matrix 渲染] qrcodeImage 状态:', qrcodeImage?.substring(0, 100))}
                 {qrcodeImage ? (
                   <img 
                     src={qrcodeImage} 
