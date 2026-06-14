@@ -108,15 +108,6 @@ export default function MatrixManagementPage() {
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  // DEBUG: 监听 qrcodeImage 状态变化
-  useEffect(() => {
-    console.log('[Matrix] qrcodeImage 状态变化:', {
-      hasValue: !!qrcodeImage,
-      length: qrcodeImage?.length || 0,
-      prefix: qrcodeImage?.substring(0, 100) || '无'
-    });
-  }, [qrcodeImage]);
-
   useEffect(() => {
     fetchData();
     return () => {
@@ -190,10 +181,8 @@ export default function MatrixManagementPage() {
 
     try {
       const res = await request.post('/oauth/sessions', { platform: platform.id });
-      console.log('[Matrix] OAuth 创建会话响应:', JSON.stringify(res).substring(0, 500));
       
       if (res.success && res.data) {
-        console.log('[Matrix] 二维码数据长度:', res.data.qrcodeUrl?.length || 0);
         setSessionId(res.data.sessionId);
         setQrcodeImage(res.data.qrcodeUrl);
         setSessionStatus('pending');
