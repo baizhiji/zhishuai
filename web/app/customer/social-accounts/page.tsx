@@ -99,7 +99,9 @@ export default function SocialAccountsPage() {
       console.log('[二维码] res.code:', res?.code);
       console.log('[二维码] res.data?.qrcodeImage:', res?.data?.qrcodeImage ? `有值(${res.data.qrcodeImage.length}字符)` : '无值');
 
-      if (res && res.code === 0 && res.data && res.data.qrcodeImage) {
+      // 同时支持 { code: 0 } 和 { success: true } 格式
+      const isSuccess = res && (res.code === 0 || res.success === true);
+      if (isSuccess && res.data && res.data.qrcodeImage) {
         const platformInfo = PLATFORMS.find(p => p.id === platform);
         setQrSession({
           sessionId: res.data.sessionId,
@@ -110,7 +112,7 @@ export default function SocialAccountsPage() {
         setQrStatus('waiting');
         setQrPolling(true);
       } else {
-        message.error('生成二维码失败: ' + (res.message || '未知错误'));
+        message.error('生成二维码失败: ' + (res?.message || '未知错误'));
       }
     } catch (error: any) {
       console.error('API Error:', error);
