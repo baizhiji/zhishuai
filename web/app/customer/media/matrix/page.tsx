@@ -181,8 +181,10 @@ export default function MatrixManagementPage() {
 
     try {
       const res = await request.post('/oauth/sessions', { platform: platform.id });
+      console.log('[Matrix] OAuth 创建会话响应:', JSON.stringify(res).substring(0, 500));
       
       if (res.success && res.data) {
+        console.log('[Matrix] 二维码数据长度:', res.data.qrcodeUrl?.length || 0);
         setSessionId(res.data.sessionId);
         setQrcodeImage(res.data.qrcodeUrl);
         setSessionStatus('pending');
