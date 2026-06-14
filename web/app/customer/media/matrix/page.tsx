@@ -524,13 +524,29 @@ export default function MatrixManagementPage() {
                 borderRadius: 8,
                 position: 'relative'
               }}>
-                {/* DEBUG: qrcodeImage state for QR code display */}
-                <div style={{ display: 'none' }} data-qr={qrcodeImage?.length || 0} />
                 {qrcodeImage ? (
                   <img 
                     src={qrcodeImage} 
                     alt="授权二维码" 
                     style={{ width: 200, height: 200 }} 
+                    onError={(e) => {
+                      console.error('[Matrix] 图片加载失败，尝试 blob URL');
+                      // 如果 base64 图片加载失败，尝试转换为 blob URL
+                      try {
+                        const base64Data = qrcodeImage.split(',')[1];
+                        const byteCharacters = atob(base64Data);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {
+                          byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], { type: 'image/png' });
+                        const blobUrl = URL.createObjectURL(blob);
+                        (e.target as HTMLImageElement).src = blobUrl;
+                      } catch (err) {
+                        console.error('[Matrix] Blob 转换失败:', err);
+                      }
+                    }}
                   />
                 ) : (
                   <div style={{ width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
