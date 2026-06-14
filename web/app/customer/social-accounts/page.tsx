@@ -95,12 +95,11 @@ export default function SocialAccountsPage() {
       });
 
       // 调试日志
-      console.log('API Response:', res);
-      console.log('res.code:', res?.code);
-      console.log('res.data:', res?.data);
-      console.log('res.data.qrcodeImage:', res?.data?.qrcodeImage);
+      console.log('[二维码] API 响应:', JSON.stringify(res)?.substring(0, 500));
+      console.log('[二维码] res.code:', res?.code);
+      console.log('[二维码] res.data?.qrcodeImage:', res?.data?.qrcodeImage ? `有值(${res.data.qrcodeImage.length}字符)` : '无值');
 
-      if (res.code === 0) {
+      if (res && res.code === 0 && res.data && res.data.qrcodeImage) {
         const platformInfo = PLATFORMS.find(p => p.id === platform);
         setQrSession({
           sessionId: res.data.sessionId,
