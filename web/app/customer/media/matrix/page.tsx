@@ -108,6 +108,15 @@ export default function MatrixManagementPage() {
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
+  // DEBUG: 监听 qrcodeImage 状态变化
+  useEffect(() => {
+    console.log('[Matrix] qrcodeImage 状态变化:', {
+      hasValue: !!qrcodeImage,
+      length: qrcodeImage?.length || 0,
+      prefix: qrcodeImage?.substring(0, 100) || '无'
+    });
+  }, [qrcodeImage]);
+
   useEffect(() => {
     fetchData();
     return () => {
@@ -515,7 +524,8 @@ export default function MatrixManagementPage() {
                 borderRadius: 8,
                 position: 'relative'
               }}>
-                {console.log('[Matrix 渲染] qrcodeImage 状态:', qrcodeImage?.substring(0, 100))}
+                {/* DEBUG: qrcodeImage state for QR code display */}
+                <div style={{ display: 'none' }} data-qr={qrcodeImage?.length || 0} />
                 {qrcodeImage ? (
                   <img 
                     src={qrcodeImage} 
