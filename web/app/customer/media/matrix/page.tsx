@@ -107,6 +107,29 @@ export default function MatrixManagementPage() {
   const [sessionStatus, setSessionStatus] = useState<string>('pending');
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  
+  // 处理图片加载失败的回退函数
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.log('[Matrix] 图片加载失败，尝试 blob URL');
+    const currentSrc = (e.target as HTMLImageElement).src;
+    if (!currentSrc || !currentSrc.startsWith('data:image')) return;
+    
+    try {
+      const base64Data = currentSrc.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/png' });
+      const blobUrl = URL.createObjectURL(blob);
+      (e.target as HTMLImageElement).src = blobUrl;
+      console.log('[Matrix] Blob URL 转换成功');
+    } catch (err) {
+      console.error('[Matrix] Blob 转换失败:', err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -517,25 +540,8 @@ export default function MatrixManagementPage() {
                   <img 
                     src={qrcodeImage} 
                     alt="授权二维码" 
-                    style={{ width: 200, height: 200 }} 
-                    onError={(e) => {
-                      console.error('[Matrix] 图片加载失败，尝试 blob URL');
-                      // 如果 base64 图片加载失败，尝试转换为 blob URL
-                      try {
-                        const base64Data = qrcodeImage.split(',')[1];
-                        const byteCharacters = atob(base64Data);
-                        const byteNumbers = new Array(byteCharacters.length);
-                        for (let i = 0; i < byteCharacters.length; i++) {
-                          byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        }
-                        const byteArray = new Uint8Array(byteNumbers);
-                        const blob = new Blob([byteArray], { type: 'image/png' });
-                        const blobUrl = URL.createObjectURL(blob);
-                        (e.target as HTMLImageElement).src = blobUrl;
-                      } catch (err) {
-                        console.error('[Matrix] Blob 转换失败:', err);
-                      }
-                    }}
+                    style={{ width: 200, height: 200 }}
+                    onError={handleImageError}
                   />
                 ) : (
                   <div style={{ width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
