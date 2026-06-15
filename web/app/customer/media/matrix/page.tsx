@@ -131,6 +131,13 @@ export default function MatrixManagementPage() {
     }
   }, []);
 
+  // 监听 qrcodeImage 变化
+  useEffect(() => {
+    if (qrcodeImage) {
+      console.log('[Matrix] qrcodeImage 长度:', qrcodeImage.length, '前缀:', qrcodeImage.substring(0, 80));
+    }
+  }, [qrcodeImage]);
+
   useEffect(() => {
     fetchData();
     return () => {
@@ -539,7 +546,6 @@ export default function MatrixManagementPage() {
                 borderRadius: 8,
                 position: 'relative'
               }}>
-                {console.log('[Matrix] img 渲染, qrcodeImage 长度:', qrcodeImage?.length, '前缀:', qrcodeImage?.substring(0, 80))}
                 {qrcodeImage ? (
                   <img 
                     src={qrcodeImage} 
