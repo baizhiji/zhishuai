@@ -350,6 +350,50 @@ export async function createAuthSession(platform: string): Promise<{
       throw new Error('无法访问登录页面');
     }
     
+    // 检查并清除已登录状态
+    console.log(`[Auth] 检查登录状态...`);
+    
+    // 如果检测到已登录，先尝试退出
+    for (const selector of config.successSelectors) {
+      try {
+        const element = await page.$(selector);
+        if (element) {
+          console.log(`[Auth] 检测到已登录状态，尝试退出...`);
+          
+          // 点击用户头像或用户信息区域打开菜单
+          try {
+            await element.click({ timeout: 3000 });
+            await page.waitForTimeout(1000);
+            
+            // 查找退出按钮
+            const logoutSelectors = [
+              'text=退出登录',
+              'text=退出',
+              'text=注销',
+              '[class*="logout"]',
+              '[class*="exit"]',
+            ];
+            
+            for (const logoutSelector of logoutSelectors) {
+              try {
+                const logoutBtn = await page.$(logoutSelector);
+                if (logoutBtn) {
+                  await logoutBtn.click({ timeout: 3000 });
+                  console.log(`[Auth] 点击了退出按钮`);
+                  await page.waitForTimeout(2000);
+                  break;
+                }
+              } catch (e) {}
+            }
+          } catch (e) {
+            console.log(`[Auth] 尝试退出登录失败`);
+          }
+          
+          break;
+        }
+      } catch (e) {}
+    }
+    
     // 点击登录按钮，打开登录弹窗/二维码
     console.log(`[Auth] 正在点击登录按钮...`);
     
