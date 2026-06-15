@@ -278,15 +278,48 @@ async function createBrowserContext(): Promise<BrowserContext> {
   
   // 注入脚本，隐藏 webdriver 属性
   await context.addInitScript(() => {
+    // 隐藏 webdriver
     Object.defineProperty(navigator, 'webdriver', {
       get: () => false,
     });
-    // 禁用自动化相关 API
+    
+    // 模拟正常的插件
     Object.defineProperty(navigator, 'plugins', {
       get: () => [1, 2, 3, 4, 5],
     });
+    
+    // 模拟正常的语言
     Object.defineProperty(navigator, 'languages', {
       get: () => ['zh-CN', 'zh', 'en'],
+    });
+    
+    // 移除自动化检测
+    // @ts-ignore
+    window.chrome = { runtime: {} };
+    
+    // 模拟正常的 permissions
+    const originalQuery = window.navigator.permissions.query;
+    window.navigator.permissions.query = (parameters: any) => (
+      parameters.name === 'notifications' ?
+        Promise.resolve({ state: Notification.permission }) :
+        originalQuery(parameters)
+    );
+    
+    // 移除 iframe 检测
+    Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+      get: function() {
+        return window;
+      }
+    });
+    
+    // 模拟正常的硬件并发
+    Object.defineProperty(navigator, 'hardwareConcurrency', {
+      get: () => 8,
+    });
+    
+    // 模拟正常的设备内存
+    Object.defineProperty(navigator, 'deviceMemory', {
+      get: () => 8,
     });
   });
   
@@ -414,8 +447,9 @@ export async function createAuthSession(platform: string): Promise<{
             console.log(`[Auth] 点击了登录按钮: ${selector}`);
             loginClicked = true;
             
-            // 等待登录弹窗出现
-            await page.waitForTimeout(2000);
+            // 等待登录弹窗出现 - 增加等待时间
+            console.log(`[Auth] 等待登录弹窗加载...`);
+            await page.waitForTimeout(5000);
             break;
           }
         }
@@ -429,18 +463,18 @@ export async function createAuthSession(platform: string): Promise<{
       // 尝试直接打开抖音登录页
       try {
         await page.goto('https://www.douyin.com/login/', { 
-          waitUntil: 'domcontentloaded',
-          timeout: 30000 
+          waitUntil: 'networkidle',
+          timeout: 60000 
         });
-        await page.waitForTimeout(3000);
+        await page.waitForTimeout(5000);
       } catch (e) {
         console.log(`[Auth] 打开登录页失败: ${e.message}`);
       }
     }
     
-    // 等待二维码出现
+    // 等待二维码出现 - 增加等待时间
     console.log(`[Auth] 等待二维码加载...`);
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     
     // 尝试截取二维码
     let qrcodeDataUrl = '';
