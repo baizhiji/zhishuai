@@ -1,33 +1,109 @@
 /**
  * 扫码授权路由
- * 使用浏览器自动化获取平台二维码并检测登录状态
+ * 使用平台 OAuth API + qrcode 生成二维码
  */
 
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { 
-  createAuthSession, 
-  checkAuthStatus, 
-  cancelAuthSession,
-  getPlatformList
-} from '../services/browser-auth.service';
-import { PLATFORM_CONFIGS } from '../services/browser-auth.service';
+import * as QRCode from 'qrcode';
+import * as fs from 'fs';
+import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// 平台 OAuth 配置
+interface PlatformOAuthConfig {
+  name: string;
+  icon: string;
+  color: string;
+  authorizeUrl: string;
+  clientId: string;
+  redirectUri: string;
+  scope: string;
+  status: 'available' | 'coming';
+}
+
+// 二维码存储目录
+const QRCODE_DIR = path.join(__dirname, '../../public/qrcodes');
+
+// 确保目录存在
+if (!fs.existsSync(QRCODE_DIR)) {
+  fs.mkdirSync(QRCODE_DIR, { recursive: true });
+}
+
+// 平台 OAuth 配置 - 需要配置实际的 clientId
+const PLATFORM_OAUTH: Record<string, PlatformOAuthConfig> = {
+  douyin: {
+    name: '抖音',
+    icon: '🎵',
+    color: '#fe2c55',
+    // 抖音 OAuth 授权地址
+    authorizeUrl: 'https://open.douyin.com/oauth/authorize',
+    clientId: process.env.DOUYIN_CLIENT_ID || 'awb8xxxxx', // 需要替换为实际 clientId
+    redirectUri: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/oauth/callback/douyin`,
+    scope: 'user_info,toutiao_video,aweme_video',
+    status: 'available'
+  },
+  kuaishou: {
+    name: '快手',
+    icon: '📹',
+    color: '#ff4906',
+    authorizeUrl: 'https://open.kuaishou.com/oauth2/authorize',
+    clientId: process.env.KUAISHOU_CLIENT_ID || '',
+    redirectUri: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/oauth/callback/kuaishou`,
+    scope: 'user_info',
+    status: 'available'
+  },
+  xiaohongshu: {
+    name: '小红书',
+    icon: '📕',
+    color: '#ff2442',
+    authorizeUrl: 'https://creator.xiaohongshu.com/oauth',
+    clientId: process.env.XHS_CLIENT_ID || '',
+    redirectUri: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/oauth/callback/xiaohongshu`,
+    scope: 'user_info',
+    status: 'coming' // 小红书暂未开放
+  },
+  channels: {
+    name: '视频号',
+    icon: '💬',
+    color: '#07c160',
+    authorizeUrl: 'https://open.weixin.qq.com/connect/qrconnect',
+    clientId: process.env.WECHAT_CLIENT_ID || '',
+    redirectUri: `${process.env.API_BASE_URL || 'http://localhost:3001'}/api/oauth/callback/wechat`,
+    scope: 'snsapi_login',
+    status: 'available'
+  }
+};
+
+/**
+ * 生成授权 URL
+ */
+function generateAuthorizeUrl(config: PlatformOAuthConfig, state: string): string {
+  const params = new URLSearchParams({
+    client_key: config.clientId,
+    redirect_uri: config.redirectUri,
+    scope: config.scope,
+    response_type: 'code',
+    state: state
+  });
+  return `${config.authorizeUrl}?${params.toString()}`;
+}
 
 /**
  * 获取支持的平台列表
  */
 router.get('/platforms', async (req: Request, res: Response) => {
   try {
-    const platforms = getPlatformList().map(p => ({
-      code: p.code,
-      name: p.name,
-      status: p.status,
-      icon: PLATFORM_CONFIGS[p.code]?.icon,
-      color: PLATFORM_CONFIGS[p.code]?.color
+    const platforms = Object.entries(PLATFORM_OAUTH).map(([code, config]) => ({
+      code,
+      name: config.name,
+      icon: config.icon,
+      color: config.color,
+      status: config.status
     }));
     
     res.json({ success: true, data: platforms });
@@ -49,7 +125,7 @@ router.post('/sessions', authMiddleware, async (req: Request, res: Response) => 
       return res.status(400).json({ success: false, error: '请选择平台' });
     }
     
-    const config = PLATFORM_CONFIGS[platform];
+    const config = PLATFORM_OAUTH[platform];
     if (!config) {
       return res.status(400).json({ success: false, error: '不支持的平台' });
     }
@@ -60,41 +136,55 @@ router.post('/sessions', authMiddleware, async (req: Request, res: Response) => 
     
     console.log(`[OAuth] 用户 ${userId} 请求授权平台: ${platform}`);
     
-    // 创建授权会话
-    const result = await createAuthSession(platform);
+    // 生成会话 ID 和 state
+    const sessionId = uuidv4();
+    const state = `${sessionId}_${userId}`;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10分钟
     
-    console.log('[OAuth] createAuthSession 返回:', {
-      hasResult: !!result,
-      sessionId: result?.sessionId,
-      hasQrcodeUrl: !!result?.qrcodeUrl,
-      qrcodeUrlLength: result?.qrcodeUrl?.length || 0,
-      qrcodeUrlPrefix: result?.qrcodeUrl?.substring(0, 50) || '无'
+    // 生成授权 URL
+    const authorizeUrl = generateAuthorizeUrl(config, state);
+    
+    // 使用 qrcode 库生成二维码图片
+    const qrcodeFilename = `qr_${sessionId}.png`;
+    const qrcodeFilepath = path.join(QRCODE_DIR, qrcodeFilename);
+    
+    // 生成二维码并保存
+    await QRCode.toFile(qrcodeFilepath, authorizeUrl, {
+      type: 'png',
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      }
     });
     
-    if (!result) {
-      return res.status(500).json({ success: false, error: '创建授权会话失败，请重试' });
-    }
+    // 二维码图片 URL（相对路径，前端可访问）
+    const qrcodeUrl = `/qrcodes/${qrcodeFilename}`;
+    
+    console.log(`[OAuth] 生成二维码: ${qrcodeUrl}, 授权URL: ${authorizeUrl.substring(0, 80)}...`);
     
     // 保存会话到数据库
     await prisma.oAuthSession.create({
       data: {
         userId,
         platform,
-        sessionId: result.sessionId,
-        state: '',
+        sessionId,
+        state,
         status: 'pending',
-        expiresAt: result.expiresAt
+        expiresAt
       }
     });
     
     res.json({
       success: true,
       data: {
-        sessionId: result.sessionId,
-        platform: result.platform,
-        platformName: result.platformName,
-        qrcodeUrl: result.qrcodeUrl,  // 前端期望 qrcodeUrl
-        expiresAt: result.expiresAt
+        sessionId,
+        platform,
+        platformName: config.name,
+        qrcodeUrl,
+        authorizeUrl, // 也返回原始授权 URL
+        expiresAt
       }
     });
     
@@ -113,7 +203,6 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
     const userId = (req as any).userId;
     const { sessionId } = req.params;
     
-    // 检查数据库中的会话
     const dbSession = await prisma.oAuthSession.findUnique({
       where: { sessionId }
     });
@@ -126,7 +215,7 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
       return res.status(403).json({ success: false, error: '无权查看此会话' });
     }
     
-    // 检查是否已授权
+    // 已授权
     if (dbSession.status === 'confirmed') {
       return res.json({
         success: true,
@@ -139,7 +228,7 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
       });
     }
     
-    // 检查是否过期
+    // 已过期
     if (new Date() > dbSession.expiresAt) {
       await prisma.oAuthSession.update({
         where: { sessionId },
@@ -150,84 +239,60 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
         success: true,
         data: {
           sessionId,
-          status: 'expired',
-          message: '授权已过期，请重新授权'
+          platform: dbSession.platform,
+          status: 'expired'
         }
       });
     }
     
-    // 检查浏览器中的登录状态
-    const authResult = await checkAuthStatus(sessionId);
-    
-    if (authResult.status === 'authorized') {
-      // 授权成功，保存账号
-      const accountInfo = authResult.accountInfo || {};
-      
-      await prisma.oAuthSession.update({
-        where: { sessionId },
-        data: {
-          status: 'confirmed',
-          cookies: JSON.stringify(authResult.cookies || []),
-          accountInfo: accountInfo,
-          completedAt: new Date()
-        }
-      });
-      
-      // 创建或更新社交账号
-      const platformConfig = PLATFORM_CONFIGS[dbSession.platform];
-      await prisma.socialAccount.create({
-        data: {
-          id: `${userId}_${dbSession.platform}_${Date.now()}`,
-          userId,
-          platform: dbSession.platform,
-          accountId: accountInfo?.id || dbSession.platform,
-          accountName: accountInfo?.name || `${platformConfig?.name || dbSession.platform}账号`,
-          avatar: accountInfo?.avatar,
-          cookies: JSON.stringify(authResult.cookies || []),
-          status: 'active'
-        }
-      }).catch(() => {
-        // 如果已存在，更新
-        return prisma.socialAccount.updateMany({
-          where: { userId, platform: dbSession.platform },
-          data: {
-            cookies: JSON.stringify(authResult.cookies || []),
-            accountName: accountInfo?.name || `${platformConfig?.name || dbSession.platform}账号`,
-            avatar: accountInfo?.avatar,
-            status: 'active',
-            lastSyncAt: new Date()
-          }
-        });
-      });
-      
-      return res.json({
-        success: true,
-        data: {
-          sessionId,
-          platform: dbSession.platform,
-          status: 'confirmed',
-          accountInfo,
-          message: '授权成功！'
-        }
-      });
-    }
-    
-    // 返回当前状态
-    const platformConfig = PLATFORM_CONFIGS[dbSession.platform];
+    // 等待扫码
     return res.json({
       success: true,
       data: {
         sessionId,
         platform: dbSession.platform,
-        platformName: platformConfig?.name,
-        status: dbSession.status,
-        message: authResult.message
+        status: dbSession.status
       }
     });
     
   } catch (error: any) {
-    console.error('查询授权状态失败:', error);
+    console.error('查询会话状态失败:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * OAuth 回调处理（示例）
+ * GET /api/oauth/callback/:platform
+ */
+router.get('/callback/:platform', async (req: Request, res: Response) => {
+  const { platform } = req.params;
+  const { code, state } = req.query;
+  
+  // 解析 state 获取 sessionId 和 userId
+  const [sessionId, userId] = (state as string || '').split('_');
+  
+  console.log(`[OAuth Callback] 平台: ${platform}, code: ${code}, state: ${state}`);
+  
+  if (!code || !state) {
+    return res.status(400).send('缺少授权参数');
+  }
+  
+  try {
+    // 更新会话状态为已授权
+    await prisma.oAuthSession.update({
+      where: { sessionId },
+      data: {
+        status: 'confirmed',
+        accountInfo: JSON.stringify({ code, platform })
+      }
+    });
+    
+    // 重定向到前端成功页面
+    res.redirect(`/?oauth_success=1&platform=${platform}`);
+  } catch (error: any) {
+    console.error('OAuth 回调处理失败:', error);
+    res.status(500).send('授权处理失败');
   }
 });
 
@@ -237,107 +302,22 @@ router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Res
  */
 router.delete('/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
     const { sessionId } = req.params;
     
-    const session = await prisma.oAuthSession.findUnique({
-      where: { sessionId }
-    });
-    
-    if (!session || session.userId !== userId) {
-      return res.status(404).json({ success: false, error: '会话不存在' });
-    }
-    
-    // 清理浏览器会话
-    cancelAuthSession(sessionId);
-    
-    // 删除数据库会话
     await prisma.oAuthSession.delete({
       where: { sessionId }
-    });
+    }).catch(() => {});
     
-    res.json({ success: true });
-    
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * 获取已授权账号列表
- * GET /api/oauth/accounts
- */
-router.get('/accounts', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).userId;
-    
-    const accounts = await prisma.socialAccount.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' }
-    });
-    
-    const data = accounts.map(account => {
-      const config = PLATFORM_CONFIGS[account.platform];
-      return {
-        id: account.id,
-        platform: account.platform,
-        platformName: config?.name || account.platform,
-        platformIcon: config?.icon,
-        platformColor: config?.color,
-        accountId: account.accountId,
-        accountName: account.accountName,
-        avatar: account.avatar,
-        status: account.status,
-        lastSyncAt: account.lastSyncAt,
-        createdAt: account.createdAt
-      };
-    });
-    
-    res.json({ success: true, data });
-    
-  } catch (error: any) {
-    console.error('获取账号列表失败:', error);
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * 删除授权账号
- * DELETE /api/oauth/accounts/:id
- */
-router.delete('/accounts/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const userId = (req as any).userId;
-    const { id } = req.params;
-    
-    const account = await prisma.socialAccount.findFirst({
-      where: { id, userId }
-    });
-    
-    if (!account) {
-      return res.status(404).json({ success: false, error: '账号不存在' });
+    // 删除二维码文件
+    const qrcodeFilepath = path.join(QRCODE_DIR, `qr_${sessionId}.png`);
+    if (fs.existsSync(qrcodeFilepath)) {
+      fs.unlinkSync(qrcodeFilepath);
     }
     
-    await prisma.socialAccount.delete({
-      where: { id }
-    });
-    
     res.json({ success: true });
-    
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
-});
-
-/**
- * 测试端点
- */
-router.get('/test', async (req: Request, res: Response) => {
-  res.json({ 
-    success: true, 
-    message: '扫码授权路由正常',
-    platforms: getPlatformList().length
-  });
 });
 
 export default router;

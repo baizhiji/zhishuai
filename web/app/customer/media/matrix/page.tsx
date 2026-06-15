@@ -44,6 +44,7 @@ import {
   ClockCircleOutlined,
   CheckOutlined,
   ScanOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import Link from 'next/link';
 import request from '@/utils/request';
@@ -103,40 +104,18 @@ export default function MatrixManagementPage() {
   const [bindStep, setBindStep] = useState<'select' | 'scan' | 'success'>('select');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [qrcodeImage, setQrcodeImage] = useState<string | null>(null);
+  const [qrcodeUrl, setQrcodeUrl] = useState<string | null>(null);
+  const [qrcodeLoading, setQrcodeLoading] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<string>('pending');
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
-  
-  // 处理图片加载失败的回退函数
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.log('[Matrix] 图片加载失败，尝试 blob URL');
-    const currentSrc = (e.target as HTMLImageElement).src;
-    if (!currentSrc || !currentSrc.startsWith('data:image')) return;
-    
-    try {
-      const base64Data = currentSrc.split(',')[1];
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/png' });
-      const blobUrl = URL.createObjectURL(blob);
-      (e.target as HTMLImageElement).src = blobUrl;
-      console.log('[Matrix] Blob URL 转换成功');
-    } catch (err) {
-      console.error('[Matrix] Blob 转换失败:', err);
-    }
-  }, []);
 
-  // 监听 qrcodeImage 变化
+  // 监听 qrcodeUrl 变化
   useEffect(() => {
-    if (qrcodeImage) {
-      console.log('[Matrix] qrcodeImage 长度:', qrcodeImage.length, '前缀:', qrcodeImage.substring(0, 80));
+    if (qrcodeUrl) {
+      console.log('[Matrix] 二维码 URL:', qrcodeUrl);
     }
-  }, [qrcodeImage]);
+  }, [qrcodeUrl]);
 
   useEffect(() => {
     fetchData();
@@ -208,15 +187,17 @@ export default function MatrixManagementPage() {
 
     setSelectedPlatform(platform);
     setBindStep('scan');
+    setQrcodeLoading(true);
 
     try {
       const res = await request.post('/oauth/sessions', { platform: platform.id });
       console.log('[Matrix] 创建会话响应:', JSON.stringify(res).substring(0, 500));
       
       if (res.success && res.data) {
-        console.log('[Matrix] 设置二维码:', res.data.qrcodeUrl?.substring(0, 100));
+        console.log('[Matrix] 设置二维码:', res.data.qrcodeUrl);
         setSessionId(res.data.sessionId);
-        setQrcodeImage(res.data.qrcodeUrl);
+        setQrcodeUrl(res.data.qrcodeUrl);
+        setQrcodeLoading(false);
         setSessionStatus('pending');
         
         // 开始轮询授权状态
@@ -225,11 +206,13 @@ export default function MatrixManagementPage() {
         console.error('[Matrix] 创建会话失败:', res);
         message.error(res.error || '创建授权会话失败');
         setBindStep('select');
+        setQrcodeLoading(false);
       }
     } catch (error) {
       console.error('[Matrix] 创建会话异常:', error);
       message.error('创建授权会话失败');
       setBindStep('select');
+      setQrcodeLoading(false);
     }
   };
 
@@ -274,7 +257,8 @@ export default function MatrixManagementPage() {
     setBindStep('select');
     setSelectedPlatform(null);
     setSessionId(null);
-    setQrcodeImage(null);
+    setQrcodeUrl(null);
+    setQrcodeLoading(false);
     setSessionStatus('pending');
   };
 
@@ -512,7 +496,7 @@ export default function MatrixManagementPage() {
         open={bindModalVisible}
         onCancel={handleCloseBindModal}
         footer={null}
-        width={450}
+        width={bindStep === 'scan' ? 420 : 450}
         destroyOnClose
       >
         {bindStep === 'select' && (
@@ -538,27 +522,60 @@ export default function MatrixManagementPage() {
         )}
 
         {bindStep === 'scan' && (
-          <div style={{ textAlign: 'center' }}>
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              {/* 平台标题 */}
+              <div>
+                <div style={{ fontSize: 48, marginBottom: 8 }}>{selectedPlatform?.icon}</div>
+                <Title level={4} style={{ margin: 0, color: selectedPlatform?.color }}>
+                  授权 {selectedPlatform?.name}
+                </Title>
+              </div>
+
+              {/* 二维码区域 */}
               <div style={{ 
-                background: '#f5f5f5', 
-                padding: 24, 
-                borderRadius: 8,
+                background: '#fff', 
+                padding: 32, 
+                borderRadius: 12,
+                border: `2px solid ${selectedPlatform?.color || '#f0f0f0'}`,
                 position: 'relative'
               }}>
-                {qrcodeImage ? (
-                  <img 
-                    src={qrcodeImage} 
-                    alt="授权二维码" 
-                    style={{ width: 200, height: 200 }}
-                    onError={handleImageError}
-                  />
+                {qrcodeLoading ? (
+                  <div style={{ width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Spin size="large" tip="正在生成二维码..." />
+                  </div>
+                ) : qrcodeUrl ? (
+                  <div style={{ position: 'relative' }}>
+                    <img 
+                      src={qrcodeUrl} 
+                      alt="授权二维码" 
+                      style={{ width: 280, height: 280, display: 'block' }}
+                    />
+                    
+                    {/* 扫码提示遮罩 */}
+                    {sessionStatus === 'pending' && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        color: '#fff',
+                        padding: '8px 0',
+                        borderRadius: '0 0 10px 10px',
+                        fontSize: 12
+                      }}>
+                        请打开{selectedPlatform?.name} App 扫码
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <div style={{ width: 200, height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Spin size="large" />
+                  <div style={{ width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+                    <Text type="secondary">二维码加载失败</Text>
                   </div>
                 )}
                 
+                {/* 扫码确认中遮罩 */}
                 {sessionStatus === 'scanning' && (
                   <div style={{
                     position: 'absolute',
@@ -566,31 +583,42 @@ export default function MatrixManagementPage() {
                     left: 0,
                     right: 0,
                     bottom: 0,
-                    background: 'rgba(255,255,255,0.9)',
+                    background: 'rgba(255,255,255,0.95)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    borderRadius: 8,
+                    borderRadius: 12,
                   }}>
-                    <Space direction="vertical">
-                      <Spin size="large" />
-                      <Text>正在确认授权...</Text>
+                    <Space direction="vertical" size="middle">
+                      <LoadingOutlined style={{ fontSize: 32 }} />
+                      <Text strong>正在确认授权...</Text>
                     </Space>
                   </div>
                 )}
               </div>
 
-              <div>
+              {/* 操作提示 */}
+              <div style={{ 
+                background: '#f8f8f8', 
+                padding: 16, 
+                borderRadius: 8,
+                width: '100%'
+              }}>
                 <Space>
-                  <ScanOutlined style={{ fontSize: 24, color: selectedPlatform?.color }} />
+                  <QrcodeOutlined style={{ fontSize: 20, color: selectedPlatform?.color }} />
                   <div style={{ textAlign: 'left' }}>
                     <Text strong>打开 {selectedPlatform?.name} App</Text>
                     <br />
-                    <Text type="secondary">扫描左侧二维码完成授权</Text>
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      1. 打开{selectedPlatform?.name} App<br/>
+                      2. 点击右上角扫一扫<br/>
+                      3. 扫描上方二维码完成授权
+                    </Text>
                   </div>
                 </Space>
               </div>
 
+              {/* 二维码有效期提示 */}
               {sessionStatus === 'pending' && (
                 <Alert
                   type="info"
@@ -598,10 +626,11 @@ export default function MatrixManagementPage() {
                   icon={<ClockCircleOutlined />}
                   message="二维码有效期10分钟"
                   description="请在有效期内完成扫码授权"
+                  style={{ width: '100%' }}
                 />
               )}
 
-              <Button onClick={() => setBindStep('select')} block>
+              <Button onClick={() => setBindStep('select')} block size="large">
                 返回选择其他平台
               </Button>
             </Space>
