@@ -395,17 +395,28 @@ export async function createAuthSession(platform: string): Promise<{
       }
     }
     
-    // 方法2: 如果没找到，截图整个页面左侧区域（通常登录在左侧）
+    // 方法2: 如果没找到，截图页面左侧区域（通常二维码在左侧）
     if (!qrcodeDataUrl) {
-      console.log(`[Auth] 未找到二维码图片，尝试截图页面...`);
+      console.log(`[Auth] 未找到二维码图片，尝试截图左侧区域...`);
+      
+      // 尝试截图左侧 1/3 到 1/2 的区域（通常登录表单/二维码在左侧）
+      const viewport = page.viewportSize();
+      const width = viewport?.width || 1920;
+      
       const screenshot = await page.screenshot({ 
         type: 'png',
-        fullPage: false
+        clip: {
+          x: 0,
+          y: 0,
+          width: Math.floor(width * 0.5),  // 只截左半边
+          height: 1080
+        }
       });
       const base64Data = Buffer.isBuffer(screenshot) 
         ? screenshot.toString('base64')
         : Buffer.from(screenshot as unknown as Buffer).toString('base64');
       qrcodeDataUrl = `data:image/png;base64,${base64Data}`;
+      console.log(`[Auth] 截图左半边区域完成`);
     }
     
     console.log(`[Auth] 二维码截图完成，长度: ${qrcodeDataUrl.length}`);
