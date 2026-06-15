@@ -497,7 +497,7 @@ export default function MatrixManagementPage() {
         open={bindModalVisible}
         onCancel={handleCloseBindModal}
         footer={null}
-        width={bindStep === 'scan' ? 420 : 450}
+        width={bindStep === 'scan' ? 500 : 450}
         destroyOnClose
       >
         {bindStep === 'select' && (
@@ -536,21 +536,28 @@ export default function MatrixManagementPage() {
               {/* 二维码区域 */}
               <div style={{ 
                 background: '#fff', 
-                padding: 32, 
+                padding: 16, 
                 borderRadius: 12,
                 border: `2px solid ${selectedPlatform?.color || '#f0f0f0'}`,
                 position: 'relative'
               }}>
                 {qrcodeLoading ? (
-                  <div style={{ width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 350, height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Spin size="large" tip="正在生成二维码..." />
                   </div>
                 ) : qrcodeImage ? (
                   <div style={{ position: 'relative' }}>
+                    {/* 放大图片显示 */}
                     <img 
                       src={qrcodeImage} 
                       alt="授权二维码" 
-                      style={{ width: 280, height: 280, display: 'block' }}
+                      style={{ 
+                        width: 350, 
+                        height: 'auto', 
+                        maxHeight: 400,
+                        display: 'block',
+                        borderRadius: 4
+                      }}
                     />
                     
                     {/* 扫码提示遮罩 */}

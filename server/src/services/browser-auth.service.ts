@@ -331,7 +331,7 @@ export async function createAuthSession(platform: string): Promise<{
         });
         
         // 等待页面加载
-        await page.waitForTimeout(3000);
+        await page.waitForTimeout(2000);
         
         // 检查是否成功加载（页面有内容）
         const bodyText = await page.textContent('body');
@@ -348,6 +348,60 @@ export async function createAuthSession(platform: string): Promise<{
     if (!loginSuccess) {
       console.log(`[Auth] 所有登录 URL 都失败了`);
       throw new Error('无法访问登录页面');
+    }
+    
+    // 点击登录按钮，打开登录弹窗/二维码
+    console.log(`[Auth] 正在点击登录按钮...`);
+    
+    // 尝试多种登录按钮选择器
+    const loginButtonSelectors = [
+      // 抖音
+      'button:has-text("登录")',
+      'a:has-text("登录")',
+      '[class*="login"]',
+      '[data-e2e*="login"]',
+      'div:has-text("登录")',
+      // 通用
+      '.login-btn',
+      '.login-button',
+      '[class*="login-btn"]',
+      '[class*="login-button"]',
+    ];
+    
+    let loginClicked = false;
+    for (const selector of loginButtonSelectors) {
+      try {
+        const button = await page.$(selector);
+        if (button) {
+          // 检查元素是否可见
+          const isVisible = await button.isVisible();
+          if (isVisible) {
+            await button.click({ timeout: 5000 });
+            console.log(`[Auth] 点击了登录按钮: ${selector}`);
+            loginClicked = true;
+            
+            // 等待登录弹窗出现
+            await page.waitForTimeout(2000);
+            break;
+          }
+        }
+      } catch (e: any) {
+        console.log(`[Auth] 点击 ${selector} 失败: ${e.message}`);
+      }
+    }
+    
+    if (!loginClicked) {
+      console.log(`[Auth] 未找到可点击的登录按钮，尝试直接打开登录页`);
+      // 尝试直接打开抖音登录页
+      try {
+        await page.goto('https://www.douyin.com/login/', { 
+          waitUntil: 'domcontentloaded',
+          timeout: 30000 
+        });
+        await page.waitForTimeout(3000);
+      } catch (e) {
+        console.log(`[Auth] 打开登录页失败: ${e.message}`);
+      }
     }
     
     // 等待二维码出现
