@@ -204,8 +204,10 @@ export default function MatrixManagementPage() {
 
     try {
       const res = await request.post('/oauth/sessions', { platform: platform.id });
+      console.log('[Matrix] 创建会话响应:', JSON.stringify(res).substring(0, 500));
       
       if (res.success && res.data) {
+        console.log('[Matrix] 设置二维码:', res.data.qrcodeUrl?.substring(0, 100));
         setSessionId(res.data.sessionId);
         setQrcodeImage(res.data.qrcodeUrl);
         setSessionStatus('pending');
@@ -213,11 +215,12 @@ export default function MatrixManagementPage() {
         // 开始轮询授权状态
         startPolling(res.data.sessionId);
       } else {
+        console.error('[Matrix] 创建会话失败:', res);
         message.error(res.error || '创建授权会话失败');
         setBindStep('select');
       }
     } catch (error) {
-      console.error('创建会话失败:', error);
+      console.error('[Matrix] 创建会话异常:', error);
       message.error('创建授权会话失败');
       setBindStep('select');
     }
