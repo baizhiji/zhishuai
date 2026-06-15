@@ -104,18 +104,19 @@ export default function MatrixManagementPage() {
   const [bindStep, setBindStep] = useState<'select' | 'scan' | 'success'>('select');
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [qrcodeUrl, setQrcodeUrl] = useState<string | null>(null);
+  const [qrcodeImage, setQrcodeImage] = useState<string | null>(null);
   const [qrcodeLoading, setQrcodeLoading] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<string>('pending');
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
-  // 监听 qrcodeUrl 变化
+  // 监听 qrcodeImage 变化
   useEffect(() => {
-    if (qrcodeUrl) {
-      console.log('[Matrix] 二维码 URL:', qrcodeUrl);
+    if (qrcodeImage) {
+      console.log('[Matrix] 二维码数据已加载，长度:', qrcodeImage.length);
+      console.log('[Matrix] 二维码前缀:', qrcodeImage.substring(0, 50));
     }
-  }, [qrcodeUrl]);
+  }, [qrcodeImage]);
 
   useEffect(() => {
     fetchData();
@@ -194,9 +195,9 @@ export default function MatrixManagementPage() {
       console.log('[Matrix] 创建会话响应:', JSON.stringify(res).substring(0, 500));
       
       if (res.success && res.data) {
-        console.log('[Matrix] 设置二维码:', res.data.qrcodeUrl);
+        console.log('[Matrix] 设置二维码，长度:', res.data.qrcodeUrl?.length);
         setSessionId(res.data.sessionId);
-        setQrcodeUrl(res.data.qrcodeUrl);
+        setQrcodeImage(res.data.qrcodeUrl);
         setQrcodeLoading(false);
         setSessionStatus('pending');
         
@@ -257,7 +258,7 @@ export default function MatrixManagementPage() {
     setBindStep('select');
     setSelectedPlatform(null);
     setSessionId(null);
-    setQrcodeUrl(null);
+    setQrcodeImage(null);
     setQrcodeLoading(false);
     setSessionStatus('pending');
   };
@@ -544,10 +545,10 @@ export default function MatrixManagementPage() {
                   <div style={{ width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Spin size="large" tip="正在生成二维码..." />
                   </div>
-                ) : qrcodeUrl ? (
+                ) : qrcodeImage ? (
                   <div style={{ position: 'relative' }}>
                     <img 
-                      src={qrcodeUrl} 
+                      src={qrcodeImage} 
                       alt="授权二维码" 
                       style={{ width: 280, height: 280, display: 'block' }}
                     />
