@@ -259,6 +259,7 @@ async function getBrowser(): Promise<Browser> {
 
 /**
  * 创建新的浏览器上下文（隔离会话）
+ * 使用无痕模式，确保没有已登录状态
  */
 async function createBrowserContext(): Promise<BrowserContext> {
   const browser = await getBrowser();
@@ -268,14 +269,24 @@ async function createBrowserContext(): Promise<BrowserContext> {
     userAgent: getRandomUserAgent(),
     // 不记录权限
     permissions: [],
-    // 地理定位（可选）
-    // geolocation: { latitude: 39.9042, longitude: 116.4074 },
+    // 重点：禁用存储（无痕模式）
+    ignoreHTTPSErrors: true,
   });
+  
+  // 清除所有 cookie，确保未登录状态
+  await context.clearCookies();
   
   // 注入脚本，隐藏 webdriver 属性
   await context.addInitScript(() => {
     Object.defineProperty(navigator, 'webdriver', {
       get: () => false,
+    });
+    // 禁用自动化相关 API
+    Object.defineProperty(navigator, 'plugins', {
+      get: () => [1, 2, 3, 4, 5],
+    });
+    Object.defineProperty(navigator, 'languages', {
+      get: () => ['zh-CN', 'zh', 'en'],
     });
   });
   
@@ -350,66 +361,45 @@ export async function createAuthSession(platform: string): Promise<{
       throw new Error('无法访问登录页面');
     }
     
-    // 检查并清除已登录状态
-    console.log(`[Auth] 检查登录状态...`);
+    // 无痕模式下应该直接显示登录界面
+    // 等待页面加载完成后，检查是否显示了登录弹窗/二维码
+    await page.waitForTimeout(3000);
     
-    // 如果检测到已登录，先尝试退出
-    for (const selector of config.successSelectors) {
+    // 截图当前状态看看
+    const currentScreenshot = await page.screenshot({ type: 'png' });
+    console.log(`[Auth] 页面加载完成，截图大小: ${currentScreenshot.length} bytes`);
+    
+    // 检查是否已经显示了登录二维码
+    // 常见登录弹窗选择器
+    const loginModalSelectors = [
+      '[class*="login-modal"]',
+      '[class*="login-dialog"]',
+      '[class*="qrcode"]',
+      '[class*="scan"]',
+      '.login-qrcode',
+      '[class*="login-box"]',
+    ];
+    
+    for (const selector of loginModalSelectors) {
       try {
-        const element = await page.$(selector);
-        if (element) {
-          console.log(`[Auth] 检测到已登录状态，尝试退出...`);
-          
-          // 点击用户头像或用户信息区域打开菜单
-          try {
-            await element.click({ timeout: 3000 });
-            await page.waitForTimeout(1000);
-            
-            // 查找退出按钮
-            const logoutSelectors = [
-              'text=退出登录',
-              'text=退出',
-              'text=注销',
-              '[class*="logout"]',
-              '[class*="exit"]',
-            ];
-            
-            for (const logoutSelector of logoutSelectors) {
-              try {
-                const logoutBtn = await page.$(logoutSelector);
-                if (logoutBtn) {
-                  await logoutBtn.click({ timeout: 3000 });
-                  console.log(`[Auth] 点击了退出按钮`);
-                  await page.waitForTimeout(2000);
-                  break;
-                }
-              } catch (e) {}
-            }
-          } catch (e) {
-            console.log(`[Auth] 尝试退出登录失败`);
+        const modal = await page.$(selector);
+        if (modal) {
+          const box = await modal.boundingBox();
+          if (box && box.width > 100 && box.height > 100) {
+            console.log(`[Auth] 找到登录弹窗: ${selector}`);
           }
-          
-          break;
         }
       } catch (e) {}
     }
     
-    // 点击登录按钮，打开登录弹窗/二维码
-    console.log(`[Auth] 正在点击登录按钮...`);
+    // 如果没自动显示登录弹窗，尝试点击登录按钮
+    console.log(`[Auth] 尝试点击登录按钮...`);
     
-    // 尝试多种登录按钮选择器
     const loginButtonSelectors = [
-      // 抖音
       'button:has-text("登录")',
       'a:has-text("登录")',
-      '[class*="login"]',
-      '[data-e2e*="login"]',
+      '[class*="login"]:not([class*="logged"])',
       'div:has-text("登录")',
-      // 通用
-      '.login-btn',
-      '.login-button',
-      '[class*="login-btn"]',
-      '[class*="login-button"]',
     ];
     
     let loginClicked = false;
