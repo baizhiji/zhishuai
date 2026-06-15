@@ -39,7 +39,11 @@ export default function CountDownInput({
     if (!phone) {
       return;
     }
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     setLoading(true);
     try {
       const res = await AuthAPI.sendCode(phone);
@@ -59,7 +63,11 @@ export default function CountDownInput({
       <Input
         style={{ flex: 1 }}
         value={value}
+<<<<<<< HEAD
         onChange={(e) => onChange?.(e.target.value)}
+=======
+        onChange={e => onChange?.(e.target.value)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         placeholder={placeholder}
         size={size}
         disabled={disabled}

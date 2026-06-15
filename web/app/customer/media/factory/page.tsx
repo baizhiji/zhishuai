@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 'use client'
 
 import { useState, useEffect } from 'react'
+=======
+'use client';
+
+import { useState, useEffect } from 'react';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   Card,
   Typography,
@@ -24,7 +30,11 @@ import {
   Upload,
   Row,
   Col,
+<<<<<<< HEAD
 } from 'antd'
+=======
+} from 'antd';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   FontSizeOutlined,
   TagsOutlined,
@@ -45,8 +55,13 @@ import {
   FileOutlined,
   ApartmentOutlined,
   UserOutlined,
+<<<<<<< HEAD
 } from '@ant-design/icons'
 import { generateText, generateImage } from '@/lib/ai/aliyun'
+=======
+} from '@ant-design/icons';
+import { generateText, generateImage } from '@/lib/ai/aliyun';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   ContentCategory,
   contentCategoryConfig,
@@ -55,6 +70,7 @@ import {
   subtitleOptions,
   voiceoverOptions,
   bgmOptions,
+<<<<<<< HEAD
 } from '@/lib/content/types'
 
 const { Title, Text, Paragraph } = Typography
@@ -79,10 +95,39 @@ export default function ContentFactoryPage() {
   const [generatedList, setGeneratedList] = useState<string[]>([])
   const [historyVisible, setHistoryVisible] = useState(false)
   const [generationHistory, setGenerationHistory] = useState<GenerationRecord[]>([])
+=======
+} from '@/lib/content/types';
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+
+// 生成记录类型
+interface GenerationRecord {
+  id: string;
+  category: ContentCategory;
+  content: string;
+  config: any;
+  timestamp: number;
+  status: 'success' | 'failed';
+}
+
+export default function ContentFactoryPage() {
+  const [activeCategory, setActiveCategory] = useState<ContentCategory>(
+    ContentCategory.COPYWRITING
+  );
+  const [form] = Form.useForm();
+  const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [generatedList, setGeneratedList] = useState<string[]>([]);
+  const [historyVisible, setHistoryVisible] = useState(false);
+  const [generationHistory, setGenerationHistory] = useState<GenerationRecord[]>([]);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 从 localStorage 加载历史记录
   useEffect(() => {
     if (typeof window !== 'undefined') {
+<<<<<<< HEAD
       const saved = localStorage.getItem('generation-history')
       if (saved) {
         try {
@@ -154,10 +199,84 @@ export default function ContentFactoryPage() {
         } else {
           // 文本生成
           let prompt = ''
+=======
+      const saved = localStorage.getItem('generation-history');
+      if (saved) {
+        try {
+          setGenerationHistory(JSON.parse(saved));
+        } catch (error) {
+          console.error('加载历史记录失败:', error);
+        }
+      }
+    }
+  }, []);
+
+  // 保存历史记录到 localStorage
+  const saveHistory = (record: GenerationRecord) => {
+    const newHistory = [record, ...generationHistory].slice(0, 50);
+    setGenerationHistory(newHistory);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('generation-history', JSON.stringify(newHistory));
+    }
+  };
+
+  // 生成内容
+  const handleGenerate = async () => {
+    const values = await form.validateFields();
+    setGenerating(true);
+    setProgress(0);
+    setGeneratedContent(null);
+    setGeneratedList([]);
+
+    const count = values.count || 1;
+    const results: string[] = [];
+
+    // 模拟生成进度
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + (100 / count) * 0.1;
+      });
+    }, 100);
+
+    try {
+      const categoryConfig = contentCategoryConfig[activeCategory];
+
+      // 批量生成
+      for (let i = 0; i < count; i++) {
+        let result: any;
+
+        if (categoryConfig.type === 'image') {
+          // 图片生成
+          const prompt = `生成一张${values.style || '写实'}风格的图片，主题：${values.description}`;
+          result = await generateImage(prompt, {
+            size: values.size || '1024x1024',
+            model: 'wanx-v1',
+          });
+          // 提取图片 URL
+          result = result.output.results[0].url;
+        } else if (categoryConfig.type === 'video') {
+          // 视频生成（暂时使用模拟）
+          const extras = `（字幕:${values.subtitle || '无'}，配音:${values.voiceover || '无'}，背景音乐:${values.bgm || '无'}）`;
+          if (activeCategory === ContentCategory.VIDEO_ANALYSIS) {
+            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=爆款视频${i + 1}${extras}`;
+          } else if (activeCategory === ContentCategory.DIGITAL_HUMAN) {
+            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=数字人视频${i + 1}-${values.digitalHumanId}${extras}`;
+          } else {
+            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=视频${i + 1}${extras}`;
+          }
+        } else {
+          // 文本生成
+          let prompt = '';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
           // 根据不同分类生成不同的提示词
           switch (activeCategory) {
             case ContentCategory.TITLE:
+<<<<<<< HEAD
               prompt = `生成${count}个吸引人的标题，主题：${values.description}，风格：${values.style || '吸引眼球'}。`
               break
             case ContentCategory.TAGS:
@@ -183,12 +302,40 @@ export default function ContentFactoryPage() {
               break
             default:
               prompt = `为"${values.description}"生成内容，风格：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。`
+=======
+              prompt = `生成${count}个吸引人的标题，主题：${values.description}，风格：${values.style || '吸引眼球'}。`;
+              break;
+            case ContentCategory.TAGS:
+              prompt = `为"${values.description}"生成${count}个相关的话题标签，格式：#标签1 #标签2，风格：${values.style || '流行'}。`;
+              break;
+            case ContentCategory.COPYWRITING:
+              prompt = `为"${values.description}"生成${values.wordCount || 500}字左右的文案，风格：${values.style || '专业'}。${values.requirements ? `额外要求：${values.requirements}` : ''}`;
+              break;
+            case ContentCategory.IMAGE_TO_TEXT:
+              prompt = `根据上传的图片生成${values.wordCount || 300}字左右的文案描述，风格：${values.style || '生动'}。`;
+              break;
+            case ContentCategory.XIAOHONGSHU:
+              prompt = `为"${values.description}"生成${values.wordCount || 300}字左右的小红书风格文案，包含emoji，风格：${values.style || '生活化'}。${values.requirements ? `额外要求：${values.requirements}` : ''}`;
+              break;
+            case ContentCategory.ECOMMERCE:
+              prompt = `为产品"${values.description}"生成电商详情页文案，包含产品介绍、卖点、使用场景等，字数：${values.wordCount || 800}字。${values.requirements ? `额外要求：${values.requirements}` : ''}`;
+              break;
+            case ContentCategory.VIDEO_ANALYSIS:
+              prompt = `分析视频"${values.videoUrl}"并生成爆款视频。分析维度：${values.analysisDimensions?.join('、')}，保留爆款元素：${values.viralElements?.join('、')}。生成描述：${values.description}`;
+              break;
+            case ContentCategory.DIGITAL_HUMAN:
+              prompt = `使用数字人生成短视频。数字人ID：${values.digitalHumanId}，口播内容：${values.description}，字数：${values.wordCount || 500}字。字幕：${values.subtitle}，配音：${values.voiceover}，背景音乐：${values.bgm}`;
+              break;
+            default:
+              prompt = `为"${values.description}"生成内容，风格：${values.style || '专业'}，字数限制：${values.wordCount || 500}字。`;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           }
 
           result = await generateText(prompt, {
             model: 'qwen-plus',
             maxTokens: values.wordCount || 500,
             temperature: 0.7,
+<<<<<<< HEAD
           })
 
           result = result.output.text
@@ -207,10 +354,31 @@ export default function ContentFactoryPage() {
       // 自动保存到素材库
       if (typeof window !== 'undefined') {
         const materials = JSON.parse(localStorage.getItem('materials') || '[]')
+=======
+          });
+
+          result = result.output.text;
+        }
+
+        results.push(result);
+        setProgress(Math.round(((i + 1) / count) * 90));
+      }
+
+      clearInterval(progressInterval);
+      setProgress(100);
+
+      setGeneratedList(results);
+      setGeneratedContent(results[0]); // 默认显示第一条
+
+      // 自动保存到素材库
+      if (typeof window !== 'undefined') {
+        const materials = JSON.parse(localStorage.getItem('materials') || '[]');
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         results.forEach((content, index) => {
           materials.push({
             id: `material_${Date.now()}_${index}`,
             category: activeCategory,
+<<<<<<< HEAD
             title: form.getFieldValue('description') || `${contentCategoryConfig[activeCategory].label}-${index + 1}`,
             content: content,
             timestamp: Date.now(),
@@ -218,6 +386,17 @@ export default function ContentFactoryPage() {
           })
         })
         localStorage.setItem('materials', JSON.stringify(materials))
+=======
+            title:
+              form.getFieldValue('description') ||
+              `${contentCategoryConfig[activeCategory].label}-${index + 1}`,
+            content: content,
+            timestamp: Date.now(),
+            status: 'unused',
+          });
+        });
+        localStorage.setItem('materials', JSON.stringify(materials));
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       }
 
       // 保存到历史记录
@@ -228,6 +407,7 @@ export default function ContentFactoryPage() {
         config: values,
         timestamp: Date.now(),
         status: 'success',
+<<<<<<< HEAD
       })
 
       message.success(`成功生成 ${count} 条${categoryConfig.label}，已自动保存到素材库！`)
@@ -235,6 +415,15 @@ export default function ContentFactoryPage() {
       clearInterval(progressInterval)
       console.error('生成失败:', error)
       message.error('生成失败，请重试')
+=======
+      });
+
+      message.success(`成功生成 ${count} 条${categoryConfig.label}，已自动保存到素材库！`);
+    } catch (error) {
+      clearInterval(progressInterval);
+      console.error('生成失败:', error);
+      message.error('生成失败，请重试');
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
       saveHistory({
         id: `gen_${Date.now()}`,
@@ -243,6 +432,7 @@ export default function ContentFactoryPage() {
         config: values,
         timestamp: Date.now(),
         status: 'failed',
+<<<<<<< HEAD
       })
     } finally {
       setGenerating(false)
@@ -255,11 +445,29 @@ export default function ContentFactoryPage() {
     if (!contentToSave) {
       message.warning('请先生成内容')
       return
+=======
+      });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  // 保存到素材库
+  const handleSave = (content?: string) => {
+    const contentToSave = content || generatedContent;
+    if (!contentToSave) {
+      message.warning('请先生成内容');
+      return;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     }
 
     // 保存到 localStorage
     if (typeof window !== 'undefined') {
+<<<<<<< HEAD
       const materials = JSON.parse(localStorage.getItem('materials') || '[]')
+=======
+      const materials = JSON.parse(localStorage.getItem('materials') || '[]');
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       materials.push({
         id: `material_${Date.now()}`,
         category: activeCategory,
@@ -267,6 +475,7 @@ export default function ContentFactoryPage() {
         content: contentToSave,
         timestamp: Date.now(),
         status: 'unused',
+<<<<<<< HEAD
       })
       localStorage.setItem('materials', JSON.stringify(materials))
       message.success('已保存到素材库')
@@ -319,6 +528,60 @@ export default function ContentFactoryPage() {
     }
     message.success('已删除')
   }
+=======
+      });
+      localStorage.setItem('materials', JSON.stringify(materials));
+      message.success('已保存到素材库');
+    }
+  };
+
+  // 复制内容
+  const handleCopy = (content?: string) => {
+    const contentToCopy = content || generatedContent;
+    if (!contentToCopy) return;
+    navigator.clipboard.writeText(contentToCopy);
+    message.success('已复制到剪贴板');
+  };
+
+  // 下载内容
+  const handleDownload = (content?: string) => {
+    const contentToDownload = content || generatedContent;
+    if (!contentToDownload) return;
+
+    const categoryConfig = contentCategoryConfig[activeCategory];
+
+    if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
+      window.open(contentToDownload, '_blank');
+    } else {
+      const blob = new Blob([contentToDownload], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${activeCategory}_${Date.now()}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      message.success('已下载');
+    }
+  };
+
+  // 从历史记录中加载
+  const handleLoadFromHistory = (record: GenerationRecord) => {
+    setGeneratedContent(record.content);
+    form.setFieldsValue(record.config);
+    setHistoryVisible(false);
+    message.success('已加载历史记录');
+  };
+
+  // 删除历史记录
+  const handleDeleteHistory = (id: string) => {
+    const newHistory = generationHistory.filter(r => r.id !== id);
+    setGenerationHistory(newHistory);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('generation-history', JSON.stringify(newHistory));
+    }
+    message.success('已删除');
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 获取分类图标
   const getCategoryIcon = (category: ContentCategory) => {
@@ -333,9 +596,15 @@ export default function ContentFactoryPage() {
       [ContentCategory.VIDEO]: <VideoCameraOutlined />,
       [ContentCategory.VIDEO_ANALYSIS]: <ApartmentOutlined />,
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
+<<<<<<< HEAD
     }
     return iconMap[category]
   }
+=======
+    };
+    return iconMap[category];
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 渲染视频解析表单
   const renderVideoAnalysisForm = () => (
@@ -384,7 +653,11 @@ export default function ContentFactoryPage() {
         </Col>
       </Row>
     </>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 渲染数字人表单
   const renderDigitalHumanForm = () => (
@@ -396,11 +669,15 @@ export default function ContentFactoryPage() {
             name="digitalHumanId"
             rules={[{ required: true, message: '请选择数字人' }]}
           >
+<<<<<<< HEAD
             <Select
               placeholder="选择数字人"
               showSearch
               optionFilterProp="children"
             >
+=======
+            <Select placeholder="选择数字人" showSearch optionFilterProp="children">
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Select.OptGroup label="系统自带">
                 <Select.Option value="system_male_1">商务男1</Select.Option>
                 <Select.Option value="system_female_1">商务女1</Select.Option>
@@ -418,7 +695,11 @@ export default function ContentFactoryPage() {
           <Button
             type="link"
             icon={<UserOutlined />}
+<<<<<<< HEAD
             onClick={() => window.location.href = '/media/digital-humans'}
+=======
+            onClick={() => (window.location.href = '/media/digital-humans')}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             style={{ marginTop: 32 }}
           >
             管理数字人仓库
@@ -426,7 +707,11 @@ export default function ContentFactoryPage() {
         </Col>
       </Row>
     </>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 渲染字幕配音背景音乐表单
   const renderVideoExtras = () => (
@@ -449,11 +734,19 @@ export default function ContentFactoryPage() {
         </Col>
       </Row>
     </>
+<<<<<<< HEAD
   )
 
   // 渲染表单
   const renderForm = () => {
     const categoryConfig = contentCategoryConfig[activeCategory]
+=======
+  );
+
+  // 渲染表单
+  const renderForm = () => {
+    const categoryConfig = contentCategoryConfig[activeCategory];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
     return (
       <Form
@@ -472,7 +765,16 @@ export default function ContentFactoryPage() {
             <Form.Item
               label="内容描述"
               name="description"
+<<<<<<< HEAD
               rules={[{ required: activeCategory !== ContentCategory.VIDEO_ANALYSIS, message: '请输入内容描述' }]}
+=======
+              rules={[
+                {
+                  required: activeCategory !== ContentCategory.VIDEO_ANALYSIS,
+                  message: '请输入内容描述',
+                },
+              ]}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             >
               <TextArea
                 rows={3}
@@ -480,8 +782,13 @@ export default function ContentFactoryPage() {
                   activeCategory === ContentCategory.IMAGE_TO_TEXT
                     ? '描述图片内容或上传图片...'
                     : activeCategory === ContentCategory.VIDEO_ANALYSIS
+<<<<<<< HEAD
                     ? '输入要生成的爆款视频描述...'
                     : '输入要生成的内容描述、产品描述或参数...'
+=======
+                      ? '输入要生成的爆款视频描述...'
+                      : '输入要生成的内容描述、产品描述或参数...'
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 }
               />
             </Form.Item>
@@ -499,11 +806,15 @@ export default function ContentFactoryPage() {
           <Row gutter={16}>
             <Col span={24}>
               <Form.Item label="上传文件" name="files">
+<<<<<<< HEAD
                 <Upload
                   multiple
                   listType="text"
                   beforeUpload={() => false}
                 >
+=======
+                <Upload multiple listType="text" beforeUpload={() => false}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   <Button icon={<FileOutlined />}>选择文件（支持图片、文档）</Button>
                 </Upload>
               </Form.Item>
@@ -523,12 +834,21 @@ export default function ContentFactoryPage() {
                   {
                     validator: (_, value) => {
                       if (!value || value <= 0) {
+<<<<<<< HEAD
                         return Promise.reject('字数必须大于0')
                       }
                       if (value > 2000) {
                         return Promise.reject('字数不能超过2000')
                       }
                       return Promise.resolve()
+=======
+                        return Promise.reject('字数必须大于0');
+                      }
+                      if (value > 2000) {
+                        return Promise.reject('字数不能超过2000');
+                      }
+                      return Promise.resolve();
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     },
                   },
                 ]}
@@ -552,7 +872,13 @@ export default function ContentFactoryPage() {
                 label={categoryConfig.type === 'video' ? '视频尺寸' : '图片尺寸'}
                 name="size"
               >
+<<<<<<< HEAD
                 <Select options={categoryConfig.type === 'video' ? videoSizeOptions : imageSizeOptions} />
+=======
+                <Select
+                  options={categoryConfig.type === 'video' ? videoSizeOptions : imageSizeOptions}
+                />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               </Form.Item>
             </Col>
           </Row>
@@ -569,9 +895,15 @@ export default function ContentFactoryPage() {
                   {
                     validator: (_, value) => {
                       if (value && value > 180) {
+<<<<<<< HEAD
                         return Promise.reject('时长不能超过180秒')
                       }
                       return Promise.resolve()
+=======
+                        return Promise.reject('时长不能超过180秒');
+                      }
+                      return Promise.resolve();
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     },
                   },
                 ]}
@@ -590,7 +922,12 @@ export default function ContentFactoryPage() {
         {/* 字幕、配音、背景音乐配置（短视频类） */}
         {(activeCategory === ContentCategory.VIDEO ||
           activeCategory === ContentCategory.VIDEO_ANALYSIS ||
+<<<<<<< HEAD
           activeCategory === ContentCategory.DIGITAL_HUMAN) && renderVideoExtras()}
+=======
+          activeCategory === ContentCategory.DIGITAL_HUMAN) &&
+          renderVideoExtras()}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
         {/* 风格选项 */}
         <Row gutter={16}>
@@ -631,12 +968,21 @@ export default function ContentFactoryPage() {
                 {
                   validator: (_, value) => {
                     if (!value || value <= 0) {
+<<<<<<< HEAD
                       return Promise.reject('数量必须大于0')
                     }
                     if (value > 100) {
                       return Promise.reject('数量不能超过100')
                     }
                     return Promise.resolve()
+=======
+                      return Promise.reject('数量必须大于0');
+                    }
+                    if (value > 100) {
+                      return Promise.reject('数量不能超过100');
+                    }
+                    return Promise.resolve();
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   },
                 },
               ]}
@@ -664,16 +1010,28 @@ export default function ContentFactoryPage() {
           </Button>
         </Form.Item>
       </Form>
+<<<<<<< HEAD
     )
   }
+=======
+    );
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 渲染生成结果
   const renderGeneratedResult = () => {
     if (!generatedContent && !generating) {
+<<<<<<< HEAD
       return null
     }
 
     const categoryConfig = contentCategoryConfig[activeCategory]
+=======
+      return null;
+    }
+
+    const categoryConfig = contentCategoryConfig[activeCategory];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
     return (
       <Card title="生成结果" className="mt-6">
@@ -692,9 +1050,21 @@ export default function ContentFactoryPage() {
                   <List.Item
                     key={index}
                     actions={[
+<<<<<<< HEAD
                       <Button type="link" onClick={() => handleCopy(item)}>复制</Button>,
                       <Button type="link" onClick={() => handleSave(item)}>保存</Button>,
                       <Button type="link" onClick={() => handleDownload(item)}>下载</Button>,
+=======
+                      <Button type="link" onClick={() => handleCopy(item)}>
+                        复制
+                      </Button>,
+                      <Button type="link" onClick={() => handleSave(item)}>
+                        保存
+                      </Button>,
+                      <Button type="link" onClick={() => handleDownload(item)}>
+                        下载
+                      </Button>,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     ]}
                   >
                     <List.Item.Meta
@@ -715,11 +1085,27 @@ export default function ContentFactoryPage() {
               <div>
                 {categoryConfig.type === 'image' ? (
                   <div className="text-center">
+<<<<<<< HEAD
                     <Image src={generatedContent || ''} alt="Generated content" style={{ maxWidth: '100%' }} />
                   </div>
                 ) : categoryConfig.type === 'video' ? (
                   <div className="text-center">
                     <video src={generatedContent || ''} controls style={{ maxWidth: '100%', maxHeight: 400 }} />
+=======
+                    <Image
+                      src={generatedContent || ''}
+                      alt="Generated content"
+                      style={{ maxWidth: '100%' }}
+                    />
+                  </div>
+                ) : categoryConfig.type === 'video' ? (
+                  <div className="text-center">
+                    <video
+                      src={generatedContent || ''}
+                      controls
+                      style={{ maxWidth: '100%', maxHeight: 400 }}
+                    />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   </div>
                 ) : (
                   <div className="bg-gray-50 p-4 rounded">
@@ -743,8 +1129,13 @@ export default function ContentFactoryPage() {
           </div>
         )}
       </Card>
+<<<<<<< HEAD
     )
   }
+=======
+    );
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 渲染历史记录
   const renderHistoryDrawer = () => (
@@ -759,7 +1150,11 @@ export default function ContentFactoryPage() {
       ) : (
         <List
           dataSource={generationHistory}
+<<<<<<< HEAD
           renderItem={(record) => (
+=======
+          renderItem={record => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <List.Item
               actions={[
                 <Button
@@ -787,7 +1182,13 @@ export default function ContentFactoryPage() {
                 }
                 title={
                   <Space>
+<<<<<<< HEAD
                     <span>{record.config?.description || contentCategoryConfig[record.category]?.label}</span>
+=======
+                    <span>
+                      {record.config?.description || contentCategoryConfig[record.category]?.label}
+                    </span>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     <Tag color={contentCategoryConfig[record.category]?.color}>
                       {contentCategoryConfig[record.category]?.label}
                     </Tag>
@@ -809,13 +1210,23 @@ export default function ContentFactoryPage() {
         />
       )}
     </Drawer>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
       {/* 页面头部 */}
       <div className="mb-6">
+<<<<<<< HEAD
         <Title level={2} className="mb-2">内容工厂</Title>
+=======
+        <Title level={2} className="mb-2">
+          内容工厂
+        </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         <Text type="secondary">
           使用AI智能生成各类自媒体内容，支持文案、图片、视频、数字人等多种形式
         </Text>
@@ -825,8 +1236,13 @@ export default function ContentFactoryPage() {
       <Card>
         <Tabs
           activeKey={activeCategory}
+<<<<<<< HEAD
           onChange={(key) => setActiveCategory(key as ContentCategory)}
           items={Object.values(ContentCategory).map((category) => ({
+=======
+          onChange={key => setActiveCategory(key as ContentCategory)}
+          items={Object.values(ContentCategory).map(category => ({
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             key: category,
             label: (
               <Space>
@@ -862,5 +1278,9 @@ export default function ContentFactoryPage() {
       {/* 历史记录抽屉 */}
       {renderHistoryDrawer()}
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

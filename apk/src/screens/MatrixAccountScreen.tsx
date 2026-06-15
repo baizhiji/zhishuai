@@ -47,9 +47,17 @@ const PLATFORM_CONFIG: Record<string, { name: string; color: string; icon: strin
   kuaishou: { name: '快手', color: '#ff4906', icon: 'flash' },
   xiaohongshu: { name: '小红书', color: '#fe2c55', icon: 'book' },
   weixin: { name: '视频号', color: '#07c160', icon: 'chatbubbles' },
+<<<<<<< HEAD
   weibo: { name: '微博', color: '#ff8200', icon: 'cloud' },
 };
 
+=======
+};
+
+// 即将上线的平台
+const UPCOMING_PLATFORMS = ['weibo', 'bilibili', 'toutiao'];
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 // 模拟账号数据
 const MOCK_ACCOUNTS: Account[] = [
   { id: '1', platform: 'douyin', accountName: '智枢AI官方号', fans: 12580, status: 'active', lastSync: '2小时前', autoPublish: true, group: 'main' },
@@ -58,7 +66,10 @@ const MOCK_ACCOUNTS: Account[] = [
   { id: '4', platform: 'xiaohongshu', accountName: '智枢科技号', fans: 5230, status: 'active', lastSync: '2天前', autoPublish: true, group: 'branch' },
   { id: '5', platform: 'weixin', accountName: '智枢AI视频号', fans: 5320, status: 'inactive', lastSync: '1周前', autoPublish: false, group: 'test' },
   { id: '6', platform: 'kuaishou', accountName: '智枢科技', fans: 3260, status: 'active', lastSync: '5小时前', autoPublish: true, group: 'branch' },
+<<<<<<< HEAD
   { id: '7', platform: 'weibo', accountName: '智枢AI', fans: 1580, status: 'active', lastSync: '1天前', autoPublish: false, group: 'main' },
+=======
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 ];
 
 export default function MatrixAccountScreen() {

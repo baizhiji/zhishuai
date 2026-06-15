@@ -250,14 +250,28 @@
           "baseUrl": "${COZE_INTEGRATION_MODEL_BASE_URL}",
           "apiKey": "${COZE_WORKLOAD_IDENTITY_API_KEY}"
         },
+<<<<<<< HEAD
         "fallback": "none",
+=======
+        "fallback": "file",
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         "model": "doubao-embedding-vision-251215",
         "query": {
           "hybrid": {
             "vectorWeight": 0.75,
             "textWeight": 0.25
           }
+<<<<<<< HEAD
         }
+=======
+        },
+        "indexPaths": [
+          "/workspace/zhishuai/docs/*.md",
+          "/workspace/zhishuai/CHANGELOG.md",
+          "/workspace/zhishuai/docs/ISSUES.md",
+          "/workspace/zhishuai/docs/DEVELOPMENT_LOG.md"
+        ]
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       },
       "compaction": {
         "mode": "safeguard"
@@ -290,7 +304,11 @@
   },
   "commands": {
     "native": "auto",
+<<<<<<< HEAD
     "nativeSkills": "auto",
+=======
+    "nativeSkills": "auto,zhishuai-skill",
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     "restart": true,
     "ownerDisplay": "raw"
   },

@@ -67,6 +67,7 @@ const faqCategories = [
 ];
 
 const mockFAQs: FAQ[] = [
+<<<<<<< HEAD
   { id: 1, category: 'account', question: '如何注册智枢 AI SaaS 账号？', answer: '访问智枢 AI SaaS 官网，点击注册按钮，填写手机号和验证码即可完成注册。', views: 1256 },
   { id: 2, category: 'account', question: '忘记密码怎么办？', answer: '在登录页面点击"忘记密码"，输入注册手机号，接收验证码后重置密码。', views: 2341 },
   { id: 3, category: 'payment', question: '如何购买套餐？', answer: '登录后进入"套餐管理"页面，选择适合您的套餐，完成支付即可开通服务。', views: 1876 },
@@ -84,6 +85,110 @@ const helpArticles: HelpArticle[] = [
   { id: 2, title: '视频教程', category: 'video', description: '观看功能操作视频', icon: <VideoCameraOutlined style={{ fontSize: 32, color: '#52c41a' }} /> },
   { id: 3, title: 'API 文档', category: 'api', description: '开发者 API 参考', icon: <FileTextOutlined style={{ fontSize: 32, color: '#722ed1' }} /> },
   { id: 4, title: '常见问题', category: 'faq', description: 'FAQ 常见问题解答', icon: <QuestionCircleOutlined style={{ fontSize: 32, color: '#faad14' }} /> },
+=======
+  {
+    id: 1,
+    category: 'account',
+    question: '如何注册智枢 AI SaaS 账号？',
+    answer: '访问智枢 AI SaaS 官网，点击注册按钮，填写手机号和验证码即可完成注册。',
+    views: 1256,
+  },
+  {
+    id: 2,
+    category: 'account',
+    question: '忘记密码怎么办？',
+    answer: '在登录页面点击"忘记密码"，输入注册手机号，接收验证码后重置密码。',
+    views: 2341,
+  },
+  {
+    id: 3,
+    category: 'payment',
+    question: '如何购买套餐？',
+    answer: '登录后进入"套餐管理"页面，选择适合您的套餐，完成支付即可开通服务。',
+    views: 1876,
+  },
+  {
+    id: 4,
+    category: 'payment',
+    question: '支持哪些支付方式？',
+    answer: '我们支持微信支付、支付宝、银联卡等多种支付方式。',
+    views: 987,
+  },
+  {
+    id: 5,
+    category: 'feature',
+    question: '如何使用矩阵管理功能？',
+    answer: '在矩阵管理页面，点击"添加账号"，通过扫码授权绑定您的社交媒体账号，即可统一管理。',
+    views: 3456,
+  },
+  {
+    id: 6,
+    category: 'feature',
+    question: 'AI 对话引擎如何使用？',
+    answer: '进入 AI 对话页面，选择合适的 AI 模型，输入您的问题即可获得智能回答。',
+    views: 2876,
+  },
+  {
+    id: 7,
+    category: 'feature',
+    question: '招聘助手的简历筛选准吗？',
+    answer:
+      '我们的 AI 简历筛选基于多维度分析，包括技能匹配度、工作经验、教育背景等，准确率可达 85% 以上。',
+    views: 1567,
+  },
+  {
+    id: 8,
+    category: 'technical',
+    question: 'API 调用失败怎么解决？',
+    answer: '请检查：1. API Key 是否正确配置；2. 调用频率是否超限；3. 网络连接是否正常。',
+    views: 2345,
+  },
+  {
+    id: 9,
+    category: 'technical',
+    question: '数据导出支持哪些格式？',
+    answer: '支持 Excel、CSV、JSON 三种格式导出，您可以在数据报表页面选择导出格式。',
+    views: 1234,
+  },
+  {
+    id: 10,
+    category: 'technical',
+    question: '系统运行缓慢怎么办？',
+    answer: '建议：1. 清理浏览器缓存；2. 使用 Chrome 或 Firefox 最新版本；3. 检查网络速度。',
+    views: 987,
+  },
+];
+
+const helpArticles: HelpArticle[] = [
+  {
+    id: 1,
+    title: '快速入门指南',
+    category: 'getting-started',
+    description: '5分钟快速上手智枢 AI',
+    icon: <BookOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+  },
+  {
+    id: 2,
+    title: '视频教程',
+    category: 'video',
+    description: '观看功能操作视频',
+    icon: <VideoCameraOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
+  },
+  {
+    id: 3,
+    title: 'API 文档',
+    category: 'api',
+    description: '开发者 API 参考',
+    icon: <FileTextOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
+  },
+  {
+    id: 4,
+    title: '常见问题',
+    category: 'faq',
+    description: 'FAQ 常见问题解答',
+    icon: <QuestionCircleOutlined style={{ fontSize: 32, color: '#faad14' }} />,
+  },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 ];
 
 const contactOptions = [
@@ -99,7 +204,16 @@ export default function HelpCenter() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [chatVisible, setChatVisible] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
+<<<<<<< HEAD
     { id: 1, type: 'bot', content: '您好！我是智枢 AI 助手，请问有什么可以帮助您的？', time: new Date().toLocaleTimeString() },
+=======
+    {
+      id: 1,
+      type: 'bot',
+      content: '您好！我是智枢 AI 助手，请问有什么可以帮助您的？',
+      time: new Date().toLocaleTimeString(),
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ]);
   const [chatInput, setChatInput] = useState('');
   const [contactModalVisible, setContactModalVisible] = useState(false);
@@ -107,7 +221,12 @@ export default function HelpCenter() {
 
   const filteredFAQs = mockFAQs.filter(faq => {
     const matchCategory = activeCategory === 'all' || faq.category === activeCategory;
+<<<<<<< HEAD
     const matchSearch = !searchKeyword ||
+=======
+    const matchSearch =
+      !searchKeyword ||
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       faq.question.toLowerCase().includes(searchKeyword.toLowerCase()) ||
       faq.answer.toLowerCase().includes(searchKeyword.toLowerCase());
     return matchCategory && matchSearch;
@@ -169,7 +288,11 @@ export default function HelpCenter() {
           size="large"
           style={{ maxWidth: 500 }}
           value={searchKeyword}
+<<<<<<< HEAD
           onChange={(e) => setSearchKeyword(e.target.value)}
+=======
+          onChange={e => setSearchKeyword(e.target.value)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           prefix={<SearchOutlined />}
           allowClear
         />
@@ -177,11 +300,21 @@ export default function HelpCenter() {
 
       {/* Quick Access */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+<<<<<<< HEAD
         {helpArticles.map((article) => (
           <Col xs={24} sm={12} lg={6} key={article.id}>
             <Card hoverable style={{ textAlign: 'center', borderRadius: 12 }}>
               <div style={{ marginBottom: 16 }}>{article.icon}</div>
               <Title level={5} style={{ margin: 0 }}>{article.title}</Title>
+=======
+        {helpArticles.map(article => (
+          <Col xs={24} sm={12} lg={6} key={article.id}>
+            <Card hoverable style={{ textAlign: 'center', borderRadius: 12 }}>
+              <div style={{ marginBottom: 16 }}>{article.icon}</div>
+              <Title level={5} style={{ margin: 0 }}>
+                {article.title}
+              </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Text type="secondary">{article.description}</Text>
             </Card>
           </Col>
@@ -192,7 +325,11 @@ export default function HelpCenter() {
       <Card style={{ borderRadius: 12, marginBottom: 24 }}>
         <Title level={4}>常见问题</Title>
         <Space wrap style={{ marginBottom: 16 }}>
+<<<<<<< HEAD
           {faqCategories.map((cat) => (
+=======
+          {faqCategories.map(cat => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Tag
               key={cat.key}
               color={activeCategory === cat.key ? 'blue' : 'default'}
@@ -205,7 +342,11 @@ export default function HelpCenter() {
         </Space>
 
         <Collapse accordion>
+<<<<<<< HEAD
           {filteredFAQs.map((faq) => (
+=======
+          {filteredFAQs.map(faq => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Panel
               key={faq.id}
               header={
@@ -273,7 +414,11 @@ export default function HelpCenter() {
                 { title: 'AI 对话使用技巧', href: '/help/ai-chat-guide' },
                 { title: '招聘助手操作手册', href: '/help/recruitment-guide' },
               ]}
+<<<<<<< HEAD
               renderItem={(item) => (
+=======
+              renderItem={item => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <List.Item>
                   <a href={item.href} style={{ display: 'flex', alignItems: 'center' }}>
                     <BookOutlined style={{ marginRight: 8 }} />
@@ -301,7 +446,11 @@ export default function HelpCenter() {
         width={500}
       >
         <div style={{ height: 400, overflowY: 'auto', marginBottom: 16 }}>
+<<<<<<< HEAD
           {messages.map((msg) => (
+=======
+          {messages.map(msg => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <div
               key={msg.id}
               style={{
@@ -310,9 +459,13 @@ export default function HelpCenter() {
                 marginBottom: 16,
               }}
             >
+<<<<<<< HEAD
               {msg.type === 'bot' && (
                 <Avatar icon={<RobotOutlined />} style={{ marginRight: 8 }} />
               )}
+=======
+              {msg.type === 'bot' && <Avatar icon={<RobotOutlined />} style={{ marginRight: 8 }} />}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <div
                 style={{
                   maxWidth: '70%',
@@ -324,9 +477,13 @@ export default function HelpCenter() {
               >
                 {msg.content}
               </div>
+<<<<<<< HEAD
               {msg.type === 'user' && (
                 <Avatar style={{ marginLeft: 8 }}>U</Avatar>
               )}
+=======
+              {msg.type === 'user' && <Avatar style={{ marginLeft: 8 }}>U</Avatar>}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </div>
           ))}
         </div>
@@ -334,7 +491,11 @@ export default function HelpCenter() {
           <Input
             placeholder="输入您的问题..."
             value={chatInput}
+<<<<<<< HEAD
             onChange={(e) => setChatInput(e.target.value)}
+=======
+            onChange={e => setChatInput(e.target.value)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             onPressEnter={handleSendMessage}
           />
           <Button type="primary" icon={<SendOutlined />} onClick={handleSendMessage}>
@@ -358,11 +519,15 @@ export default function HelpCenter() {
           >
             <Select options={contactOptions} placeholder="请选择" />
           </Form.Item>
+<<<<<<< HEAD
           <Form.Item
             label="姓名"
             name="name"
             rules={[{ required: true, message: '请输入姓名' }]}
           >
+=======
+          <Form.Item label="姓名" name="name" rules={[{ required: true, message: '请输入姓名' }]}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Input placeholder="请输入您的姓名" />
           </Form.Item>
           <Form.Item

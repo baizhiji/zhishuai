@@ -1,7 +1,26 @@
+<<<<<<< HEAD
 'use client'
 
 import { useState } from 'react'
 import { Card, Row, Col, Statistic, Table, Tag, Progress, Select, DatePicker, Space, Typography } from 'antd'
+=======
+'use client';
+
+import { useState } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Tag,
+  Progress,
+  Select,
+  DatePicker,
+  Space,
+  Typography,
+} from 'antd';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   ApartmentOutlined,
   UserOutlined,
@@ -9,6 +28,7 @@ import {
   RiseOutlined,
   LineChartOutlined,
   BarChartOutlined,
+<<<<<<< HEAD
   CheckCircleOutlined
 } from '@ant-design/icons'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
@@ -17,6 +37,26 @@ const { Title, Text } = Typography
 
 export default function AdminAnalyticsPage() {
   const [timeRange, setTimeRange] = useState<string>('7d')
+=======
+  CheckCircleOutlined,
+} from '@ant-design/icons';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+} from 'recharts';
+
+const { Title, Text } = Typography;
+
+export default function AdminAnalyticsPage() {
+  const [timeRange, setTimeRange] = useState<string>('7d');
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 核心指标
   const stats = {
@@ -26,7 +66,11 @@ export default function AdminAnalyticsPage() {
     newCustomers: 1256,
     activeCustomers: 9820,
     activeRate: 78.1,
+<<<<<<< HEAD
   }
+=======
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 趋势数据
   const trendData = [
@@ -37,7 +81,11 @@ export default function AdminAnalyticsPage() {
     { date: '周五', 代理商: 3, 客户: 178 },
     { date: '周六', 代理商: 1, 客户: 89 },
     { date: '周日', 代理商: 1, 客户: 67 },
+<<<<<<< HEAD
   ]
+=======
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 平台分布
   const platformData = [
@@ -45,7 +93,11 @@ export default function AdminAnalyticsPage() {
     { platform: '华南地区', count: 389, rate: 30.9 },
     { platform: '华北地区', count: 312, rate: 24.8 },
     { platform: '西南地区', count: 123, rate: 9.8 },
+<<<<<<< HEAD
   ]
+=======
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 功能使用率
   const featureUsage = [
@@ -53,7 +105,11 @@ export default function AdminAnalyticsPage() {
     { name: '招聘助手', usage: 62, users: 523 },
     { name: '智能获客', usage: 45, users: 389 },
     { name: '推荐分享', usage: 28, users: 234 },
+<<<<<<< HEAD
   ]
+=======
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 区域排行
   const regionRanking = [
@@ -61,10 +117,27 @@ export default function AdminAnalyticsPage() {
     { id: 2, region: '华南大区', agents: 12, customers: 389, growth: 12.3 },
     { id: 3, region: '华北区域', agents: 8, customers: 312, growth: 15.8 },
     { id: 4, region: '西南区域', agents: 5, customers: 123, growth: 8.2 },
+<<<<<<< HEAD
   ]
 
   const rankingColumns = [
     { title: '排名', dataIndex: 'id', key: 'id', width: 60, render: (id: number) => <Tag color={id === 1 ? 'gold' : id === 2 ? 'silver' : id === 3 ? 'bronze' : 'default'}>{id}</Tag> },
+=======
+  ];
+
+  const rankingColumns = [
+    {
+      title: '排名',
+      dataIndex: 'id',
+      key: 'id',
+      width: 60,
+      render: (id: number) => (
+        <Tag color={id === 1 ? 'gold' : id === 2 ? 'silver' : id === 3 ? 'bronze' : 'default'}>
+          {id}
+        </Tag>
+      ),
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     { title: '区域', dataIndex: 'region', key: 'region', width: 120 },
     { title: '代理商', dataIndex: 'agents', key: 'agents', width: 100 },
     { title: '客户数', dataIndex: 'customers', key: 'customers', width: 100 },
@@ -73,6 +146,7 @@ export default function AdminAnalyticsPage() {
       dataIndex: 'growth',
       key: 'growth',
       width: 100,
+<<<<<<< HEAD
       render: (growth: number) => <Text type="success">+{growth}%</Text>
     },
   ]
@@ -82,6 +156,26 @@ export default function AdminAnalyticsPage() {
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Title level={2} style={{ margin: 0 }}>数据大盘</Title>
+=======
+      render: (growth: number) => <Text type="success">+{growth}%</Text>,
+    },
+  ];
+
+  return (
+    <div style={{ padding: 24 }}>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <Title level={2} style={{ margin: 0 }}>
+            数据大盘
+          </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           <Text type="secondary">开发者总后台 - 全局数据监控</Text>
         </div>
         <Space>
@@ -149,7 +243,19 @@ export default function AdminAnalyticsPage() {
       {/* 图表区域 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
+<<<<<<< HEAD
           <Card bordered={false} title={<><LineChartOutlined style={{ marginRight: 8 }} />增长趋势</>}>
+=======
+          <Card
+            bordered={false}
+            title={
+              <>
+                <LineChartOutlined style={{ marginRight: 8 }} />
+                增长趋势
+              </>
+            }
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -163,7 +269,19 @@ export default function AdminAnalyticsPage() {
           </Card>
         </Col>
         <Col span={12}>
+<<<<<<< HEAD
           <Card bordered={false} title={<><BarChartOutlined style={{ marginRight: 8 }} />区域分布</>}>
+=======
+          <Card
+            bordered={false}
+            title={
+              <>
+                <BarChartOutlined style={{ marginRight: 8 }} />
+                区域分布
+              </>
+            }
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={platformData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -193,7 +311,19 @@ export default function AdminAnalyticsPage() {
           </Card>
         </Col>
         <Col span={12}>
+<<<<<<< HEAD
           <Card bordered={false} title={<><CheckCircleOutlined style={{ marginRight: 8 }} />区域排行</>}>
+=======
+          <Card
+            bordered={false}
+            title={
+              <>
+                <CheckCircleOutlined style={{ marginRight: 8 }} />
+                区域排行
+              </>
+            }
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Table
               dataSource={regionRanking}
               columns={rankingColumns}
@@ -204,5 +334,9 @@ export default function AdminAnalyticsPage() {
         </Col>
       </Row>
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

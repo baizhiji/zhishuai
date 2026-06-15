@@ -33,7 +33,11 @@ export default function CustomerTicketsPage() {
       const res = await TicketAPI.list({
         userId: user?.id,
         page: pagination.page,
+<<<<<<< HEAD
         pageSize: pagination.pageSize
+=======
+        pageSize: pagination.pageSize,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
       if (res.data) {
         setTickets(res.data);
@@ -56,7 +60,11 @@ export default function CustomerTicketsPage() {
         title: values.title,
         content: values.content,
         category: values.category,
+<<<<<<< HEAD
         priority: values.priority
+=======
+        priority: values.priority,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
       if (res.success) {
         message.success('工单提交成功');
@@ -74,7 +82,11 @@ export default function CustomerTicketsPage() {
   const handleViewDetail = async (ticket: any) => {
     setSelectedTicket(ticket);
     setDetailDrawerVisible(true);
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     // 获取完整详情
     try {
       const res = await TicketAPI.detail(ticket.id);
@@ -88,14 +100,22 @@ export default function CustomerTicketsPage() {
 
   const handleReply = async () => {
     if (!replyContent.trim() || !selectedTicket) return;
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     setSubmitting(true);
     try {
       const res = await TicketAPI.reply(selectedTicket.id, {
         userId: user?.id || '',
         userName: user?.name || '用户',
         userRole: 'user',
+<<<<<<< HEAD
         content: replyContent
+=======
+        content: replyContent,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
       if (res.success) {
         message.success('回复成功');
@@ -145,7 +165,11 @@ export default function CustomerTicketsPage() {
       dataIndex: 'category',
       key: 'category',
       width: 100,
+<<<<<<< HEAD
       render: (category: string) => getCategoryLabel(category)
+=======
+      render: (category: string) => getCategoryLabel(category),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '优先级',
@@ -156,7 +180,11 @@ export default function CustomerTicketsPage() {
         <Tag color={getPriorityColor(priority)}>
           {ticketPriorities.find(p => p.value === priority)?.label}
         </Tag>
+<<<<<<< HEAD
       )
+=======
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
@@ -167,14 +195,22 @@ export default function CustomerTicketsPage() {
         <Tag color={getStatusColor(status)}>
           {ticketStatuses.find(s => s.value === status)?.label}
         </Tag>
+<<<<<<< HEAD
       )
+=======
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
       width: 160,
+<<<<<<< HEAD
       render: (date: string) => new Date(date).toLocaleString()
+=======
+      render: (date: string) => new Date(date).toLocaleString(),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '操作',
@@ -184,8 +220,13 @@ export default function CustomerTicketsPage() {
         <Button type="link" onClick={() => handleViewDetail(record)}>
           查看详情
         </Button>
+<<<<<<< HEAD
       )
     }
+=======
+      ),
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   return (
@@ -193,7 +234,15 @@ export default function CustomerTicketsPage() {
       <Card
         title="我的工单"
         extra={
+<<<<<<< HEAD
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
+=======
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setCreateModalVisible(true)}
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             提交工单
           </Button>
         }
@@ -210,7 +259,11 @@ export default function CustomerTicketsPage() {
             onChange: (page, pageSize) => {
               setPagination(prev => ({ ...prev, page, pageSize }));
               fetchTickets();
+<<<<<<< HEAD
             }
+=======
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           }}
         />
       </Card>
@@ -231,7 +284,13 @@ export default function CustomerTicketsPage() {
           >
             <Select placeholder="请选择类别">
               {ticketCategories.map(cat => (
+<<<<<<< HEAD
                 <Option key={cat.value} value={cat.value}>{cat.label}</Option>
+=======
+                <Option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </Option>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               ))}
             </Select>
           </Form.Item>
@@ -243,16 +302,26 @@ export default function CustomerTicketsPage() {
           >
             <Select placeholder="请选择优先级">
               {ticketPriorities.map(p => (
+<<<<<<< HEAD
                 <Option key={p.value} value={p.value}>{p.label}</Option>
+=======
+                <Option key={p.value} value={p.value}>
+                  {p.label}
+                </Option>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               ))}
             </Select>
           </Form.Item>
 
+<<<<<<< HEAD
           <Form.Item
             name="title"
             label="标题"
             rules={[{ required: true, message: '请输入标题' }]}
           >
+=======
+          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Input placeholder="请输入问题标题" />
           </Form.Item>
 
@@ -269,9 +338,13 @@ export default function CustomerTicketsPage() {
               <Button type="primary" htmlType="submit" loading={submitting}>
                 提交工单
               </Button>
+<<<<<<< HEAD
               <Button onClick={() => setCreateModalVisible(false)}>
                 取消
               </Button>
+=======
+              <Button onClick={() => setCreateModalVisible(false)}>取消</Button>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </Space>
           </Form.Item>
         </Form>
@@ -295,18 +368,29 @@ export default function CustomerTicketsPage() {
                 <Tag color={getPriorityColor(selectedTicket.priority)}>
                   {ticketPriorities.find(p => p.value === selectedTicket.priority)?.label}
                 </Tag>
+<<<<<<< HEAD
                 <span style={{ color: '#999' }}>
                   {getCategoryLabel(selectedTicket.category)}
                 </span>
+=======
+                <span style={{ color: '#999' }}>{getCategoryLabel(selectedTicket.category)}</span>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               </Space>
             </div>
 
             <h3>{selectedTicket.title}</h3>
             <p style={{ color: '#666', lineHeight: 1.8 }}>{selectedTicket.content}</p>
+<<<<<<< HEAD
             
             <div style={{ borderTop: '1px solid #f0f0f0', marginTop: 24, paddingTop: 24 }}>
               <h4 style={{ marginBottom: 16 }}>沟通记录</h4>
               
+=======
+
+            <div style={{ borderTop: '1px solid #f0f0f0', marginTop: 24, paddingTop: 24 }}>
+              <h4 style={{ marginBottom: 16 }}>沟通记录</h4>
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               {selectedTicket.responses?.map((response: any) => (
                 <div
                   key={response.id}
@@ -315,10 +399,19 @@ export default function CustomerTicketsPage() {
                     padding: 12,
                     background: response.userRole === 'user' ? '#f6ffed' : '#f0f5ff',
                     borderRadius: 8,
+<<<<<<< HEAD
                     borderLeft: `3px solid ${response.userRole === 'user' ? '#52c41a' : '#1890ff'}`
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+=======
+                    borderLeft: `3px solid ${response.userRole === 'user' ? '#52c41a' : '#1890ff'}`,
+                  }}
+                >
+                  <div
+                    style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}
+                  >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     <strong>{response.userName}</strong>
                     <span style={{ color: '#999', fontSize: 12 }}>
                       {new Date(response.createdAt).toLocaleString()}
@@ -329,9 +422,13 @@ export default function CustomerTicketsPage() {
               ))}
 
               {(!selectedTicket.responses || selectedTicket.responses.length === 0) && (
+<<<<<<< HEAD
                 <div style={{ textAlign: 'center', padding: 24, color: '#999' }}>
                   暂无沟通记录
                 </div>
+=======
+                <div style={{ textAlign: 'center', padding: 24, color: '#999' }}>暂无沟通记录</div>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               )}
 
               {selectedTicket.status !== 'closed' && selectedTicket.status !== 'resolved' && (
@@ -339,7 +436,11 @@ export default function CustomerTicketsPage() {
                   <TextArea
                     rows={3}
                     value={replyContent}
+<<<<<<< HEAD
                     onChange={(e) => setReplyContent(e.target.value)}
+=======
+                    onChange={e => setReplyContent(e.target.value)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     placeholder="请输入回复内容..."
                   />
                   <Button

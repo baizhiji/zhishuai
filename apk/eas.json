@@ -1,6 +1,11 @@
 {
   "cli": {
+<<<<<<< HEAD
     "version": ">= 13.0.0"
+=======
+    "version": ">= 13.0.0",
+    "appVersionSource": "remote"
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   "build": {
     "development": {
@@ -14,6 +19,10 @@
       }
     },
     "production": {
+<<<<<<< HEAD
+=======
+      "distribution": "store",
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       "android": {
         "buildType": "apk"
       }

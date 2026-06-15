@@ -40,7 +40,14 @@ export function getUserPermissions(role: UserRole): Permission[] {
 /**
  * 检查功能开关是否启用
  */
+<<<<<<< HEAD
 export function isFeatureEnabled(featureKey: string, enabledFeatures?: Record<string, boolean>): boolean {
+=======
+export function isFeatureEnabled(
+  featureKey: string,
+  enabledFeatures?: Record<string, boolean>
+): boolean {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   const feature = featureToggles.find(f => f.key === featureKey);
   if (!feature) return false;
   if (enabledFeatures && featureKey in enabledFeatures) {
@@ -282,6 +289,7 @@ export function getAllMenus(): MenuItem[] {
       ],
     },
     {
+<<<<<<< HEAD
       key: 'ecommerce',
       label: '电商运营',
       icon: 'ShoppingCart',
@@ -303,6 +311,8 @@ export function getAllMenus(): MenuItem[] {
       permission: Permission.MARKETING,
     },
     {
+=======
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       key: 'account',
       label: '账号与配置',
       icon: 'Setting',
@@ -374,6 +384,16 @@ export function getAdminMenus(): MenuItem[] {
       permission: Permission.ADMIN_TENANTS,
     },
     {
+<<<<<<< HEAD
+=======
+      key: 'admin-crm',
+      label: '客户管理',
+      icon: 'Team',
+      path: '/admin/crm',
+      permission: Permission.ADMIN_CRM,
+    },
+    {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       key: 'admin-agents',
       label: '代理商管理',
       icon: 'Contacts',

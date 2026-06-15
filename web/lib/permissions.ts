@@ -66,7 +66,11 @@ export const permissions = {
     'settings:logs',
     'settings:api',
     'settings:knowledge',
+<<<<<<< HEAD
     'settings:staff'
+=======
+    'settings:staff',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ],
 
   // 代理商权限
@@ -118,7 +122,11 @@ export const permissions = {
     // 系统设置（部分）
     'settings:read',
     'settings:api',
+<<<<<<< HEAD
     'settings:knowledge'
+=======
+    'settings:knowledge',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ],
 
   // 客户权限
@@ -161,8 +169,13 @@ export const permissions = {
 
     // 系统设置（部分）
     'settings:read',
+<<<<<<< HEAD
     'settings:knowledge'
   ]
+=======
+    'settings:knowledge',
+  ],
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 };
 
 // 检查用户是否已登录

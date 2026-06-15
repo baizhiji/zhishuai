@@ -40,12 +40,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // 获取用户角色信息
     const userStr = localStorage.getItem('user');
     const viewingRole = localStorage.getItem('viewing_role');
+<<<<<<< HEAD
     
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         const currentRole = viewingRole || user.role;
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         // 检查页面访问权限
         if (pathname.startsWith('/admin/')) {
           // 只有 admin 角色才能访问
@@ -72,14 +80,25 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [pathname, router]);
 
   // 简单的加载状态
+<<<<<<< HEAD
   if (!isAuthenticated() && !publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'))) {
+=======
+  if (
+    !isAuthenticated() &&
+    !publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
+  ) {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     return (
       <div
         style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
+<<<<<<< HEAD
           height: '100vh'
+=======
+          height: '100vh',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         }}
       >
         <Spin size="large" description="正在加载..." />

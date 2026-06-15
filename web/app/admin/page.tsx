@@ -12,6 +12,7 @@ export default function AdminPage() {
   }, [router]);
 
   return (
+<<<<<<< HEAD
     <div style={{ 
       display: 'flex', 
       justifyContent: 'center', 
@@ -20,6 +21,18 @@ export default function AdminPage() {
       fontSize: '18px',
       color: '#666'
     }}>
+=======
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666',
+      }}
+    >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       正在跳转...
     </div>
   );

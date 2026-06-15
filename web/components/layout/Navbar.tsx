@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
@@ -14,6 +15,13 @@ import {
   Modal,
   Radio,
 } from 'antd'
+=======
+'use client';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Layout, Menu, Dropdown, Avatar, Space, Button, theme, Image, Modal, Radio } from 'antd';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   HomeOutlined,
   PictureOutlined,
@@ -34,6 +42,7 @@ import {
   SwapOutlined,
   QrcodeOutlined,
   MessageOutlined,
+<<<<<<< HEAD
 } from '@ant-design/icons'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -42,12 +51,23 @@ const { useToken } = theme
 
 // 角色类型
 type Role = 'admin' | 'agent' | 'customer'
+=======
+} from '@ant-design/icons';
+import { useAuth } from '@/contexts/AuthContext';
+
+const { Header, Content } = Layout;
+const { useToken } = theme;
+
+// 角色类型
+type Role = 'admin' | 'agent' | 'customer';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // 角色选项
 const roleOptions = [
   { value: 'admin' as Role, label: '开发者总后台', icon: '👑' },
   { value: 'agent' as Role, label: '区域代理后台', icon: '🏢' },
   { value: 'customer' as Role, label: '终端客户后台', icon: '👤' },
+<<<<<<< HEAD
 ]
 
 interface NavigationItem {
@@ -56,6 +76,16 @@ interface NavigationItem {
   icon: React.ReactNode
   path?: string
   children?: NavigationItem[]
+=======
+];
+
+interface NavigationItem {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  path?: string;
+  children?: NavigationItem[];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 根据角色获取导航菜单
@@ -80,10 +110,37 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '自媒体运营',
           icon: <VideoCameraOutlined />,
           children: [
+<<<<<<< HEAD
             { key: 'media-factory', label: '内容工厂', icon: <ThunderboltOutlined />, path: '/media/factory' },
             { key: 'media-matrix', label: '矩阵管理', icon: <TeamOutlined />, path: '/media/matrix' },
             { key: 'media-publish', label: '发布中心', icon: <ShareAltOutlined />, path: '/media/publish' },
             { key: 'media-report', label: '数据报表', icon: <PieChartOutlined />, path: '/media/report' },
+=======
+            {
+              key: 'media-factory',
+              label: '内容工厂',
+              icon: <ThunderboltOutlined />,
+              path: '/media/factory',
+            },
+            {
+              key: 'media-matrix',
+              label: '矩阵管理',
+              icon: <TeamOutlined />,
+              path: '/media/matrix',
+            },
+            {
+              key: 'media-publish',
+              label: '发布中心',
+              icon: <ShareAltOutlined />,
+              path: '/media/publish',
+            },
+            {
+              key: 'media-report',
+              label: '数据报表',
+              icon: <PieChartOutlined />,
+              path: '/media/report',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         {
@@ -91,12 +148,51 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '招聘助手',
           icon: <TeamOutlined />,
           children: [
+<<<<<<< HEAD
             { key: 'recruit-platforms', label: '平台授权', icon: <QrcodeOutlined />, path: '/customer/recruitment/platforms' },
             { key: 'recruit-auto', label: '智能沟通', icon: <MessageOutlined />, path: '/customer/recruitment/auto' },
             { key: 'recruitment-publish', label: '职位发布', icon: <ShareAltOutlined />, path: '/recruitment/publish' },
             { key: 'recruitment-screen', label: '简历筛选', icon: <UserAddOutlined />, path: '/recruitment/screen' },
             { key: 'recruitment-interview', label: '面试管理', icon: <TeamOutlined />, path: '/recruitment/interview' },
             { key: 'recruitment-board', label: '招聘看板', icon: <PieChartOutlined />, path: '/recruitment/board' },
+=======
+            {
+              key: 'recruit-platforms',
+              label: '平台授权',
+              icon: <QrcodeOutlined />,
+              path: '/customer/recruitment/platforms',
+            },
+            {
+              key: 'recruit-auto',
+              label: '智能沟通',
+              icon: <MessageOutlined />,
+              path: '/customer/recruitment/auto',
+            },
+            {
+              key: 'recruitment-publish',
+              label: '职位发布',
+              icon: <ShareAltOutlined />,
+              path: '/recruitment/publish',
+            },
+            {
+              key: 'recruitment-screen',
+              label: '简历筛选',
+              icon: <UserAddOutlined />,
+              path: '/recruitment/screen',
+            },
+            {
+              key: 'recruitment-interview',
+              label: '面试管理',
+              icon: <TeamOutlined />,
+              path: '/recruitment/interview',
+            },
+            {
+              key: 'recruitment-board',
+              label: '招聘看板',
+              icon: <PieChartOutlined />,
+              path: '/recruitment/board',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         {
@@ -104,9 +200,30 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '智能获客',
           icon: <UserAddOutlined />,
           children: [
+<<<<<<< HEAD
             { key: 'acquisition-discover', label: '潜客发现', icon: <UserAddOutlined />, path: '/acquisition/discover' },
             { key: 'acquisition-task', label: '引流任务', icon: <ShareAltOutlined />, path: '/acquisition/task' },
             { key: 'acquisition-board', label: '获客看板', icon: <PieChartOutlined />, path: '/acquisition/board' },
+=======
+            {
+              key: 'acquisition-discover',
+              label: '潜客发现',
+              icon: <UserAddOutlined />,
+              path: '/acquisition/discover',
+            },
+            {
+              key: 'acquisition-task',
+              label: '引流任务',
+              icon: <ShareAltOutlined />,
+              path: '/acquisition/task',
+            },
+            {
+              key: 'acquisition-board',
+              label: '获客看板',
+              icon: <PieChartOutlined />,
+              path: '/acquisition/board',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         {
@@ -115,8 +232,23 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <ShareAltOutlined />,
           children: [
             { key: 'share-code', label: '码生成', icon: <PictureOutlined />, path: '/share/code' },
+<<<<<<< HEAD
             { key: 'share-track', label: '推荐追踪', icon: <PieChartOutlined />, path: '/share/track' },
             { key: 'share-board', label: '分享看板', icon: <BarChartOutlined />, path: '/share/board' },
+=======
+            {
+              key: 'share-track',
+              label: '推荐追踪',
+              icon: <PieChartOutlined />,
+              path: '/share/track',
+            },
+            {
+              key: 'share-board',
+              label: '分享看板',
+              icon: <BarChartOutlined />,
+              path: '/share/board',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         {
@@ -124,10 +256,31 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '账号与配置',
           icon: <SettingOutlined />,
           children: [
+<<<<<<< HEAD
 
             { key: 'account-api', label: 'API服务商配置', icon: <ApiOutlined />, path: '/account/api' },
             { key: 'account-knowledge', label: '知识库管理', icon: <ThunderboltOutlined />, path: '/account/knowledge' },
             { key: 'account-log', label: '操作日志', icon: <PieChartOutlined />, path: '/account/log' },
+=======
+            {
+              key: 'account-api',
+              label: 'API服务商配置',
+              icon: <ApiOutlined />,
+              path: '/account/api',
+            },
+            {
+              key: 'account-knowledge',
+              label: '知识库管理',
+              icon: <ThunderboltOutlined />,
+              path: '/account/knowledge',
+            },
+            {
+              key: 'account-log',
+              label: '操作日志',
+              icon: <PieChartOutlined />,
+              path: '/account/log',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         {
@@ -135,9 +288,30 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '系统设置',
           icon: <SettingOutlined />,
           children: [
+<<<<<<< HEAD
             { key: 'settings-company', label: '公司信息', icon: <TeamOutlined />, path: '/settings/company' },
             { key: 'settings-security', label: '安全设置', icon: <SettingOutlined />, path: '/settings/security' },
             { key: 'settings-theme', label: '主题设置', icon: <PictureOutlined />, path: '/settings/theme' },
+=======
+            {
+              key: 'settings-company',
+              label: '公司信息',
+              icon: <TeamOutlined />,
+              path: '/settings/company',
+            },
+            {
+              key: 'settings-security',
+              label: '安全设置',
+              icon: <SettingOutlined />,
+              path: '/settings/security',
+            },
+            {
+              key: 'settings-theme',
+              label: '主题设置',
+              icon: <PictureOutlined />,
+              path: '/settings/theme',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         // 预留扩展
@@ -146,7 +320,16 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '电商运营',
           icon: <ShopOutlined />,
           children: [
+<<<<<<< HEAD
             { key: 'ecommerce-placeholder', label: '即将上线', icon: <ShopOutlined />, path: '/ecommerce' },
+=======
+            {
+              key: 'ecommerce-placeholder',
+              label: '即将上线',
+              icon: <ShopOutlined />,
+              path: '/ecommerce',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         {
@@ -163,10 +346,22 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '营销功能',
           icon: <ShareAltOutlined />,
           children: [
+<<<<<<< HEAD
             { key: 'marketing-placeholder', label: '即将上线', icon: <ShareAltOutlined />, path: '/marketing' },
           ],
         },
       ]
+=======
+            {
+              key: 'marketing-placeholder',
+              label: '即将上线',
+              icon: <ShareAltOutlined />,
+              path: '/marketing',
+            },
+          ],
+        },
+      ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     case 'agent':
       return [
         {
@@ -186,8 +381,23 @@ function getNavigationItems(role: Role): NavigationItem[] {
           label: '数据看板',
           icon: <PieChartOutlined />,
           children: [
+<<<<<<< HEAD
             { key: 'agent-referrals', label: '推荐数据', icon: <ShareAltOutlined />, path: '/agent/referrals' },
             { key: 'agent-usage', label: '使用数据', icon: <PieChartOutlined />, path: '/agent/usage' },
+=======
+            {
+              key: 'agent-referrals',
+              label: '推荐数据',
+              icon: <ShareAltOutlined />,
+              path: '/agent/referrals',
+            },
+            {
+              key: 'agent-usage',
+              label: '使用数据',
+              icon: <PieChartOutlined />,
+              path: '/agent/usage',
+            },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ],
         },
         {
@@ -196,7 +406,11 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <ThunderboltOutlined />,
           path: '/agent/tickets',
         },
+<<<<<<< HEAD
       ]
+=======
+      ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     case 'admin':
       return [
         {
@@ -235,9 +449,15 @@ function getNavigationItems(role: Role): NavigationItem[] {
           icon: <FileTextOutlined />,
           path: '/admin/logs',
         },
+<<<<<<< HEAD
       ]
     default:
       return []
+=======
+      ];
+    default:
+      return [];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 }
 
@@ -245,17 +465,29 @@ function getNavigationItems(role: Role): NavigationItem[] {
 function getSelectedKeys(items: NavigationItem[], path: string): string[] {
   for (const item of items) {
     if (item.path === path) {
+<<<<<<< HEAD
       return [item.key]
+=======
+      return [item.key];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     }
     if (item.children) {
       for (const child of item.children) {
         if (child.path === path) {
+<<<<<<< HEAD
           return [child.key]
+=======
+          return [child.key];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         }
       }
     }
   }
+<<<<<<< HEAD
   return []
+=======
+  return [];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 获取当前展开的菜单项
@@ -264,11 +496,16 @@ function getOpenKeysForPath(items: NavigationItem[], path: string): string[] {
     if (item.children) {
       for (const child of item.children) {
         if (child.path === path) {
+<<<<<<< HEAD
           return [item.key]
+=======
+          return [item.key];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         }
       }
     }
   }
+<<<<<<< HEAD
   return []
 }
 
@@ -283,10 +520,27 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
 
   // 角色切换弹窗状态
   const [roleModalVisible, setRoleModalVisible] = useState(false)
+=======
+  return [];
+}
+
+export default function Navbar({ children }: { children?: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { token } = useToken();
+  const { user, logout, isAdmin } = useAuth();
+
+  // Logo 图片加载状态
+  const [logoError, setLogoError] = useState(false);
+
+  // 角色切换弹窗状态
+  const [roleModalVisible, setRoleModalVisible] = useState(false);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 从 localStorage 读取保存的角色，如果没有则使用用户实际角色
   const getSavedRole = (): Role => {
     if (typeof window !== 'undefined') {
+<<<<<<< HEAD
       const saved = localStorage.getItem('viewing_role')
       if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
         return saved as Role
@@ -297,10 +551,23 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
 
   // 当前查看的角色（用于界面展示）
   const [currentRole, setCurrentRole] = useState<Role>(getSavedRole)
+=======
+      const saved = localStorage.getItem('viewing_role');
+      if (saved && ['admin', 'agent', 'customer'].includes(saved)) {
+        return saved as Role;
+      }
+    }
+    return (user?.role as Role) || 'customer';
+  };
+
+  // 当前查看的角色（用于界面展示）
+  const [currentRole, setCurrentRole] = useState<Role>(getSavedRole);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 监听用户角色变化，同步到 currentRole
   useEffect(() => {
     if (user?.role) {
+<<<<<<< HEAD
       const savedRole = getSavedRole()
       // 只有当保存的角色不存在时才使用用户实际角色
       if (!localStorage.getItem('viewing_role')) {
@@ -310,10 +577,22 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       }
     }
   }, [user?.role])
+=======
+      const savedRole = getSavedRole();
+      // 只有当保存的角色不存在时才使用用户实际角色
+      if (!localStorage.getItem('viewing_role')) {
+        setCurrentRole(user.role as Role);
+      } else {
+        setCurrentRole(savedRole);
+      }
+    }
+  }, [user?.role]);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 切换角色
   const handleRoleSwitch = (role: Role) => {
     if (typeof window !== 'undefined') {
+<<<<<<< HEAD
       localStorage.setItem('viewing_role', role)
     }
     setCurrentRole(role)
@@ -346,6 +625,40 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   const handleOpenChange = useCallback((keys: string[]) => {
     setOpenKeys(keys)
   }, [])
+=======
+      localStorage.setItem('viewing_role', role);
+    }
+    setCurrentRole(role);
+    setRoleModalVisible(false);
+    // 根据角色跳转到对应页面
+    if (role === 'admin') {
+      router.push('/admin/tenants');
+    } else if (role === 'agent') {
+      router.push('/agent/tenants');
+    } else {
+      router.push('/');
+    }
+  };
+
+  // 使用 useMemo 缓存导航菜单项，避免每次渲染都创建新引用
+  const navItems = useMemo(() => getNavigationItems(currentRole), [currentRole]);
+
+  // 管理菜单展开状态
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+
+  // 当路由变化时，自动更新菜单展开状态
+  useEffect(() => {
+    const keysFromPath = getOpenKeysForPath(navItems, pathname);
+    if (keysFromPath.length > 0) {
+      setOpenKeys(keysFromPath);
+    }
+  }, [pathname, navItems]);
+
+  // 用户手动展开/折叠菜单时
+  const handleOpenChange = useCallback((keys: string[]) => {
+    setOpenKeys(keys);
+  }, []);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 用户下拉菜单
   const userMenuItems = [
@@ -354,7 +667,11 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       label: '个人资料',
       icon: <UserOutlined />,
       onClick: () => {
+<<<<<<< HEAD
         console.log('查看个人资料')
+=======
+        console.log('查看个人资料');
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       },
     },
     {
@@ -396,17 +713,34 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       danger: true,
       onClick: logout,
     },
+<<<<<<< HEAD
   ]
+=======
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 获取角色显示文本
   const getRoleDisplayText = (role: Role) => {
     switch (role) {
+<<<<<<< HEAD
       case 'admin': return '开发者总后台'
       case 'agent': return '区域代理'
       case 'customer': return '终端客户'
       default: return '未知角色'
     }
   }
+=======
+      case 'admin':
+        return '开发者总后台';
+      case 'agent':
+        return '区域代理';
+      case 'customer':
+        return '终端客户';
+      default:
+        return '未知角色';
+    }
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <Layout className="min-h-screen">
@@ -509,7 +843,15 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
           <Space size="middle">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
+<<<<<<< HEAD
                 <Avatar size={32} icon={<UserOutlined />} style={{ background: token.colorPrimary }} />
+=======
+                <Avatar
+                  size={32}
+                  icon={<UserOutlined />}
+                  style={{ background: token.colorPrimary }}
+                />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <span style={{ color: token.colorText }}>{user?.name || '用户'}</span>
               </Space>
             </Dropdown>
@@ -552,6 +894,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       >
         <div className="py-4">
           <p className="text-gray-500 mb-4">
+<<<<<<< HEAD
             当前账号角色：<strong>{user?.role === 'admin' ? '管理员' : user?.role === 'agent' ? '代理商' : '客户'}</strong>
           </p>
           <Radio.Group
@@ -560,6 +903,19 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
             className="flex flex-col gap-3"
           >
             {roleOptions.map((opt) => (
+=======
+            当前账号角色：
+            <strong>
+              {user?.role === 'admin' ? '管理员' : user?.role === 'agent' ? '代理商' : '客户'}
+            </strong>
+          </p>
+          <Radio.Group
+            value={currentRole}
+            onChange={e => handleRoleSwitch(e.target.value)}
+            className="flex flex-col gap-3"
+          >
+            {roleOptions.map(opt => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Radio.Button
                 key={opt.value}
                 value={opt.value}
@@ -584,5 +940,9 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         </div>
       </Modal>
     </Layout>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

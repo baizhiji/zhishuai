@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 'use client'
 
 import React, { useState } from 'react'
+=======
+'use client';
+
+import React, { useState } from 'react';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   Card,
   Row,
@@ -19,8 +25,13 @@ import {
   Tabs,
   Timeline,
   Avatar,
+<<<<<<< HEAD
   Popconfirm
 } from 'antd'
+=======
+  Popconfirm,
+} from 'antd';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -30,6 +41,7 @@ import {
   MessageOutlined,
   UserOutlined,
   FileTextOutlined,
+<<<<<<< HEAD
   MailOutlined
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
@@ -52,6 +64,30 @@ interface Ticket {
   createTime: string
   updateTime: string
   description: string
+=======
+  MailOutlined,
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
+const { Option } = Select;
+const { TabPane } = Tabs;
+
+// 工单类型
+interface Ticket {
+  key: string;
+  id: string;
+  title: string;
+  type: string;
+  customer: string;
+  company: string;
+  status: 'pending' | 'approved' | 'rejected';
+  priority: 'low' | 'medium' | 'high';
+  createTime: string;
+  updateTime: string;
+  description: string;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // Mock 数据
@@ -67,7 +103,11 @@ const mockTickets: Ticket[] = [
     priority: 'medium',
     createTime: '2025-04-29 10:30',
     updateTime: '2025-04-29 10:30',
+<<<<<<< HEAD
     description: '公司业务扩展，需要使用数字人视频功能来制作产品宣传视频，请尽快开通。'
+=======
+    description: '公司业务扩展，需要使用数字人视频功能来制作产品宣传视频，请尽快开通。',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     key: '2',
@@ -80,7 +120,11 @@ const mockTickets: Ticket[] = [
     priority: 'high',
     createTime: '2025-04-29 09:15',
     updateTime: '2025-04-29 09:15',
+<<<<<<< HEAD
     description: '需要拓展客户渠道，申请开通智能获客模块，包括潜客发现和引流任务功能。'
+=======
+    description: '需要拓展客户渠道，申请开通智能获客模块，包括潜客发现和引流任务功能。',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     key: '3',
@@ -93,7 +137,11 @@ const mockTickets: Ticket[] = [
     priority: 'medium',
     createTime: '2025-04-25 14:20',
     updateTime: '2025-04-26 09:30',
+<<<<<<< HEAD
     description: '公司正在大量招聘，需要使用AI简历筛选功能提高招聘效率。'
+=======
+    description: '公司正在大量招聘，需要使用AI简历筛选功能提高招聘效率。',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     key: '4',
@@ -106,7 +154,11 @@ const mockTickets: Ticket[] = [
     priority: 'high',
     createTime: '2025-04-22 16:45',
     updateTime: '2025-04-23 10:15',
+<<<<<<< HEAD
     description: '当前API额度不足，申请将API调用额度从10万次提升到30万次/月。'
+=======
+    description: '当前API额度不足，申请将API调用额度从10万次提升到30万次/月。',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     key: '5',
@@ -119,14 +171,21 @@ const mockTickets: Ticket[] = [
     priority: 'low',
     createTime: '2025-04-20 11:00',
     updateTime: '2025-04-21 15:30',
+<<<<<<< HEAD
     description: '希望开通面试管理功能来管理招聘流程。'
   }
 ]
+=======
+    description: '希望开通面试管理功能来管理招聘流程。',
+  },
+];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // Mock 工单处理记录
 const mockTicketHistory = [
   { time: '2025-04-29 10:30', action: '提交申请', operator: '张经理' },
   { time: '2025-04-29 14:20', action: '查看详情', operator: '代理商' },
+<<<<<<< HEAD
   { time: '2025-04-29 16:45', action: '添加备注：需要确认公司资质', operator: '代理商' }
 ]
 
@@ -136,11 +195,23 @@ export default function TicketManagement() {
   const [detailVisible, setDetailVisible] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [form] = Form.useForm()
+=======
+  { time: '2025-04-29 16:45', action: '添加备注：需要确认公司资质', operator: '代理商' },
+];
+
+export default function TicketManagement() {
+  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
+  const [activeTab, setActiveTab] = useState<string>('pending');
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [form] = Form.useForm();
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 统计数据
   const stats = {
     pending: tickets.filter(t => t.status === 'pending').length,
     approved: tickets.filter(t => t.status === 'approved').length,
+<<<<<<< HEAD
     rejected: tickets.filter(t => t.status === 'rejected').length
   }
 
@@ -176,46 +247,118 @@ export default function TicketManagement() {
     message.info(`已拒绝申请：${ticket.title}`)
     setDetailVisible(false)
   }
+=======
+    rejected: tickets.filter(t => t.status === 'rejected').length,
+  };
+
+  // 筛选工单
+  const filteredTickets =
+    activeTab === 'all' ? tickets : tickets.filter(t => t.status === activeTab);
+
+  // 查看详情
+  const handleViewDetail = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setDetailVisible(true);
+  };
+
+  // 审批通过
+  const handleApprove = (ticket: Ticket) => {
+    setTickets(prev =>
+      prev.map(t =>
+        t.key === ticket.key
+          ? { ...t, status: 'approved', updateTime: new Date().toLocaleString() }
+          : t
+      )
+    );
+    message.success(`已通过申请：${ticket.title}`);
+    setDetailVisible(false);
+  };
+
+  // 审批拒绝
+  const handleReject = (ticket: Ticket, reason: string) => {
+    setTickets(prev =>
+      prev.map(t =>
+        t.key === ticket.key
+          ? { ...t, status: 'rejected', updateTime: new Date().toLocaleString() }
+          : t
+      )
+    );
+    message.info(`已拒绝申请：${ticket.title}`);
+    setDetailVisible(false);
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 获取状态标签
   const getStatusTag = (status: string) => {
     const map: Record<string, { color: string; text: string; icon: React.ReactNode }> = {
       pending: { color: 'orange', text: '待处理', icon: <ClockCircleOutlined /> },
       approved: { color: 'green', text: '已通过', icon: <CheckCircleOutlined /> },
+<<<<<<< HEAD
       rejected: { color: 'red', text: '已拒绝', icon: <CloseCircleOutlined /> }
     }
     const item = map[status]
     return <Tag color={item.color} icon={item.icon}>{item.text}</Tag>
   }
+=======
+      rejected: { color: 'red', text: '已拒绝', icon: <CloseCircleOutlined /> },
+    };
+    const item = map[status];
+    return (
+      <Tag color={item.color} icon={item.icon}>
+        {item.text}
+      </Tag>
+    );
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 获取类型标签
   const getTypeTag = (type: string) => {
     const map: Record<string, { color: string; text: string }> = {
       feature: { color: 'blue', text: '功能申请' },
       quota: { color: 'purple', text: '额度申请' },
+<<<<<<< HEAD
       tech: { color: 'cyan', text: '技术支持' }
     }
     const item = map[type]
     return <Tag color={item.color}>{item.text}</Tag>
   }
+=======
+      tech: { color: 'cyan', text: '技术支持' },
+    };
+    const item = map[type];
+    return <Tag color={item.color}>{item.text}</Tag>;
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 获取优先级标签
   const getPriorityTag = (priority: string) => {
     const map: Record<string, { color: string; text: string }> = {
       low: { color: 'default', text: '低' },
       medium: { color: 'orange', text: '中' },
+<<<<<<< HEAD
       high: { color: 'red', text: '高' }
     }
     const item = map[priority]
     return <Tag color={item.color}>{item.text}</Tag>
   }
+=======
+      high: { color: 'red', text: '高' },
+    };
+    const item = map[priority];
+    return <Tag color={item.color}>{item.text}</Tag>;
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const columns: ColumnsType<Ticket> = [
     {
       title: '工单编号',
       dataIndex: 'id',
       key: 'id',
+<<<<<<< HEAD
       render: (id: string) => <Text code>{id}</Text>
+=======
+      render: (id: string) => <Text code>{id}</Text>,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '标题',
@@ -229,7 +372,11 @@ export default function TicketManagement() {
             {getPriorityTag(record.priority)}
           </Space>
         </div>
+<<<<<<< HEAD
       )
+=======
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '申请人',
@@ -237,9 +384,17 @@ export default function TicketManagement() {
       render: (_, record) => (
         <div>
           <div style={{ fontWeight: 500 }}>{record.customer}</div>
+<<<<<<< HEAD
           <Text type="secondary" style={{ fontSize: 12 }}>{record.company}</Text>
         </div>
       )
+=======
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.company}
+          </Text>
+        </div>
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
@@ -248,15 +403,26 @@ export default function TicketManagement() {
       filters: [
         { text: '待处理', value: 'pending' },
         { text: '已通过', value: 'approved' },
+<<<<<<< HEAD
         { text: '已拒绝', value: 'rejected' }
       ],
       onFilter: (value, record) => record.status === value,
       render: (status: string) => getStatusTag(status)
+=======
+        { text: '已拒绝', value: 'rejected' },
+      ],
+      onFilter: (value, record) => record.status === value,
+      render: (status: string) => getStatusTag(status),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '申请时间',
       dataIndex: 'createTime',
+<<<<<<< HEAD
       key: 'createTime'
+=======
+      key: 'createTime',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '操作',
@@ -268,17 +434,29 @@ export default function TicketManagement() {
           </Button>
           {record.status === 'pending' && (
             <>
+<<<<<<< HEAD
               <Button 
                 type="link" 
                 size="small" 
+=======
+              <Button
+                type="link"
+                size="small"
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 onClick={() => handleApprove(record)}
                 style={{ color: '#52c41a' }}
               >
                 通过
               </Button>
+<<<<<<< HEAD
               <Button 
                 type="link" 
                 size="small" 
+=======
+              <Button
+                type="link"
+                size="small"
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 onClick={() => handleReject(record, '')}
                 style={{ color: '#ff4d4f' }}
               >
@@ -287,14 +465,26 @@ export default function TicketManagement() {
             </>
           )}
         </Space>
+<<<<<<< HEAD
       )
     }
   ]
+=======
+      ),
+    },
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
       <div className="mb-6">
+<<<<<<< HEAD
         <Title level={2} className="mb-2">工单/申请处理</Title>
+=======
+        <Title level={2} className="mb-2">
+          工单/申请处理
+        </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         <Text type="secondary">接收客户的功能开通申请，审批通过或拒绝</Text>
       </div>
 
@@ -302,9 +492,15 @@ export default function TicketManagement() {
       <Row gutter={16} className="mb-4">
         <Col span={8}>
           <Card>
+<<<<<<< HEAD
             <Statistic 
               title="待处理" 
               value={stats.pending} 
+=======
+            <Statistic
+              title="待处理"
+              value={stats.pending}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
               valueStyle={{ color: '#faad14' }}
             />
@@ -312,9 +508,15 @@ export default function TicketManagement() {
         </Col>
         <Col span={8}>
           <Card>
+<<<<<<< HEAD
             <Statistic 
               title="已通过" 
               value={stats.approved} 
+=======
+            <Statistic
+              title="已通过"
+              value={stats.approved}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a' }}
             />
@@ -322,9 +524,15 @@ export default function TicketManagement() {
         </Col>
         <Col span={8}>
           <Card>
+<<<<<<< HEAD
             <Statistic 
               title="已拒绝" 
               value={stats.rejected} 
+=======
+            <Statistic
+              title="已拒绝"
+              value={stats.rejected}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
               valueStyle={{ color: '#ff4d4f' }}
             />
@@ -334,14 +542,23 @@ export default function TicketManagement() {
 
       {/* 工单列表 */}
       <Card>
+<<<<<<< HEAD
         <Tabs 
           activeKey={activeTab} 
+=======
+        <Tabs
+          activeKey={activeTab}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           onChange={setActiveTab}
           items={[
             { key: 'pending', label: `待处理 (${stats.pending})` },
             { key: 'approved', label: `已通过 (${stats.approved})` },
             { key: 'rejected', label: `已拒绝 (${stats.rejected})` },
+<<<<<<< HEAD
             { key: 'all', label: '全部' }
+=======
+            { key: 'all', label: '全部' },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ]}
         />
         <Table
@@ -351,7 +568,11 @@ export default function TicketManagement() {
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
+<<<<<<< HEAD
             showTotal: (total) => `共 ${total} 条`
+=======
+            showTotal: total => `共 ${total} 条`,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           }}
         />
       </Card>
@@ -365,20 +586,33 @@ export default function TicketManagement() {
           selectedTicket?.status === 'pending' ? (
             <Space>
               <Button onClick={() => setDetailVisible(false)}>取消</Button>
+<<<<<<< HEAD
               <Button 
                 danger 
                 onClick={() => {
                   form.validateFields().then(values => {
                     handleReject(selectedTicket, values.reason)
                   })
+=======
+              <Button
+                danger
+                onClick={() => {
+                  form.validateFields().then(values => {
+                    handleReject(selectedTicket, values.reason);
+                  });
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 }}
               >
                 拒绝
               </Button>
+<<<<<<< HEAD
               <Button 
                 type="primary" 
                 onClick={() => handleApprove(selectedTicket)}
               >
+=======
+              <Button type="primary" onClick={() => handleApprove(selectedTicket)}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 通过
               </Button>
             </Space>
@@ -398,9 +632,13 @@ export default function TicketManagement() {
                   </Form.Item>
                 </Col>
                 <Col span={12}>
+<<<<<<< HEAD
                   <Form.Item label="状态">
                     {getStatusTag(selectedTicket.status)}
                   </Form.Item>
+=======
+                  <Form.Item label="状态">{getStatusTag(selectedTicket.status)}</Form.Item>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 </Col>
               </Row>
 
@@ -426,6 +664,7 @@ export default function TicketManagement() {
 
               <Row gutter={16}>
                 <Col span={12}>
+<<<<<<< HEAD
                   <Form.Item label="申请类型">
                     {getTypeTag(selectedTicket.type)}
                   </Form.Item>
@@ -434,24 +673,44 @@ export default function TicketManagement() {
                   <Form.Item label="优先级">
                     {getPriorityTag(selectedTicket.priority)}
                   </Form.Item>
+=======
+                  <Form.Item label="申请类型">{getTypeTag(selectedTicket.type)}</Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item label="优先级">{getPriorityTag(selectedTicket.priority)}</Form.Item>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 </Col>
               </Row>
 
               <Form.Item label="申请说明">
+<<<<<<< HEAD
                 <div style={{ 
                   padding: 12, 
                   background: '#f5f5f5', 
                   borderRadius: 4 
                 }}>
+=======
+                <div
+                  style={{
+                    padding: 12,
+                    background: '#f5f5f5',
+                    borderRadius: 4,
+                  }}
+                >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   {selectedTicket.description}
                 </div>
               </Form.Item>
 
               {selectedTicket.status === 'pending' && (
+<<<<<<< HEAD
                 <Form.Item 
                   name="reason" 
                   label="拒绝原因（拒绝时必填）"
                 >
+=======
+                <Form.Item name="reason" label="拒绝原因（拒绝时必填）">
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   <Input.TextArea rows={3} placeholder="请输入拒绝原因" />
                 </Form.Item>
               )}
@@ -463,8 +722,16 @@ export default function TicketManagement() {
                 <Title level={5}>处理历史</Title>
                 <Timeline
                   items={mockTicketHistory.map(item => ({
+<<<<<<< HEAD
                     color: item.action.includes('通过') ? 'green' : 
                            item.action.includes('拒绝') ? 'red' : 'blue',
+=======
+                    color: item.action.includes('通过')
+                      ? 'green'
+                      : item.action.includes('拒绝')
+                        ? 'red'
+                        : 'blue',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     children: (
                       <div>
                         <Text strong>{item.action}</Text>
@@ -474,7 +741,11 @@ export default function TicketManagement() {
                           </Text>
                         </div>
                       </div>
+<<<<<<< HEAD
                     )
+=======
+                    ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   }))}
                 />
               </div>
@@ -483,5 +754,9 @@ export default function TicketManagement() {
         )}
       </Modal>
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

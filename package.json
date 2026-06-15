@@ -19,11 +19,14 @@
     "start:apk": "cd apk && npm start",
     "start:backend": "cd backend && npm start"
   },
+<<<<<<< HEAD
   "workspaces": [
     "web",
     "apk",
     "backend"
   ],
+=======
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   "keywords": [
     "AI",
     "SaaS",

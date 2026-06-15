@@ -1,7 +1,26 @@
+<<<<<<< HEAD
 'use client'
 
 import { useState } from 'react'
 import { Card, Row, Col, Button, Tag, Typography, Statistic, Progress, Space, Timeline, message } from 'antd'
+=======
+'use client';
+
+import { useState } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Button,
+  Tag,
+  Typography,
+  Statistic,
+  Progress,
+  Space,
+  Timeline,
+  message,
+} from 'antd';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   CrownOutlined,
   CheckCircleOutlined,
@@ -9,10 +28,17 @@ import {
   ThunderboltOutlined,
   TeamOutlined,
   RocketOutlined,
+<<<<<<< HEAD
   SafetyOutlined
 } from '@ant-design/icons'
 
 const { Title, Text } = Typography
+=======
+  SafetyOutlined,
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 export default function SubscribePage() {
   // 当前订阅信息
@@ -22,7 +48,11 @@ export default function SubscribePage() {
     endDate: '2025-12-31',
     daysLeft: 245,
     status: 'active',
+<<<<<<< HEAD
   })
+=======
+  });
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 使用量统计
   const usageStats = [
@@ -31,7 +61,11 @@ export default function SubscribePage() {
     { name: '智能获客', used: 320, limit: '无限', percent: 100, icon: <RocketOutlined /> },
     { name: '数字人视频', used: 45, limit: '无限', percent: 100, icon: <ThunderboltOutlined /> },
     { name: '招聘助手', used: 89, limit: '无限', percent: 100, icon: <SafetyOutlined /> },
+<<<<<<< HEAD
   ]
+=======
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 套餐列表
   const plans = [
@@ -46,8 +80,13 @@ export default function SubscribePage() {
         '发布中心不限次数',
         '招聘助手基础功能',
         '智能获客100条/月',
+<<<<<<< HEAD
         '客服支持（工作日）'
       ]
+=======
+        '客服支持（工作日）',
+      ],
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       id: 'quarterly',
@@ -62,8 +101,13 @@ export default function SubscribePage() {
         '招聘助手高级功能',
         '智能获客500条/月',
         '客服支持（7x24小时）',
+<<<<<<< HEAD
         '优先功能体验'
       ]
+=======
+        '优先功能体验',
+      ],
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       id: 'yearly',
@@ -79,6 +123,7 @@ export default function SubscribePage() {
         '客服支持（7x24小时）',
         '专属客户经理',
         '优先功能体验',
+<<<<<<< HEAD
         'API接口调用'
       ]
     }
@@ -87,6 +132,18 @@ export default function SubscribePage() {
   return (
     <div className="p-6">
       <Title level={2} className="mb-6">套餐管理</Title>
+=======
+        'API接口调用',
+      ],
+    },
+  ];
+
+  return (
+    <div className="p-6">
+      <Title level={2} className="mb-6">
+        套餐管理
+      </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
       {/* 当前订阅信息 */}
       <Row gutter={16} className="mb-6">
@@ -99,7 +156,13 @@ export default function SubscribePage() {
               <Col>
                 <Title level={4} style={{ marginBottom: 8 }}>
                   {currentSubscription.planName}
+<<<<<<< HEAD
                   <Tag color="green" className="ml-2">当前</Tag>
+=======
+                  <Tag color="green" className="ml-2">
+                    当前
+                  </Tag>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 </Title>
                 <Space>
                   <Text type="secondary">
@@ -112,9 +175,15 @@ export default function SubscribePage() {
         </Col>
         <Col span={8}>
           <Card>
+<<<<<<< HEAD
             <Statistic 
               title="剩余天数" 
               value={currentSubscription.daysLeft} 
+=======
+            <Statistic
+              title="剩余天数"
+              value={currentSubscription.daysLeft}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               suffix="天"
               valueStyle={{ color: '#faad14', fontSize: '32px' }}
             />
@@ -147,6 +216,7 @@ export default function SubscribePage() {
       {/* 套餐列表 */}
       <Card title="可选套餐">
         <Row gutter={16}>
+<<<<<<< HEAD
           {plans.map((plan) => (
             <Col span={8} key={plan.id}>
               <Card
@@ -161,6 +231,19 @@ export default function SubscribePage() {
                     color={plan.color} 
                     style={{ position: 'absolute', top: 12, right: 12 }}
                   >
+=======
+          {plans.map(plan => (
+            <Col span={8} key={plan.id}>
+              <Card
+                className={plan.popular ? 'border-primary' : ''}
+                style={{
+                  borderColor: plan.popular ? plan.color : undefined,
+                  position: 'relative',
+                }}
+              >
+                {plan.popular && (
+                  <Tag color={plan.color} style={{ position: 'absolute', top: 12, right: 12 }}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     推荐
                   </Tag>
                 )}
@@ -171,19 +254,36 @@ export default function SubscribePage() {
                   </Title>
                   <Text type="secondary">{plan.duration}</Text>
                 </div>
+<<<<<<< HEAD
                 
                 <div style={{ minHeight: '150px' }}>
                   {plan.features.map((feature, index) => (
                     <div key={index} style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+=======
+
+                <div style={{ minHeight: '150px' }}>
+                  {plan.features.map((feature, index) => (
+                    <div
+                      key={index}
+                      style={{ marginBottom: '8px', display: 'flex', alignItems: 'center' }}
+                    >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                       <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
                       <Text>{feature}</Text>
                     </div>
                   ))}
                 </div>
+<<<<<<< HEAD
                 
                 <Button 
                   type={plan.popular ? 'primary' : 'default'}
                   block 
+=======
+
+                <Button
+                  type={plan.popular ? 'primary' : 'default'}
+                  block
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   size="large"
                   style={{ marginTop: '16px' }}
                   onClick={() => message.info('请联系管理员升级套餐')}
@@ -207,5 +307,9 @@ export default function SubscribePage() {
         />
       </Card>
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

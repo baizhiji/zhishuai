@@ -22,7 +22,11 @@ const nextConfig = {
   // 实验性功能
   experimental: {
     optimizePackageImports: ['antd'],
+<<<<<<< HEAD
     optimizeCss: true,
+=======
+    optimizeCss: false,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   },
 
   // 环境变量

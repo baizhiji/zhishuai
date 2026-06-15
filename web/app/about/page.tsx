@@ -2,10 +2,17 @@
 
 import React from 'react';
 import { Card, Typography, Row, Col, Statistic, Progress, Tag, Space, Divider, QRCode } from 'antd';
+<<<<<<< HEAD
 import { 
   RobotOutlined, 
   GlobalOutlined, 
   CustomerServiceOutlined, 
+=======
+import {
+  RobotOutlined,
+  GlobalOutlined,
+  CustomerServiceOutlined,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   UsergroupAddOutlined,
   SafetyCertificateOutlined,
   ThunderboltOutlined,
@@ -19,11 +26,39 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function AboutPage() {
   const features = [
+<<<<<<< HEAD
     { icon: <RobotOutlined />, title: 'AI智能引擎', desc: '基于大语言模型的智能对话、内容生成、意图识别' },
     { icon: <GlobalOutlined />, title: '自媒体矩阵', desc: '抖音、快手、小红书多平台账号管理与一键发布' },
     { icon: <CustomerServiceOutlined />, title: '智能招聘', desc: 'AI生成JD、智能筛选简历、自动沟通候选人' },
     { icon: <UsergroupAddOutlined />, title: '智能获客', desc: '潜客发现、AI画像分析、自动引流转化' },
     { icon: <SafetyCertificateOutlined />, title: '企业级安全', desc: '数据加密、权限管理、操作审计' },
+=======
+    {
+      icon: <RobotOutlined />,
+      title: 'AI智能引擎',
+      desc: '基于大语言模型的智能对话、内容生成、意图识别',
+    },
+    {
+      icon: <GlobalOutlined />,
+      title: '自媒体矩阵',
+      desc: '抖音、快手、小红书多平台账号管理与一键发布',
+    },
+    {
+      icon: <CustomerServiceOutlined />,
+      title: '智能招聘',
+      desc: 'AI生成JD、智能筛选简历、自动沟通候选人',
+    },
+    {
+      icon: <UsergroupAddOutlined />,
+      title: '智能获客',
+      desc: '潜客发现、AI画像分析、自动引流转化',
+    },
+    {
+      icon: <SafetyCertificateOutlined />,
+      title: '企业级安全',
+      desc: '数据加密、权限管理、操作审计',
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     { icon: <ThunderboltOutlined />, title: '高效稳定', desc: '云原生架构、弹性扩展、99.9%可用性' },
   ];
 
@@ -37,7 +72,17 @@ export default function AboutPage() {
   return (
     <div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
       {/* Header */}
+<<<<<<< HEAD
       <Card style={{ marginBottom: 24, textAlign: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+=======
+      <Card
+        style={{
+          marginBottom: 24,
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        }}
+      >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         <div style={{ color: 'white' }}>
           <Title level={1} style={{ color: 'white', marginBottom: 8 }}>
             智枢AI SaaS 系统
@@ -60,7 +105,11 @@ export default function AboutPage() {
         {stats.map((stat, i) => (
           <Col span={6} key={i}>
             <Card>
+<<<<<<< HEAD
               <Statistic 
+=======
+              <Statistic
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 title={<Text type="secondary">{stat.title}</Text>}
                 value={stat.value}
                 valueStyle={{ color: stat.color }}
@@ -71,16 +120,29 @@ export default function AboutPage() {
       </Row>
 
       {/* Features */}
+<<<<<<< HEAD
       <Title level={2} style={{ marginBottom: 24 }}>核心功能</Title>
+=======
+      <Title level={2} style={{ marginBottom: 24 }}>
+        核心功能
+      </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {features.map((feature, i) => (
           <Col span={8} key={i}>
             <Card hoverable>
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
+<<<<<<< HEAD
                 <div style={{ fontSize: 32, color: '#1890ff' }}>
                   {feature.icon}
                 </div>
                 <Title level={4} style={{ margin: 0 }}>{feature.title}</Title>
+=======
+                <div style={{ fontSize: 32, color: '#1890ff' }}>{feature.icon}</div>
+                <Title level={4} style={{ margin: 0 }}>
+                  {feature.title}
+                </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <Text type="secondary">{feature.desc}</Text>
               </Space>
             </Card>
@@ -89,7 +151,13 @@ export default function AboutPage() {
       </Row>
 
       {/* Technology Stack */}
+<<<<<<< HEAD
       <Title level={2} style={{ marginBottom: 24 }}>技术架构</Title>
+=======
+      <Title level={2} style={{ marginBottom: 24 }}>
+        技术架构
+      </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       <Card style={{ marginBottom: 24 }}>
         <Row gutter={[24, 16]}>
           <Col span={12}>
@@ -148,24 +216,48 @@ export default function AboutPage() {
       </Card>
 
       {/* Contact */}
+<<<<<<< HEAD
       <Title level={2} style={{ marginBottom: 24 }}>联系我们</Title>
+=======
+      <Title level={2} style={{ marginBottom: 24 }}>
+        联系我们
+      </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       <Card>
         <Row gutter={24}>
           <Col span={8}>
             <Space direction="vertical" size="small">
+<<<<<<< HEAD
               <Space><EnvironmentOutlined /> <Text>地址</Text></Space>
+=======
+              <Space>
+                <EnvironmentOutlined /> <Text>地址</Text>
+              </Space>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Text type="secondary">深圳市南山区科技园</Text>
             </Space>
           </Col>
           <Col span={8}>
             <Space direction="vertical" size="small">
+<<<<<<< HEAD
               <Space><PhoneOutlined /> <Text>电话</Text></Space>
+=======
+              <Space>
+                <PhoneOutlined /> <Text>电话</Text>
+              </Space>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Text type="secondary">400-888-8888</Text>
             </Space>
           </Col>
           <Col span={8}>
             <Space direction="vertical" size="small">
+<<<<<<< HEAD
               <Space><MailOutlined /> <Text>邮箱</Text></Space>
+=======
+              <Space>
+                <MailOutlined /> <Text>邮箱</Text>
+              </Space>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Text type="secondary">support@baizhiji.net</Text>
             </Space>
           </Col>
@@ -191,10 +283,25 @@ export default function AboutPage() {
       {/* Footer */}
       <Card style={{ marginTop: 24, textAlign: 'center' }}>
         <Text type="secondary">
+<<<<<<< HEAD
           © 2024 智枢AI SaaS 系统 版权所有 | 
           <a href="https://www.baizhiji.net" style={{ marginLeft: 8 }}>官方网站</a> | 
           <a href="https://www.baizhiji.net/privacy" style={{ marginLeft: 8 }}>隐私政策</a> | 
           <a href="https://www.baizhiji.net/terms" style={{ marginLeft: 8 }}>服务条款</a>
+=======
+          © 2024 智枢AI SaaS 系统 版权所有 |
+          <a href="https://www.baizhiji.net" style={{ marginLeft: 8 }}>
+            官方网站
+          </a>{' '}
+          |
+          <a href="https://www.baizhiji.net/privacy" style={{ marginLeft: 8 }}>
+            隐私政策
+          </a>{' '}
+          |
+          <a href="https://www.baizhiji.net/terms" style={{ marginLeft: 8 }}>
+            服务条款
+          </a>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         </Text>
       </Card>
     </div>

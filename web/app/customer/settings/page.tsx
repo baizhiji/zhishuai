@@ -8,6 +8,11 @@ import {
   Button,
   Switch,
   Space,
+<<<<<<< HEAD
+=======
+  Row,
+  Col,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   Tabs,
   List,
   Avatar,
@@ -18,6 +23,11 @@ import {
   Modal,
   Select,
   InputNumber,
+<<<<<<< HEAD
+=======
+  Steps,
+  Alert,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'antd';
 import {
   UserOutlined,
@@ -29,6 +39,12 @@ import {
   SunOutlined,
   DeleteOutlined,
   WarningOutlined,
+<<<<<<< HEAD
+=======
+  AndroidOutlined,
+  DownloadOutlined,
+  QuestionCircleOutlined,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import request from '@/utils/request';
 
@@ -187,10 +203,21 @@ export default function SettingsPage() {
             <Form.Item label="姓名" name="name" rules={[{ required: true, message: '请输入姓名' }]}>
               <Input placeholder="请输入姓名" />
             </Form.Item>
+<<<<<<< HEAD
             <Form.Item label="邮箱" name="email" rules={[
               { required: true, message: '请输入邮箱' },
               { type: 'email', message: '请输入正确的邮箱格式' },
             ]}>
+=======
+            <Form.Item
+              label="邮箱"
+              name="email"
+              rules={[
+                { required: true, message: '请输入邮箱' },
+                { type: 'email', message: '请输入正确的邮箱格式' },
+              ]}
+            >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Input placeholder="请输入邮箱" />
             </Form.Item>
             <Form.Item label="手机号" name="phone">
@@ -262,7 +289,11 @@ export default function SettingsPage() {
                 actions={[
                   <Switch
                     checked={settings?.security.twoFactor}
+<<<<<<< HEAD
                     onChange={(checked) => {
+=======
+                    onChange={checked => {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                       Modal.confirm({
                         title: '确认开启两步验证',
                         content: '启用后，登录时需要输入手机验证码',
@@ -282,7 +313,11 @@ export default function SettingsPage() {
                 actions={[
                   <Switch
                     checked={settings?.security.loginAlerts}
+<<<<<<< HEAD
                     onChange={(checked) => handleNotificationChange('loginAlerts', checked)}
+=======
+                    onChange={checked => handleNotificationChange('loginAlerts', checked)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   />,
                 ]}
               >
@@ -313,7 +348,11 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.email}
+<<<<<<< HEAD
                   onChange={(checked) => handleNotificationChange('email', checked)}
+=======
+                  onChange={checked => handleNotificationChange('email', checked)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 />,
               ]}
             >
@@ -327,7 +366,11 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.sms}
+<<<<<<< HEAD
                   onChange={(checked) => handleNotificationChange('sms', checked)}
+=======
+                  onChange={checked => handleNotificationChange('sms', checked)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 />,
               ]}
             >
@@ -341,7 +384,11 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.push}
+<<<<<<< HEAD
                   onChange={(checked) => handleNotificationChange('push', checked)}
+=======
+                  onChange={checked => handleNotificationChange('push', checked)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 />,
               ]}
             >
@@ -414,7 +461,11 @@ export default function SettingsPage() {
           <Title level={5}>已连接的应用</Title>
           <List
             dataSource={settings?.connectedApps}
+<<<<<<< HEAD
             renderItem={(app) => (
+=======
+            renderItem={app => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <List.Item
                 actions={[
                   <Button
@@ -437,10 +488,92 @@ export default function SettingsPage() {
         </Card>
       ),
     },
+<<<<<<< HEAD
   ];
 
   return (
     <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh', maxWidth: 800, margin: '0 auto' }}>
+=======
+    {
+      key: 'app-download',
+      label: (
+        <span>
+          <AndroidOutlined />
+          智枢AI APP下载
+        </span>
+      ),
+      children: (
+        <Card>
+          <Title level={4}>智枢AI APP 下载</Title>
+          <Text type="secondary">下载并安装智枢AI移动端应用，随时随地管理您的业务</Text>
+
+          <div style={{ marginTop: 24 }}>
+            <Row gutter={[24, 24]}>
+              <Col xs={24} md={12}>
+                <Card
+                  title="Android 版本"
+                  extra={<AndroidOutlined style={{ fontSize: 24, color: '#13c2c2' }} />}
+                  style={{ textAlign: 'center' }}
+                >
+                  <Title level={3}>v1.0.0</Title>
+                  <Text type="secondary">大小：45.6 MB</Text>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<DownloadOutlined />}
+                    onClick={() => window.open('/app/zhishuai.apk', '_blank')}
+                    style={{ marginTop: 16 }}
+                  >
+                    下载安装包
+                  </Button>
+                </Card>
+              </Col>
+              <Col xs={24} md={12}>
+                <Card
+                  title="安装教程"
+                  extra={<QuestionCircleOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
+                  style={{ textAlign: 'center' }}
+                >
+                  <Steps
+                    direction="vertical"
+                    size="small"
+                    current={3}
+                    items={[
+                      { title: '下载 APK', description: '点击上方按钮下载安装包' },
+                      { title: '允许安装', description: '在设置中允许未知来源应用' },
+                      { title: '安装应用', description: '运行下载的 APK 文件' },
+                      { title: '开始使用', description: '打开应用并登录您的账号' },
+                    ]}
+                  />
+                </Card>
+              </Col>
+            </Row>
+          </div>
+
+          <Alert
+            type="info"
+            showIcon
+            icon={<AndroidOutlined />}
+            message="温馨提示"
+            description="如果遇到安装问题，请在手机设置中开启'允许安装未知来源应用'选项。"
+            style={{ marginTop: 24 }}
+          />
+        </Card>
+      ),
+    },
+  ];
+
+  return (
+    <div
+      style={{
+        padding: 24,
+        background: '#f0f2f5',
+        minHeight: '100vh',
+        maxWidth: 800,
+        margin: '0 auto',
+      }}
+    >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       <Card>
         <Title level={3}>账户设置</Title>
         <Tabs

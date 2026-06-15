@@ -12,14 +12,22 @@ import {
   Space,
   Typography,
   Progress,
+<<<<<<< HEAD
   Statistic
+=======
+  Statistic,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'antd';
 import {
   ApiOutlined,
   AreaChartOutlined,
   FieldTimeOutlined,
   CheckCircleOutlined,
+<<<<<<< HEAD
   CloseCircleOutlined
+=======
+  CloseCircleOutlined,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -32,7 +40,11 @@ import {
   Tooltip,
   ResponsiveContainer,
   BarChart,
+<<<<<<< HEAD
   Bar
+=======
+  Bar,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'recharts';
 
 const { Title, Text } = Typography;
@@ -74,7 +86,11 @@ export default function ApiStatsPage() {
     totalCalls: 0,
     totalTokens: 0,
     totalCost: 0,
+<<<<<<< HEAD
     avgSuccessRate: 0
+=======
+    avgSuccessRate: 0,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   });
 
   useEffect(() => {
@@ -89,12 +105,23 @@ export default function ApiStatsPage() {
         setUsage(res.data.usage || generateMockUsage());
         setTrendData(res.data.trendData || generateMockTrend());
         setProviderData(res.data.providerData || generateMockProvider());
+<<<<<<< HEAD
         setStats(res.data.stats || {
           totalCalls: 156789,
           totalTokens: 45678900,
           totalCost: 1289.56,
           avgSuccessRate: 98.5
         });
+=======
+        setStats(
+          res.data.stats || {
+            totalCalls: 156789,
+            totalTokens: 45678900,
+            totalCost: 1289.56,
+            avgSuccessRate: 98.5,
+          }
+        );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       }
     } catch (error) {
       setUsage(generateMockUsage());
@@ -104,7 +131,11 @@ export default function ApiStatsPage() {
         totalCalls: 156789,
         totalTokens: 45678900,
         totalCost: 1289.56,
+<<<<<<< HEAD
         avgSuccessRate: 98.5
+=======
+        avgSuccessRate: 98.5,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
     } finally {
       setLoading(false);
@@ -123,7 +154,11 @@ export default function ApiStatsPage() {
       totalTokens: 12345678,
       cost: 456.78,
       avgLatency: 1.2,
+<<<<<<< HEAD
       lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
+=======
+      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       id: '2',
@@ -136,7 +171,11 @@ export default function ApiStatsPage() {
       totalTokens: 8900000,
       cost: 567.89,
       avgLatency: 2.5,
+<<<<<<< HEAD
       lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
+=======
+      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       id: '3',
@@ -149,8 +188,13 @@ export default function ApiStatsPage() {
       totalTokens: 5678900,
       cost: 234.56,
       avgLatency: 3.2,
+<<<<<<< HEAD
       lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
     }
+=======
+      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   const generateMockTrend = () => {
@@ -160,7 +204,11 @@ export default function ApiStatsPage() {
         date: dayjs().subtract(i, 'day').format('MM-DD'),
         calls: Math.floor(Math.random() * 20000) + 15000,
         tokens: Math.floor(Math.random() * 5000000) + 3000000,
+<<<<<<< HEAD
         cost: Math.random() * 200 + 100
+=======
+        cost: Math.random() * 200 + 100,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
     }
     return data;
@@ -169,7 +217,11 @@ export default function ApiStatsPage() {
   const generateMockProvider = () => [
     { provider: 'coze-doubao', calls: 65000, cost: 890.23 },
     { provider: 'coze-vision', calls: 25000, cost: 234.56 },
+<<<<<<< HEAD
     { provider: 'coze-32k', calls: 40000, cost: 123.45 }
+=======
+    { provider: 'coze-32k', calls: 40000, cost: 123.45 },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   const columns = [
@@ -181,23 +233,42 @@ export default function ApiStatsPage() {
           <Text strong>{record.modelName}</Text>
           <Tag>{record.provider}</Tag>
         </Space>
+<<<<<<< HEAD
       )
+=======
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '调用次数',
       dataIndex: 'totalCalls',
       key: 'totalCalls',
+<<<<<<< HEAD
       render: (val: number) => val.toLocaleString()
+=======
+      render: (val: number) => val.toLocaleString(),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '成功/失败',
       key: 'result',
       render: (_: any, record: ApiUsage) => (
         <Space direction="vertical" size={0}>
+<<<<<<< HEAD
           <Text type="success"><CheckCircleOutlined /> {record.successCalls.toLocaleString()}</Text>
           <Text type="danger"><CloseCircleOutlined /> {record.failedCalls.toLocaleString()}</Text>
         </Space>
       )
+=======
+          <Text type="success">
+            <CheckCircleOutlined /> {record.successCalls.toLocaleString()}
+          </Text>
+          <Text type="danger">
+            <CloseCircleOutlined /> {record.failedCalls.toLocaleString()}
+          </Text>
+        </Space>
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '成功率',
@@ -208,34 +279,57 @@ export default function ApiStatsPage() {
           percent={rate}
           size="small"
           status={rate > 99 ? 'success' : 'active'}
+<<<<<<< HEAD
           format={(p) => `${p}%`}
         />
       )
+=======
+          format={p => `${p}%`}
+        />
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: 'Tokens',
       dataIndex: 'totalTokens',
       key: 'totalTokens',
+<<<<<<< HEAD
       render: (val: number) => (val / 1000000).toFixed(2) + 'M'
+=======
+      render: (val: number) => (val / 1000000).toFixed(2) + 'M',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '费用',
       dataIndex: 'cost',
       key: 'cost',
+<<<<<<< HEAD
       render: (val: number) => `¥${val.toFixed(2)}`
+=======
+      render: (val: number) => `¥${val.toFixed(2)}`,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '平均延迟',
       dataIndex: 'avgLatency',
       key: 'avgLatency',
+<<<<<<< HEAD
       render: (val: number) => `${val}s`
+=======
+      render: (val: number) => `${val}s`,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '最后调用',
       dataIndex: 'lastCallAt',
       key: 'lastCallAt',
+<<<<<<< HEAD
       render: (time: string) => dayjs(time).format('HH:mm:ss')
     }
+=======
+      render: (time: string) => dayjs(time).format('HH:mm:ss'),
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   return (
@@ -302,7 +396,17 @@ export default function ApiStatsPage() {
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
                 <Tooltip />
+<<<<<<< HEAD
                 <Line yAxisId="left" type="monotone" dataKey="calls" stroke="#1890ff" name="调用次数" />
+=======
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="calls"
+                  stroke="#1890ff"
+                  name="调用次数"
+                />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#faad14" name="费用" />
               </LineChart>
             </ResponsiveContainer>

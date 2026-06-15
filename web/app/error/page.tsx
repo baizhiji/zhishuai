@@ -9,6 +9,7 @@ export default function ErrorPage(props: any) {
   const router = useRouter();
 
   return (
+<<<<<<< HEAD
     <div style={{ 
       display: 'flex', 
       justifyContent: 'center', 
@@ -16,6 +17,17 @@ export default function ErrorPage(props: any) {
       minHeight: '100vh',
       background: '#f0f2f5'
     }}>
+=======
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        background: '#f0f2f5',
+      }}
+    >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       <Card>
         <Result
           status="error"

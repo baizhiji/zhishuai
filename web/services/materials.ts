@@ -34,7 +34,11 @@ export async function getMaterials(params?: {
   page?: number;
   pageSize?: number;
 }) {
+<<<<<<< HEAD
   return request.get('/api/materials', params);
+=======
+  return request.get('/api/materials', { params });
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export async function createMaterial(data: Partial<Material>) {

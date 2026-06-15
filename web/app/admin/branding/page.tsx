@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+<<<<<<< HEAD
 import { 
   Card, 
   Form, 
@@ -20,6 +21,27 @@ import {
   BgColorsOutlined,
   AppstoreOutlined,
   GlobalOutlined
+=======
+import {
+  Card,
+  Form,
+  Input,
+  Button,
+  Upload,
+  ColorPicker,
+  message,
+  Space,
+  Divider,
+  Typography,
+  Switch,
+} from 'antd';
+import {
+  UploadOutlined,
+  SaveOutlined,
+  BgColorsOutlined,
+  AppstoreOutlined,
+  GlobalOutlined,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
 
@@ -47,7 +69,11 @@ export default function BrandingPage() {
       // 从URL参数获取用户ID或者使用当前用户
       const response = await fetch('/api/admin/branding/default', {
         headers: {
+<<<<<<< HEAD
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+=======
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         },
       });
       const data = await response.json();
@@ -68,7 +94,11 @@ export default function BrandingPage() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+<<<<<<< HEAD
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
+=======
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         },
         body: JSON.stringify({
           ...values,
@@ -77,7 +107,11 @@ export default function BrandingPage() {
           secondaryColor: values.secondaryColor || '#52c41a',
         }),
       });
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       const data = await response.json();
       if (data.data) {
         message.success('保存成功');
@@ -122,9 +156,13 @@ export default function BrandingPage() {
           <Title level={4}>
             <AppstoreOutlined /> 贴牌配置
           </Title>
+<<<<<<< HEAD
           <Text type="secondary">
             配置APP的名称、LOGO、主题色等品牌信息，支持代理商自定义贴牌
           </Text>
+=======
+          <Text type="secondary">配置APP的名称、LOGO、主题色等品牌信息，支持代理商自定义贴牌</Text>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         </div>
 
         <Form
@@ -139,7 +177,11 @@ export default function BrandingPage() {
             welcomeText: '欢迎使用智枢AI',
           }}
         >
+<<<<<<< HEAD
           <Divider orientation={"left" as any}>
+=======
+          <Divider orientation={'left' as any}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <GlobalOutlined /> 基础配置
           </Divider>
 
@@ -151,6 +193,7 @@ export default function BrandingPage() {
             <Input placeholder="例如：智枢AI、企业助手" maxLength={20} />
           </Form.Item>
 
+<<<<<<< HEAD
           <Form.Item
             label="欢迎语"
             name="welcomeText"
@@ -171,6 +214,17 @@ export default function BrandingPage() {
           </Form.Item>
 
           <Divider orientation={"left" as any}>
+=======
+          <Form.Item label="欢迎语" name="welcomeText">
+            <Input placeholder="例如：欢迎使用智枢AI" maxLength={50} />
+          </Form.Item>
+
+          <Form.Item label="描述" name="description">
+            <Input.TextArea placeholder="APP描述信息" rows={3} maxLength={200} showCount />
+          </Form.Item>
+
+          <Divider orientation={'left' as any}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <UploadOutlined /> LOGO配置
           </Divider>
 
@@ -178,17 +232,30 @@ export default function BrandingPage() {
             <Space direction="vertical" size="middle">
               {logoUrl && (
                 <div style={{ marginBottom: '8px' }}>
+<<<<<<< HEAD
                   <img 
                     src={logoUrl} 
                     alt="Logo预览" 
                     style={{ 
                       maxWidth: '120px', 
+=======
+                  <img
+                    src={logoUrl}
+                    alt="Logo预览"
+                    style={{
+                      maxWidth: '120px',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                       maxHeight: '120px',
                       border: '1px solid #d9d9d9',
                       borderRadius: '8px',
                       padding: '8px',
+<<<<<<< HEAD
                       background: '#fff'
                     }} 
+=======
+                      background: '#fff',
+                    }}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   />
                 </div>
               )}
@@ -199,6 +266,7 @@ export default function BrandingPage() {
             </Space>
           </Form.Item>
 
+<<<<<<< HEAD
           <Form.Item
             label="Favicon"
             name="favicon"
@@ -207,12 +275,23 @@ export default function BrandingPage() {
           </Form.Item>
 
           <Divider orientation={"left" as any}>
+=======
+          <Form.Item label="Favicon" name="favicon">
+            <Input placeholder="Favicon图标URL" />
+          </Form.Item>
+
+          <Divider orientation={'left' as any}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <BgColorsOutlined /> 主题配置
           </Divider>
 
           <Space size="large" wrap>
             <Form.Item label="主题色" name="themeColor" style={{ marginBottom: 0 }}>
+<<<<<<< HEAD
               <ColorPicker 
+=======
+              <ColorPicker
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 defaultValue="#1890ff"
                 showText
                 presets={[
@@ -234,6 +313,7 @@ export default function BrandingPage() {
             </Form.Item>
 
             <Form.Item label="主色" name="primaryColor" style={{ marginBottom: 0 }}>
+<<<<<<< HEAD
               <ColorPicker 
                 defaultValue="#1890ff"
                 showText
@@ -245,6 +325,13 @@ export default function BrandingPage() {
                 defaultValue="#52c41a"
                 showText
               />
+=======
+              <ColorPicker defaultValue="#1890ff" showText />
+            </Form.Item>
+
+            <Form.Item label="次色" name="secondaryColor" style={{ marginBottom: 0 }}>
+              <ColorPicker defaultValue="#52c41a" showText />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </Form.Item>
           </Space>
 
@@ -252,6 +339,7 @@ export default function BrandingPage() {
 
           <Form.Item>
             <Space>
+<<<<<<< HEAD
               <Button 
                 type="primary" 
                 htmlType="submit" 
@@ -263,12 +351,19 @@ export default function BrandingPage() {
               <Button onClick={() => form.resetFields()}>
                 重置
               </Button>
+=======
+              <Button type="primary" htmlType="submit" loading={loading} icon={<SaveOutlined />}>
+                保存配置
+              </Button>
+              <Button onClick={() => form.resetFields()}>重置</Button>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </Space>
           </Form.Item>
         </Form>
       </Card>
 
       {/* 预览区域 */}
+<<<<<<< HEAD
       <Card 
         title="效果预览" 
         style={{ marginTop: '24px' }}
@@ -287,6 +382,28 @@ export default function BrandingPage() {
                 src={logoUrl} 
                 alt="Logo" 
                 style={{ width: '64px', height: '64px', borderRadius: '8px' }} 
+=======
+      <Card
+        title="效果预览"
+        style={{ marginTop: '24px' }}
+        extra={<Text type="secondary">实时预览配置效果</Text>}
+      >
+        <div
+          style={{
+            padding: '24px',
+            background: form.getFieldValue('themeColor') || '#1890ff',
+            borderRadius: '8px',
+            color: '#fff',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Logo"
+                style={{ width: '64px', height: '64px', borderRadius: '8px' }}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               />
             ) : (
               'LOGO'

@@ -1,17 +1,45 @@
+<<<<<<< HEAD
 'use client'
 
 import React, { useState } from 'react'
 import { Card, Row, Col, Typography, Table, Tag, Button, Descriptions, Statistic, Space, message } from 'antd'
 import { 
+=======
+'use client';
+
+import React, { useState } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Table,
+  Tag,
+  Button,
+  Descriptions,
+  Statistic,
+  Space,
+  message,
+} from 'antd';
+import {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ClockCircleOutlined,
   CheckCircleOutlined,
   TeamOutlined,
   CrownOutlined,
+<<<<<<< HEAD
   RocketOutlined
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 
 const { Title, Text } = Typography
+=======
+  RocketOutlined,
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+
+const { Title, Text } = Typography;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // Mock 订阅信息
 const subscriptionInfo = {
@@ -25,6 +53,7 @@ const subscriptionInfo = {
     { name: '招聘助手', used: 89, limit: '无限', icon: <CheckCircleOutlined /> },
     { name: '智能获客', used: 320, limit: '无限', icon: <RocketOutlined /> },
     { name: '推荐分享', used: 156, limit: '无限', icon: <CrownOutlined /> },
+<<<<<<< HEAD
   ]
 }
 
@@ -64,11 +93,53 @@ const columns: ColumnsType<typeof subscriptionHistory[0]> = [
   { 
     title: '状态', 
     dataIndex: 'status', 
+=======
+  ],
+};
+
+// 订阅历史
+const subscriptionHistory = [
+  {
+    id: 1,
+    plan: '年度会员',
+    period: '2024-01-01 至 2025-12-31',
+    status: 'active',
+    date: '2024-01-01',
+  },
+  {
+    id: 2,
+    plan: '季度会员',
+    period: '2023-10-01 至 2024-01-01',
+    status: 'expired',
+    date: '2023-10-01',
+  },
+  {
+    id: 3,
+    plan: '月度会员',
+    period: '2023-07-01 至 2023-10-01',
+    status: 'expired',
+    date: '2023-07-01',
+  },
+];
+
+const columns: ColumnsType<(typeof subscriptionHistory)[0]> = [
+  {
+    title: '套餐',
+    dataIndex: 'plan',
+    key: 'plan',
+    render: (plan: string) => <Text strong>{plan}</Text>,
+  },
+  { title: '有效期', dataIndex: 'period', key: 'period' },
+  {
+    title: '状态',
+    dataIndex: 'status',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     key: 'status',
     render: (status: string) => (
       <Tag color={status === 'active' ? 'green' : 'default'}>
         {status === 'active' ? '当前' : '已过期'}
       </Tag>
+<<<<<<< HEAD
     )
   },
   { title: '开通时间', dataIndex: 'date', key: 'date' },
@@ -85,6 +156,26 @@ export default function SubscribePage() {
   return (
     <div className="p-6">
       <Title level={2} className="mb-6">订阅管理</Title>
+=======
+    ),
+  },
+  { title: '开通时间', dataIndex: 'date', key: 'date' },
+];
+
+export default function SubscribePage() {
+  const [autoRenew, setAutoRenew] = useState(true);
+
+  const handleToggleAutoRenew = () => {
+    setAutoRenew(!autoRenew);
+    message.success(`自动续费已${!autoRenew ? '开启' : '关闭'}`);
+  };
+
+  return (
+    <div className="p-6">
+      <Title level={2} className="mb-6">
+        订阅管理
+      </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
       {/* 当前订阅信息 */}
       <Row gutter={16} className="mb-6">
@@ -99,16 +190,24 @@ export default function SubscribePage() {
               <Descriptions.Item label="状态">
                 <Tag color="green">正常</Tag>
               </Descriptions.Item>
+<<<<<<< HEAD
               <Descriptions.Item label="开始时间">
                 {subscriptionInfo.startDate}
               </Descriptions.Item>
+=======
+              <Descriptions.Item label="开始时间">{subscriptionInfo.startDate}</Descriptions.Item>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <Descriptions.Item label="到期时间">
                 <Text strong type="danger">
                   <ClockCircleOutlined /> {subscriptionInfo.expireDate}
                 </Text>
               </Descriptions.Item>
               <Descriptions.Item label="自动续费">
+<<<<<<< HEAD
                 <Button 
+=======
+                <Button
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   type={autoRenew ? 'primary' : 'default'}
                   size="small"
                   onClick={handleToggleAutoRenew}
@@ -121,9 +220,18 @@ export default function SubscribePage() {
         </Col>
         <Col span={8}>
           <Card>
+<<<<<<< HEAD
             <Statistic 
               title="剩余天数" 
               value={Math.ceil((new Date(subscriptionInfo.expireDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}
+=======
+            <Statistic
+              title="剩余天数"
+              value={Math.ceil(
+                (new Date(subscriptionInfo.expireDate).getTime() - new Date().getTime()) /
+                  (1000 * 60 * 60 * 24)
+              )}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               suffix="天"
               valueStyle={{ color: '#faad14', fontSize: '36px' }}
             />
@@ -143,9 +251,17 @@ export default function SubscribePage() {
                   </div>
                   <Text type="secondary">{feature.name}</Text>
                 </div>
+<<<<<<< HEAD
                 <Statistic 
                   value={feature.used} 
                   suffix={<span style={{ fontSize: '14px', color: '#52c41a' }}>/ {feature.limit}</span>}
+=======
+                <Statistic
+                  value={feature.used}
+                  suffix={
+                    <span style={{ fontSize: '14px', color: '#52c41a' }}>/ {feature.limit}</span>
+                  }
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 />
               </Card>
             </Col>
@@ -155,6 +271,7 @@ export default function SubscribePage() {
 
       {/* 订阅历史 */}
       <Card title="订阅历史">
+<<<<<<< HEAD
         <Table
           rowKey="id"
           columns={columns}
@@ -164,4 +281,10 @@ export default function SubscribePage() {
       </Card>
     </div>
   )
+=======
+        <Table rowKey="id" columns={columns} dataSource={subscriptionHistory} pagination={false} />
+      </Card>
+    </div>
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

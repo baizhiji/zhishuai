@@ -6,6 +6,7 @@ import CustomerNavbar from './layout/Navbar';
 
 const { Content } = Layout;
 
+<<<<<<< HEAD
 export default function CustomerLayout({
   children,
 }: {
@@ -17,6 +18,13 @@ export default function CustomerLayout({
         <Content style={{ padding: 24, background: '#f0f2f5' }}>
           {children}
         </Content>
+=======
+export default function CustomerLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <CustomerNavbar>
+        <Content style={{ padding: 24, background: '#f0f2f5' }}>{children}</Content>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       </CustomerNavbar>
     </Layout>
   );

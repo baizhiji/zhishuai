@@ -378,7 +378,11 @@ router.post('/reset-password', async (req: Request, res: Response) => {
 // 登录
 router.post('/login', async (req: Request, res: Response) => {
   try {
+<<<<<<< HEAD
     const { phone, password } = req.body;
+=======
+    const { phone, password, loginType } = req.body;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     
     if (!phone || !password) {
       return res.status(400).json({ error: '请填写手机号和密码' });
@@ -387,6 +391,7 @@ router.post('/login', async (req: Request, res: Response) => {
     // 查找用户
     const user = await prisma.user.findUnique({ where: { phone } });
     
+<<<<<<< HEAD
     // Mock登录 - 测试账号
     const mockUsers: Record<string, string> = {
       '13800138000': hashPassword('123456'),
@@ -415,16 +420,54 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const token = generateToken(finalUser!.id, finalUser!.role);
+=======
+    // 验证密码
+    const isValidUser = user && verifyPassword(password, user.password);
+
+    if (!isValidUser) {
+      return res.status(401).json({ error: '手机号或密码错误' });
+    }
+
+    // 检查账号状态
+    if (user!.status !== 'active') {
+      return res.status(401).json({ error: '账号已被禁用，请联系管理员' });
+    }
+
+    // 入口权限控制
+    const userRole = user!.role;
+    
+    // admin 角色可以从所有入口登录
+    // agent 角色可以从所有入口登录（可以切换视角）
+    // user 角色只能从 user 入口登录
+    if (userRole === 'user' && loginType !== 'user') {
+      return res.status(403).json({ error: '您的账号不支持从此入口登录' });
+    }
+
+    const token = generateToken(user!.id, user!.role);
+
+    // 根据登录入口决定跳转的 targetRole
+    // 从哪个入口登录就跳转到对应的后台
+    const targetRole = loginType || userRole;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
     res.json({
       success: true,
       data: {
         user: {
+<<<<<<< HEAD
           id: finalUser!.id,
           phone: finalUser!.phone,
           name: finalUser!.name,
           role: finalUser!.role,
           avatar: finalUser!.avatar,
+=======
+          id: user!.id,
+          phone: user!.phone,
+          name: user!.name,
+          role: user!.role,
+          targetRole: targetRole,
+          avatar: user!.avatar,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         },
         token,
         expireTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
@@ -513,4 +556,54 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
+<<<<<<< HEAD
+=======
+// 获取登录日志
+router.get('/login-logs', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { page = 1, pageSize = 20 } = req.query;
+    
+    // 生成模拟数据
+    const logs = [];
+    const users = ['张三', '李四', '王五', '赵六', '孙七'];
+    const actions = ['login', 'logout'];
+    const devices = ['desktop', 'mobile', 'tablet'];
+    const browsers = ['Chrome 120', 'Firefox 121', 'Safari 17', 'Edge 120'];
+    const osList = ['Windows 11', 'macOS 14', 'iOS 17', 'Android 14'];
+    const locations = ['北京市', '上海市', '广州市', '深圳市', '杭州市'];
+    
+    for (let i = 0; i < 30; i++) {
+      const action = actions[Math.floor(Math.random() * actions.length)];
+      logs.push({
+        id: `log-${i}-${Date.now()}`,
+        userId: `user-${i % 5}`,
+        userName: users[i % 5],
+        userType: ['admin', 'agent', 'customer', 'employee'][i % 4],
+        action: action,
+        device: devices[Math.floor(Math.random() * devices.length)],
+        browser: browsers[Math.floor(Math.random() * browsers.length)],
+        os: osList[Math.floor(Math.random() * osList.length)],
+        ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+        location: locations[Math.floor(Math.random() * locations.length)],
+        status: 'success',
+        createdAt: new Date(Date.now() - i * 3600000).toISOString(),
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        logs: logs.slice(0, Number(pageSize)),
+        total: logs.length,
+        page: Number(page),
+        pageSize: Number(pageSize),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 export default router;

@@ -15,9 +15,20 @@ const { Sider } = Layout;
 
 const AgentNavbar: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState('');
+<<<<<<< HEAD
   const router = useRouter();
   const pathname = usePathname();
 
+=======
+  const [mounted, setMounted] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   const menuItems = [
     {
       key: 'dashboard',
@@ -65,9 +76,33 @@ const AgentNavbar: React.FC = () => {
     }
   };
 
+<<<<<<< HEAD
   return (
     <Sider 
       width={220} 
+=======
+  // 服务端渲染时返回占位符，避免 hydration 不匹配
+  if (!mounted) {
+    return (
+      <Sider
+        width={220}
+        style={{
+          background: '#001529',
+          height: '100vh',
+          position: 'fixed',
+          left: 0,
+          top: 0,
+        }}
+      >
+        <div style={{ height: 64 }} />
+      </Sider>
+    );
+  }
+
+  return (
+    <Sider
+      width={220}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       style={{
         background: '#001529',
         height: '100vh',
@@ -76,6 +111,7 @@ const AgentNavbar: React.FC = () => {
         top: 0,
       }}
     >
+<<<<<<< HEAD
       <div style={{ 
         height: 64, 
         display: 'flex', 
@@ -86,6 +122,20 @@ const AgentNavbar: React.FC = () => {
         fontWeight: 'bold',
         borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
+=======
+      <div
+        style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontSize: 18,
+          fontWeight: 'bold',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+        }}
+      >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         智枢AI 代理后台
       </div>
       <Menu

@@ -67,7 +67,11 @@ export default function SmsConfigPage() {
     setLoading(true);
     try {
       const res = await getSmsConfigs();
+<<<<<<< HEAD
       setConfigs(res.data || []);
+=======
+      setConfigs(res || []);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     } catch (error) {
       message.error('获取配置失败');
     } finally {
@@ -81,10 +85,17 @@ export default function SmsConfigPage() {
         page: logsPagination.page,
         pageSize: logsPagination.pageSize,
       });
+<<<<<<< HEAD
       setLogs(res.data?.list || []);
       setLogsPagination(prev => ({
         ...prev,
         total: res.data?.total || 0,
+=======
+      setLogs(res.list || []);
+      setLogsPagination(prev => ({
+        ...prev,
+        total: res.total || 0,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       }));
     } catch (error) {
       message.error('获取日志失败');
@@ -146,10 +157,17 @@ export default function SmsConfigPage() {
     setTestLoading(id);
     try {
       const res = await testSmsConfig(id);
+<<<<<<< HEAD
       if (res.data.success) {
         message.success('测试成功！请检查手机是否收到验证码');
       } else {
         message.error(res.data.message || '测试失败');
+=======
+      if (res.success) {
+        message.success('测试成功！请检查手机是否收到验证码');
+      } else {
+        message.error(res.message || '测试失败');
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       }
     } catch (error: any) {
       message.error(error.message || '测试失败');
@@ -188,8 +206,12 @@ export default function SmsConfigPage() {
       title: '默认',
       dataIndex: 'isDefault',
       key: 'isDefault',
+<<<<<<< HEAD
       render: (isDefault: boolean) =>
         isDefault ? <Tag color="gold">默认</Tag> : null,
+=======
+      render: (isDefault: boolean) => (isDefault ? <Tag color="gold">默认</Tag> : null),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
@@ -236,10 +258,14 @@ export default function SmsConfigPage() {
           >
             测试
           </Button>
+<<<<<<< HEAD
           <Popconfirm
             title="确认删除此配置？"
             onConfirm={() => handleDelete(record.id)}
           >
+=======
+          <Popconfirm title="确认删除此配置？" onConfirm={() => handleDelete(record.id)}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
@@ -285,11 +311,15 @@ export default function SmsConfigPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) =>
+<<<<<<< HEAD
         status === 'success' ? (
           <Tag color="success">成功</Tag>
         ) : (
           <Tag color="error">失败</Tag>
         ),
+=======
+        status === 'success' ? <Tag color="success">成功</Tag> : <Tag color="error">失败</Tag>,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '时间',
@@ -318,7 +348,11 @@ export default function SmsConfigPage() {
           { key: 'logs', tab: '发送日志' },
         ]}
         activeTabKey={activeTab}
+<<<<<<< HEAD
         onTabChange={(key) => setActiveTab(key as 'configs' | 'logs')}
+=======
+        onTabChange={key => setActiveTab(key as 'configs' | 'logs')}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       >
         {activeTab === 'configs' ? (
           <>
@@ -355,7 +389,11 @@ export default function SmsConfigPage() {
               total: logsPagination.total,
               showSizeChanger: true,
               showQuickJumper: true,
+<<<<<<< HEAD
               showTotal: (total) => `共 ${total} 条`,
+=======
+              showTotal: total => `共 ${total} 条`,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               onChange: (page, pageSize) => {
                 setLogsPagination({ page, pageSize, total: logsPagination.total });
               },

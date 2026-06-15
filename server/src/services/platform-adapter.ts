@@ -9,6 +9,17 @@ export interface PlatformAdapter {
   // 平台标识
   platform: string;
   platformName: string;
+<<<<<<< HEAD
+=======
+  name: string; // 兼容性别名
+  
+  // 能力
+  capabilities: {
+    canPublish: boolean;
+    canReply: boolean;
+    canFetchStats: boolean;
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   
   // 登录相关
   getLoginUrl(): string;
@@ -32,6 +43,11 @@ export interface PlatformAdapter {
 export const DouyinAdapter: PlatformAdapter = {
   platform: 'douyin',
   platformName: '抖音',
+<<<<<<< HEAD
+=======
+  name: '抖音',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   
   getLoginUrl() {
     return 'https://creator.douyin.com/creator-micro/home';
@@ -166,6 +182,11 @@ export const DouyinAdapter: PlatformAdapter = {
 export const KuaishouAdapter: PlatformAdapter = {
   platform: 'kuaishou',
   platformName: '快手',
+<<<<<<< HEAD
+=======
+  name: '快手',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   
   getLoginUrl() {
     return 'https://creator.kuaishou.com/profile';
@@ -235,6 +256,11 @@ export const KuaishouAdapter: PlatformAdapter = {
 export const XiaohongshuAdapter: PlatformAdapter = {
   platform: 'xiaohongshu',
   platformName: '小红书',
+<<<<<<< HEAD
+=======
+  name: '小红书',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   
   getLoginUrl() {
     return 'https://creator.xiaohongshu.com/creator/post';
@@ -299,6 +325,11 @@ export const XiaohongshuAdapter: PlatformAdapter = {
 export const WeiboAdapter: PlatformAdapter = {
   platform: 'weibo',
   platformName: '微博',
+<<<<<<< HEAD
+=======
+  name: '微博',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   
   getLoginUrl() {
     return 'https://weibo.com/';
@@ -347,6 +378,11 @@ export const WeiboAdapter: PlatformAdapter = {
 export const BossAdapter: PlatformAdapter = {
   platform: 'boss',
   platformName: 'BOSS直聘',
+<<<<<<< HEAD
+=======
+  name: 'BOSS直聘',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   
   getLoginUrl() {
     return 'https://www.zhipin.com/web/geek/index';
@@ -394,6 +430,7 @@ export const BossAdapter: PlatformAdapter = {
   }
 };
 
+<<<<<<< HEAD
 // 平台适配器注册表
 export const platformAdapters: Record<string, PlatformAdapter> = {
   douyin: DouyinAdapter,
@@ -408,6 +445,8 @@ export function getAdapter(platform: string): PlatformAdapter | undefined {
   return platformAdapters[platform];
 }
 
+=======
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 // 辅助函数：解析粉丝数
 function parseFansCount(text: string): number {
   const cleaned = text.replace(/[,，\s]/g, '');
@@ -429,3 +468,285 @@ function parseNumber(text: string): number {
   const match = text.replace(/[,，\s]/g, '').match(/(\d+\.?\d*)/);
   return match ? parseInt(match[1]) : 0;
 }
+<<<<<<< HEAD
+=======
+
+// 视频号适配器
+export const ChannelsAdapter: PlatformAdapter = {
+  platform: 'channels',
+  platformName: '视频号',
+  name: '视频号',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+  
+  getLoginUrl() {
+    return 'https://channels.weixin.qq.com/login';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode-img, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]',
+      '[class*="user"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.nickname', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取视频号账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 知乎适配器
+export const ZhihuAdapter: PlatformAdapter = {
+  platform: 'zhihu',
+  platformName: '知乎',
+  name: '知乎',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+  
+  getLoginUrl() {
+    return 'https://www.zhihu.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .SignContainer-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.AppHeader',
+      '[class*="user"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.AppHeader-profile-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取知乎账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 百家号适配器
+export const BaijiahaoAdapter: PlatformAdapter = {
+  platform: 'baijiahao',
+  platformName: '百家号',
+  name: '百家号',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+  
+  getLoginUrl() {
+    return 'https://baijiahao.baidu.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取百家号账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 今日头条适配器
+export const ToutiaoAdapter: PlatformAdapter = {
+  platform: 'toutiao',
+  platformName: '今日头条',
+  name: '今日头条',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+  
+  getLoginUrl() {
+    return 'https://mp.toutiao.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.header-user',
+      '[class*="user"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取今日头条账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 前程无忧适配器
+export const LiepinAdapter: PlatformAdapter = {
+  platform: 'liepin',
+  platformName: '前程无忧',
+  name: '前程无忧',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+  
+  getLoginUrl() {
+    return 'https://www.liepin.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取前程无忧账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 智联招聘适配器
+export const ZhilianAdapter: PlatformAdapter = {
+  platform: 'zhilian',
+  platformName: '智联招聘',
+  name: '智联招聘',
+  capabilities: { canPublish: true, canReply: true, canFetchStats: true },
+  
+  getLoginUrl() {
+    return 'https://www.zhaopin.com/';
+  },
+  
+  getQrContainerSelector() {
+    return '.qrcode, .login-qrcode';
+  },
+  
+  getLoginSuccessSelectors() {
+    return [
+      '.user-info',
+      '[class*="header"]'
+    ];
+  },
+  
+  async extractAccountInfo(page: Page) {
+    const info: any = {};
+    try {
+      await page.waitForTimeout(2000);
+      const nameSelectors = ['.user-name', '[class*="name"]'];
+      for (const selector of nameSelectors) {
+        try {
+          const el = await page.locator(selector).first();
+          if (await el.isVisible({ timeout: 2000 })) {
+            info.name = await el.textContent();
+            break;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.error('提取智联招聘账号信息失败:', e);
+    }
+    return info;
+  }
+};
+
+// 平台适配器注册表
+export const platformAdapters: Record<string, PlatformAdapter> = {
+  douyin: DouyinAdapter,
+  kuaishou: KuaishouAdapter,
+  xiaohongshu: XiaohongshuAdapter,
+  weibo: WeiboAdapter,
+  boss: BossAdapter,
+  channels: ChannelsAdapter,
+  zhihu: ZhihuAdapter,
+  baijiahao: BaijiahaoAdapter,
+  toutiao: ToutiaoAdapter,
+  liepin: LiepinAdapter,
+  zhilian: ZhilianAdapter
+};
+
+// 获取平台适配器
+export function getAdapter(platform: string): PlatformAdapter | undefined {
+  return platformAdapters[platform];
+}
+>>>>>>> 962968886be726cd434c792933b5515366d34518

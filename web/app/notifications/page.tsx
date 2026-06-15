@@ -61,6 +61,7 @@ const getTypeIcon = (type: string) => {
 
 const getTypeColor = (type: string) => {
   switch (type) {
+<<<<<<< HEAD
     case 'system': return 'blue';
     case 'message': return 'green';
     case 'recruitment': return 'orange';
@@ -68,11 +69,28 @@ const getTypeColor = (type: string) => {
     case 'chat': return 'cyan';
     case 'payment': return 'red';
     default: return 'default';
+=======
+    case 'system':
+      return 'blue';
+    case 'message':
+      return 'green';
+    case 'recruitment':
+      return 'orange';
+    case 'content':
+      return 'purple';
+    case 'chat':
+      return 'cyan';
+    case 'payment':
+      return 'red';
+    default:
+      return 'default';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 };
 
 const getTypeName = (type: string) => {
   switch (type) {
+<<<<<<< HEAD
     case 'system': return '系统通知';
     case 'message': return '消息';
     case 'recruitment': return '招聘';
@@ -80,6 +98,22 @@ const getTypeName = (type: string) => {
     case 'chat': return 'AI 对话';
     case 'payment': return '支付';
     default: return '其他';
+=======
+    case 'system':
+      return '系统通知';
+    case 'message':
+      return '消息';
+    case 'recruitment':
+      return '招聘';
+    case 'content':
+      return '内容';
+    case 'chat':
+      return 'AI 对话';
+    case 'payment':
+      return '支付';
+    default:
+      return '其他';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 };
 
@@ -179,18 +213,31 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
+<<<<<<< HEAD
   const filteredNotifications = activeTab === 'all'
     ? notifications
     : activeTab === 'unread'
     ? notifications.filter(n => !n.isRead)
     : notifications.filter(n => n.type === activeTab);
+=======
+  const filteredNotifications =
+    activeTab === 'all'
+      ? notifications
+      : activeTab === 'unread'
+        ? notifications.filter(n => !n.isRead)
+        : notifications.filter(n => n.type === activeTab);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const handleMarkAsRead = async (id: number) => {
     try {
       await request.put(`/api/notifications/${id}/read`);
+<<<<<<< HEAD
       setNotifications(notifications.map(n =>
         n.id === id ? { ...n, isRead: true } : n
       ));
+=======
+      setNotifications(notifications.map(n => (n.id === id ? { ...n, isRead: true } : n)));
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
@@ -224,7 +271,18 @@ export default function NotificationsPage() {
 
   const tabItems = [
     { key: 'all', label: `全部 (${notifications.length})` },
+<<<<<<< HEAD
     { key: 'unread', label: <Badge count={unreadCount} offset={[10, 0]}>未读</Badge> },
+=======
+    {
+      key: 'unread',
+      label: (
+        <Badge count={unreadCount} offset={[10, 0]}>
+          未读
+        </Badge>
+      ),
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     { key: 'system', label: '系统' },
     { key: 'recruitment', label: '招聘' },
     { key: 'content', label: '内容' },
@@ -264,6 +322,7 @@ export default function NotificationsPage() {
           <List
             dataSource={filteredNotifications}
             locale={{
+<<<<<<< HEAD
               emptyText: (
                 <Empty
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -272,6 +331,11 @@ export default function NotificationsPage() {
               ),
             }}
             renderItem={(item) => (
+=======
+              emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无通知" />,
+            }}
+            renderItem={item => (
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <List.Item
                 style={{
                   padding: '16px 24px',
@@ -286,7 +350,11 @@ export default function NotificationsPage() {
                       type="link"
                       size="small"
                       icon={<EyeOutlined />}
+<<<<<<< HEAD
                       onClick={(e) => {
+=======
+                      onClick={e => {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                         e.stopPropagation();
                         handleMarkAsRead(item.id);
                       }}
@@ -300,7 +368,11 @@ export default function NotificationsPage() {
                     size="small"
                     danger
                     icon={<DeleteOutlined />}
+<<<<<<< HEAD
                     onClick={(e) => {
+=======
+                    onClick={e => {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                       e.stopPropagation();
                       handleDelete(item.id);
                     }}
@@ -311,6 +383,7 @@ export default function NotificationsPage() {
               >
                 <List.Item.Meta
                   avatar={
+<<<<<<< HEAD
                     <div style={{
                       width: 40,
                       height: 40,
@@ -321,6 +394,20 @@ export default function NotificationsPage() {
                       justifyContent: 'center',
                       fontSize: 18,
                     }}>
+=======
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 8,
+                        background: '#f0f0f0',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 18,
+                      }}
+                    >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                       {getTypeIcon(item.type)}
                     </div>
                   }
@@ -373,6 +460,7 @@ export default function NotificationsPage() {
               </Tag>
               <Text type="secondary">{selectedNotification.createdAt}</Text>
             </Space>
+<<<<<<< HEAD
             <div style={{
               padding: 16,
               background: '#f5f5f5',
@@ -382,6 +470,17 @@ export default function NotificationsPage() {
               <Text style={{ fontSize: 15, lineHeight: 1.8 }}>
                 {selectedNotification.content}
               </Text>
+=======
+            <div
+              style={{
+                padding: 16,
+                background: '#f5f5f5',
+                borderRadius: 8,
+                marginBottom: 16,
+              }}
+            >
+              <Text style={{ fontSize: 15, lineHeight: 1.8 }}>{selectedNotification.content}</Text>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </div>
             {selectedNotification.metadata && (
               <Descriptions bordered column={1} size="small">

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 'use client'
 
 import { useState, useMemo } from 'react'
@@ -37,6 +38,90 @@ interface SendRecord {
   sentAt: string
   repliedAt?: string
   content: string
+=======
+'use client';
+
+import { useState, useMemo } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Table,
+  Tag,
+  Space,
+  Button,
+  Input,
+  Select,
+  Form,
+  Modal,
+  Progress,
+  Steps,
+  Badge,
+  Switch,
+  Divider,
+  message,
+  Popconfirm,
+  Statistic,
+  Timeline,
+  Alert,
+} from 'antd';
+import {
+  PlusOutlined,
+  SendOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  CopyOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  ExclamationCircleOutlined,
+  RobotOutlined,
+  QrcodeOutlined,
+  MessageOutlined,
+  UserAddOutlined,
+  BarChartOutlined,
+  SafetyOutlined,
+  ThunderboltOutlined,
+  FieldTimeOutlined,
+  GlobalOutlined,
+} from '@ant-design/icons';
+
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
+
+interface Task {
+  id: string;
+  name: string;
+  targetCount: number;
+  sentCount: number;
+  repliedCount: number;
+  scannedCount: number;
+  convertedCount: number;
+  status: 'running' | 'paused' | 'completed' | 'draft';
+  type: 'auto' | 'manual';
+  replyRate: number;
+  scanRate: number;
+  convertRate: number;
+  startTime: string;
+  endTime?: string;
+  targetKeywords: string[];
+  content: string;
+  qrcodeEnabled: boolean;
+  delay: number;
+  dailyLimit: number;
+}
+
+interface SendRecord {
+  id: string;
+  customerName: string;
+  platform: string;
+  status: 'sending' | 'sent' | 'replied' | 'blocked';
+  sentAt: string;
+  repliedAt?: string;
+  content: string;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export default function TaskPage() {
@@ -56,7 +141,12 @@ export default function TaskPage() {
       convertRate: 17.9,
       startTime: '2024-03-25 09:00',
       targetKeywords: ['企业服务', 'SaaS', '数字化转型'],
+<<<<<<< HEAD
       content: '您好！我是专注于企业服务的顾问。看到您也在关注企业数字化转型，这是我们整理的《中小企业数字化转型白皮书》，包含20+成功案例，或许对您有帮助。需要的话可以免费分享给您~',
+=======
+      content:
+        '您好！我是专注于企业服务的顾问。看到您也在关注企业数字化转型，这是我们整理的《中小企业数字化转型白皮书》，包含20+成功案例，或许对您有帮助。需要的话可以免费分享给您~',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       qrcodeEnabled: true,
       delay: 30,
       dailyLimit: 100,
@@ -77,7 +167,12 @@ export default function TaskPage() {
       startTime: '2024-03-20 10:00',
       endTime: '2024-03-22 18:00',
       targetKeywords: ['AI工具', 'ChatGPT', '效率提升'],
+<<<<<<< HEAD
       content: '看到您在探索AI工具应用，我们团队开发了一款国产AI助手，完全免费使用，支持文案生成、数据分析等。有兴趣了解吗？',
+=======
+      content:
+        '看到您在探索AI工具应用，我们团队开发了一款国产AI助手，完全免费使用，支持文案生成、数据分析等。有兴趣了解吗？',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       qrcodeEnabled: true,
       delay: 45,
       dailyLimit: 150,
@@ -97,7 +192,12 @@ export default function TaskPage() {
       convertRate: 0,
       startTime: '2024-03-18 14:00',
       targetKeywords: ['在线教育', '技能培训', '考证'],
+<<<<<<< HEAD
       content: '您好！我们是专业技能培训机构，现推出限时优惠课程，报名即送学习资料包。有兴趣了解课程详情吗？',
+=======
+      content:
+        '您好！我们是专业技能培训机构，现推出限时优惠课程，报名即送学习资料包。有兴趣了解课程详情吗？',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       qrcodeEnabled: true,
       delay: 60,
       dailyLimit: 80,
@@ -122,6 +222,7 @@ export default function TaskPage() {
       delay: 30,
       dailyLimit: 100,
     },
+<<<<<<< HEAD
   ])
 
   const [records] = useState<SendRecord[]>([
@@ -147,6 +248,63 @@ export default function TaskPage() {
     const avgScanRate = totalReplied > 0 ? ((totalScanned / totalReplied) * 100).toFixed(1) : '0.0'
     const avgConvertRate = totalScanned > 0 ? ((totalConverted / totalScanned) * 100).toFixed(1) : '0.0'
     
+=======
+  ]);
+
+  const [records] = useState<SendRecord[]>([
+    {
+      id: '1',
+      customerName: '张三',
+      platform: '抖音',
+      status: 'replied',
+      sentAt: '2024-03-25 14:30',
+      repliedAt: '2024-03-25 14:35',
+      content: '您好！我是专注于企业服务的顾问...',
+    },
+    {
+      id: '2',
+      customerName: '李四',
+      platform: '小红书',
+      status: 'sent',
+      sentAt: '2024-03-25 14:28',
+      content: '您好！我是专注于企业服务的顾问...',
+    },
+    {
+      id: '3',
+      customerName: '王五',
+      platform: '快手',
+      status: 'blocked',
+      sentAt: '2024-03-25 14:25',
+      content: '您好！我是专注于企业服务的顾问...',
+    },
+    {
+      id: '4',
+      customerName: '赵六',
+      platform: 'B站',
+      status: 'sent',
+      sentAt: '2024-03-25 14:20',
+      content: '您好！我是专注于企业服务的顾问...',
+    },
+  ]);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskType, setTaskType] = useState<'create' | 'edit'>('create');
+  const [form] = Form.useForm();
+
+  // 统计数据
+  const stats = useMemo(() => {
+    const activeTasks = tasks.filter(t => t.status === 'running');
+    const totalSent = tasks.reduce((sum, t) => sum + t.sentCount, 0);
+    const totalReplied = tasks.reduce((sum, t) => sum + t.repliedCount, 0);
+    const totalScanned = tasks.reduce((sum, t) => sum + t.scannedCount, 0);
+    const totalConverted = tasks.reduce((sum, t) => sum + t.convertedCount, 0);
+    const avgReplyRate = totalSent > 0 ? ((totalReplied / totalSent) * 100).toFixed(1) : '0.0';
+    const avgScanRate = totalReplied > 0 ? ((totalScanned / totalReplied) * 100).toFixed(1) : '0.0';
+    const avgConvertRate =
+      totalScanned > 0 ? ((totalConverted / totalScanned) * 100).toFixed(1) : '0.0';
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     return {
       activeTasks: activeTasks.length,
       totalSent,
@@ -156,22 +314,35 @@ export default function TaskPage() {
       avgReplyRate,
       avgScanRate,
       avgConvertRate,
+<<<<<<< HEAD
     }
   }, [tasks])
+=======
+    };
+  }, [tasks]);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const statusConfig: Record<string, { label: string; color: string }> = {
     running: { label: '执行中', color: 'success' },
     paused: { label: '已暂停', color: 'warning' },
     completed: { label: '已完成', color: 'default' },
     draft: { label: '草稿', color: 'default' },
+<<<<<<< HEAD
   }
+=======
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const recordStatusConfig: Record<string, { label: string; color: string }> = {
     sending: { label: '发送中', color: 'processing' },
     sent: { label: '已发送', color: 'success' },
     replied: { label: '已回复', color: 'blue' },
     blocked: { label: '被拦截', color: 'error' },
+<<<<<<< HEAD
   }
+=======
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const columns = [
     {
@@ -183,11 +354,25 @@ export default function TaskPage() {
           <div className="font-medium flex items-center gap-2">
             {name}
             <Tag color={statusConfig[record.status].color}>{statusConfig[record.status].label}</Tag>
+<<<<<<< HEAD
             {record.type === 'auto' ? <Tag icon={<RobotOutlined />} color="purple">自动</Tag> : <Tag icon={<UserAddOutlined />} color="cyan">手动</Tag>}
           </div>
           <div className="text-xs text-gray-400">
             关键词：{record.targetKeywords.join('、')}
           </div>
+=======
+            {record.type === 'auto' ? (
+              <Tag icon={<RobotOutlined />} color="purple">
+                自动
+              </Tag>
+            ) : (
+              <Tag icon={<UserAddOutlined />} color="cyan">
+                手动
+              </Tag>
+            )}
+          </div>
+          <div className="text-xs text-gray-400">关键词：{record.targetKeywords.join('、')}</div>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         </div>
       ),
     },
@@ -205,7 +390,19 @@ export default function TaskPage() {
                 <span>{record.sentCount}</span>
                 <span>/ {record.targetCount}</span>
               </div>
+<<<<<<< HEAD
               <Progress percent={record.targetCount > 0 ? Math.round((record.sentCount / record.targetCount) * 100) : 0} showInfo={false} size="small" />
+=======
+              <Progress
+                percent={
+                  record.targetCount > 0
+                    ? Math.round((record.sentCount / record.targetCount) * 100)
+                    : 0
+                }
+                showInfo={false}
+                size="small"
+              />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </>
           )}
         </div>
@@ -245,7 +442,16 @@ export default function TaskPage() {
           </div>
           <div className="flex items-center gap-2 text-xs mt-1">
             <span>扫码率</span>
+<<<<<<< HEAD
             <Progress percent={record.scanRate} size="small" className="flex-1" strokeColor="#52c41a" />
+=======
+            <Progress
+              percent={record.scanRate}
+              size="small"
+              className="flex-1"
+              strokeColor="#52c41a"
+            />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <span className="w-10">{record.scanRate}%</span>
           </div>
         </div>
@@ -270,6 +476,7 @@ export default function TaskPage() {
       render: (_: any, record: Task) => (
         <Space size="small">
           {record.status === 'draft' ? (
+<<<<<<< HEAD
             <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => {
               setTasks(list => list.map(t => t.id === record.id ? { ...t, status: 'running' as const, startTime: new Date().toLocaleString() } : t))
               message.success('任务已启动')
@@ -297,12 +504,87 @@ export default function TaskPage() {
             setTasks(list => list.filter(t => t.id !== record.id))
             message.success('已删除')
           }}>
+=======
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlayCircleOutlined />}
+              onClick={() => {
+                setTasks(list =>
+                  list.map(t =>
+                    t.id === record.id
+                      ? { ...t, status: 'running' as const, startTime: new Date().toLocaleString() }
+                      : t
+                  )
+                );
+                message.success('任务已启动');
+              }}
+            >
+              启动
+            </Button>
+          ) : record.status === 'running' ? (
+            <Button
+              size="small"
+              icon={<PauseCircleOutlined />}
+              onClick={() => {
+                setTasks(list =>
+                  list.map(t => (t.id === record.id ? { ...t, status: 'paused' as const } : t))
+                );
+                message.success('任务已暂停');
+              }}
+            >
+              暂停
+            </Button>
+          ) : record.status === 'paused' ? (
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlayCircleOutlined />}
+              onClick={() => {
+                setTasks(list =>
+                  list.map(t => (t.id === record.id ? { ...t, status: 'running' as const } : t))
+                );
+                message.success('任务已恢复');
+              }}
+            >
+              恢复
+            </Button>
+          ) : (
+            <Button type="link" size="small" icon={<BarChartOutlined />}>
+              报表
+            </Button>
+          )}
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={() => {
+              setEditingTask(record);
+              setTaskType('edit');
+              form.setFieldsValue(record);
+              setModalVisible(true);
+            }}
+          >
+            编辑
+          </Button>
+          <Popconfirm
+            title="确认删除？"
+            onConfirm={() => {
+              setTasks(list => list.filter(t => t.id !== record.id));
+              message.success('已删除');
+            }}
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Button type="link" size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
       ),
     },
+<<<<<<< HEAD
   ]
+=======
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const recordColumns = [
     {
@@ -321,7 +603,14 @@ export default function TaskPage() {
       key: 'status',
       width: 100,
       render: (status: string) => (
+<<<<<<< HEAD
         <Badge status={recordStatusConfig[status].color as any} text={recordStatusConfig[status].label} />
+=======
+        <Badge
+          status={recordStatusConfig[status].color as any}
+          text={recordStatusConfig[status].label}
+        />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       ),
     },
     {
@@ -343,11 +632,16 @@ export default function TaskPage() {
       width: 150,
       render: (time: string) => time || '-',
     },
+<<<<<<< HEAD
   ]
+=======
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const handleSave = () => {
     form.validateFields().then(values => {
       if (taskType === 'edit' && editingTask) {
+<<<<<<< HEAD
         setTasks(list => list.map(t => t.id === editingTask.id ? { ...t, ...values } : t))
         message.success('任务已更新')
       } else {
@@ -377,12 +671,52 @@ export default function TaskPage() {
     form.resetFields()
     setModalVisible(true)
   }
+=======
+        setTasks(list => list.map(t => (t.id === editingTask.id ? { ...t, ...values } : t)));
+        message.success('任务已更新');
+      } else {
+        setTasks(list => [
+          ...list,
+          {
+            ...values,
+            id: Date.now().toString(),
+            sentCount: 0,
+            repliedCount: 0,
+            scannedCount: 0,
+            convertedCount: 0,
+            replyRate: 0,
+            scanRate: 0,
+            convertRate: 0,
+            status: 'draft' as const,
+          },
+        ]);
+        message.success('任务已创建');
+      }
+      setModalVisible(false);
+      setEditingTask(null);
+      form.resetFields();
+    });
+  };
+
+  const openCreateModal = () => {
+    setTaskType('create');
+    setEditingTask(null);
+    form.resetFields();
+    setModalVisible(true);
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
       {/* 页面标题 */}
       <div className="mb-6">
+<<<<<<< HEAD
         <Title level={2} className="mb-2">引流任务</Title>
+=======
+        <Title level={2} className="mb-2">
+          引流任务
+        </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         <Text type="secondary">批量发送引流消息，自动发送企业微信二维码，追踪转化效果</Text>
       </div>
 
@@ -390,7 +724,15 @@ export default function TaskPage() {
       <Row gutter={16} className="mb-6">
         <Col span={4}>
           <Card className="border-l-4 border-l-blue-500">
+<<<<<<< HEAD
             <Statistic title="进行中任务" value={stats.activeTasks} prefix={<ThunderboltOutlined />} />
+=======
+            <Statistic
+              title="进行中任务"
+              value={stats.activeTasks}
+              prefix={<ThunderboltOutlined />}
+            />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </Card>
         </Col>
         <Col span={4}>
@@ -400,17 +742,42 @@ export default function TaskPage() {
         </Col>
         <Col span={4}>
           <Card className="border-l-4 border-l-orange-500">
+<<<<<<< HEAD
             <Statistic title="收到回复" value={stats.totalReplied} suffix={`(${Number(stats.avgReplyRate)}%)`} />
+=======
+            <Statistic
+              title="收到回复"
+              value={stats.totalReplied}
+              suffix={`(${Number(stats.avgReplyRate)}%)`}
+            />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </Card>
         </Col>
         <Col span={4}>
           <Card className="border-l-4 border-l-cyan-500">
+<<<<<<< HEAD
             <Statistic title="扫码人数" value={stats.totalScanned} suffix={`(${stats.avgScanRate}%)`} />
+=======
+            <Statistic
+              title="扫码人数"
+              value={stats.totalScanned}
+              suffix={`(${stats.avgScanRate}%)`}
+            />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </Card>
         </Col>
         <Col span={4}>
           <Card className="border-l-4 border-l-purple-500">
+<<<<<<< HEAD
             <Statistic title="成功转化" value={stats.totalConverted} suffix={`(${stats.avgConvertRate}%)`} valueStyle={{ color: '#722ed1' }} />
+=======
+            <Statistic
+              title="成功转化"
+              value={stats.totalConverted}
+              suffix={`(${stats.avgConvertRate}%)`}
+              valueStyle={{ color: '#722ed1' }}
+            />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </Card>
         </Col>
         <Col span={4}>
@@ -444,17 +811,40 @@ export default function TaskPage() {
           <div className="text-3xl text-orange-500">→</div>
           <div className="flex-1 mx-8">
             <Progress percent={Number(stats.avgReplyRate)} showInfo={false} strokeColor="#faad14" />
+<<<<<<< HEAD
             <div className="text-center text-sm text-gray-400 mt-1">回复率 {Number(stats.avgReplyRate)}%</div>
+=======
+            <div className="text-center text-sm text-gray-400 mt-1">
+              回复率 {Number(stats.avgReplyRate)}%
+            </div>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </div>
           <div className="text-3xl text-orange-500">→</div>
           <div className="flex-1 mx-8">
             <Progress percent={Number(stats.avgScanRate)} showInfo={false} strokeColor="#52c41a" />
+<<<<<<< HEAD
             <div className="text-center text-sm text-gray-400 mt-1">扫码率 {stats.avgScanRate}%</div>
           </div>
           <div className="text-3xl text-orange-500">→</div>
           <div className="flex-1 mx-8">
             <Progress percent={Number(stats.avgConvertRate)} showInfo={false} strokeColor="#722ed1" />
             <div className="text-center text-sm text-gray-400 mt-1">转化率 {stats.avgConvertRate}%</div>
+=======
+            <div className="text-center text-sm text-gray-400 mt-1">
+              扫码率 {stats.avgScanRate}%
+            </div>
+          </div>
+          <div className="text-3xl text-orange-500">→</div>
+          <div className="flex-1 mx-8">
+            <Progress
+              percent={Number(stats.avgConvertRate)}
+              showInfo={false}
+              strokeColor="#722ed1"
+            />
+            <div className="text-center text-sm text-gray-400 mt-1">
+              转化率 {stats.avgConvertRate}%
+            </div>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-purple-500">{stats.totalConverted}</div>
@@ -467,6 +857,7 @@ export default function TaskPage() {
       <Card className="mb-6">
         <div className="flex justify-between items-center">
           <Space>
+<<<<<<< HEAD
             <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>新建引流任务</Button>
             <Button icon={<RobotOutlined />} onClick={() => message.info('AI优化话术功能开发中')}>AI优化话术</Button>
           </Space>
@@ -478,18 +869,43 @@ export default function TaskPage() {
               { value: 'completed', label: '已完成' },
               { value: 'draft', label: '草稿' },
             ]} />
+=======
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+              新建引流任务
+            </Button>
+            <Button icon={<RobotOutlined />} onClick={() => message.info('AI优化话术功能开发中')}>
+              AI优化话术
+            </Button>
+          </Space>
+          <Space>
+            <Select
+              defaultValue="all"
+              className="w-28"
+              options={[
+                { value: 'all', label: '全部状态' },
+                { value: 'running', label: '执行中' },
+                { value: 'paused', label: '已暂停' },
+                { value: 'completed', label: '已完成' },
+                { value: 'draft', label: '草稿' },
+              ]}
+            />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </Space>
         </div>
       </Card>
 
       {/* 任务列表 */}
       <Card title="引流任务列表" className="mb-6">
+<<<<<<< HEAD
         <Table
           columns={columns}
           dataSource={tasks}
           rowKey="id"
           pagination={false}
         />
+=======
+        <Table columns={columns} dataSource={tasks} rowKey="id" pagination={false} />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       </Card>
 
       {/* 发送记录 */}
@@ -506,19 +922,36 @@ export default function TaskPage() {
       <Modal
         title={taskType === 'edit' ? '编辑引流任务' : '新建引流任务'}
         open={modalVisible}
+<<<<<<< HEAD
         onCancel={() => { setModalVisible(false); setEditingTask(null); form.resetFields() }}
+=======
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingTask(null);
+          form.resetFields();
+        }}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         onOk={handleSave}
         okText="保存"
         width={700}
       >
         <Form form={form} layout="vertical" className="mt-4">
+<<<<<<< HEAD
           <Form.Item name="name" label="任务名称" rules={[{ required: true, message: '请输入任务名称' }]}>
+=======
+          <Form.Item
+            name="name"
+            label="任务名称"
+            rules={[{ required: true, message: '请输入任务名称' }]}
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Input placeholder="如：企业服务精准获客" />
           </Form.Item>
 
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="type" label="任务类型" rules={[{ required: true }]}>
+<<<<<<< HEAD
                 <Select options={[
                   { value: 'auto', label: '自动执行' },
                   { value: 'manual', label: '手动执行' },
@@ -527,22 +960,63 @@ export default function TaskPage() {
             </Col>
             <Col span={12}>
               <Form.Item name="targetCount" label="目标发送数" rules={[{ required: true, message: '请输入目标数量' }]}>
+=======
+                <Select
+                  options={[
+                    { value: 'auto', label: '自动执行' },
+                    { value: 'manual', label: '手动执行' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="targetCount"
+                label="目标发送数"
+                rules={[{ required: true, message: '请输入目标数量' }]}
+              >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <Input type="number" placeholder="如：500" />
               </Form.Item>
             </Col>
           </Row>
 
+<<<<<<< HEAD
           <Form.Item name="targetKeywords" label="目标关键词" rules={[{ required: true, message: '请选择目标关键词' }]}>
             <Select mode="tags" placeholder="输入关键词后按回车" />
           </Form.Item>
 
           <Form.Item name="content" label="引流话术" rules={[{ required: true, message: '请输入引流话术' }]}>
+=======
+          <Form.Item
+            name="targetKeywords"
+            label="目标关键词"
+            rules={[{ required: true, message: '请选择目标关键词' }]}
+          >
+            <Select mode="tags" placeholder="输入关键词后按回车" />
+          </Form.Item>
+
+          <Form.Item
+            name="content"
+            label="引流话术"
+            rules={[{ required: true, message: '请输入引流话术' }]}
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <TextArea rows={4} placeholder="输入引流消息内容，支持多个版本随机发送" />
           </Form.Item>
 
           <Divider>二维码设置</Divider>
 
+<<<<<<< HEAD
           <Form.Item name="qrcodeEnabled" label="自动发送二维码" valuePropName="checked" extra="开启后，潜客回复消息后自动发送企业微信二维码">
+=======
+          <Form.Item
+            name="qrcodeEnabled"
+            label="自动发送二维码"
+            valuePropName="checked"
+            extra="开启后，潜客回复消息后自动发送企业微信二维码"
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Switch />
           </Form.Item>
 
@@ -576,5 +1050,9 @@ export default function TaskPage() {
         </Form>
       </Modal>
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

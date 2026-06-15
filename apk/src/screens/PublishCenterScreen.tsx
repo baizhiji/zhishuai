@@ -79,9 +79,17 @@ const PLATFORMS = [
   { id: 'kuaishou', name: '快手', color: '#ff4906', icon: 'flash' },
   { id: 'xiaohongshu', name: '小红书', color: '#fe2c55', icon: 'book' },
   { id: 'weixin', name: '视频号', color: '#07c160', icon: 'chatbubbles' },
+<<<<<<< HEAD
   { id: 'weibo', name: '微博', color: '#ff8200', icon: 'cloud' },
 ];
 
+=======
+];
+
+// 即将上线的平台
+const UPCOMING_PLATFORMS = ['weibo', 'bilibili', 'toutiao'];
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 // 分类名称
 const CATEGORY_NAMES: Record<string, string> = {
   [ContentCategory.TITLE]: '标题',
@@ -104,7 +112,10 @@ const MOCK_MATRIX_ACCOUNTS: MatrixAccount[] = [
   { id: 'a4', platform: 'xiaohongshu', accountName: '智枢科技号', avatar: '', fans: 5230, status: 'active' },
   { id: 'a5', platform: 'weixin', accountName: '智枢AI视频号', avatar: '', fans: 5320, status: 'inactive' },
   { id: 'a6', platform: 'kuaishou', accountName: '智枢科技', avatar: '', fans: 3260, status: 'active' },
+<<<<<<< HEAD
   { id: 'a7', platform: 'weibo', accountName: '智枢AI', avatar: '', fans: 1580, status: 'active' },
+=======
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 ];
 
 // 模拟素材数据

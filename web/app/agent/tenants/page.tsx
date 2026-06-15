@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
+=======
+'use client';
+
+import React, { useState, useEffect, useMemo } from 'react';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   Table,
   Button,
@@ -23,7 +29,11 @@ import {
   Descriptions,
   Checkbox,
   Select,
+<<<<<<< HEAD
 } from 'antd'
+=======
+} from 'antd';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   LockOutlined,
   UnlockOutlined,
@@ -32,6 +42,7 @@ import {
   UserOutlined,
   TeamOutlined,
   SettingOutlined,
+<<<<<<< HEAD
 } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
@@ -53,6 +64,29 @@ interface Customer {
   acquired?: number
   userId?: string
   balance?: number
+=======
+} from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
+import dayjs from 'dayjs';
+import request from '@/lib/request';
+import type { ApiResponse } from '@/types/api';
+
+const { Title, Text, Paragraph } = Typography;
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  status: 'active' | 'frozen';
+  features: string[];
+  createdAt: string;
+  expireAt: string;
+  users?: number;
+  published?: number;
+  acquired?: number;
+  userId?: string;
+  balance?: number;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 到期时间选项
@@ -64,7 +98,11 @@ const expireOptions = [
   { value: 24, label: '2年' },
   { value: 36, label: '3年' },
   { value: -1, label: '永久' },
+<<<<<<< HEAD
 ]
+=======
+];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // 功能列表
 const allFeatures = [
@@ -72,6 +110,7 @@ const allFeatures = [
   { key: 'recruitment', name: '招聘助手' },
   { key: 'acquisition', name: '智能获客' },
   { key: 'referral', name: '转介绍' },
+<<<<<<< HEAD
   { key: 'share', name: '推荐分享' }
 ]
 
@@ -91,10 +130,32 @@ export default function AgentTenantsPage() {
     pageSize: 10,
     total: 0
   })
+=======
+  { key: 'share', name: '推荐分享' },
+];
+
+export default function AgentTenantsPage() {
+  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [createVisible, setCreateVisible] = useState(false);
+  const [featureVisible, setFeatureVisible] = useState(false);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
+  const [form] = Form.useForm();
+  const [createForm] = Form.useForm();
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pageSize: 10,
+    total: 0,
+  });
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 加载客户列表
   const loadCustomers = async () => {
     try {
+<<<<<<< HEAD
       setLoading(true)
       const res = await request.get<ApiResponse<{ data: Customer[]; pagination: any }>>('/admin/customers', {
         params: {
@@ -103,6 +164,19 @@ export default function AgentTenantsPage() {
           keyword: searchText
         }
       })
+=======
+      setLoading(true);
+      const res = await request.get<ApiResponse<{ data: Customer[]; pagination: any }>>(
+        '/admin/customers',
+        {
+          params: {
+            page: pagination.page,
+            pageSize: pagination.pageSize,
+            keyword: searchText,
+          },
+        }
+      );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       if (res.data) {
         const customersData = ((res.data as any).data as any[]).map((c: any) => ({
           id: c.id,
@@ -113,6 +187,7 @@ export default function AgentTenantsPage() {
           createdAt: c.user?.createdAt ? dayjs(c.user.createdAt).format('YYYY-MM-DD') : '',
           expireAt: c.expireAt || '',
           users: c._count?.users || 0,
+<<<<<<< HEAD
           userId: c.userId
         }))
         setCustomers(customersData as any)
@@ -151,10 +226,52 @@ export default function AgentTenantsPage() {
       c.phone.includes(searchText)
     )
   }, [customers, searchText])
+=======
+          userId: c.userId,
+        }));
+        setCustomers(customersData as any);
+        if ((res.data as any).pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: (res.data as any).pagination?.total || 0,
+          }));
+        }
+      }
+    } catch (error: any) {
+      message.error('加载客户列表失败: ' + (error.message || '未知错误'));
+      // 如果API不存在，使用空数据
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCustomers();
+  }, [pagination.page, pagination.pageSize]);
+
+  // 搜索
+  const handleSearch = (value: string) => {
+    setSearchText(value);
+    setPagination(prev => ({ ...prev, page: 1 }));
+    loadCustomers();
+  };
+
+  // 搜索过滤
+  const filteredCustomers = useMemo(() => {
+    return customers.filter(
+      c =>
+        !searchText ||
+        c.name.toLowerCase().includes(searchText.toLowerCase()) ||
+        c.phone.includes(searchText)
+    );
+  }, [customers, searchText]);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 创建客户
   const handleCreate = async () => {
     try {
+<<<<<<< HEAD
       const values = await createForm.validateFields()
       const { expireMonths, price, priceQuantity, priceUnit, ...rest } = values
       
@@ -166,12 +283,32 @@ export default function AgentTenantsPage() {
         default: unitText = '月'; break
       }
       
+=======
+      const values = await createForm.validateFields();
+      const { expireMonths, price, priceQuantity, priceUnit, ...rest } = values;
+
+      // 根据计费周期计算显示文本
+      let unitText = '';
+      switch (priceUnit) {
+        case 'quarter':
+          unitText = '季';
+          break;
+        case 'year':
+          unitText = '年';
+          break;
+        default:
+          unitText = '月';
+          break;
+      }
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       await request.post('/admin/customers', {
         ...rest,
         password: '123456',
         price,
         priceQuantity,
         priceUnit,
+<<<<<<< HEAD
         expireMonths
       })
       
@@ -185,10 +322,28 @@ export default function AgentTenantsPage() {
       }
     }
   }
+=======
+        expireMonths,
+      });
+
+      message.success(
+        `已开通客户账号：${values.name}，价格 ¥${price || 0} × ${priceQuantity || 1}${unitText}，登录账号：${values.phone}，初始密码：123456`
+      );
+      setCreateVisible(false);
+      createForm.resetFields();
+      loadCustomers();
+    } catch (error: any) {
+      if (!error.errorFields) {
+        message.error('创建客户失败: ' + (error.message || '未知错误'));
+      }
+    }
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 冻结/解冻
   const handleToggleStatus = async (customer: Customer) => {
     try {
+<<<<<<< HEAD
       const newStatus = customer.status === 'active' ? 'frozen' : 'active'
       await request.put(`/admin/customers/${customer.id}`, { status: newStatus })
       message.success(`${customer.name} 已${newStatus === 'active' ? '解冻' : '冻结'}`)
@@ -197,10 +352,21 @@ export default function AgentTenantsPage() {
       message.error('操作失败: ' + (error.message || '未知错误'))
     }
   }
+=======
+      const newStatus = customer.status === 'active' ? 'frozen' : 'active';
+      await request.put(`/admin/customers/${customer.id}`, { status: newStatus });
+      message.success(`${customer.name} 已${newStatus === 'active' ? '解冻' : '冻结'}`);
+      loadCustomers();
+    } catch (error: any) {
+      message.error('操作失败: ' + (error.message || '未知错误'));
+    }
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 删除客户
   const handleDelete = async (customer: Customer) => {
     try {
+<<<<<<< HEAD
       await request.delete(`/admin/customers/${customer.id}`)
       message.success('删除成功')
       loadCustomers()
@@ -221,10 +387,33 @@ export default function AgentTenantsPage() {
     setSelectedFeatures(customer.features || [])
     setFeatureVisible(true)
   }
+=======
+      await request.delete(`/admin/customers/${customer.id}`);
+      message.success('删除成功');
+      loadCustomers();
+    } catch (error: any) {
+      message.error('删除失败: ' + (error.message || '未知错误'));
+    }
+  };
+
+  // 查看详情
+  const handleViewDetail = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setDetailVisible(true);
+  };
+
+  // 打开功能设置
+  const handleOpenFeatures = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setSelectedFeatures(customer.features || []);
+    setFeatureVisible(true);
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 保存功能设置
   const handleSaveFeatures = async () => {
     try {
+<<<<<<< HEAD
       if (!selectedCustomer) return
       
       await request.put(`/admin/customers/${selectedCustomer.id}/features`, {
@@ -238,20 +427,43 @@ export default function AgentTenantsPage() {
       message.error('保存失败: ' + (error.message || '未知错误'))
     }
   }
+=======
+      if (!selectedCustomer) return;
+
+      await request.put(`/admin/customers/${selectedCustomer.id}/features`, {
+        features: selectedFeatures,
+      });
+
+      message.success('功能开关已更新');
+      setFeatureVisible(false);
+      loadCustomers();
+    } catch (error: any) {
+      message.error('保存失败: ' + (error.message || '未知错误'));
+    }
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   // 获取功能标签
   const getFeatureTags = (features: string[]) => (
     <Space size={4} wrap>
       {allFeatures.map(f => (
+<<<<<<< HEAD
         <Tag 
           key={f.key} 
           color={features?.includes?.(f.key) ? 'blue' : 'default'}
         >
+=======
+        <Tag key={f.key} color={features?.includes?.(f.key) ? 'blue' : 'default'}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           {f.name}
         </Tag>
       ))}
     </Space>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const columns: ColumnsType<Customer> = [
     {
@@ -262,24 +474,41 @@ export default function AgentTenantsPage() {
           <TeamOutlined style={{ fontSize: 20, color: '#722ed1' }} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.name}</div>
+<<<<<<< HEAD
             <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
           </div>
         </Space>
       )
+=======
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.phone}
+            </Text>
+          </div>
+        </Space>
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '开通功能',
       dataIndex: 'features',
       key: 'features',
       width: 350,
+<<<<<<< HEAD
       render: (features: string[]) => getFeatureTags(features)
+=======
+      render: (features: string[]) => getFeatureTags(features),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '到期时间',
       dataIndex: 'expireAt',
       key: 'expireAt',
       width: 120,
+<<<<<<< HEAD
       render: (text: string) => text ? dayjs(text).format('YYYY-MM-DD') : '永久'
+=======
+      render: (text: string) => (text ? dayjs(text).format('YYYY-MM-DD') : '永久'),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
@@ -289,7 +518,11 @@ export default function AgentTenantsPage() {
         <Tag color={status === 'active' ? 'green' : 'orange'}>
           {status === 'active' ? '正常' : '已冻结'}
         </Tag>
+<<<<<<< HEAD
       )
+=======
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '操作',
@@ -321,15 +554,20 @@ export default function AgentTenantsPage() {
           >
             详情
           </Button>
+<<<<<<< HEAD
           <Popconfirm
             title="确定删除该客户？"
             onConfirm={() => handleDelete(record)}
           >
+=======
+          <Popconfirm title="确定删除该客户？" onConfirm={() => handleDelete(record)}>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Button type="text" size="small" danger>
               删除
             </Button>
           </Popconfirm>
         </Space>
+<<<<<<< HEAD
       )
     }
   ]
@@ -340,10 +578,23 @@ export default function AgentTenantsPage() {
     const totalUsers = customers.reduce((sum, c) => sum + (c.users || 0), 0)
     return { total, active, totalUsers }
   }, [customers])
+=======
+      ),
+    },
+  ];
+
+  const stats = useMemo(() => {
+    const total = customers.length;
+    const active = customers.filter(c => c.status === 'active').length;
+    const totalUsers = customers.reduce((sum, c) => sum + (c.users || 0), 0);
+    return { total, active, totalUsers };
+  }, [customers]);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div style={{ padding: 24 }}>
       {/* 页面标题 */}
+<<<<<<< HEAD
       <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <Title level={3} style={{ margin: 0 }}>客户管理</Title>
@@ -352,10 +603,30 @@ export default function AgentTenantsPage() {
         <Space>
           <Input.Search 
             placeholder="搜索客户名称/手机号" 
+=======
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <div>
+          <Title level={3} style={{ margin: 0 }}>
+            客户管理
+          </Title>
+          <Text type="secondary">管理名下客户账号，设置功能开关</Text>
+        </div>
+        <Space>
+          <Input.Search
+            placeholder="搜索客户名称/手机号"
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             onSearch={handleSearch}
             style={{ width: 200 }}
             allowClear
           />
+<<<<<<< HEAD
           <Button icon={<ReloadOutlined />} onClick={loadCustomers}>刷新</Button>
           <Button 
             type="primary" 
@@ -369,6 +640,23 @@ export default function AgentTenantsPage() {
                 priceUnit: 'month'
               })
               setCreateVisible(true)
+=======
+          <Button icon={<ReloadOutlined />} onClick={loadCustomers}>
+            刷新
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              createForm.resetFields();
+              createForm.setFieldsValue({
+                expireMonths: 12,
+                price: 299,
+                priceQuantity: 1,
+                priceUnit: 'month',
+              });
+              setCreateVisible(true);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             }}
           >
             开通客户
@@ -380,9 +668,15 @@ export default function AgentTenantsPage() {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={8}>
           <Card loading={loading}>
+<<<<<<< HEAD
             <Statistic 
               title="客户总数" 
               value={stats.total} 
+=======
+            <Statistic
+              title="客户总数"
+              value={stats.total}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               prefix={<TeamOutlined style={{ color: '#722ed1' }} />}
               valueStyle={{ color: '#722ed1' }}
             />
@@ -390,9 +684,15 @@ export default function AgentTenantsPage() {
         </Col>
         <Col span={8}>
           <Card loading={loading}>
+<<<<<<< HEAD
             <Statistic 
               title="正常" 
               value={stats.active} 
+=======
+            <Statistic
+              title="正常"
+              value={stats.active}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               valueStyle={{ color: '#52c41a' }}
               suffix={<span style={{ fontSize: 14, color: '#8c8c8c' }}>个</span>}
             />
@@ -400,9 +700,15 @@ export default function AgentTenantsPage() {
         </Col>
         <Col span={8}>
           <Card loading={loading}>
+<<<<<<< HEAD
             <Statistic 
               title="子账号总数" 
               value={stats.totalUsers} 
+=======
+            <Statistic
+              title="子账号总数"
+              value={stats.totalUsers}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               prefix={<UserOutlined style={{ color: '#1890ff' }} />}
               valueStyle={{ color: '#1890ff' }}
             />
@@ -417,11 +723,16 @@ export default function AgentTenantsPage() {
             rowKey="id"
             columns={columns}
             dataSource={filteredCustomers}
+<<<<<<< HEAD
             pagination={{ 
+=======
+            pagination={{
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               current: pagination.page,
               pageSize: pagination.pageSize,
               total: pagination.total,
               showSizeChanger: true,
+<<<<<<< HEAD
               showTotal: (total) => `共 ${total} 条记录`,
               onChange: (page, pageSize) => {
                 setPagination({ page, pageSize, total: pagination.total })
@@ -442,6 +753,26 @@ export default function AgentTenantsPage() {
                   )}
                 </Empty>
               )
+=======
+              showTotal: total => `共 ${total} 条记录`,
+              onChange: (page, pageSize) => {
+                setPagination({ page, pageSize, total: pagination.total });
+              },
+            }}
+            locale={{
+              emptyText: (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={<span>{searchText ? '未找到匹配的客户' : '暂无客户数据'}</span>}
+                >
+                  {!searchText && (
+                    <Button type="primary" onClick={() => setCreateVisible(true)}>
+                      开通第一个客户
+                    </Button>
+                  )}
+                </Empty>
+              ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             }}
           />
         </Spin>
@@ -458,6 +789,7 @@ export default function AgentTenantsPage() {
         width={500}
       >
         <Form form={createForm} layout="vertical">
+<<<<<<< HEAD
           <Form.Item name="name" label="客户名称" rules={[{ required: true, message: '请输入客户名称' }]}>
             <Input placeholder="请输入客户名称" />
           </Form.Item>
@@ -467,14 +799,46 @@ export default function AgentTenantsPage() {
           <Form.Item
             label="价格"
           >
+=======
+          <Form.Item
+            name="name"
+            label="客户名称"
+            rules={[{ required: true, message: '请输入客户名称' }]}
+          >
+            <Input placeholder="请输入客户名称" />
+          </Form.Item>
+          <Form.Item
+            name="phone"
+            label="手机号码（登录账号）"
+            rules={[{ required: true, message: '请输入手机号码' }]}
+          >
+            <Input placeholder="请输入手机号码" />
+          </Form.Item>
+          <Form.Item label="价格">
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Space.Compact>
               <Form.Item name="price" noStyle rules={[{ required: true, message: '请输入价格' }]}>
                 <Input type="number" prefix="¥" placeholder="金额" min={0} style={{ width: 120 }} />
               </Form.Item>
+<<<<<<< HEAD
               <Form.Item name="priceQuantity" noStyle rules={[{ required: true, message: '请输入时间' }]}>
                 <InputNumber placeholder="时间" min={1} style={{ width: 80 }} />
               </Form.Item>
               <Form.Item name="priceUnit" noStyle rules={[{ required: true, message: '请选择单位' }]}>
+=======
+              <Form.Item
+                name="priceQuantity"
+                noStyle
+                rules={[{ required: true, message: '请输入时间' }]}
+              >
+                <InputNumber placeholder="时间" min={1} style={{ width: 80 }} />
+              </Form.Item>
+              <Form.Item
+                name="priceUnit"
+                noStyle
+                rules={[{ required: true, message: '请选择单位' }]}
+              >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <Select style={{ width: 80 }} defaultValue="month">
                   <Select.Option value="month">月</Select.Option>
                   <Select.Option value="quarter">季</Select.Option>
@@ -484,16 +848,34 @@ export default function AgentTenantsPage() {
             </Space.Compact>
           </Form.Item>
 
+<<<<<<< HEAD
           <Form.Item name="expireMonths" label="有效时间" rules={[{ required: true, message: '请选择有效时间' }]}>
             <Select placeholder="选择有效时间">
               {expireOptions.map(opt => (
                 <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+=======
+          <Form.Item
+            name="expireMonths"
+            label="有效时间"
+            rules={[{ required: true, message: '请选择有效时间' }]}
+          >
+            <Select placeholder="选择有效时间">
+              {expireOptions.map(opt => (
+                <Select.Option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Select.Option>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               ))}
             </Select>
           </Form.Item>
           <Card size="small" style={{ background: '#f5f5f5' }}>
             <Text type="secondary">
+<<<<<<< HEAD
               <UserOutlined /> 登录账号：手机号码<br />
+=======
+              <UserOutlined /> 登录账号：手机号码
+              <br />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               <LockOutlined /> 初始密码：123456（客户自行修改）
             </Text>
           </Card>
@@ -518,7 +900,11 @@ export default function AgentTenantsPage() {
             <Divider>选择该客户可使用的功能</Divider>
             <Checkbox.Group
               value={selectedFeatures}
+<<<<<<< HEAD
               onChange={(values) => setSelectedFeatures(values as string[])}
+=======
+              onChange={values => setSelectedFeatures(values as string[])}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               style={{ width: '100%' }}
             >
               <Row gutter={[16, 16]}>
@@ -538,7 +924,15 @@ export default function AgentTenantsPage() {
         title="客户详情"
         open={detailVisible}
         onCancel={() => setDetailVisible(false)}
+<<<<<<< HEAD
         footer={[<Button key="close" onClick={() => setDetailVisible(false)}>关闭</Button>]}
+=======
+        footer={[
+          <Button key="close" onClick={() => setDetailVisible(false)}>
+            关闭
+          </Button>,
+        ]}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         width={600}
       >
         {selectedCustomer && (
@@ -557,7 +951,13 @@ export default function AgentTenantsPage() {
             </Descriptions.Item>
             <Descriptions.Item label="创建时间">{selectedCustomer.createdAt}</Descriptions.Item>
             <Descriptions.Item label="到期时间">
+<<<<<<< HEAD
               {selectedCustomer.expireAt ? dayjs(selectedCustomer.expireAt).format('YYYY-MM-DD') : '永久'}
+=======
+              {selectedCustomer.expireAt
+                ? dayjs(selectedCustomer.expireAt).format('YYYY-MM-DD')
+                : '永久'}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </Descriptions.Item>
             <Descriptions.Item label="开通功能" span={2}>
               {getFeatureTags(selectedCustomer.features)}
@@ -566,5 +966,9 @@ export default function AgentTenantsPage() {
         )}
       </Modal>
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

@@ -69,6 +69,7 @@ const iconMap: Record<string, React.ReactNode> = {
 
 // 菜单key前缀映射
 const prefixMap: Record<string, string> = {
+<<<<<<< HEAD
   'media': '/media',
   'recruitment': '/recruitment',
   'acquisition': '/acquisition',
@@ -81,6 +82,20 @@ const prefixMap: Record<string, string> = {
   'ecommerce': '/ecommerce',
   'crm': '/crm',
   'marketing': '/marketing',
+=======
+  media: '/media',
+  recruitment: '/recruitment',
+  acquisition: '/acquisition',
+  share: '/share',
+  my: '/my',
+  account: '/account',
+  admin: '/admin',
+  agent: '/agent',
+  system: '/system',
+  ecommerce: '/ecommerce',
+  crm: '/crm',
+  marketing: '/marketing',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 };
 
 // 客户菜单
@@ -97,11 +112,34 @@ const customerMenus: MenuItemData[] = [
     icon: 'VideoCamera',
     featureKey: 'media_factory',
     children: [
+<<<<<<< HEAD
       { key: 'media-factory', label: 'AI内容工厂', path: '/media/factory', featureKey: 'media_factory' },
       { key: 'media-matrix', label: '矩阵管理', path: '/media/matrix', featureKey: 'media_matrix' },
       { key: 'media-publish', label: '发布中心', path: '/media/publish', featureKey: 'media_publish' },
       { key: 'media-report', label: '数据报表', path: '/media/report' },
       { key: 'media-digital-human', label: '数字人视频', path: '/media/digital-humans', featureKey: 'media_digital_human' },
+=======
+      {
+        key: 'media-factory',
+        label: 'AI内容工厂',
+        path: '/media/factory',
+        featureKey: 'media_factory',
+      },
+      { key: 'media-matrix', label: '矩阵管理', path: '/media/matrix', featureKey: 'media_matrix' },
+      {
+        key: 'media-publish',
+        label: '发布中心',
+        path: '/media/publish',
+        featureKey: 'media_publish',
+      },
+      { key: 'media-report', label: '数据报表', path: '/media/report' },
+      {
+        key: 'media-digital-human',
+        label: '数字人视频',
+        path: '/media/digital-humans',
+        featureKey: 'media_digital_human',
+      },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       { key: 'materials', label: '素材库', path: '/materials' },
     ],
   },
@@ -111,12 +149,51 @@ const customerMenus: MenuItemData[] = [
     icon: 'Team',
     featureKey: 'recruitment',
     children: [
+<<<<<<< HEAD
       { key: 'recruitment-board', label: '招聘看板', path: '/recruitment/board', featureKey: 'recruitment' },
       { key: 'recruitment-publish', label: '职位发布', path: '/recruitment/publish', featureKey: 'recruitment' },
       { key: 'recruitment-screen', label: '简历筛选', path: '/recruitment/screen', featureKey: 'recruitment' },
       { key: 'recruitment-reply', label: '自动回复', path: '/recruitment/reply', featureKey: 'recruitment' },
       { key: 'recruitment-interview', label: '面试管理', path: '/recruitment/interview', featureKey: 'recruitment' },
       { key: 'recruitment-stats', label: '招聘统计', path: '/recruitment/stats', featureKey: 'recruitment' },
+=======
+      {
+        key: 'recruitment-board',
+        label: '招聘看板',
+        path: '/recruitment/board',
+        featureKey: 'recruitment',
+      },
+      {
+        key: 'recruitment-publish',
+        label: '职位发布',
+        path: '/recruitment/publish',
+        featureKey: 'recruitment',
+      },
+      {
+        key: 'recruitment-screen',
+        label: '简历筛选',
+        path: '/recruitment/screen',
+        featureKey: 'recruitment',
+      },
+      {
+        key: 'recruitment-reply',
+        label: '自动回复',
+        path: '/recruitment/reply',
+        featureKey: 'recruitment',
+      },
+      {
+        key: 'recruitment-interview',
+        label: '面试管理',
+        path: '/recruitment/interview',
+        featureKey: 'recruitment',
+      },
+      {
+        key: 'recruitment-stats',
+        label: '招聘统计',
+        path: '/recruitment/stats',
+        featureKey: 'recruitment',
+      },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     ],
   },
   {
@@ -125,10 +202,37 @@ const customerMenus: MenuItemData[] = [
     icon: 'ShareAlt',
     featureKey: 'acquisition',
     children: [
+<<<<<<< HEAD
       { key: 'acquisition-board', label: '获客看板', path: '/acquisition/board', featureKey: 'acquisition' },
       { key: 'acquisition-discover', label: '潜客发现', path: '/acquisition/discover', featureKey: 'acquisition' },
       { key: 'acquisition-task', label: '引流任务', path: '/acquisition/task', featureKey: 'acquisition' },
       { key: 'acquisition-stats', label: '获客统计', path: '/acquisition/stats', featureKey: 'acquisition' },
+=======
+      {
+        key: 'acquisition-board',
+        label: '获客看板',
+        path: '/acquisition/board',
+        featureKey: 'acquisition',
+      },
+      {
+        key: 'acquisition-discover',
+        label: '潜客发现',
+        path: '/acquisition/discover',
+        featureKey: 'acquisition',
+      },
+      {
+        key: 'acquisition-task',
+        label: '引流任务',
+        path: '/acquisition/task',
+        featureKey: 'acquisition',
+      },
+      {
+        key: 'acquisition-stats',
+        label: '获客统计',
+        path: '/acquisition/stats',
+        featureKey: 'acquisition',
+      },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     ],
   },
   {
@@ -146,9 +250,13 @@ const customerMenus: MenuItemData[] = [
     key: 'my',
     label: '转介绍',
     icon: 'Gift',
+<<<<<<< HEAD
     children: [
       { key: 'my-referral', label: '我的推荐', path: '/my/referral' },
     ],
+=======
+    children: [{ key: 'my-referral', label: '我的推荐', path: '/my/referral' }],
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     key: 'account',
@@ -318,6 +426,7 @@ export default function DynamicSidebar({ collapsed, onCollapse }: DynamicSidebar
 
   // 侧边栏内容
   const siderContent = (
+<<<<<<< HEAD
     <div className="sidebar-container" style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Logo区域 */}
       <div className="sidebar-header" style={{
@@ -327,6 +436,23 @@ export default function DynamicSidebar({ collapsed, onCollapse }: DynamicSidebar
         alignItems: 'center',
         justifyContent: collapsed ? 'center' : 'space-between',
       }}>
+=======
+    <div
+      className="sidebar-container"
+      style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
+    >
+      {/* Logo区域 */}
+      <div
+        className="sidebar-header"
+        style={{
+          padding: collapsed ? '16px 8px' : '16px 20px',
+          borderBottom: '1px solid #f0f0f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'space-between',
+        }}
+      >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         {!collapsed && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <ExperimentOutlined style={{ fontSize: 24, color: '#1890ff' }} />
@@ -350,6 +476,7 @@ export default function DynamicSidebar({ collapsed, onCollapse }: DynamicSidebar
       </div>
 
       {/* 用户信息区域 */}
+<<<<<<< HEAD
       <div className="sidebar-footer" style={{
         padding: collapsed ? '12px 8px' : '12px 16px',
         borderTop: '1px solid #f0f0f0',
@@ -364,6 +491,27 @@ export default function DynamicSidebar({ collapsed, onCollapse }: DynamicSidebar
             cursor: 'pointer',
             transition: 'background 0.2s',
           }}>
+=======
+      <div
+        className="sidebar-footer"
+        style={{
+          padding: collapsed ? '12px 8px' : '12px 16px',
+          borderTop: '1px solid #f0f0f0',
+        }}
+      >
+        <Dropdown menu={{ items: userMenuItems }} placement="topRight" trigger={['click']}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '8px',
+              borderRadius: 6,
+              cursor: 'pointer',
+              transition: 'background 0.2s',
+            }}
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             <Avatar
               size={collapsed ? 32 : 40}
               style={{ backgroundColor: '#1890ff' }}

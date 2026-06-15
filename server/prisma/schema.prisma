@@ -5,7 +5,11 @@ generator client {
 }
 
 datasource db {
+<<<<<<< HEAD
   provider = "postgresql"
+=======
+  provider = "mysql"
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   url      = env("DATABASE_URL")
 }
 
@@ -41,6 +45,12 @@ model User {
   publishedContents    PublishedContent[]
   notifications       Notification[]
   crmCustomers        CrmCustomer[]
+<<<<<<< HEAD
+=======
+  crmTags             CrmTag[]
+  crmAutomationRules  CrmAutomationRule[]
+  crmReminders        CrmReminder[]
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   recruitmentResumes  RecruitmentResume[]
   
   // 功能开关关联
@@ -65,17 +75,40 @@ model User {
   // 话术模板
   scriptTemplates    ScriptTemplate[]
   
+<<<<<<< HEAD
+=======
+  // 获客数据源配置
+  acquisitionSources  AcquisitionSource[]
+  acquisitionData     AcquisitionData[]
+  dataCollectionTasks DataCollectionTask[]
+  
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   // 对话记录
   conversationLogs   ConversationLog[]
   
   // 数字人
   digitalHumans      DigitalHuman[]
   
+<<<<<<< HEAD
+=======
+  // 声音克隆
+  voiceClones        VoiceClone[]
+  
+  // 视频克隆
+  videoClones        VideoClone[]
+  
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   // 视频任务
   videoTasks         VideoTask[]
   
   // 支付记录
   payments           Payment[]
+<<<<<<< HEAD
+=======
+  
+  // 发布记录
+  publishRecords     PublishRecord[]
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 model RecruitmentPost {
@@ -238,6 +271,99 @@ model ShareQrCode {
   shareRecords ShareRecord[]
 }
 
+<<<<<<< HEAD
+=======
+// ==================== 获客数据源配置 ====================
+
+// 获客数据源配置
+model AcquisitionSource {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    // 天眼查, 高德地图, 抖音直播间等
+  type        String    // tianyancha, amap, douyin_live, kuaishou_live
+  config      Json?     // API密钥等配置
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([userId, type])
+}
+
+// 获客数据记录（从各平台采集的数据）
+model AcquisitionData {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source      String    // tianyancha, amap, douyin_live, kuaishou_live
+  sourceType  String    // enterprise, merchant, live_audience
+  
+  // 基本信息
+  name        String?
+  phone       String?
+  email       String?
+  wechat      String?   // 微信号
+  
+  // 企业信息（天眼查）
+  company     String?
+  position    String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  business    String?   // 主营业务
+  employeeCount String? // 员工规模
+  
+  // 直播间信息
+  roomId      String?   // 直播间ID
+  roomName    String?
+  platform    String?   // douyin, kuaishou
+  
+  // AI分析
+  intentScore Int?      // 意向评分 0-100
+  intentLevel String?    // 高, 中, 低
+  intentTags  String?    // 标签，多个逗号分隔
+  
+  // 状态
+  status      String    @default("new") // new, contacted, qualified, converted, invalid
+  followupAt  DateTime?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, source])
+  @@index([userId, status])
+  @@index([intentScore])
+}
+
+// 采集任务
+model DataCollectionTask {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  source      String    // 数据源类型
+  keywords    String?   // 搜索关键词
+  industry    String?   // 行业
+  region      String?   // 地区
+  radius      Int?      // 半径（米）
+  centerLat   Float?
+  centerLng   Float?
+  
+  status      String    @default("pending") // pending, running, completed, failed
+  totalCount  Int       @default(0)
+  collectedCount Int    @default(0)
+  
+  startedAt   DateTime?
+  completedAt DateTime?
+  error       String?
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, status])
+}
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 model Material {
   id          String    @id @default(uuid())
   userId      String
@@ -248,10 +374,47 @@ model Material {
   fileUrl     String?
   fileType    String?   // pdf, doc, jpg, png, mp4, mp3
   thumbnail   String?
+<<<<<<< HEAD
   status      String    @default("unused") // unused, used
   usedCount   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+=======
+  status      String    @default("unused") // unused, used, pending, publishing, published, failed, scheduled, partially_failed
+  usedCount   Int       @default(0)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  publishRecords PublishRecord[]
+}
+
+// 发布记录
+model PublishRecord {
+  id            String    @id @default(uuid())
+  materialId    String
+  material      Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId     String
+  socialAccount SocialAccount? @relation(fields: [accountId], references: [id])
+  platform      String    // douyin, kuaishou, xiaohongshu, weibo, etc.
+  status        String    @default("pending") // pending, scheduled, publishing, success, failed
+  publishedUrl  String?
+  publishedId   String?
+  error         String?
+  scheduledAt   DateTime?
+  publishedAt   DateTime?
+  views         Int       @default(0)
+  likes         Int       @default(0)
+  comments      Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([materialId])
+  @@index([userId])
+  @@index([status])
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 model MatrixAccount {
@@ -300,7 +463,11 @@ model ScheduledTask {
   // 内容信息
   title         String
   content       String
+<<<<<<< HEAD
   images        String[]  // 图片URL列表
+=======
+  images        String    @db.LongText  // 图片URL列表，JSON格式
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   
   // 发布目标
   platform      String    // douyin, kuaishou, xiaohongshu
@@ -346,8 +513,76 @@ model CrmCustomer {
   level       String?   // A, B, C, D
   status      String    @default("potential") // potential, active, inactive
   remark      String?
+<<<<<<< HEAD
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+=======
+  tags        String?   // JSON数组，标签ID列表
+  lastFollowUpAt DateTime? // 最后跟进时间
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // 关联跟进记录
+  followUps   CrmFollowUp[]
+  // 关联提醒
+  reminders   CrmReminder[]
+}
+
+model CrmFollowUp {
+  id              String    @id @default(uuid())
+  customerId      String
+  customer        CrmCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type            String    // call, visit, wechat, email, other
+  content         String
+  nextPlan        String?
+  nextFollowUpAt  DateTime?
+  createdBy       String
+  createdAt       DateTime  @default(now())
+}
+
+// CRM标签
+model CrmTag {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    // 标签名称
+  color       String    @default("#1890ff") // 标签颜色
+  createdAt   DateTime  @default(now())
+  
+  @@unique([userId, name])
+}
+
+// CRM自动化规则
+model CrmAutomationRule {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    // 规则名称
+  trigger     String    // trigger: follow_up_overdue, level_change, source_change, tag_added, days_inactive
+  condition   String    // JSON格式的条件
+  action      String    // JSON格式的动作: notify, assign, tag, status_change
+  isActive    Boolean   @default(true)
+  lastRunAt   DateTime?
+  runCount    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// CRM到期提醒
+model CrmReminder {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    CrmCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type        String    // follow_up, contract, birthday, custom
+  title       String
+  remindAt    DateTime  // 提醒时间
+  isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId, remindAt])
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 model CompanyInfo {
@@ -585,6 +820,30 @@ model AgentApiConfig {
   @@index([agentId])
 }
 
+<<<<<<< HEAD
+=======
+// 用户API Key配置表（简化版）
+model ApiKey {
+  id          String    @id @default(uuid())
+  userId      String                     // 用户ID
+  provider    String                     // 服务商：dashscope(阿里云百炼) / tokenhub(腾讯云TokenHub)
+  apiKey      String                     // API密钥（加密存储）
+  secretKey   String                     // Secret密钥（加密存储）
+  status      String    @default("active") // active / disabled
+  isPrimary   Boolean   @default(false)  // 是否主Key
+  isSecondary Boolean   @default(false)  // 是否备用Key
+  usage       Int       @default(0)      // 使用次数
+  limit       Int       @default(0)     // 额度限制
+  failCount   Int       @default(0)     // 连续失败次数
+  lastUsedAt  DateTime?                  // 最后使用时间
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, provider])
+  @@index([userId])
+}
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 // API使用日志表
 model ApiUsageLog {
   id          String    @id @default(uuid())
@@ -650,7 +909,11 @@ model SocialAccount {
   accountId     String?                     // 平台账号ID
   accountName   String?                     // 平台账号名称
   avatar        String?                     // 头像
+<<<<<<< HEAD
   cookies       String?                     // 登录cookies（加密存储）
+=======
+  cookies       String?   @db.Text                     // 登录cookies（加密存储）
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   headers       String?                     // 请求头（加密存储）
   accessToken   String?                     // OAuth access token
   refreshToken  String?                     // OAuth refresh token
@@ -662,6 +925,11 @@ model SocialAccount {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
+<<<<<<< HEAD
+=======
+  publishRecords PublishRecord[]
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   @@index([userId, platform])
   @@index([agentId])
 }
@@ -724,7 +992,11 @@ model OAuthSession {
   redirectUrl   String?                     // 回调URL
   qrcodeUrl     String?                     // 二维码URL
   status        String    @default("pending") // pending, scanning, confirmed, expired, failed
+<<<<<<< HEAD
   cookies       String?                     // 授权后cookies
+=======
+  cookies       String?   @db.Text                     // 授权后cookies
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   accountInfo   Json?                       // 账号信息
   expiresAt     DateTime                    // 过期时间
   completedAt   DateTime?                   // 完成时间
@@ -985,6 +1257,53 @@ model DigitalHuman {
   @@index([status])
 }
 
+<<<<<<< HEAD
+=======
+// 声音克隆模型
+model VoiceClone {
+  id            String    @id @default(uuid())
+  userId        String                      // 所属用户
+  name          String                      // 名称
+  gender        String    @default("female") // 性别
+  description   String?                     // 描述
+  audioUrl      String?                     // 音频文件URL
+  language      String    @default("zh-CN") // 语言
+  status        String    @default("ready") // 状态: ready, processing, failed
+  usageCount    Int       @default(0)        // 使用次数
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // 关联用户
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// 视频克隆模型
+model VideoClone {
+  id               String    @id @default(uuid())
+  userId           String                      // 所属用户
+  name             String                      // 名称
+  type             String    @default("digital_human") // 类型: digital_human, talking_photo, lip_sync
+  sourceVideoUrl   String?                     // 源视频URL
+  sourceImageUrl   String?                     // 源图片URL
+  videoUrl         String?                     // 生成后的视频URL
+  thumbnail        String?                     // 缩略图
+  description      String?                     // 描述
+  status           String    @default("processing") // 状态: processing, ready, failed
+  progress         Int       @default(0)        // 处理进度 0-100
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  // 关联用户
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([status])
+}
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 // 视频模板
 model VideoTemplate {
   id            String    @id @default(uuid())
@@ -1080,3 +1399,133 @@ model Payment {
   @@index([status])
   @@index([createdAt])
 }
+<<<<<<< HEAD
+=======
+
+// AI 示例库表 - 存储高质量内容示例
+model AIExample {
+  id          String    @id @default(uuid())
+  type        String                      // 类型: title, post, script, message, jd, reply
+  platform    String?                     // 平台: 抖音, 快手, 小红书, 视频号, 通用
+  content     String                      // 内容
+  quality     Float     @default(7)       // 质量评分 1-10
+  tags        String?                     // 标签（逗号分隔）
+  metadata    Json?                        // 其他元数据
+  source      String?                     // 来源: user_adopted, system_default
+  usageCount  Int      @default(0)        // 使用次数
+  createdAt   DateTime  @default(now())
+  
+  @@index([type, platform])
+  @@index([quality])
+}
+
+// AI 内容反馈表 - 记录用户对生成内容的反馈
+model AIContentFeedback {
+  id          String    @id @default(uuid())
+  userId      String                      // 用户ID
+  contentId   String?                     // 内容ID
+  contentType String                      // 内容类型
+  content     String                      // 生成的内容
+  adopted     Boolean   @default(false)   // 是否被采纳
+  edited      Boolean   @default(false)   // 是否被编辑
+  rating      Int?                        // 满意度 1-5
+  edits       String?                     // 编辑内容
+  platform    String?                     // 平台
+  createdAt   DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([contentType])
+}
+
+// AI 使用统计表
+model AIUsageStats {
+  id            String    @id @default(uuid())
+  userId        String                      // 用户ID
+  agentId       String?                     // 代理商ID
+  feature       String                      // 功能: chat, generate_title, generate_post, etc
+  model         String                      // 使用的模型
+  tokens        Int      @default(0)        // Token消耗
+  cost          Decimal   @default(0)        // 费用
+  successCount  Int      @default(0)        // 成功次数
+  failCount     Int      @default(0)        // 失败次数
+  period        String    @default("daily") // 统计周期: daily, monthly
+  periodStart   DateTime                    // 周期开始
+  createdAt     DateTime  @default(now())
+  
+  @@unique([userId, feature, model, periodStart])
+  @@index([userId, periodStart])
+}
+
+// AI 内容反馈表
+model ContentFeedback {
+  id                 String   @id @default(uuid())
+  contentType        String                      // 内容类型: title, script, post, hashtags, etc
+  prompt             String   @db.Text            // 使用的提示词
+  generatedContent   String   @db.Text            // 生成的内容
+  adopted            Boolean  @default(false)     // 是否被采纳
+  edited             Boolean  @default(false)     // 是否被编辑
+  rating             Int?                        // 用户评分 1-5
+  editedContent      String?  @db.Text            // 编辑后的内容
+  userId             String?                     // 用户ID
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  @@index([contentType, createdAt])
+  @@index([adopted, createdAt])
+  @@index([userId])
+}
+
+// AI 智能体反馈表
+model AgentFeedback {
+  id             String   @id @default(uuid())
+  agentId        String                      // 智能体ID
+  conversationId String?                     // 对话ID
+  messageIndex   Int?                        // 消息索引
+  userMessage    String?  @db.Text           // 用户消息
+  agentResponse  String?  @db.Text          // 智能体回复
+  helpful        Boolean?                    // 是否有帮助
+  rating         Int?                        // 评分 1-5
+  userId         String?                     // 用户ID
+  createdAt      DateTime @default(now())
+  
+  @@index([agentId, createdAt])
+  @@index([helpful, createdAt])
+}
+
+
+// 提示词优化表
+model PromptOptimization {
+  id            String   @id @default(uuid())
+  contentType   String   @unique            // 内容类型
+  sampleCount   Int      @default(0)         // 样本数量
+  adoptionRate  Float    @default(0)        // 采纳率
+  avgRating     Float    @default(0)        // 平均评分
+  optimizedPrompt String? @db.Text          // 优化后的提示词
+  insights      String?  @db.Text           // 分析洞察
+  lastUpdated   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  
+  @@index([adoptionRate])
+}
+
+// 热点话题缓存表
+model HotspotCache {
+  id         String   @id @default(uuid())
+  platform   String                      // 平台
+  keyword    String                      // 关键词
+  heat       Int      @default(0)        // 热度值
+  label      String?                     // 标签
+  category   String?                     // 分类
+  url        String?                     // 链接
+  rawData    String?  @db.Text           // 原始数据
+  cachedAt   DateTime @default(now())
+  expiresAt  DateTime                    // 过期时间
+  
+  @@unique([platform, keyword, cachedAt])
+  @@index([platform, cachedAt])
+  @@index([heat])
+}
+
+// 添加到 User 模型的反向关系（在最后的 } 之前）
+// 这部分需要手动添加到 User 模型的字段中
+>>>>>>> 962968886be726cd434c792933b5515366d34518

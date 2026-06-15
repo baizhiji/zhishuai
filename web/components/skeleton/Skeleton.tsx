@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 'use client'
 
 import { Card, Row, Col, Skeleton } from 'antd'
+=======
+'use client';
+
+import { Card, Row, Col, Skeleton } from 'antd';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 export function CardSkeleton({ count = 1 }: { count?: number }) {
   return (
@@ -13,7 +19,11 @@ export function CardSkeleton({ count = 1 }: { count?: number }) {
         </Col>
       ))}
     </Row>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function TableSkeleton({ rows = 5, columns = 6 }: { rows?: number; columns?: number }) {
@@ -22,17 +32,25 @@ export function TableSkeleton({ rows = 5, columns = 6 }: { rows?: number; column
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <div key={rowIndex} className="flex gap-4 mb-4">
           {Array.from({ length: columns }).map((_, colIndex) => (
+<<<<<<< HEAD
             <Skeleton.Input
               key={colIndex}
               active
               style={{ flex: 1 }}
               size="small"
             />
+=======
+            <Skeleton.Input key={colIndex} active style={{ flex: 1 }} size="small" />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           ))}
         </div>
       ))}
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function StatCardSkeleton({ count = 4 }: { count?: number }) {
@@ -46,7 +64,11 @@ export function StatCardSkeleton({ count = 4 }: { count?: number }) {
         </Col>
       ))}
     </Row>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function FormSkeleton({ fields = 5 }: { fields?: number }) {
@@ -59,7 +81,11 @@ export function FormSkeleton({ fields = 5 }: { fields?: number }) {
       ))}
       <Skeleton.Button active style={{ width: '100%', height: 40 }} />
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function PageSkeleton() {
@@ -69,5 +95,9 @@ export function PageSkeleton() {
       <Skeleton.Input active style={{ width: 500, marginBottom: 24 }} />
       <CardSkeleton count={3} />
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

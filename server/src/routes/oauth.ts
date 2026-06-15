@@ -1,9 +1,15 @@
 /**
+<<<<<<< HEAD
  * OAuth 授权管理 - 扫码授权各平台账号
+=======
+ * 扫码授权路由
+ * 使用 Playwright 浏览器自动化获取平台二维码并检测登录状态
+>>>>>>> 962968886be726cd434c792933b5515366d34518
  */
 
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+<<<<<<< HEAD
 import { v4 as uuidv4 } from 'uuid';
 import * as qrcode from 'qrcode';
 import {
@@ -16,22 +22,44 @@ import {
   PLATFORM_CONFIGS,
   BrowserSession
 } from '../services/playwright.service';
+=======
+import { 
+  createAuthSession, 
+  checkAuthStatus, 
+  cancelAuthSession,
+  getPlatformList,
+  PLATFORM_CONFIGS
+} from '../services/browser-auth.service';
+import { authMiddleware } from '../middleware/auth';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 const router = Router();
 const prisma = new PrismaClient();
 
+<<<<<<< HEAD
 // 浏览器会话缓存（生产环境应使用 Redis）
 const browserSessions: Map<string, BrowserSession> = new Map();
 
+=======
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 /**
  * 获取支持的平台列表
  */
 router.get('/platforms', async (req: Request, res: Response) => {
   try {
+<<<<<<< HEAD
     const platforms = Object.entries(PLATFORM_CONFIGS).map(([key, config]) => ({
       code: key,
       name: config.name,
       loginType: config.selectors.qrContainer ? 'qrcode' : 'password'
+=======
+    const platforms = getPlatformList().map(p => ({
+      code: p.code,
+      name: p.name,
+      icon: PLATFORM_CONFIGS[p.code]?.icon,
+      color: PLATFORM_CONFIGS[p.code]?.color,
+      status: p.status
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     }));
     
     res.json({ success: true, data: platforms });
@@ -42,6 +70,7 @@ router.get('/platforms', async (req: Request, res: Response) => {
 
 /**
  * 创建授权会话，获取二维码
+<<<<<<< HEAD
  */
 router.post('/sessions', async (req: Request, res: Response) => {
   try {
@@ -88,15 +117,78 @@ router.post('/sessions', async (req: Request, res: Response) => {
         platform,
         qrcodeUrl,
         expiresAt: oauthSession.expiresAt
+=======
+ * POST /api/oauth/sessions
+ */
+router.post('/sessions', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { platform } = req.body;
+    
+    if (!platform) {
+      return res.status(400).json({ success: false, error: '请选择平台' });
+    }
+    
+    const config = PLATFORM_CONFIGS[platform];
+    if (!config) {
+      return res.status(400).json({ success: false, error: '不支持的平台' });
+    }
+    
+    if (config.status === 'coming') {
+      return res.status(400).json({ success: false, error: `${config.name} 暂未开放，敬请期待` });
+    }
+    
+    console.log(`[OAuth] 用户 ${userId} 请求授权平台: ${platform}`);
+    
+    // 创建授权会话
+    const result = await createAuthSession(platform);
+    
+    console.log('[OAuth] createAuthSession 返回:', {
+      hasResult: !!result,
+      sessionId: result?.sessionId,
+      hasQrcodeUrl: !!result?.qrcodeUrl,
+      qrcodeUrlLength: result?.qrcodeUrl?.length || 0
+    });
+    
+    if (!result) {
+      return res.status(500).json({ success: false, error: '创建授权会话失败，请重试' });
+    }
+    
+    // 保存会话到数据库
+    await prisma.oAuthSession.create({
+      data: {
+        userId,
+        platform,
+        sessionId: result.sessionId,
+        state: '',
+        status: 'pending',
+        expiresAt: result.expiresAt
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        sessionId: result.sessionId,
+        platform: result.platform,
+        platformName: result.platformName,
+        qrcodeUrl: result.qrcodeUrl,
+        expiresAt: result.expiresAt
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       }
     });
     
   } catch (error: any) {
+<<<<<<< HEAD
+=======
+    console.error('创建授权会话失败:', error);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 /**
+<<<<<<< HEAD
  * 执行扫码授权（内部接口，由前端轮询触发）
  */
 router.post('/authorize', async (req: Request, res: Response) => {
@@ -268,16 +360,104 @@ router.get('/sessions/:sessionId', async (req: Request, res: Response) => {
         expiresAt: session.expiresAt,
         completedAt: session.completedAt,
         error: session.error
+=======
+ * 查询授权状态（轮询接口）
+ * GET /api/oauth/sessions/:sessionId
+ */
+router.get('/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { sessionId } = req.params;
+    
+    const dbSession = await prisma.oAuthSession.findUnique({
+      where: { sessionId }
+    });
+    
+    if (!dbSession) {
+      return res.status(404).json({ success: false, error: '会话不存在' });
+    }
+    
+    if (dbSession.userId !== userId) {
+      return res.status(403).json({ success: false, error: '无权查看此会话' });
+    }
+    
+    // 已授权
+    if (dbSession.status === 'confirmed') {
+      return res.json({
+        success: true,
+        data: {
+          sessionId,
+          platform: dbSession.platform,
+          status: 'confirmed',
+          accountInfo: dbSession.accountInfo
+        }
+      });
+    }
+    
+    // 已过期
+    if (new Date() > dbSession.expiresAt) {
+      await prisma.oAuthSession.update({
+        where: { sessionId },
+        data: { status: 'expired' }
+      });
+      
+      return res.json({
+        success: true,
+        data: {
+          sessionId,
+          platform: dbSession.platform,
+          status: 'expired'
+        }
+      });
+    }
+    
+    // 检查 Playwright 中的实时状态
+    const realTimeStatus = await checkAuthStatus(sessionId);
+    
+    if (realTimeStatus.status === 'authorized') {
+      // 更新数据库
+      await prisma.oAuthSession.update({
+        where: { sessionId },
+        data: {
+          status: 'confirmed',
+          accountInfo: JSON.stringify(realTimeStatus.accountInfo)
+        }
+      });
+      
+      return res.json({
+        success: true,
+        data: {
+          sessionId,
+          platform: dbSession.platform,
+          status: 'confirmed',
+          accountInfo: realTimeStatus.accountInfo
+        }
+      });
+    }
+    
+    // 返回当前状态
+    return res.json({
+      success: true,
+      data: {
+        sessionId,
+        platform: dbSession.platform,
+        status: realTimeStatus.status
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       }
     });
     
   } catch (error: any) {
+<<<<<<< HEAD
+=======
+    console.error('查询会话状态失败:', error);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 /**
  * 取消授权会话
+<<<<<<< HEAD
  */
 router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
   try {
@@ -311,11 +491,36 @@ router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
     
     res.json({ success: true });
     
+=======
+ * DELETE /api/oauth/sessions/:sessionId
+ */
+router.delete('/sessions/:sessionId', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { sessionId } = req.params;
+    
+    const dbSession = await prisma.oAuthSession.findUnique({
+      where: { sessionId }
+    });
+    
+    if (dbSession && dbSession.userId !== userId) {
+      return res.status(403).json({ success: false, error: '无权取消此会话' });
+    }
+    
+    cancelAuthSession(sessionId);
+    
+    await prisma.oAuthSession.delete({
+      where: { sessionId }
+    }).catch(() => {});
+    
+    res.json({ success: true });
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
+<<<<<<< HEAD
 /**
  * 获取已授权账号列表
  */
@@ -512,4 +717,6 @@ async function extractAccountInfo(page: any, platform: string): Promise<any> {
   return info;
 }
 
+=======
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 export default router;

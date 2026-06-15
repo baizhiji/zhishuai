@@ -1,9 +1,18 @@
+<<<<<<< HEAD
 'use client'
 
 import { Card, Row, Col, Typography, Table, Tag, DatePicker, Select } from 'antd'
 import { Line } from '@ant-design/plots'
 
 const { Title } = Typography
+=======
+'use client';
+
+import { Card, Row, Col, Typography, Table, Tag, DatePicker, Select } from 'antd';
+import { Line } from '@ant-design/plots';
+
+const { Title } = Typography;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 export default function ShareTrackPage() {
   const columns = [
@@ -15,6 +24,7 @@ export default function ShareTrackPage() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+<<<<<<< HEAD
       render: (status: string) => <Tag color={status === 'success' ? 'success' : 'default'}>{status === 'success' ? '成功' : '待激活'}</Tag>,
     },
   ]
@@ -22,11 +32,36 @@ export default function ShareTrackPage() {
   const mockData = [
     { referrer: '张三', referee: '李四', code: 'ZHISHUAI2024', registerTime: '2024-03-25', status: 'success' },
   ]
+=======
+      render: (status: string) => (
+        <Tag color={status === 'success' ? 'success' : 'default'}>
+          {status === 'success' ? '成功' : '待激活'}
+        </Tag>
+      ),
+    },
+  ];
+
+  const mockData = [
+    {
+      referrer: '张三',
+      referee: '李四',
+      code: 'ZHISHUAI2024',
+      registerTime: '2024-03-25',
+      status: 'success',
+    },
+  ];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
       <div className="mb-6">
+<<<<<<< HEAD
         <Title level={2} className="mb-2">推荐追踪</Title>
+=======
+        <Title level={2} className="mb-2">
+          推荐追踪
+        </Title>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       </div>
 
       <Row gutter={[16, 16]} className="mb-6">
@@ -68,5 +103,9 @@ export default function ShareTrackPage() {
         <Table dataSource={mockData} columns={columns} rowKey="id" />
       </Card>
     </div>
+<<<<<<< HEAD
   )
+=======
+  );
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

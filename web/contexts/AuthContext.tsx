@@ -3,7 +3,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { message } from 'antd';
+<<<<<<< HEAD
 import { getAuthToken, getUserInfo, setAuthToken, setUserInfo, removeAuthToken } from '@/lib/request';
+=======
+import {
+  getAuthToken,
+  getUserInfo,
+  setAuthToken,
+  setUserInfo,
+  removeAuthToken,
+} from '@/lib/request';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import { isAuthenticated } from '@/lib/permissions';
 
 interface User {
@@ -12,7 +22,11 @@ interface User {
   phone: string;
   email?: string;
   avatar?: string;
+<<<<<<< HEAD
   role: 'admin' | 'agent' | 'customer';
+=======
+  role: 'admin' | 'agent' | 'user';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   status: 'active' | 'inactive' | 'banned';
 }
 
@@ -36,9 +50,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
 
   // 检查认证状态
   const checkAuth = () => {
+=======
+  // 用于解决服务端/客户端 hydration 不匹配问题
+  const [mounted, setMounted] = useState(false);
+
+  // 确保只在客户端挂载后才执行需要 localStorage 的操作
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 检查认证状态
+  const checkAuth = () => {
+    // 服务端渲染时跳过认证检查，避免 hydration 不匹配
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     setLoading(true);
 
     if (!isAuthenticated()) {
@@ -77,6 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 退出登录
   const logout = () => {
     removeAuthToken();
+<<<<<<< HEAD
+=======
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('viewing_role');
+    }
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     setUser(null);
     message.success('已退出登录');
     router.push('/login');
@@ -93,11 +131,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 初始化时检查认证状态
   useEffect(() => {
+<<<<<<< HEAD
     // 防止重复调用
     if (loading) {
       checkAuth();
     }
   }, [pathname]);
+=======
+    // 防止重复调用，只在组件挂载后执行
+    if (mounted && loading) {
+      checkAuth();
+    }
+  }, [pathname, mounted]);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const value = {
     user,
@@ -106,7 +152,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     updateUser,
+<<<<<<< HEAD
     checkAuth
+=======
+    checkAuth,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

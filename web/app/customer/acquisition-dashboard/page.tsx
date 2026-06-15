@@ -11,7 +11,11 @@ import {
   Progress,
   Space,
   Typography,
+<<<<<<< HEAD
   DatePicker
+=======
+  DatePicker,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'antd';
 import {
   UserSwitchOutlined,
@@ -21,7 +25,11 @@ import {
   SendOutlined,
   LikeOutlined,
   CommentOutlined,
+<<<<<<< HEAD
   ShareAltOutlined
+=======
+  ShareAltOutlined,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -35,7 +43,11 @@ import {
   ResponsiveContainer,
   FunnelChart,
   Funnel,
+<<<<<<< HEAD
   LabelList
+=======
+  LabelList,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'recharts';
 
 const { Title, Text } = Typography;
@@ -82,7 +94,11 @@ export default function AcquisitionDashboardPage() {
     contacted: 0,
     converted: 0,
     conversionRate: 0,
+<<<<<<< HEAD
     avgResponseTime: '0分钟'
+=======
+    avgResponseTime: '0分钟',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   });
   const [trendData, setTrendData] = useState<TrendData[]>([]);
   const [leadsData, setLeadsData] = useState<LeadData[]>([]);
@@ -102,6 +118,7 @@ export default function AcquisitionDashboardPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/acquisition/dashboard', {
+<<<<<<< HEAD
         userId
       });
       
@@ -110,6 +127,16 @@ export default function AcquisitionDashboardPage() {
         setTrendData(res.data.trendData || generateMockTrendData());
         setLeadsData(res.data.leadsData || generateMockLeadsData());
         setSourceData(res.data.sourceData || generateMockSourceData());
+=======
+        params: { userId },
+      });
+
+      if (res) {
+        setStats(res.stats || generateMockStats());
+        setTrendData(res.trendData || generateMockTrendData());
+        setLeadsData(res.leadsData || generateMockLeadsData());
+        setSourceData(res.sourceData || generateMockSourceData());
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       }
     } catch (error) {
       setStats(generateMockStats());
@@ -127,7 +154,11 @@ export default function AcquisitionDashboardPage() {
     contacted: 156,
     converted: 42,
     conversionRate: 17.1,
+<<<<<<< HEAD
     avgResponseTime: '5分钟'
+=======
+    avgResponseTime: '5分钟',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   });
 
   const generateMockTrendData = () => {
@@ -137,18 +168,62 @@ export default function AcquisitionDashboardPage() {
         date: dayjs().subtract(i, 'day').format('MM-DD'),
         leads: Math.floor(Math.random() * 50) + 20,
         contacted: Math.floor(Math.random() * 30) + 10,
+<<<<<<< HEAD
         converted: Math.floor(Math.random() * 10) + 2
+=======
+        converted: Math.floor(Math.random() * 10) + 2,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
     }
     return data;
   };
 
   const generateMockLeadsData = () => [
+<<<<<<< HEAD
     { id: '1', name: '张先生', source: '抖音', status: 'converted', interest: 95, contactedAt: '2024-01-15', convertedAt: '2024-01-18' },
     { id: '2', name: '李女士', source: '小红书', status: 'contacted', interest: 80, contactedAt: '2024-01-16', lastContact: '2024-01-17' },
     { id: '3', name: '王先生', source: '微信', status: 'new', interest: 65 },
     { id: '4', name: '刘女士', source: '微博', status: 'contacted', interest: 75, contactedAt: '2024-01-14', lastContact: '2024-01-16' },
     { id: '5', name: '陈先生', source: '抖音', status: 'converted', interest: 90, contactedAt: '2024-01-13', convertedAt: '2024-01-17' }
+=======
+    {
+      id: '1',
+      name: '张先生',
+      source: '抖音',
+      status: 'converted',
+      interest: 95,
+      contactedAt: '2024-01-15',
+      convertedAt: '2024-01-18',
+    },
+    {
+      id: '2',
+      name: '李女士',
+      source: '小红书',
+      status: 'contacted',
+      interest: 80,
+      contactedAt: '2024-01-16',
+      lastContact: '2024-01-17',
+    },
+    { id: '3', name: '王先生', source: '微信', status: 'new', interest: 65 },
+    {
+      id: '4',
+      name: '刘女士',
+      source: '微博',
+      status: 'contacted',
+      interest: 75,
+      contactedAt: '2024-01-14',
+      lastContact: '2024-01-16',
+    },
+    {
+      id: '5',
+      name: '陈先生',
+      source: '抖音',
+      status: 'converted',
+      interest: 90,
+      contactedAt: '2024-01-13',
+      convertedAt: '2024-01-17',
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   const generateMockSourceData = () => [
@@ -156,7 +231,11 @@ export default function AcquisitionDashboardPage() {
     { source: '小红书', count: 62, rate: 25 },
     { source: '微信', count: 48, rate: 20 },
     { source: '微博', count: 30, rate: 12 },
+<<<<<<< HEAD
     { source: '其他', count: 20, rate: 8 }
+=======
+    { source: '其他', count: 20, rate: 8 },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   const getStatusColor = (status: string) => {
@@ -164,7 +243,11 @@ export default function AcquisitionDashboardPage() {
       new: 'blue',
       contacted: 'orange',
       converted: 'green',
+<<<<<<< HEAD
       lost: 'red'
+=======
+      lost: 'red',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return colors[status] || 'default';
   };
@@ -174,7 +257,11 @@ export default function AcquisitionDashboardPage() {
       new: '新线索',
       contacted: '已联系',
       converted: '已转化',
+<<<<<<< HEAD
       lost: '已流失'
+=======
+      lost: '已流失',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return texts[status] || status;
   };
@@ -186,15 +273,32 @@ export default function AcquisitionDashboardPage() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+<<<<<<< HEAD
       render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
+=======
+      render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '意向度',
       dataIndex: 'interest',
       key: 'interest',
+<<<<<<< HEAD
       render: (val: number) => <Progress percent={val} size="small" status={val > 80 ? 'success' : 'active'} />
     },
     { title: '最后联系', dataIndex: 'lastContact', key: 'lastContact', render: (t: string) => t || '-' }
+=======
+      render: (val: number) => (
+        <Progress percent={val} size="small" status={val > 80 ? 'success' : 'active'} />
+      ),
+    },
+    {
+      title: '最后联系',
+      dataIndex: 'lastContact',
+      key: 'lastContact',
+      render: (t: string) => t || '-',
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   return (

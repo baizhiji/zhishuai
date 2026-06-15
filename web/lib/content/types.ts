@@ -1,5 +1,6 @@
 // 内容分类枚举
 export enum ContentCategory {
+<<<<<<< HEAD
   TITLE = 'title',                    // 标题
   TAGS = 'tags',                      // 话题/标签
   COPYWRITING = 'copywriting',        // 文案生成
@@ -24,6 +25,35 @@ export const contentCategoryConfig: Record<ContentCategory, {
   needDuration: boolean
   needUpload: boolean
 }> = {
+=======
+  TITLE = 'title', // 标题
+  TAGS = 'tags', // 话题/标签
+  COPYWRITING = 'copywriting', // 文案生成
+  IMAGE_TO_TEXT = 'image-to-text', // 图生文
+  XIAOHONGSHU = 'xiaohongshu', // 小红书图文
+  IMAGE = 'image', // 图片
+  ECOMMERCE = 'ecommerce', // 电商详情页
+  VIDEO = 'video', // 短视频
+  VIDEO_ANALYSIS = 'video-analysis', // 视频解析
+  DIGITAL_HUMAN = 'digital-human', // 数字人短视频
+}
+
+// 内容分类配置
+export const contentCategoryConfig: Record<
+  ContentCategory,
+  {
+    label: string;
+    color: string;
+    icon: string;
+    description: string;
+    type: 'text' | 'image' | 'video';
+    needWordCount: boolean;
+    needSize: boolean;
+    needDuration: boolean;
+    needUpload: boolean;
+  }
+> = {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   [ContentCategory.TITLE]: {
     label: '标题',
     color: 'blue',
@@ -134,6 +164,7 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needDuration: true,
     needUpload: true,
   },
+<<<<<<< HEAD
 }
 
 // 数字人类型
@@ -141,10 +172,20 @@ export enum DigitalHumanType {
   SYSTEM = 'system',           // 系统自带
   CLONED = 'cloned',           // 克隆的
   API = 'api',                 // API调用
+=======
+};
+
+// 数字人类型
+export enum DigitalHumanType {
+  SYSTEM = 'system', // 系统自带
+  CLONED = 'cloned', // 克隆的
+  API = 'api', // API调用
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 数字人配置
 export interface DigitalHuman {
+<<<<<<< HEAD
   id: string
   name: string
   type: DigitalHumanType
@@ -155,6 +196,18 @@ export interface DigitalHuman {
   style: string
   createdAt: number
   status: 'active' | 'inactive'
+=======
+  id: string;
+  name: string;
+  type: DigitalHumanType;
+  avatar: string;
+  thumbnail?: string;
+  gender: 'male' | 'female';
+  ageRange: string;
+  style: string;
+  createdAt: number;
+  status: 'active' | 'inactive';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 字幕选项
@@ -163,7 +216,11 @@ export const subtitleOptions = [
   { label: '中文字幕', value: 'chinese' },
   { label: '英文字幕', value: 'english' },
   { label: '中英双语', value: 'bilingual' },
+<<<<<<< HEAD
 ]
+=======
+];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // 配音选项
 export const voiceoverOptions = [
@@ -174,7 +231,11 @@ export const voiceoverOptions = [
   { label: '女声-粤语', value: 'female-cantonese' },
   { label: '男声-英语', value: 'male-english' },
   { label: '女声-英语', value: 'female-english' },
+<<<<<<< HEAD
 ]
+=======
+];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // 背景音乐选项
 export const bgmOptions = [
@@ -186,14 +247,22 @@ export const bgmOptions = [
   { label: '悬疑', value: 'suspense' },
   { label: '科技', value: 'tech' },
   { label: '古典', value: 'classical' },
+<<<<<<< HEAD
 ]
+=======
+];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // 视频尺寸选项
 export const videoSizeOptions = [
   { label: '竖屏 9:16 (1080x1920)', value: '1080x1920' },
   { label: '横屏 16:9 (1920x1080)', value: '1920x1080' },
   { label: '方形 1:1 (1080x1080)', value: '1080x1080' },
+<<<<<<< HEAD
 ]
+=======
+];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // 图片尺寸选项
 export const imageSizeOptions = [
@@ -201,4 +270,8 @@ export const imageSizeOptions = [
   { label: '1024x768', value: '1024x768' },
   { label: '768x1024', value: '768x1024' },
   { label: '1920x1080', value: '1920x1080' },
+<<<<<<< HEAD
 ]
+=======
+];
+>>>>>>> 962968886be726cd434c792933b5515366d34518

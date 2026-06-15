@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import Navbar from '../customer/layout/Navbar'
 
 export default function Layout({
@@ -6,4 +7,10 @@ export default function Layout({
   children: React.ReactNode
 }) {
   return <Navbar>{children}</Navbar>
+=======
+import Navbar from '../customer/layout/Navbar';
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <Navbar>{children}</Navbar>;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }

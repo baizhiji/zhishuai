@@ -1,10 +1,23 @@
+<<<<<<< HEAD
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+=======
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 import { message } from 'antd';
 import type { ApiResponse } from '@/types/api';
 
 // 创建axios实例
 const request: AxiosInstance = axios.create({
+<<<<<<< HEAD
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.zhishuai.com/v1',
+=======
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || '/api',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -21,7 +34,11 @@ request.interceptors.request.use(
     }
     return config;
   },
+<<<<<<< HEAD
   (error) => {
+=======
+  error => {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     return Promise.reject(error);
   }
 );
@@ -42,7 +59,11 @@ request.interceptors.response.use(
     message.error(data.message || data.msg || '请求失败');
     return Promise.reject(new Error(data.message || data.msg || '请求失败'));
   },
+<<<<<<< HEAD
   (error) => {
+=======
+  error => {
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     const { response } = error;
 
     if (response) {

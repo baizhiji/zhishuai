@@ -19,7 +19,11 @@ import {
   Row,
   Col,
   Descriptions,
+<<<<<<< HEAD
   Timeline
+=======
+  Timeline,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'antd';
 import {
   PlusOutlined,
@@ -27,7 +31,11 @@ import {
   DeleteOutlined,
   CalendarOutlined,
   VideoCameraOutlined,
+<<<<<<< HEAD
   PhoneOutlined
+=======
+  PhoneOutlined,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -66,7 +74,11 @@ export default function InterviewPage() {
     total: 0,
     scheduled: 0,
     completed: 0,
+<<<<<<< HEAD
     today: 0
+=======
+    today: 0,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   });
 
   useEffect(() => {
@@ -82,6 +94,7 @@ export default function InterviewPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/recruitment/interviews', {
+<<<<<<< HEAD
         userId
       });
       setInterviews(res.data?.interviews || []);
@@ -94,6 +107,21 @@ export default function InterviewPage() {
         today: res.data?.interviews?.filter((i: Interview) => 
           dayjs(i.scheduledTime).format('YYYY-MM-DD') === today
         ).length || 0
+=======
+        params: { userId },
+      });
+      setInterviews(res.interviews || []);
+
+      const today = dayjs().format('YYYY-MM-DD');
+      const interviews = res.interviews || [];
+      setStats({
+        total: interviews.length,
+        scheduled: interviews.filter((i: Interview) => i.status === 'scheduled').length,
+        completed: interviews.filter((i: Interview) => i.status === 'completed').length,
+        today: interviews.filter(
+          (i: Interview) => dayjs(i.scheduledTime).format('YYYY-MM-DD') === today
+        ).length,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
     } catch (error) {
       message.error('获取面试记录失败');
@@ -107,13 +135,21 @@ export default function InterviewPage() {
       if (editingInterview) {
         await request.put(`/api/recruitment/interviews/${editingInterview.id}`, {
           ...values,
+<<<<<<< HEAD
           userId
+=======
+          userId,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         });
         message.success('更新成功');
       } else {
         await request.post('/api/recruitment/interviews', {
           ...values,
+<<<<<<< HEAD
           userId
+=======
+          userId,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         });
         message.success('创建成功');
       }
@@ -139,7 +175,11 @@ export default function InterviewPage() {
     try {
       await request.put(`/api/recruitment/interviews/${selectedInterview?.id}/feedback`, {
         ...values,
+<<<<<<< HEAD
         userId
+=======
+        userId,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
       message.success('反馈提交成功');
       setDetailVisible(false);
@@ -155,7 +195,11 @@ export default function InterviewPage() {
     if (interview.feedback) {
       feedbackForm.setFieldsValue({
         feedback: interview.feedback,
+<<<<<<< HEAD
         rating: interview.rating
+=======
+        rating: interview.rating,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       });
     }
     setDetailVisible(true);
@@ -166,7 +210,11 @@ export default function InterviewPage() {
       scheduled: 'blue',
       completed: 'green',
       cancelled: 'red',
+<<<<<<< HEAD
       rescheduled: 'orange'
+=======
+      rescheduled: 'orange',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return colors[status] || 'default';
   };
@@ -176,7 +224,11 @@ export default function InterviewPage() {
       scheduled: '已安排',
       completed: '已完成',
       cancelled: '已取消',
+<<<<<<< HEAD
       rescheduled: '已改期'
+=======
+      rescheduled: '已改期',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return texts[status] || status;
   };
@@ -185,7 +237,11 @@ export default function InterviewPage() {
     const icons: Record<string, React.ReactNode> = {
       video: <VideoCameraOutlined />,
       phone: <PhoneOutlined />,
+<<<<<<< HEAD
       onsite: <CalendarOutlined />
+=======
+      onsite: <CalendarOutlined />,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return icons[type] || <CalendarOutlined />;
   };
@@ -194,24 +250,40 @@ export default function InterviewPage() {
     {
       title: '候选人',
       dataIndex: 'candidateName',
+<<<<<<< HEAD
       key: 'candidateName'
+=======
+      key: 'candidateName',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '岗位',
       dataIndex: 'position',
+<<<<<<< HEAD
       key: 'position'
+=======
+      key: 'position',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '面试时间',
       dataIndex: 'scheduledTime',
       key: 'scheduledTime',
+<<<<<<< HEAD
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm')
+=======
+      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm'),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '时长',
       dataIndex: 'duration',
       key: 'duration',
+<<<<<<< HEAD
       render: (min: number) => `${min}分钟`
+=======
+      render: (min: number) => `${min}分钟`,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '方式',
@@ -222,20 +294,32 @@ export default function InterviewPage() {
           {getTypeIcon(type)}
           {type === 'video' ? '视频' : type === 'phone' ? '电话' : '现场'}
         </Space>
+<<<<<<< HEAD
       )
+=======
+      ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+<<<<<<< HEAD
       render: (status: string) => (
         <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
       )
+=======
+      render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>,
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '面试官',
       dataIndex: 'interviewer',
+<<<<<<< HEAD
       key: 'interviewer'
+=======
+      key: 'interviewer',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '操作',
@@ -245,6 +329,7 @@ export default function InterviewPage() {
           <Button type="link" size="small" onClick={() => showDetail(record)}>
             详情
           </Button>
+<<<<<<< HEAD
           <Button type="link" size="small" onClick={() => {
             setEditingInterview(record);
             form.setFieldsValue({
@@ -253,6 +338,20 @@ export default function InterviewPage() {
             });
             setModalVisible(true);
           }}>
+=======
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              setEditingInterview(record);
+              form.setFieldsValue({
+                ...record,
+                scheduledTime: dayjs(record.scheduledTime),
+              });
+              setModalVisible(true);
+            }}
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             编辑
           </Button>
           <Popconfirm title="确定删除?" onConfirm={() => handleDelete(record.id)}>
@@ -261,8 +360,13 @@ export default function InterviewPage() {
             </Button>
           </Popconfirm>
         </Space>
+<<<<<<< HEAD
       )
     }
+=======
+      ),
+    },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   return (
@@ -298,11 +402,23 @@ export default function InterviewPage() {
       <Card
         title="面试列表"
         extra={
+<<<<<<< HEAD
           <Button type="primary" icon={<PlusOutlined />} onClick={() => {
             setEditingInterview(null);
             form.resetFields();
             setModalVisible(true);
           }}>
+=======
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditingInterview(null);
+              form.resetFields();
+              setModalVisible(true);
+            }}
+          >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             新增面试
           </Button>
         }
@@ -372,17 +488,39 @@ export default function InterviewPage() {
           <Tabs defaultActiveKey="info">
             <TabPane tab="基本信息" key="info">
               <Descriptions column={2} bordered>
+<<<<<<< HEAD
                 <Descriptions.Item label="候选人">{selectedInterview.candidateName}</Descriptions.Item>
+=======
+                <Descriptions.Item label="候选人">
+                  {selectedInterview.candidateName}
+                </Descriptions.Item>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <Descriptions.Item label="应聘岗位">{selectedInterview.position}</Descriptions.Item>
                 <Descriptions.Item label="面试时间">
                   {dayjs(selectedInterview.scheduledTime).format('YYYY-MM-DD HH:mm')}
                 </Descriptions.Item>
+<<<<<<< HEAD
                 <Descriptions.Item label="面试时长">{selectedInterview.duration}分钟</Descriptions.Item>
                 <Descriptions.Item label="面试方式">
                   {selectedInterview.type === 'video' ? '视频面试' : 
                    selectedInterview.type === 'phone' ? '电话面试' : '现场面试'}
                 </Descriptions.Item>
                 <Descriptions.Item label="面试官">{selectedInterview.interviewer}</Descriptions.Item>
+=======
+                <Descriptions.Item label="面试时长">
+                  {selectedInterview.duration}分钟
+                </Descriptions.Item>
+                <Descriptions.Item label="面试方式">
+                  {selectedInterview.type === 'video'
+                    ? '视频面试'
+                    : selectedInterview.type === 'phone'
+                      ? '电话面试'
+                      : '现场面试'}
+                </Descriptions.Item>
+                <Descriptions.Item label="面试官">
+                  {selectedInterview.interviewer}
+                </Descriptions.Item>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 <Descriptions.Item label="状态">
                   <Tag color={getStatusColor(selectedInterview.status)}>
                     {getStatusText(selectedInterview.status)}
@@ -396,7 +534,15 @@ export default function InterviewPage() {
                 </Descriptions.Item>
                 {selectedInterview.meetingLink && (
                   <Descriptions.Item label="会议链接" span={2}>
+<<<<<<< HEAD
                     <a href={selectedInterview.meetingLink} target="_blank" rel="noopener noreferrer">
+=======
+                    <a
+                      href={selectedInterview.meetingLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                       {selectedInterview.meetingLink}
                     </a>
                   </Descriptions.Item>
@@ -417,7 +563,13 @@ export default function InterviewPage() {
                     <Select.Option value={1}>1分 - 不合适</Select.Option>
                   </Select>
                 </Form.Item>
+<<<<<<< HEAD
                 <Button type="primary" htmlType="submit">提交反馈</Button>
+=======
+                <Button type="primary" htmlType="submit">
+                  提交反馈
+                </Button>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
               </Form>
             </TabPane>
           </Tabs>

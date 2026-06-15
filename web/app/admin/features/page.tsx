@@ -80,7 +80,11 @@ export default function FeatureConfigPage() {
         const features = res.data.data;
         const togglesMap: Record<string, boolean> = {};
         const subTogglesMap: Record<string, Record<string, boolean>> = {};
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         features.forEach((f: any) => {
           togglesMap[f.code] = f.enabled;
           subTogglesMap[f.code] = {};
@@ -88,7 +92,11 @@ export default function FeatureConfigPage() {
             subTogglesMap[f.code][sub.code] = sub.enabled;
           });
         });
+<<<<<<< HEAD
         
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
         setToggles(togglesMap);
         setSubToggles(subTogglesMap);
         message.success('功能开关数据加载成功');
@@ -133,7 +141,11 @@ export default function FeatureConfigPage() {
       [featureKey]: {
         ...prev[featureKey],
         [subCode]: checked,
+<<<<<<< HEAD
       }
+=======
+      },
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     }));
   };
 
@@ -141,19 +153,31 @@ export default function FeatureConfigPage() {
   const handleSaveGlobal = async () => {
     try {
       setLoading(true);
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       // 保存主功能开关
       for (const [code, enabled] of Object.entries(toggles)) {
         await api.features.updateFeature(code, { enabled });
       }
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       // 保存子功能开关
       for (const [featureCode, subs] of Object.entries(subToggles)) {
         for (const [subCode, enabled] of Object.entries(subs)) {
           await api.features.updateSubFeature(featureCode, subCode, { enabled });
         }
       }
+<<<<<<< HEAD
       
+=======
+
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       message.success('全局功能开关配置已保存');
     } catch (error: any) {
       console.error('保存失败:', error);
@@ -199,12 +223,16 @@ export default function FeatureConfigPage() {
     const updated: Record<string, boolean> = {};
     const subUpdated: Record<string, Record<string, boolean>> = {};
     featureToggles.forEach(ft => {
+<<<<<<< HEAD
       // 不修改预留模块
       if (['ecommerce', 'crm', 'marketing'].includes(ft.key)) {
         updated[ft.key] = ft.defaultEnabled;
       } else {
         updated[ft.key] = enabled;
       }
+=======
+      updated[ft.key] = enabled;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       subUpdated[ft.key] = {};
       (ft.subFeatures || []).forEach(sub => {
         subUpdated[ft.key][sub.code] = enabled;
@@ -272,21 +300,37 @@ export default function FeatureConfigPage() {
       title: '名称',
       dataIndex: 'name',
       key: 'name',
+<<<<<<< HEAD
       render: (text) => text || '-',
+=======
+      render: text => text || '-',
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+<<<<<<< HEAD
       render: (status) => (
         <Badge status={status === 'active' ? 'success' : 'default'} text={status === 'active' ? '正常' : '已冻结'} />
+=======
+      render: status => (
+        <Badge
+          status={status === 'active' ? 'success' : 'default'}
+          text={status === 'active' ? '正常' : '已冻结'}
+        />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
       ),
     },
     {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
+<<<<<<< HEAD
       render: (date) => new Date(date).toLocaleDateString(),
+=======
+      render: date => new Date(date).toLocaleDateString(),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
     },
   ];
 
@@ -309,8 +353,13 @@ export default function FeatureConfigPage() {
           }
           extra={
             <Space>
+<<<<<<< HEAD
               <Button 
                 icon={<SyncOutlined spin={initLoading} />} 
+=======
+              <Button
+                icon={<SyncOutlined spin={initLoading} />}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 onClick={handleInitFeatures}
                 loading={initLoading}
               >
@@ -350,7 +399,11 @@ export default function FeatureConfigPage() {
                       key="switch"
                       size="small"
                       checked={toggles[ft.key]}
+<<<<<<< HEAD
                       onChange={(checked) => handleToggle(ft.key, checked)}
+=======
+                      onChange={checked => handleToggle(ft.key, checked)}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                       checkedChildren={<CheckCircleOutlined />}
                       unCheckedChildren={<CloseCircleOutlined />}
                     />,
@@ -364,7 +417,13 @@ export default function FeatureConfigPage() {
                         <Tag color="default">已关闭</Tag>
                       )}
                     </div>
+<<<<<<< HEAD
                     <Text strong style={{ fontSize: 14 }}>{ft.name}</Text>
+=======
+                    <Text strong style={{ fontSize: 14 }}>
+                      {ft.name}
+                    </Text>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                     <br />
                     <Text type="secondary" style={{ fontSize: 11 }}>
                       {ft.description}
@@ -380,6 +439,7 @@ export default function FeatureConfigPage() {
           {/* 子功能开关配置 */}
           <Title level={5}>子功能配置</Title>
           <Row gutter={[16, 16]}>
+<<<<<<< HEAD
             {featureToggles.map(ft => ft.subFeatures?.map(sub => (
               <Col xs={24} sm={12} md={8} key={`${ft.key}-${sub.code}`}>
                 <Card size="small">
@@ -403,6 +463,44 @@ export default function FeatureConfigPage() {
                 </Card>
               </Col>
             )))}
+=======
+            {featureToggles.map(ft =>
+              ft.subFeatures?.map(sub => (
+                <Col xs={24} sm={12} md={8} key={`${ft.key}-${sub.code}`}>
+                  <Card size="small">
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <div>
+                        <Text strong>{sub.name}</Text>
+                        <br />
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {sub.description}
+                        </Text>
+                        <br />
+                        <Tag
+                          color="processing"
+                          style={{ marginTop: 4 }}
+                        >
+                          属于: {ft.name}
+                        </Tag>
+                      </div>
+                      <Switch
+                        size="small"
+                        checked={subToggles[ft.key]?.[sub.code] ?? sub.defaultEnabled}
+                        onChange={checked => handleSubToggle(ft.key, sub.code, checked)}
+                        disabled={!toggles[ft.key]} // 如果主功能关闭，子功能也不能开启
+                      />
+                    </div>
+                  </Card>
+                </Col>
+              ))
+            )}
+>>>>>>> 962968886be726cd434c792933b5515366d34518
           </Row>
         </Card>
 
@@ -437,9 +535,13 @@ export default function FeatureConfigPage() {
               </Space>
             </Descriptions.Item>
             <Descriptions.Item label="已配置客户">
+<<<<<<< HEAD
               <Text type="secondary">
                 已配置 {Object.keys(tenantConfigs).length} 个客户
               </Text>
+=======
+              <Text type="secondary">已配置 {Object.keys(tenantConfigs).length} 个客户</Text>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
             </Descriptions.Item>
           </Descriptions>
 
@@ -481,9 +583,13 @@ export default function FeatureConfigPage() {
               <Card size="small">
                 <div>
                   <div style={{ color: 'rgba(0, 0, 0, 0.45)', fontSize: 14 }}>功能模块总数</div>
+<<<<<<< HEAD
                   <div style={{ fontSize: 24, fontWeight: 600 }}>
                     {featureToggles.length}
                   </div>
+=======
+                  <div style={{ fontSize: 24, fontWeight: 600 }}>{featureToggles.length}</div>
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 </div>
               </Card>
             </Col>
@@ -515,14 +621,28 @@ export default function FeatureConfigPage() {
                   title: '客户数量',
                   dataIndex: ['_count', 'customers'],
                   key: 'customerCount',
+<<<<<<< HEAD
                   render: (count) => <Badge count={count} showZero style={{ backgroundColor: '#1890ff' }} />,
+=======
+                  render: count => (
+                    <Badge count={count} showZero style={{ backgroundColor: '#1890ff' }} />
+                  ),
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                 },
                 {
                   title: '状态',
                   dataIndex: 'status',
                   key: 'status',
+<<<<<<< HEAD
                   render: (status) => (
                     <Badge status={status === 'active' ? 'success' : 'error'} text={status === 'active' ? '正常' : '已冻结'} />
+=======
+                  render: status => (
+                    <Badge
+                      status={status === 'active' ? 'success' : 'error'}
+                      text={status === 'active' ? '正常' : '已冻结'}
+                    />
+>>>>>>> 962968886be726cd434c792933b5515366d34518
                   ),
                 },
                 {

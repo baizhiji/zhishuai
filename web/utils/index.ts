@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -13,6 +14,23 @@ export function formatDate(date: Date | string, format: string = 'YYYY-MM-DD HH:
   const hours = String(d.getHours()).padStart(2, '0')
   const minutes = String(d.getMinutes()).padStart(2, '0')
   const seconds = String(d.getSeconds()).padStart(2, '0')
+=======
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatDate(date: Date | string, format: string = 'YYYY-MM-DD HH:mm:ss'): string {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const seconds = String(d.getSeconds()).padStart(2, '0');
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return format
     .replace('YYYY', String(year))
@@ -20,11 +38,16 @@ export function formatDate(date: Date | string, format: string = 'YYYY-MM-DD HH:
     .replace('DD', day)
     .replace('HH', hours)
     .replace('mm', minutes)
+<<<<<<< HEAD
     .replace('ss', seconds)
+=======
+    .replace('ss', seconds);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function formatNumber(num: number): string {
   if (num >= 10000) {
+<<<<<<< HEAD
     return (num / 10000).toFixed(1) + '万'
   }
   if (num >= 1000) {
@@ -43,23 +66,52 @@ export function formatFileSize(bytes: number): string {
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2)
+=======
+    return (num / 10000).toFixed(1) + '万';
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'k';
+  }
+  return String(num);
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+}
+
+export function generateId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
+<<<<<<< HEAD
   let timeout: NodeJS.Timeout | null = null
   return (...args: Parameters<T>) => {
     if (timeout) clearTimeout(timeout)
     timeout = setTimeout(() => func(...args), wait)
   }
+=======
+  let timeout: NodeJS.Timeout | null = null;
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function throttle<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
+<<<<<<< HEAD
   let inThrottle = false
   return (...args: Parameters<T>) => {
     if (!inThrottle) {
@@ -96,6 +148,44 @@ export function getInitials(name: string): string {
   const parts = name.split(' ')
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
+=======
+  let inThrottle = false;
+  return (...args: Parameters<T>) => {
+    if (!inThrottle) {
+      func(...args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), wait);
+    }
+  };
+}
+
+export function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+export function validatePhone(phone: string): boolean {
+  return /^1[3-9]\d{9}$/.test(phone);
+}
+
+export function validatePassword(password: string): boolean {
+  return password.length >= 6;
+}
+
+export function truncateString(str: string, maxLength: number): string {
+  if (str.length <= maxLength) return str;
+  return str.substr(0, maxLength) + '...';
+}
+
+export function getInitials(name: string): string {
+  const parts = name.split(' ');
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function getGradientColor(index: number, total: number): string {
@@ -108,8 +198,13 @@ export function getGradientColor(index: number, total: number): string {
     'from-yellow-500 to-orange-600',
     'from-indigo-500 to-purple-600',
     'from-emerald-500 to-green-600',
+<<<<<<< HEAD
   ]
   return colors[index % colors.length]
+=======
+  ];
+  return colors[index % colors.length];
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function getPlatformIcon(platform: string): string {
@@ -127,8 +222,13 @@ export function getPlatformIcon(platform: string): string {
     '51job': '📋',
     zhilian: '🔍',
     lagou: '🎯',
+<<<<<<< HEAD
   }
   return icons[platform] || '📱'
+=======
+  };
+  return icons[platform] || '📱';
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function getPlatformName(platform: string): string {
@@ -146,6 +246,11 @@ export function getPlatformName(platform: string): string {
     '51job': '前程无忧',
     zhilian: '智联招聘',
     lagou: '拉勾网',
+<<<<<<< HEAD
   }
   return names[platform] || platform
+=======
+  };
+  return names[platform] || platform;
+>>>>>>> 962968886be726cd434c792933b5515366d34518
 }
