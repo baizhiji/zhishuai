@@ -1,130 +1,114 @@
-// 首页数据服务
+// 首页数据服务 - 对接真实 Server API
 import { apiClient } from './api.client';
-import { API_ENDPOINTS } from './api.config';
 
 // 今日数据统计
 export interface TodayStats {
-  // 内容工厂
-  contentGenerated: number; // 今日生成内容数
-  contentUsed: number; // 今日使用素材数
-  
-  // 智能获客
-  newCustomers: number; // 新增潜客
-  customersGrowth: number; // 潜客增长百分比
-  
-  // 发布统计
-  publishedToday: number; // 今日发布数
-  totalPublished: number; // 累计发布数
-  
-  // 招聘统计
-  newResumes: number; // 新增简历
-  resumesReviewed: number; // 已查看简历
+  contentGenerated: number;
+  contentUsed: number;
+  newCustomers: number;
+  customersGrowth: number;
+  publishedToday: number;
+  totalPublished: number;
+  newResumes: number;
+  resumesReviewed: number;
 }
 
 // 转介绍统计
 export interface ReferralStats {
-  totalInvites: number; // 累计邀请人数
-  activeInvites: number; // 有效邀请人数
+  totalInvites: number;
+  activeInvites: number;
 }
 
 // 自媒体运营统计
 export interface ContentStats {
-  totalContents: number; // 累计生成
-  thisMonth: number; // 本月生成
-  totalViews: number; // 累计浏览
-  totalLikes: number; // 累计点赞
+  totalContents: number;
+  thisMonth: number;
+  totalViews: number;
+  totalLikes: number;
 }
 
 // 招聘助手统计
 export interface RecruitmentStats {
-  totalJobs: number; // 职位数
-  activeJobs: number; // 在招职位
-  totalResumes: number; // 收到简历
-  newResumes: number; // 新增简历
+  totalJobs: number;
+  activeJobs: number;
+  totalResumes: number;
+  newResumes: number;
 }
 
 class HomeService {
-  // 获取今日数据统计
+  // 获取今日数据统计 - 对接 /api/dashboard-stats/overview
   async getTodayStats(): Promise<TodayStats> {
     try {
-      // 尝试调用真实API
-      const data = await apiClient.get<TodayStats>(API_ENDPOINTS.ACQUISITION_STATS);
-      return data;
+      const data = await apiClient.get<any>('/dashboard-stats/overview');
+      return {
+        contentGenerated: data.content?.total || 0,
+        contentUsed: data.materials?.total || 0,
+        newCustomers: data.leads?.today || 0,
+        customersGrowth: data.leads?.trend || 0,
+        publishedToday: 0,
+        totalPublished: data.content?.total || 0,
+        newResumes: 0,
+        resumesReviewed: 0,
+      };
     } catch (error) {
-      // API未ready时返回Mock数据
-      console.log('使用Mock数据: 今日统计');
-      return this.getMockTodayStats();
+      console.log('获取今日统计失败，使用默认值');
+      return {
+        contentGenerated: 0,
+        contentUsed: 0,
+        newCustomers: 0,
+        customersGrowth: 0,
+        publishedToday: 0,
+        totalPublished: 0,
+        newResumes: 0,
+        resumesReviewed: 0,
+      };
     }
   }
 
-  // 获取转介绍统计
+  // 获取转介绍统计 - 对接 /api/referral/stats
   async getReferralStats(): Promise<ReferralStats> {
     try {
-      const data = await apiClient.get<ReferralStats>(API_ENDPOINTS.REFERRAL_STATS);
-      return data;
+      const data = await apiClient.get<any>('/referral/stats');
+      return {
+        totalInvites: data.totalInvites || 0,
+        activeInvites: data.activeInvites || 0,
+      };
     } catch (error) {
-      console.log('使用Mock数据: 转介绍统计');
-      return this.getMockReferralStats();
+      console.log('获取转介绍统计失败，使用默认值');
+      return { totalInvites: 0, activeInvites: 0 };
     }
   }
 
-  // 获取自媒体运营统计
+  // 获取自媒体运营统计 - 对接 /api/dashboard-stats/content
   async getContentStats(): Promise<ContentStats> {
     try {
-      // API_ENDPOINTS中没有对应端点，使用Mock
-      return this.getMockContentStats();
+      const data = await apiClient.get<any>('/dashboard-stats/content');
+      return {
+        totalContents: data.total || 0,
+        thisMonth: 0,
+        totalViews: 0,
+        totalLikes: 0,
+      };
     } catch (error) {
-      return this.getMockContentStats();
+      console.log('获取内容统计失败，使用默认值');
+      return { totalContents: 0, thisMonth: 0, totalViews: 0, totalLikes: 0 };
     }
   }
 
-  // 获取招聘统计
+  // 获取招聘统计 - 对接 /api/recruitment/stats
   async getRecruitmentStats(): Promise<RecruitmentStats> {
     try {
-      return this.getMockRecruitmentStats();
+      const data = await apiClient.get<any>('/recruitment/stats');
+      return {
+        totalJobs: data.totalJobs || 0,
+        activeJobs: data.activeJobs || 0,
+        totalResumes: data.totalCandidates || 0,
+        newResumes: data.newCandidates || 0,
+      };
     } catch (error) {
-      return this.getMockRecruitmentStats();
+      console.log('获取招聘统计失败，使用默认值');
+      return { totalJobs: 0, activeJobs: 0, totalResumes: 0, newResumes: 0 };
     }
-  }
-
-  // ===== Mock数据 =====
-  
-  private getMockTodayStats(): TodayStats {
-    return {
-      contentGenerated: 15,
-      contentUsed: 8,
-      newCustomers: 23,
-      customersGrowth: 12.5,
-      publishedToday: 5,
-      totalPublished: 156,
-      newResumes: 12,
-      resumesReviewed: 8,
-    };
-  }
-
-  private getMockReferralStats(): ReferralStats {
-    return {
-      totalInvites: 15,
-      activeInvites: 8,
-    };
-  }
-
-  private getMockContentStats(): ContentStats {
-    return {
-      totalContents: 320,
-      thisMonth: 45,
-      totalViews: 12580,
-      totalLikes: 860,
-    };
-  }
-
-  private getMockRecruitmentStats(): RecruitmentStats {
-    return {
-      totalJobs: 12,
-      activeJobs: 8,
-      totalResumes: 56,
-      newResumes: 12,
-    };
   }
 }
 

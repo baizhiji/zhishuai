@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,15 @@ import {
   Modal,
   Switch,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { Storage } from '../utils/tokenStorage';
+import { matrixService } from '../services/matrix.service';
 
 interface MatrixAccount {
   id: string;
-  platform: 'wechat' | 'douyin' | 'xiaohongshu' | 'weibo';
+  platform: 'wechat' | 'douyin' | 'xiaohongshu' | 'weibo' | 'kuaishou' | 'video';
   name: string;
   avatar?: string;
   status: 'active' | 'inactive';
@@ -31,86 +32,79 @@ const PLATFORM_CONFIG = {
   douyin: { name: '抖音', icon: 'musical-notes-outline', color: '#000000' },
   xiaohongshu: { name: '小红书', icon: 'book-outline', color: '#FF2442' },
   weibo: { name: '微博', icon: 'globe-outline', color: '#E6162D' },
+  kuaishou: { name: '快手', icon: 'flash-outline', color: '#FF4906' },
+  video: { name: '视频号', icon: 'videocam-outline', color: '#07C160' },
 };
-
-const MOCK_ACCOUNTS: MatrixAccount[] = [
-  { id: '1', platform: 'wechat', name: '客服助手', status: 'active', bound: true, lastSync: '10分钟前' },
-  { id: '2', platform: 'douyin', name: '智枢官方号', status: 'active', bound: true, lastSync: '30分钟前' },
-  { id: '3', platform: 'xiaohongshu', name: '智枢科技', status: 'inactive', bound: false },
-  { id: '4', platform: 'weibo', name: '智枢AI', status: 'inactive', bound: false },
-];
 
 export default function AccountManagementScreen({ navigation }: { navigation: any }) {
   const { theme } = useTheme();
   const [accounts, setAccounts] = useState<MatrixAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [bindModal, setBindModal] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
   const [accountName, setAccountName] = useState('');
   const [binding, setBinding] = useState(false);
 
-  useEffect(() => {
-    loadAccounts();
+  const loadAccounts = useCallback(async () => {
+    try {
+      const data = await matrixService.getAccounts();
+      setAccounts(data.map((a: any) => ({
+        id: a.id,
+        platform: a.platform,
+        name: a.accountName,
+        avatar: a.avatar,
+        status: a.status || 'active',
+        bound: true,
+        lastSync: a.createdAt ? new Date(a.createdAt).toLocaleString('zh-CN') : undefined,
+      })));
+    } catch (error) {
+      console.error('加载矩阵账号失败:', error);
+      setAccounts([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
 
-  const loadAccounts = async () => {
-    setLoading(true);
-    // 模拟加载
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // 从本地存储加载
-    const saved = Storage.get('matrix_accounts');
-    if (saved) {
-      try {
-        setAccounts(JSON.parse(saved));
-      } catch {
-        setAccounts(MOCK_ACCOUNTS);
-      }
-    } else {
-      setAccounts(MOCK_ACCOUNTS);
-    }
-    setLoading(false);
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadAccounts();
   };
 
-  const saveAccounts = (newAccounts: MatrixAccount[]) => {
-    setAccounts(newAccounts);
-    Storage.set('matrix_accounts', JSON.stringify(newAccounts));
-  };
-
-  const handleBindAccount = () => {
+  const handleBindAccount = async () => {
     if (!accountName.trim()) {
       Alert.alert('提示', '请输入账号名称');
       return;
     }
     
     setBinding(true);
-    // 模拟绑定过程
-    setTimeout(() => {
-      const platform = selectedPlatform as MatrixAccount['platform'];
-      const newAccount: MatrixAccount = {
-        id: Date.now().toString(),
-        platform,
-        name: accountName,
-        status: 'active',
+    try {
+      const newAccount = await matrixService.addAccount({
+        platform: selectedPlatform as any,
+        accountName,
+      });
+      setAccounts(prev => [...prev, {
+        id: newAccount.id,
+        platform: newAccount.platform,
+        name: newAccount.accountName,
+        avatar: newAccount.avatar,
+        status: newAccount.status || 'active',
         bound: true,
         lastSync: '刚刚',
-      };
-      
-      const updated = accounts.map(acc => 
-        acc.platform === platform ? newAccount : acc
-      );
-      
-      // 如果是新平台，添加到列表
-      if (!updated.find(acc => acc.platform === platform)) {
-        updated.push(newAccount);
-      }
-      
-      saveAccounts(updated);
-      setBinding(false);
+      }]);
       setBindModal(false);
       setAccountName('');
-      Alert.alert('绑定成功', `已成功绑定${PLATFORM_CONFIG[platform].name}账号`);
-    }, 1500);
+      Alert.alert('绑定成功', `已成功绑定${getPlatformName(selectedPlatform || '')}账号`);
+    } catch (error) {
+      Alert.alert('绑定失败', '请检查网络连接后重试');
+    } finally {
+      setBinding(false);
+    }
   };
 
   const handleUnbindAccount = (account: MatrixAccount) => {
@@ -122,37 +116,29 @@ export default function AccountManagementScreen({ navigation }: { navigation: an
         {
           text: '解除',
           style: 'destructive',
-          onPress: () => {
-            const updated = accounts.map(acc =>
-              acc.platform === account.platform
-                ? { ...acc, bound: false, name: '', lastSync: undefined }
-                : acc
-            );
-            saveAccounts(updated);
+          onPress: async () => {
+            try {
+              await matrixService.deleteAccount(account.id);
+              setAccounts(prev => prev.filter(a => a.id !== account.id));
+            } catch {
+              Alert.alert('错误', '解除绑定失败');
+            }
           },
         },
       ]
     );
   };
 
-  const handleSyncAccount = (account: MatrixAccount) => {
-    Alert.alert('同步', `正在同步「${account.name}」的数据...`);
-    // 模拟同步
-    setTimeout(() => {
-      const updated = accounts.map(acc =>
-        acc.id === account.id ? { ...acc, lastSync: '刚刚' } : acc
-      );
-      saveAccounts(updated);
-      Alert.alert('同步完成', '数据同步成功');
-    }, 1000);
-  };
-
-  const handleToggleStatus = (account: MatrixAccount) => {
+  const handleToggleStatus = async (account: MatrixAccount) => {
     const newStatus = account.status === 'active' ? 'inactive' : 'active';
-    const updated = accounts.map(acc =>
-      acc.id === account.id ? { ...acc, status: newStatus } : acc
-    );
-    saveAccounts(updated);
+    try {
+      await matrixService.updateAccount(account.id, { status: newStatus } as any);
+      setAccounts(prev => prev.map(acc =>
+        acc.id === account.id ? { ...acc, status: newStatus } : acc
+      ));
+    } catch {
+      Alert.alert('错误', '状态更新失败');
+    }
   };
 
   const getPlatformIcon = (platform: string) => {
@@ -246,7 +232,7 @@ export default function AccountManagementScreen({ navigation }: { navigation: an
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
         {/* 提示信息 */}
         <View style={[styles.tipCard, { backgroundColor: theme.primaryLight }]}>
           <Ionicons name="information-circle" size={20} color={theme.primary} />

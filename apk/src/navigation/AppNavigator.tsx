@@ -1,14 +1,16 @@
-import React, { useRef, useCallback, useEffect, useState } from 'react';
+import React, { useRef, useCallback, useEffect, useState, Suspense } from 'react';
 import {
   NavigationContainer,
   NavigationContainerRef,
   useNavigation,
+  LinkingOptions,
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as Linking from 'expo-linking';
 
 // 导入Theme
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
@@ -16,34 +18,60 @@ import { ThemeProvider, useTheme } from '../context/ThemeContext';
 // 导入导航上下文（从独立文件，打破循环依赖）
 import { NavigationContext } from '../context/NavigationContext';
 
-// 导入页面
-import HomeScreen from '../screens/HomeScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import LoginScreen from '../screens/auth/LoginScreen';
-import SettingsScreen from '../screens/SettingsScreen';
-import MediaOperationScreen from '../screens/MediaOperationScreen';
-import AccountManagementScreen from '../screens/AccountManagementScreen';
-import MaterialsScreen from '../screens/MaterialsScreen';
-import MessagesScreen from '../screens/MessagesScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
-import ReferralScreen from '../screens/ReferralScreen';
-import StatisticsScreen from '../screens/StatisticsScreen';
-import RecruitmentScreen from '../screens/RecruitmentScreen';
-import AcquisitionScreen from '../screens/AcquisitionScreen';
-import ShareScreen from '../screens/ShareScreen';
-import AccountOverviewScreen from '../screens/AccountOverviewScreen';
-import SubscriptionScreen from '../screens/SubscriptionScreen';
-import StaffManagementScreen from '../screens/StaffManagementScreen';
-import AICreateCenterScreen from '../screens/AICreateCenterScreen';
-import AICreateDetailScreen from '../screens/AICreateDetailScreen';
-import MatrixAccountScreen from '../screens/MatrixAccountScreen';
-import PublishCenterScreen from '../screens/PublishCenterScreen';
-import DataListScreen from '../screens/DataListScreen';
-
-import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, AIEditScreen, DigitalHumanScreen, VoiceCloneScreen, AIChatScreen } from '../screens/ai';
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
-import { Storage } from '../utils/tokenStorage';
+
+// 懒加载所有页面（优化首屏加载速度）
+const HomeScreen = React.lazy(() => import('../screens/HomeScreen'));
+const ProfileScreen = React.lazy(() => import('../screens/ProfileScreen'));
+const LoginScreen = React.lazy(() => import('../screens/auth/LoginScreen'));
+const SettingsScreen = React.lazy(() => import('../screens/SettingsScreen'));
+const MediaOperationScreen = React.lazy(() => import('../screens/MediaOperationScreen'));
+const AccountManagementScreen = React.lazy(() => import('../screens/AccountManagementScreen'));
+const MaterialsScreen = React.lazy(() => import('../screens/MaterialsScreen'));
+const MessagesScreen = React.lazy(() => import('../screens/MessagesScreen'));
+const NotificationsScreen = React.lazy(() => import('../screens/NotificationsScreen'));
+const ReferralScreen = React.lazy(() => import('../screens/ReferralScreen'));
+const StatisticsScreen = React.lazy(() => import('../screens/StatisticsScreen'));
+const RecruitmentScreen = React.lazy(() => import('../screens/RecruitmentScreen'));
+const AcquisitionScreen = React.lazy(() => import('../screens/AcquisitionScreen'));
+const ShareScreen = React.lazy(() => import('../screens/ShareScreen'));
+const AccountOverviewScreen = React.lazy(() => import('../screens/AccountOverviewScreen'));
+const SubscriptionScreen = React.lazy(() => import('../screens/SubscriptionScreen'));
+const StaffManagementScreen = React.lazy(() => import('../screens/StaffManagementScreen'));
+const AICreateCenterScreen = React.lazy(() => import('../screens/AICreateCenterScreen'));
+const AICreateDetailScreen = React.lazy(() => import('../screens/AICreateDetailScreen'));
+const MatrixAccountScreen = React.lazy(() => import('../screens/MatrixAccountScreen'));
+const PublishCenterScreen = React.lazy(() => import('../screens/PublishCenterScreen'));
+const DataListScreen = React.lazy(() => import('../screens/DataListScreen'));
+const CreateScreen = React.lazy(() => import('../screens/CreateScreen'));
+const MarketingScreen = React.lazy(() => import('../screens/MarketingScreen'));
+const CRMScreen = React.lazy(() => import('../screens/CRMScreen'));
+const DashboardScreen = React.lazy(() => import('../screens/DashboardScreen'));
+const MediaFactoryScreen = React.lazy(() => import('../screens/MediaFactoryScreen'));
+const AIScreen = React.lazy(() => import('../screens/AIScreen'));
+const CodeAssistantScreen = React.lazy(() => import('../screens/ai/CodeAssistantScreen'));
+const LegalDocumentScreen = React.lazy(() => import('../screens/legal/LegalDocumentScreen'));
+const OAuthAuthorizeScreen = React.lazy(() => import('../screens/OAuthAuthorizeScreen'));
+
+// AI 子页面
+const AICopyScreen = React.lazy(() => import('../screens/ai/AICopyScreen'));
+const AIFeatureScreen = React.lazy(() => import('../screens/ai/AIFeatureScreen'));
+const AIImageScreen = React.lazy(() => import('../screens/ai/AIImageScreen'));
+const AIVideoScreen = React.lazy(() => import('../screens/ai/AIVideoScreen'));
+const AIEditScreen = React.lazy(() => import('../screens/ai/AIEditScreen'));
+const DigitalHumanScreen = React.lazy(() => import('../screens/ai/DigitalHumanScreen'));
+const VoiceCloneScreen = React.lazy(() => import('../screens/ai/VoiceCloneScreen'));
+const AIChatScreen = React.lazy(() => import('../screens/ai/AIChatScreen'));
+
+import { PRIVACY_POLICY, USER_AGREEMENT } from '../constants/legal';
+
+// 懒加载包装组件（适配 React Navigation）
+const withSuspense = (Component: React.LazyExoticComponent<any>) => (props: any) => (
+  <Suspense fallback={<View style={styles.loadingContainer}><ActivityIndicator size="large" color="#3B82F6" /></View>}>
+    <Component {...props} />
+  </Suspense>
+);
 
 // 导航类型
 export type RootStackParamList = {
@@ -71,11 +99,21 @@ export type RootStackParamList = {
   AIEdit: undefined;
   VoiceClone: undefined;
   AIChat: undefined;
+  CodeAssistant: undefined;
   AICreateDetail: { category: string };
   AICreateCenter: undefined;
   MatrixAccount: undefined;
   PublishCenter: undefined;
   DataList: undefined;
+  Create: undefined;
+  Marketing: undefined;
+  CRM: undefined;
+  Dashboard: undefined;
+  MediaFactory: undefined;
+  AIScreen: undefined;
+  OAuthAuthorize: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfService: undefined;
 };
 
 export type MainTabParamList = {
@@ -142,17 +180,17 @@ const MainTabs = () => {
     >
       <MainTab.Screen
         name="Home"
-        component={HomeScreen}
+        component={withSuspense(HomeScreen)}
         options={{ tabBarLabel: '首页' }}
       />
       <MainTab.Screen
         name="Create"
-        component={AIChatScreen}
+        component={withSuspense(AIScreen)}
         options={{ tabBarLabel: 'AI助手' }}
       />
       <MainTab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={withSuspense(ProfileScreen)}
         options={{ tabBarLabel: '我的' }}
       />
     </MainTab.Navigator>
@@ -165,10 +203,53 @@ const StatusBarWrapper = () => {
   return <StatusBar style={isDark ? 'light' : 'dark'} />;
 };
 
+// Deep Link 配置
+const prefix = Linking.createURL('/');
+
+const linkingConfig: LinkingOptions<RootStackParamList> = {
+  prefixes: [prefix, 'baizhiji://', 'https://app.baizhiji.net'],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Home: 'home',
+          Create: 'ai',
+          Profile: 'profile',
+        },
+      },
+      Login: 'login',
+      Settings: 'settings',
+      Materials: 'materials',
+      Messages: 'messages',
+      Notifications: 'notifications',
+      Share: 'share/:id?',
+      AIFeature: 'ai/feature',
+      AIImage: 'ai/image',
+      AIVideo: 'ai/video',
+      Referral: 'referral',
+      Recruitment: 'recruitment',
+      Acquisition: 'acquisition',
+      DigitalHuman: 'digital-human',
+      AICopy: 'ai/copy',
+      VoiceClone: 'voice-clone',
+      Subscription: 'subscription',
+      MatrixAccount: 'matrix',
+      PublishCenter: 'publish',
+      CRM: 'crm',
+      Dashboard: 'dashboard',
+      CodeAssistant: 'code-assistant',
+      OAuthAuthorize: 'oauth/authorize',
+    },
+  },
+};
+
+// 全局导航引用，供通知等外部模块使用
+export const navigationRef = { current: null as NavigationContainerRef<RootStackParamList> | null };
+
 // 主导航组件
 const AppNavigator = () => {
   const { isLoggedIn, isLoading } = useAuth();
-  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const containerRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [initialRoute, setInitialRoute] = useState<string>('MainTabs');
 
   // 根据登录状态设置初始路由
@@ -186,6 +267,11 @@ const AppNavigator = () => {
     navigationRef.current?.goBack();
   }, []);
 
+  // 同步到全局ref
+  useEffect(() => {
+    navigationRef.current = containerRef.current;
+  });
+
   // 加载中显示
   if (isLoading) {
     return (
@@ -200,7 +286,7 @@ const AppNavigator = () => {
     <ThemeProvider>
       <StatusBarWrapper />
       <NavigationContext.Provider value={{ navigate, goBack }}>
-        <NavigationContainer ref={navigationRef}>
+        <NavigationContainer ref={containerRef} linking={linkingConfig}>
           <RootStack.Navigator
             initialRouteName={initialRoute as any}
             screenOptions={{
@@ -214,142 +300,202 @@ const AppNavigator = () => {
             />
             <RootStack.Screen
               name="Login"
-              component={LoginScreen}
+              component={withSuspense(LoginScreen)}
               options={{ headerShown: false }}
             />
           <RootStack.Screen
             name="Settings"
-            component={SettingsScreen}
+            component={withSuspense(SettingsScreen)}
             options={{ title: '设置' }}
           />
           <RootStack.Screen
             name="Materials"
-            component={MaterialsScreen}
+            component={withSuspense(MaterialsScreen)}
             options={{ title: '素材库' }}
           />
           <RootStack.Screen
             name="Messages"
-            component={MessagesScreen}
+            component={withSuspense(MessagesScreen)}
             options={{ title: '消息' }}
           />
           <RootStack.Screen
             name="Notifications"
-            component={NotificationsScreen}
+            component={withSuspense(NotificationsScreen)}
             options={{ title: '通知', headerShown: false }}
           />
           <RootStack.Screen
             name="Share"
-            component={ShareScreen}
+            component={withSuspense(ShareScreen)}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="AIFeature"
-            component={AIFeatureScreen}
+            component={withSuspense(AIFeatureScreen)}
             options={{ title: 'AI创作' }}
           />
           <RootStack.Screen
             name="AIImage"
-            component={AIImageScreen}
+            component={withSuspense(AIImageScreen)}
             options={{ title: '图片生成' }}
           />
           <RootStack.Screen
             name="AIVideo"
-            component={AIVideoScreen}
+            component={withSuspense(AIVideoScreen)}
             options={{ title: '视频生成' }}
           />
           <RootStack.Screen
             name="Referral"
-            component={ReferralScreen}
+            component={withSuspense(ReferralScreen)}
           />
           <RootStack.Screen
             name="MediaOperation"
-            component={MediaOperationScreen}
+            component={withSuspense(MediaOperationScreen)}
             options={{ title: '自媒体运营' }}
           />
           <RootStack.Screen
             name="AccountManagement"
-            component={AccountManagementScreen}
+            component={withSuspense(AccountManagementScreen)}
             options={{ title: '账号管理' }}
           />
           <RootStack.Screen
             name="Statistics"
-            component={StatisticsScreen}
+            component={withSuspense(StatisticsScreen)}
             options={{ title: '数据统计' }}
           />
           <RootStack.Screen
             name="Recruitment"
-            component={RecruitmentScreen}
+            component={withSuspense(RecruitmentScreen)}
             options={{ title: '招聘助手' }}
           />
           <RootStack.Screen
             name="Acquisition"
-            component={AcquisitionScreen}
+            component={withSuspense(AcquisitionScreen)}
             options={{ title: '智能获客' }}
           />
           <RootStack.Screen
             name="DigitalHuman"
-            component={DigitalHumanScreen}
+            component={withSuspense(DigitalHumanScreen)}
             options={{ title: '数字人视频' }}
           />
           <RootStack.Screen
             name="AICopy"
-            component={AICopyScreen}
+            component={withSuspense(AICopyScreen)}
             options={{ title: 'AI文案' }}
           />
           <RootStack.Screen
             name="AIEdit"
-            component={AIEditScreen}
+            component={withSuspense(AIEditScreen)}
             options={{ title: 'AI剪辑' }}
           />
           <RootStack.Screen
             name="AIChat"
-            component={AIChatScreen}
+            component={withSuspense(AIChatScreen)}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="VoiceClone"
-            component={VoiceCloneScreen}
+            component={withSuspense(VoiceCloneScreen)}
             options={{ title: '声音克隆' }}
           />
           <RootStack.Screen
             name="AccountOverview"
-            component={AccountOverviewScreen}
+            component={withSuspense(AccountOverviewScreen)}
             options={{ title: '账号总览' }}
           />
           <RootStack.Screen
             name="Subscription"
-            component={SubscriptionScreen}
+            component={withSuspense(SubscriptionScreen)}
             options={{ title: '订阅管理' }}
           />
           <RootStack.Screen
             name="StaffManagement"
-            component={StaffManagementScreen}
+            component={withSuspense(StaffManagementScreen)}
             options={{ title: '员工管理' }}
           />
           <RootStack.Screen
             name="AICreateCenter"
-            component={AICreateCenterScreen}
+            component={withSuspense(AICreateCenterScreen)}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="AICreateDetail"
-            component={AICreateDetailScreen}
+            component={withSuspense(AICreateDetailScreen)}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="MatrixAccount"
-            component={MatrixAccountScreen}
+            component={withSuspense(MatrixAccountScreen)}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="PublishCenter"
-            component={PublishCenterScreen}
+            component={withSuspense(PublishCenterScreen)}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
             name="DataList"
-            component={DataListScreen}
+            component={withSuspense(DataListScreen)}
             options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="Create"
+            component={withSuspense(CreateScreen)}
+            options={{ title: 'AI创作' }}
+          />
+          <RootStack.Screen
+            name="Marketing"
+            component={withSuspense(MarketingScreen)}
+            options={{ title: '营销中心' }}
+          />
+          <RootStack.Screen
+            name="CRM"
+            component={withSuspense(CRMScreen)}
+            options={{ title: '客户管理' }}
+          />
+          <RootStack.Screen
+            name="Dashboard"
+            component={withSuspense(DashboardScreen)}
+            options={{ title: '数据大盘' }}
+          />
+          <RootStack.Screen
+            name="MediaFactory"
+            component={withSuspense(MediaFactoryScreen)}
+            options={{ title: '内容工厂' }}
+          />
+          <RootStack.Screen
+            name="AIScreen"
+            component={withSuspense(AIScreen)}
+            options={{ title: 'AI助手' }}
+          />
+          <RootStack.Screen
+            name="CodeAssistant"
+            component={withSuspense(CodeAssistantScreen)}
+            options={{ title: '编程助手' }}
+          />
+          <RootStack.Screen
+            name="OAuthAuthorize"
+            component={withSuspense(OAuthAuthorizeScreen)}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="PrivacyPolicy"
+            component={() => (
+              <LegalDocumentScreen
+                title="隐私政策"
+                content={PRIVACY_POLICY}
+              />
+            )}
+            options={{ title: '隐私政策' }}
+          />
+          <RootStack.Screen
+            name="TermsOfService"
+            component={() => (
+              <LegalDocumentScreen
+                title="用户协议"
+                content={USER_AGREEMENT}
+              />
+            )}
+            options={{ title: '用户协议' }}
           />
         </RootStack.Navigator>
       </NavigationContainer>

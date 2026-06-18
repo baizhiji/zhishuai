@@ -1,6 +1,7 @@
 /**
  * 直播间数据采集服务
  * 支持抖音、快手等平台的弹幕和观众数据采集
+ * 依赖平台开放API，需在数据源配置中提供API密钥
  */
 
 interface LiveConfig {
@@ -40,68 +41,22 @@ interface LiveStats {
   followerCount: number;
   duration: number;
   peakViewers: number;
+  salesAmount?: number;
+  giftCount?: number;
 }
 
-// 模拟弹幕数据
-const MOCK_DANMU: Danmu[] = [
-  { id: 'd1', userId: 'u001', nickname: '张三', content: '主播讲得太好了', timestamp: new Date(), isFollower: true, isVIP: false },
-  { id: 'd2', userId: 'u002', nickname: '李四', content: '怎么购买？', timestamp: new Date(), isFollower: false, isVIP: true, intentScore: 90 },
-  { id: 'd3', userId: 'u003', nickname: '王五', content: '想要这个产品', timestamp: new Date(), isFollower: true, isVIP: false, intentScore: 85 },
-  { id: 'd4', userId: 'u004', nickname: '赵六', content: '价格多少？', timestamp: new Date(), isFollower: false, isVIP: false, intentScore: 80 },
-  { id: 'd5', userId: 'u005', nickname: '钱七', content: '已下单，等发货', timestamp: new Date(), isFollower: true, isVIP: true },
-  { id: 'd6', userId: 'u006', nickname: '孙八', content: '有没有优惠券？', timestamp: new Date(), isFollower: false, isVIP: false, intentScore: 75 },
-  { id: 'd7', userId: 'u007', nickname: '周九', content: '支持主播', timestamp: new Date(), isFollower: true, isVIP: false },
-  { id: 'd8', userId: 'u008', nickname: '吴十', content: '产品看起来不错', timestamp: new Date(), isFollower: false, isVIP: true, intentScore: 70 },
-];
-
-const NICKNAMES = ['用户', '粉丝', '观众', '小主', '老板', '亲', '朋友'];
-const CONTENTS = [
-  '这个多少钱', '怎么买', '想要', '下单了', '已购买',
-  '支持主播', '讲得不错', '666', '棒', '点赞',
-  '优惠吗', '有券吗', '在哪买', '链接发一下', '求推荐',
-  '效果好吗', '真的假的', '来看看', '不错', '可以'
-];
-
 /**
- * 获取直播间弹幕
+ * 获取直播间弹幕 — 调用平台真实API
  */
 export async function getDanmu(
   config: LiveConfig
 ): Promise<{ danmu: Danmu[]; newLeads: Danmu[] }> {
   const { platform, roomId } = config;
 
-  // 如果没有配置API，使用模拟数据
   if (!config.apiKey) {
-    console.log(`[${platform}] 使用模拟弹幕数据`);
-
-    const count = Math.floor(Math.random() * 5) + 3;
-    const danmu: Danmu[] = [];
-    const newLeads: Danmu[] = [];
-
-    for (let i = 0; i < count; i++) {
-      const d: Danmu = {
-        id: `danmu_${Date.now()}_${i}`,
-        userId: `user_${Math.random().toString(36).substr(2, 9)}`,
-        nickname: NICKNAMES[Math.floor(Math.random() * NICKNAMES.length)] + Math.floor(Math.random() * 1000),
-        content: CONTENTS[Math.floor(Math.random() * CONTENTS.length)],
-        timestamp: new Date(),
-        isFollower: Math.random() > 0.5,
-        isVIP: Math.random() > 0.7
-      };
-
-      // 计算意向评分
-      if (d.content.includes('买') || d.content.includes('价') || d.content.includes('优惠') || d.content.includes('券')) {
-        d.intentScore = 70 + Math.floor(Math.random() * 30);
-        newLeads.push(d);
-      }
-
-      danmu.push(d);
-    }
-
-    return { danmu, newLeads };
+    throw new Error(`${platform} API密钥未配置，请在数据源配置中添加对应平台的API密钥`);
   }
 
-  // 调用真实API（这里需要根据不同平台实现）
   try {
     // 抖音开放平台 API
     if (platform === 'douyin') {
@@ -139,13 +94,14 @@ export async function getDanmu(
     }
   } catch (error: any) {
     console.error(`[${platform}] 获取弹幕失败:`, error.message);
+    throw new Error(`获取${platform}弹幕失败: ${error.message}`);
   }
 
   return { danmu: [], newLeads: [] };
 }
 
 /**
- * 获取直播间观众列表
+ * 获取直播间观众列表 — 调用平台真实API
  */
 export async function getLiveViewers(
   config: LiveConfig
@@ -153,43 +109,98 @@ export async function getLiveViewers(
   const { platform, roomId } = config;
 
   if (!config.apiKey) {
-    console.log(`[${platform}] 使用模拟观众数据`);
-
-    const count = Math.floor(Math.random() * 20) + 10;
-    const viewers: Viewer[] = [];
-
-    for (let i = 0; i < count; i++) {
-      viewers.push({
-        id: `viewer_${Math.random().toString(36).substr(2, 9)}`,
-        nickname: NICKNAMES[Math.floor(Math.random() * NICKNAMES.length)] + Math.floor(Math.random() * 10000),
-        avatar: `https://avatar.example.com/${i}.jpg`,
-        followStatus: ['following', 'followers', 'stranger'][Math.floor(Math.random() * 3)] as any,
-        isFanClub: Math.random() > 0.7,
-        intentScore: Math.floor(Math.random() * 40) + 60
-      });
-    }
-
-    return { viewers, total: count + Math.floor(Math.random() * 100) };
+    throw new Error(`${platform} API密钥未配置`);
   }
 
-  // 真实API调用
+  try {
+    if (platform === 'douyin') {
+      const response = await fetch(
+        `https://open.douyin.com/live/room/viewers?room_id=${roomId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`,
+          }
+        }
+      );
+      const data = await response.json();
+      return {
+        viewers: data.viewers || [],
+        total: data.total || 0,
+      };
+    }
+
+    if (platform === 'kuaishou') {
+      const response = await fetch(
+        `https://open.kuaishou.com/api/live/viewers?room_id=${roomId}`,
+        {
+          headers: {
+            'Authorization': config.apiKey
+          }
+        }
+      );
+      const data = await response.json();
+      return {
+        viewers: data.list || [],
+        total: data.total || 0,
+      };
+    }
+  } catch (error: any) {
+    console.error(`[${platform}] 获取观众列表失败:`, error.message);
+  }
+
   return { viewers: [], total: 0 };
 }
 
 /**
- * 获取直播间统计
+ * 获取直播间统计 — 调用平台真实API
  */
 export async function getLiveStats(
   config: LiveConfig
 ): Promise<LiveStats> {
   if (!config.apiKey) {
-    return {
-      viewerCount: Math.floor(Math.random() * 10000) + 1000,
-      likeCount: Math.floor(Math.random() * 100000) + 10000,
-      followerCount: Math.floor(Math.random() * 5000) + 500,
-      duration: Math.floor(Math.random() * 3600) + 600,
-      peakViewers: Math.floor(Math.random() * 50000) + 5000
-    };
+    throw new Error(`${config.platform} API密钥未配置`);
+  }
+
+  try {
+    if (config.platform === 'douyin') {
+      const response = await fetch(
+        `https://open.douyin.com/live/room/stats?room_id=${config.roomId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${config.apiKey}`,
+          }
+        }
+      );
+      const data = await response.json();
+      return data.stats || {
+        viewerCount: 0,
+        likeCount: 0,
+        followerCount: 0,
+        duration: 0,
+        peakViewers: 0,
+      };
+    }
+
+    if (config.platform === 'kuaishou') {
+      const response = await fetch(
+        `https://open.kuaishou.com/api/live/stats?room_id=${config.roomId}`,
+        {
+          headers: {
+            'Authorization': config.apiKey
+          }
+        }
+      );
+      const data = await response.json();
+      return data.stats || {
+        viewerCount: 0,
+        likeCount: 0,
+        followerCount: 0,
+        duration: 0,
+        peakViewers: 0,
+      };
+    }
+  } catch (error: any) {
+    console.error(`[${config.platform}] 获取统计失败:`, error.message);
   }
 
   return {
@@ -219,7 +230,6 @@ function hasPurchaseIntent(content: string): boolean {
 export function calculateIntentScore(danmu: Danmu): number {
   let score = 50; // 基础分
 
-  // 购买相关关键词加分
   const purchaseKeywords = [
     { keyword: '买', score: 20 },
     { keyword: '价格', score: 15 },
@@ -236,13 +246,8 @@ export function calculateIntentScore(danmu: Danmu): number {
     }
   }
 
-  // VIP用户加分
   if (danmu.isVIP) score += 10;
-
-  // 粉丝加分
   if (danmu.isFollower) score += 5;
-
-  // 打赏过礼物的加分
   if (danmu.gift) score += danmu.gift.value * 5;
 
   return Math.min(score, 100);

@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
+router.use(authMiddleware);
 
 // 权限配置
 const PERMISSIONS = {

@@ -11,6 +11,8 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Linking,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -29,6 +31,11 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   // 发送验证码
   const sendVerifyCode = async () => {
@@ -37,8 +44,17 @@ export default function LoginScreen() {
       return;
     }
     
-    // TODO: 调用发送验证码API
-    Alert.alert('提示', '验证码已发送');
+    try {
+      // 调用真实API发送验证码
+      const { apiClient } = require('../../services/api.client');
+      const { API_ENDPOINTS } = require('../../services/api.config');
+      await apiClient.post(API_ENDPOINTS.SEND_CODE, { phone });
+      Alert.alert('提示', '验证码已发送，请查收短信');
+    } catch (error: any) {
+      console.log('发送验证码失败:', error.message);
+      Alert.alert('发送失败', '验证码发送失败，请检查网络连接或稍后重试');
+      return;
+    }
     
     // 开始倒计时
     setCountdown(60);
@@ -51,6 +67,52 @@ export default function LoginScreen() {
         return prev - 1;
       });
     }, 1000);
+  };
+
+  // 忘记密码 - 发送验证码
+  const handleForgotSendCode = async () => {
+    if (!/^1[3-9]\d{9}$/.test(forgotPhone)) {
+      Alert.alert('错误', '请输入正确的手机号');
+      return;
+    }
+    try {
+      const { apiClient } = require('../../services/api.client');
+      const { API_ENDPOINTS } = require('../../services/api.config');
+      await apiClient.post('/auth/send-reset-code', { phone: forgotPhone });
+      Alert.alert('提示', '验证码已发送');
+    } catch (error: any) {
+      Alert.alert('发送失败', '验证码发送失败，请检查网络连接或稍后重试');
+    }
+  };
+
+  // 忘记密码 - 重置
+  const handleForgotReset = async () => {
+    if (!forgotPhone || !forgotCode || !forgotNewPassword) {
+      Alert.alert('错误', '请填写所有必填项');
+      return;
+    }
+    if (forgotNewPassword.length < 6) {
+      Alert.alert('错误', '密码至少6位');
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const { apiClient } = require('../../services/api.client');
+      await apiClient.post('/auth/reset-password', {
+        phone: forgotPhone,
+        code: forgotCode,
+        newPassword: forgotNewPassword,
+      });
+      Alert.alert('成功', '密码已重置，请重新登录');
+      setShowForgotModal(false);
+      setForgotPhone('');
+      setForgotCode('');
+      setForgotNewPassword('');
+    } catch (error: any) {
+      Alert.alert('失败', error.message || '重置密码失败');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   // 用户登录
@@ -69,11 +131,10 @@ export default function LoginScreen() {
       const response = await authService.login({ phone, password });
       // 使用AuthContext更新用户状态
       if (response?.user) {
-        setUser(response.user);
+        await setUser(response.user);
       }
-      Alert.alert('成功', '登录成功！', [
-        { text: '确定', onPress: () => navigation.replace('MainTabs') }
-      ]);
+      // 直接导航，不在 Alert 回调中
+      navigation.replace('MainTabs');
     } catch (error: any) {
       Alert.alert('登录失败', error.message || '请检查账号密码是否正确');
     } finally {
@@ -252,7 +313,7 @@ export default function LoginScreen() {
 
           {/* 忘记密码 */}
           {isLogin && (
-            <TouchableOpacity style={styles.forgetPassword}>
+            <TouchableOpacity style={styles.forgetPassword} onPress={() => setShowForgotModal(true)}>
               <Text style={styles.forgetPasswordText}>忘记密码？</Text>
             </TouchableOpacity>
           )}
@@ -280,10 +341,16 @@ export default function LoginScreen() {
               <View style={styles.dividerLine} />
             </View>
             <View style={styles.otherLoginIcons}>
-              <TouchableOpacity style={styles.otherLoginBtn}>
+              <TouchableOpacity
+                style={styles.otherLoginBtn}
+                onPress={() => Alert.alert('提示', '微信登录功能即将上线，敬请期待')}
+              >
                 <Ionicons name="logo-wechat" size={28} color="#07C160" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.otherLoginBtn}>
+              <TouchableOpacity
+                style={styles.otherLoginBtn}
+                onPress={() => Alert.alert('提示', 'Apple登录功能即将上线，敬请期待')}
+              >
                 <Ionicons name="logo-apple" size={28} color="#000" />
               </TouchableOpacity>
             </View>
@@ -293,11 +360,72 @@ export default function LoginScreen() {
         {/* 协议 */}
         <Text style={styles.agreement}>
           登录即表示同意
-          <Text style={styles.agreementLink}>《用户协议》</Text>
+          <Text
+            style={styles.agreementLink}
+            onPress={() => Linking.openURL('https://baizhiji.net/terms')}
+          >
+            《用户协议》
+          </Text>
           和
-          <Text style={styles.agreementLink}>《隐私政策》</Text>
+          <Text
+            style={styles.agreementLink}
+            onPress={() => Linking.openURL('https://baizhiji.net/privacy')}
+          >
+            《隐私政策》
+          </Text>
         </Text>
       </ScrollView>
+
+      {/* 忘记密码弹窗 */}
+      <Modal visible={showForgotModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>重置密码</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="请输入手机号"
+              keyboardType="phone-pad"
+              value={forgotPhone}
+              onChangeText={setForgotPhone}
+              maxLength={11}
+            />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                style={[styles.modalInput, { flex: 1, marginRight: 8 }]}
+                placeholder="验证码"
+                keyboardType="number-pad"
+                value={forgotCode}
+                onChangeText={setForgotCode}
+                maxLength={6}
+              />
+              <TouchableOpacity style={styles.verifyBtn} onPress={handleForgotSendCode}>
+                <Text style={styles.verifyBtnText}>获取验证码</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="新密码（至少6位）"
+              secureTextEntry
+              value={forgotNewPassword}
+              onChangeText={setForgotNewPassword}
+            />
+            <TouchableOpacity
+              style={[styles.submitBtn, { marginBottom: 8 }]}
+              onPress={handleForgotReset}
+              disabled={forgotLoading}
+            >
+              {forgotLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.submitBtnText}>确认重置</Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowForgotModal(false)}>
+              <Text style={{ color: '#999', textAlign: 'center' }}>取消</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -473,5 +601,34 @@ const styles = StyleSheet.create({
   },
   agreementLink: {
     color: '#3B82F6',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
+    maxWidth: 360,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1E3A5F',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  modalInput: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#333',
+    marginBottom: 12,
   },
 });

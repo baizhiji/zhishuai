@@ -2,12 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Progress, DatePicker, Select, Spin } from 'antd';
-<<<<<<< HEAD
-import { UserOutlined, ShoppingOutlined, DollarOutlined, RiseOutlined, TeamOutlined, FileTextOutlined, MessageOutlined, CustomerServiceOutlined } from '@ant-design/icons';
-import { Line, Column, Pie } from '@ant-design/charts';
-import type { ColumnsType } from 'antd/es/table';
-import { getOverview, getTrend, getPlatformStats, getAgentStats, type OverviewStats, type TrendData, type PlatformStats } from '@/services/statistics';
-=======
 import {
   UserOutlined,
   ShoppingOutlined,
@@ -29,7 +23,6 @@ import {
   type TrendData,
   type PlatformStats,
 } from '@/services/statistics';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -54,11 +47,7 @@ export default function AdminDashboardPage() {
         getPlatformStats().catch(() => []),
         getAgentStats().catch(() => []),
       ]);
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
       if (overviewRes) setOverview(overviewRes);
       if (trendRes) setTrendData(trendRes);
       if (platformRes) setPlatformData(platformRes);
@@ -94,12 +83,6 @@ export default function AdminDashboardPage() {
 
   const columns: ColumnsType<any> = [
     { title: '代理商', dataIndex: 'agentName', key: 'agentName' },
-<<<<<<< HEAD
-    { title: '客户数', dataIndex: 'customerCount', key: 'customerCount', sorter: (a, b) => a.customerCount - b.customerCount },
-    { title: '本月收入', dataIndex: 'monthlyRevenue', key: 'monthlyRevenue', render: (v: number) => `¥${v?.toLocaleString() || 0}` },
-    { title: '活跃度', dataIndex: 'activityRate', key: 'activityRate', render: (v: number) => <Progress percent={v} size="small" /> },
-    { title: '状态', dataIndex: 'status', key: 'status', render: (s: string) => <span style={{ color: s === 'active' ? '#52c41a' : '#999' }}>{s === 'active' ? '正常' : '冻结'}</span> },
-=======
     {
       title: '客户数',
       dataIndex: 'customerCount',
@@ -128,14 +111,10 @@ export default function AdminDashboardPage() {
         </span>
       ),
     },
->>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   return (
     <div style={{ padding: 24 }}>
-<<<<<<< HEAD
-      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-=======
       <div
         style={{
           marginBottom: 24,
@@ -144,7 +123,6 @@ export default function AdminDashboardPage() {
           alignItems: 'center',
         }}
       >
->>>>>>> 962968886be726cd434c792933b5515366d34518
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>数据大盘</h1>
         <div style={{ display: 'flex', gap: 12 }}>
           <RangePicker />
@@ -258,9 +236,6 @@ export default function AdminDashboardPage() {
                 {trendData.length > 0 ? (
                   <Line {...trendConfig} />
                 ) : (
-<<<<<<< HEAD
-                  <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-=======
                   <div
                     style={{
                       height: 300,
@@ -270,7 +245,6 @@ export default function AdminDashboardPage() {
                       color: '#999',
                     }}
                   >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                     暂无数据
                   </div>
                 )}
@@ -281,9 +255,6 @@ export default function AdminDashboardPage() {
                 {platformData.length > 0 ? (
                   <Pie {...pieConfig} />
                 ) : (
-<<<<<<< HEAD
-                  <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-=======
                   <div
                     style={{
                       height: 280,
@@ -293,7 +264,6 @@ export default function AdminDashboardPage() {
                       color: '#999',
                     }}
                   >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                     暂无数据
                   </div>
                 )}

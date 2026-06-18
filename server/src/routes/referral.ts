@@ -5,10 +5,10 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 获取推荐统计
 router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   try {

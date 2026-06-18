@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // ============ 矩阵账号 ============
 
 // 获取矩阵账号列表

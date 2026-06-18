@@ -5,11 +5,14 @@ import crypto from 'crypto';
 
 const router = Router();
 
+// 使用环境变量中的加密密钥（与 user-api-key.service.ts 保持一致）
+const ENCRYPTION_KEY: string = process.env.ENCRYPTION_KEY || 'zhishuai-prod-key-32chars!!';
+
 // 加密 API Key
 function encryptApiKey(key: string): string {
   const algorithm = 'aes-256-cbc';
   const keyIv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(algorithm, Buffer.alloc(32), keyIv);
+  const cipher = crypto.createCipheriv(algorithm, Buffer.from(ENCRYPTION_KEY), keyIv);
   let encrypted = cipher.update(key, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return keyIv.toString('hex') + ':' + encrypted;
@@ -21,7 +24,7 @@ function decryptApiKey(encrypted: string): string {
   const parts = encrypted.split(':');
   const keyIv = Buffer.from(parts[0], 'hex');
   const encryptedText = parts[1];
-  const decipher = crypto.createDecipheriv(algorithm, Buffer.alloc(32), keyIv);
+  const decipher = crypto.createDecipheriv(algorithm, Buffer.from(ENCRYPTION_KEY), keyIv);
   let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;
@@ -210,6 +213,116 @@ router.delete('/providers/:id', authMiddleware, adminMiddleware, async (req: Req
     });
     
     res.json({ success: true, message: '删除成功' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 获取API使用统计（前端 api-stats 页面使用）
+router.get('/usage', authMiddleware, adminMiddleware, async (req: Request, res: Response) => {
+  try {
+    const days = Number(req.query.days) || 7;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // 按模型/服务商聚合统计
+    const usageStats = await prisma.apiUsageLog.groupBy({
+      by: ['providerName', 'providerId', 'model'],
+      where: { createdAt: { gte: startDate } },
+      _count: { id: true },
+      _sum: {
+        requestTokens: true,
+        responseTokens: true,
+        cost: true,
+      },
+      _avg: {
+        duration: true,
+      },
+    });
+
+    // 计算成功率
+    const totalStats = await prisma.apiUsageLog.aggregate({
+      where: { createdAt: { gte: startDate } },
+      _count: { id: true },
+      _sum: {
+        requestTokens: true,
+        responseTokens: true,
+        cost: true,
+      },
+    });
+
+    const failedCount = await prisma.apiUsageLog.count({
+      where: { createdAt: { gte: startDate }, status: 'error' },
+    });
+
+    const totalCalls = totalStats._count.id || 0;
+    const successCalls = totalCalls - failedCount;
+
+    // 每日趋势
+    const dailyLogs = await prisma.apiUsageLog.findMany({
+      where: { createdAt: { gte: startDate } },
+      select: { createdAt: true, requestTokens: true, responseTokens: true, cost: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const dailyMap: Record<string, { calls: number; tokens: number; cost: number }> = {};
+    dailyLogs.forEach(log => {
+      const date = log.createdAt.toISOString().split('T')[0];
+      if (!dailyMap[date]) dailyMap[date] = { calls: 0, tokens: 0, cost: 0 };
+      dailyMap[date].calls += 1;
+      dailyMap[date].tokens += (log.requestTokens || 0) + (log.responseTokens || 0);
+      dailyMap[date].cost += Number(log.cost || 0);
+    });
+
+    const trendData = Object.entries(dailyMap).map(([date, stats]) => ({
+      date,
+      ...stats,
+    }));
+
+    // 按服务商汇总
+    const providerStats = await prisma.apiUsageLog.groupBy({
+      by: ['providerName'],
+      where: { createdAt: { gte: startDate } },
+      _count: { id: true },
+      _sum: { cost: true },
+    });
+
+    const providerData = providerStats.map(p => ({
+      provider: p.providerName || 'unknown',
+      calls: p._count.id,
+      cost: Number(p._sum.cost || 0),
+    }));
+
+    // 格式化 usage 列表
+    const usage = usageStats.map((stat, i) => ({
+      id: String(i + 1),
+      provider: stat.providerName || stat.providerId || 'unknown',
+      modelName: stat.model || 'unknown',
+      totalCalls: stat._count.id,
+      successCalls: stat._count.id, // 简化，实际可从 status 字段过滤
+      failedCalls: 0,
+      successRate: 100,
+      totalTokens: (stat._sum.requestTokens || 0) + (stat._sum.responseTokens || 0),
+      cost: Number(stat._sum.cost || 0),
+      avgLatency: Number((stat._avg.duration || 0) / 1000).toFixed(1),
+      lastCallAt: new Date().toISOString(),
+    }));
+
+    const totalTokens = (totalStats._sum.requestTokens || 0) + (totalStats._sum.responseTokens || 0);
+
+    res.json({
+      data: {
+        usage,
+        trendData,
+        providerData,
+        stats: {
+          totalCalls,
+          totalTokens,
+          totalCost: Number(totalStats._sum.cost || 0),
+          avgSuccessRate: totalCalls > 0 ? Math.round((successCalls / totalCalls) * 100 * 10) / 10 : 0,
+        },
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

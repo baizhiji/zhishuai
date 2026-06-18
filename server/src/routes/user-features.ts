@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
+router.use(authMiddleware);
 
 // ============================================
 // 用户功能开关 API（Customer / APK 使用）

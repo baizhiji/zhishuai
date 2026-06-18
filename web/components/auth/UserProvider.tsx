@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { UserRole, Permission, rolePermissions } from '@/lib/permissions/config';
+import request from '@/utils/request';
 
 // 用户信息类型
 export interface UserInfo {
@@ -52,33 +53,6 @@ const defaultFeatureToggles: FeatureToggles = {
   marketing: false,
 };
 
-// 模拟用户数据
-const mockUsers: Record<string, UserInfo> = {
-  '13800138001': {
-    id: '1',
-    name: '管理员',
-    phone: '13800138001',
-    avatar: '',
-    role: UserRole.ADMIN,
-  },
-  '13800138002': {
-    id: '2',
-    name: '代理商',
-    phone: '13800138002',
-    avatar: '',
-    role: UserRole.AGENT,
-    agentId: 'agent-001',
-  },
-  '13800138003': {
-    id: '3',
-    name: '终端客户',
-    phone: '13800138003',
-    avatar: '',
-    role: UserRole.CUSTOMER,
-    tenantId: 'tenant-001',
-  },
-};
-
 // Provider组件
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
@@ -114,15 +88,30 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   // 登录
   const login = useCallback(async (phone: string, password: string): Promise<boolean> => {
-    // 模拟登录，实际应该调用API
-    if (mockUsers[phone] && password === '123456') {
-      const userInfo = mockUsers[phone];
+    try {
+      const res = await request.post('/api/auth/login', { phone, password });
+      const data = res?.data || res;
+      const token = data?.token;
+      const userInfo: UserInfo = {
+        id: data?.user?.id || data?.userId || '',
+        name: data?.user?.name || data?.userName || '',
+        phone: data?.user?.phone || phone,
+        avatar: data?.user?.avatar || '',
+        role: (data?.user?.role || data?.role || 'customer') as UserRole,
+        tenantId: data?.user?.tenantId || data?.tenantId,
+        agentId: data?.user?.agentId || data?.agentId,
+      };
+      if (token) {
+        localStorage.setItem('token', token);
+      }
       setUser(userInfo);
       setPermissions(rolePermissions[userInfo.role] || []);
       localStorage.setItem('user', JSON.stringify(userInfo));
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return false;
   }, []);
 
   // 登出
@@ -130,6 +119,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setPermissions([]);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   }, []);
 
   // 设置功能开关
@@ -139,16 +129,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // 权限检查
-<<<<<<< HEAD
-  const hasPermission = useCallback((permission: Permission): boolean => {
-    return permissions.includes(permission);
-  }, [permissions]);
-
-  // 功能开关检查
-  const isFeatureEnabled = useCallback((key: string): boolean => {
-    return featureToggles[key] ?? false;
-  }, [featureToggles]);
-=======
   const hasPermission = useCallback(
     (permission: Permission): boolean => {
       return permissions.includes(permission);
@@ -163,7 +143,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     },
     [featureToggles]
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const value: UserContextType = {
     user,
@@ -177,15 +156,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     isFeatureEnabled,
   };
 
-<<<<<<< HEAD
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
-=======
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 自定义hook

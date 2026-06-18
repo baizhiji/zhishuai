@@ -1,6 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
+import { AppState, AppStateStatus, NativeEventEmitter } from 'react-native';
 import TokenStorage from '../utils/tokenStorage';
+import { initNotifications, unregisterPushToken } from '../services/notification.service';
 import type { User, UserRole } from '../types';
+
+// 会话超时：30分钟无操作自动登出
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
+// 全局401事件（apiClient触发，AuthContext监听）
+export const AUTH_EVENT_401 = 'auth:401';
+let _onAuth401: (() => void) | null = null;
+export function setOnAuth401(cb: (() => void) | null) {
+  _onAuth401 = cb;
+}
+export function notifyAuth401() {
+  if (_onAuth401) _onAuth401();
+}
 
 // 扩展的用户类型（用于本地存储）
 interface StoredUser extends User {
@@ -15,8 +30,8 @@ interface AuthContextType {
   isLoading: boolean;
   isLoggedIn: boolean;
   isAdmin: boolean;
-  login: (userData: User) => void;
-  logout: () => void;
+  login: (userData: User) => Promise<void>;
+  logout: () => Promise<void>;
   switchRole: (role: UserRole) => void;
   refreshUser: () => Promise<void>;
 }
@@ -28,8 +43,8 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isLoggedIn: false,
   isAdmin: false,
-  login: () => {},
-  logout: () => {},
+  login: async () => {},
+  logout: async () => {},
   switchRole: () => {},
   refreshUser: async () => {},
 });
@@ -52,20 +67,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUserState] = useState<StoredUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewingRole, setViewingRoleState] = useState<UserRole>('customer');
+  const lastActivityRef = useRef<number>(Date.now());
+  const sessionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 检查登录状态
+  // 重置活动时间戳
+  const resetActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+  }, []);
+
+  // 检查会话是否超时
+  const checkSessionTimeout = useCallback(async () => {
+    if (!user) return;
+    const now = Date.now();
+    if (now - lastActivityRef.current > SESSION_TIMEOUT_MS) {
+      console.log('会话超时，自动登出');
+      await TokenStorage.clearAll();
+      setUserState(null);
+      setViewingRoleState('customer');
+    }
+  }, [user]);
+
+  // AppState 监听（后台/前台切换）
   useEffect(() => {
-    const checkAuthStatus = async () => {
+    const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        checkSessionTimeout();
+      }
+      resetActivity();
+    });
+    return () => subscription.remove();
+  }, [checkSessionTimeout, resetActivity]);
+
+  // 会话超时定时器（每分钟检查一次）
+  useEffect(() => {
+    if (user) {
+      sessionTimerRef.current = setInterval(checkSessionTimeout, 60000);
+    }
+    return () => {
+      if (sessionTimerRef.current) {
+        clearInterval(sessionTimerRef.current);
+        sessionTimerRef.current = null;
+      }
+    };
+  }, [user, checkSessionTimeout]);
+
+  // 注册401全局监听（apiClient刷新失败时回调）
+  useEffect(() => {
+    setOnAuth401(async () => {
+      console.log('收到401通知，执行优雅登出');
+      await logout();
+    });
+    return () => setOnAuth401(null);
+  }, [logout]);
+
+  // 初始化：从AsyncStorage恢复登录态
+  useEffect(() => {
+    const initAuth = async () => {
       try {
-        // 优先从本地存储获取用户信息
-        const localUser = TokenStorage.getUserInfo() as StoredUser | null;
+        // 初始化TokenStorage内存缓存
+        await TokenStorage.init();
+        
+        // 从AsyncStorage获取用户信息
+        const localUser = await TokenStorage.getUserInfo() as StoredUser | null;
         if (localUser) {
-          // 确保有 actualRole 字段
           if (!localUser.actualRole) {
             localUser.actualRole = localUser.role as UserRole;
           }
-          // 确保有 viewingRole 字段
-          const savedViewingRole = TokenStorage.getViewingRole();
+          const savedViewingRole = await TokenStorage.getViewingRole();
           localUser.viewingRole = savedViewingRole || localUser.actualRole;
           setUserState(localUser);
           setViewingRoleState(localUser.viewingRole || localUser.actualRole);
@@ -73,50 +141,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
 
-        // 没有本地用户信息，检查是否有token
-        const token = TokenStorage.getToken();
+        // 没有用户信息，检查token
+        const token = await TokenStorage.getToken();
         if (token) {
-          // 有token但没有用户信息，尝试从API获取（带超时）
           try {
-            const { getUserInfo } = await import('../services/auth.service');
-            const userInfo = await fetchWithTimeout(getUserInfo());
+            const { authService } = await import('../services/auth.service');
+            const userInfo = await fetchWithTimeout(authService.getUserInfo());
             if (userInfo) {
               const storedUser: StoredUser = {
                 ...userInfo,
                 actualRole: userInfo.role as UserRole,
                 viewingRole: userInfo.role as UserRole,
               };
+              await TokenStorage.setUserInfo(storedUser);
               setUserState(storedUser);
               setViewingRoleState(storedUser.viewingRole || storedUser.actualRole);
             }
           } catch (e) {
-            // API获取失败，清除token
-            console.log('获取用户信息失败，使用游客模式');
-            TokenStorage.clearToken();
+            console.log('获取用户信息失败，清除登录态');
+            await TokenStorage.clearToken();
           }
         }
       } catch (error) {
-        console.error('检查登录状态失败:', error);
+        console.error('初始化认证状态失败:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    checkAuthStatus();
+    initAuth();
   }, []);
 
-  // 设置用户并保存到本地存储
-  const setUser = useCallback((userData: StoredUser | null) => {
+  // 设置用户并保存到持久化存储
+  const setUser = useCallback(async (userData: StoredUser | null) => {
     if (userData) {
-      // 确保有 actualRole 字段
       if (!userData.actualRole) {
         userData.actualRole = userData.role as UserRole;
       }
-      // 确保有 viewingRole 字段
       if (!userData.viewingRole) {
         userData.viewingRole = userData.actualRole;
       }
-      TokenStorage.setUserInfo(userData);
+      await TokenStorage.setUserInfo(userData);
       setUserState(userData);
       setViewingRoleState(userData.viewingRole);
     } else {
@@ -126,27 +191,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   // 登录
-  const login = useCallback((userData: User) => {
+  const login = useCallback(async (userData: User) => {
     const storedUser: StoredUser = {
       ...userData,
       actualRole: userData.role as UserRole,
       viewingRole: userData.role as UserRole,
     };
-    setUser(storedUser);
+    await setUser(storedUser);
+    // 登录成功后初始化推送通知
+    initNotifications().catch(e => console.warn('推送初始化失败:', e));
   }, [setUser]);
 
   // 登出
-  const logout = useCallback(() => {
-    TokenStorage.clearAll();
+  const logout = useCallback(async () => {
+    // 登出前注销推送Token
+    await unregisterPushToken().catch(() => {});
+    await TokenStorage.clearAll();
     setUserState(null);
     setViewingRoleState('customer');
   }, []);
 
   // 切换视角角色（仅管理员可用）
-  const switchRole = useCallback((role: UserRole) => {
+  const switchRole = useCallback(async (role: UserRole) => {
     if (!user) return;
     
-    // 非管理员只能使用自己的角色
     if (user.role !== 'admin') {
       console.log('非管理员账号，无法切换角色');
       return;
@@ -154,13 +222,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const updatedUser: StoredUser = {
       ...user,
-      role: role, // 当前显示的角色
+      role: role,
       viewingRole: role,
     };
     
-    // 保存到本地存储
-    TokenStorage.setUserInfo(updatedUser);
-    TokenStorage.setViewingRole(role);
+    await TokenStorage.setUserInfo(updatedUser);
+    await TokenStorage.setViewingRole(role);
     
     setUserState(updatedUser);
     setViewingRoleState(role);
@@ -171,22 +238,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 刷新用户信息
   const refreshUser = async () => {
     try {
-      const { getUserInfo } = await fetchWithTimeout(import('../services/auth.service'));
-      const userInfo = await getUserInfo();
+      const { authService } = await import('../services/auth.service');
+      const userInfo = await fetchWithTimeout(authService.getUserInfo());
       if (userInfo && user) {
         const updatedUser: StoredUser = {
           ...userInfo,
           actualRole: user.actualRole,
           viewingRole: user.viewingRole || user.actualRole,
         };
-        setUser(updatedUser);
+        await setUser(updatedUser);
       }
     } catch (error) {
       console.error('刷新用户信息失败:', error);
     }
   };
 
-  // 是否是管理员账号
   const isAdmin = user?.role === 'admin';
 
   return (

@@ -2,10 +2,13 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { body, query, validationResult } from 'express-validator';
 import { z } from 'zod';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { prisma } from '../utils/db';
 
-const prisma = new PrismaClient();
 
 const router = Router();
+
+router.use(authMiddleware);
 
 // ==================== 标签管理 ====================
 

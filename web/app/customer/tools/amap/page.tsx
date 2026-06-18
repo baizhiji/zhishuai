@@ -39,9 +39,6 @@ import request from '@/utils/request';
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
-// 高德地图API Key（需要在高德开放平台申请）
-const AMAP_KEY = 'YOUR_AMAP_KEY';
-
 interface PoiInfo {
   id: string;
   name: string;
@@ -97,62 +94,82 @@ export default function AMapPage() {
 
   const mapRef = useRef<any>(null);
 
-  // 加载高德地图SDK
+  // 加载高德地图SDK和收藏数据
   useEffect(() => {
-    const loadMap = () => {
-      // 动态加载高德地图
+    loadMapSDK();
+    loadFavorites();
+    return () => {};
+  }, []);
+
+  const loadMapSDK = async () => {
+    try {
+      // 从后端获取地图API Key
+      const res = await request.get('/amap/config');
+      const apiKey = res.data?.apiKey;
+
+      if (!apiKey) {
+        console.warn('高德地图API Key未配置，地图功能不可用');
+        setMapLoaded(false);
+        return;
+      }
+
       const script = document.createElement('script');
-      script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}`;
+      script.src = `https://webapi.amap.com/maps?v=2.0&key=${apiKey}`;
       script.async = true;
       script.onload = () => {
         setMapLoaded(true);
         initMap();
+        loadMapPlugins();
       };
       script.onerror = () => {
-        console.log('地图加载失败，使用演示模式');
+        console.error('地图SDK加载失败');
         setMapLoaded(false);
       };
       document.head.appendChild(script);
-    };
-
-    // 加载标记点、路径规划等插件
-    const loadPlugins = () => {
-      if (window.AMap) {
-        window.AMap.plugin([
-          'AMap.PlaceSearch',
-          'AMap.Driving',
-          'AMap.Walking',
-          'AMap.Riding',
-          'AMap.Transfer',
-          'AMap.Geocoder',
-          'AMap.Autocomplete',
-        ], () => {
-          console.log('高德地图插件加载完成');
-        });
-      }
-    };
-
-    loadMap();
-    loadPlugins();
-
-    // 加载收藏数据
-    const saved = localStorage.getItem('amap_favorites');
-    if (saved) {
-      setFavorites(JSON.parse(saved));
+    } catch (error) {
+      console.error('获取地图配置失败:', error);
+      setMapLoaded(false);
     }
-  }, []);
+  };
+
+  const loadMapPlugins = () => {
+    if (window.AMap) {
+      window.AMap.plugin([
+        'AMap.PlaceSearch',
+        'AMap.Driving',
+        'AMap.Walking',
+        'AMap.Riding',
+        'AMap.Transfer',
+        'AMap.Geocoder',
+        'AMap.Autocomplete',
+      ], () => {
+        console.log('高德地图插件加载完成');
+      });
+    }
+  };
+
+  const loadFavorites = async () => {
+    try {
+      const res = await request.get('/amap/favorites');
+      if (res.data) {
+        setFavorites(res.data);
+      }
+    } catch {
+      setFavorites([]);
+    }
+  };
 
   const initMap = () => {
     if (!mapRef.current && window.AMap) {
       mapRef.current = new window.AMap.Map('map-container', {
         zoom: 12,
-        center: [116.397428, 39.90923], // 默认北京
+        center: [116.397428, 39.90923],
         viewMode: '2D',
       });
     }
   };
 
-  // 搜索周边地点
+  // 搜索周边地点 — 调用后端API
   const handleSearch = async () => {
     if (!keyword.trim() && !searchType) {
       message.warning('请输入关键词或选择类型');
@@ -161,50 +178,32 @@ export default function AMapPage() {
 
     setLoading(true);
     try {
-      // 模拟搜索结果
-      const mockPois: PoiInfo[] = [
-        {
-          id: '1',
-          name: `${keyword || searchType}示例地点A`,
-          address: '朝阳区建国路88号SOHO现代城',
-          location: { lat: 39.909, lng: 116.397 },
-          tel: '010-12345678',
-          type: searchType,
-          distance: 520,
-          rating: 4.5,
-          photos: ['https://picsum.photos/200?random=1'],
-        },
-        {
-          id: '2',
-          name: `${keyword || searchType}示例地点B`,
-          address: '海淀区中关村大街1号',
-          location: { lat: 39.989, lng: 116.312 },
-          tel: '010-87654321',
-          type: searchType,
-          distance: 1200,
-          rating: 4.2,
-          photos: ['https://picsum.photos/200?random=2'],
-        },
-        {
-          id: '3',
-          name: `${keyword || searchType}示例地点C`,
-          address: '东城区王府井大街138号',
-          location: { lat: 39.923, lng: 116.418 },
-          tel: '010-11112222',
-          type: searchType,
-          distance: 2500,
-          rating: 4.8,
-          photos: ['https://picsum.photos/200?random=3'],
-        },
-      ];
+      const res = await request.post('/amap/search', {
+        keyword: keyword || searchType,
+        city,
+        types: searchType,
+        radius,
+      });
 
-      setPois(mockPois);
-      message.success(`找到 ${mockPois.length} 个结果`);
+      const poiList: PoiInfo[] = (res.data?.pois || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        address: p.address,
+        location: p.location,
+        tel: p.tel,
+        type: p.type,
+        distance: p.distance,
+        rating: p.rating,
+        photos: p.photos,
+      }));
+
+      setPois(poiList);
+      message.success(`找到 ${poiList.length} 个结果`);
 
       // 在地图上标记
-      if (mapLoaded && mapRef.current && window.AMap) {
+      if (mapLoaded && mapRef.current && window.AMap && poiList.length > 0) {
         mapRef.current.clearMap();
-        mockPois.forEach((poi, index) => {
+        poiList.forEach((poi, index) => {
           const marker = new window.AMap.Marker({
             position: new window.AMap.LngLat(poi.location.lng, poi.location.lat),
             title: poi.name,
@@ -215,48 +214,61 @@ export default function AMapPage() {
           });
           mapRef.current.add(marker);
         });
-        // 调整视野
         mapRef.current.setFitView();
       }
-    } catch (error) {
-      console.error('搜索失败:', error);
-      message.error('搜索失败，请稍后重试');
+    } catch (error: any) {
+      message.error(error?.response?.data?.error || '搜索失败，请稍后重试');
+      setPois([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // 查看地点详情
-  const handleViewDetail = (poi: PoiInfo) => {
-    setSelectedPoi(poi);
+  // 查看地点详情 — 调用后端API
+  const handleViewDetail = async (poi: PoiInfo) => {
+    try {
+      const res = await request.get(`/amap/poi/${poi.id}`);
+      if (res.data) {
+        setSelectedPoi({ ...poi, ...res.data });
+      } else {
+        setSelectedPoi(poi);
+      }
+    } catch {
+      setSelectedPoi(poi);
+    }
     setPoiDetailVisible(true);
   };
 
-  // 添加收藏
-  const handleAddFavorite = (poi: PoiInfo) => {
-    const item: FavoriteItem = {
-      id: poi.id,
-      name: poi.name,
-      address: poi.address,
-      location: poi.location,
-      type: poi.type,
-      addTime: new Date().toLocaleString(),
-    };
-    const newFavorites = [item, ...favorites.filter(f => f.id !== poi.id)];
-    setFavorites(newFavorites);
-    localStorage.setItem('amap_favorites', JSON.stringify(newFavorites));
-    message.success('已添加到收藏');
+  // 添加收藏 — 调用后端API
+  const handleAddFavorite = async (poi: PoiInfo) => {
+    try {
+      const item = {
+        poiId: poi.id,
+        name: poi.name,
+        address: poi.address,
+        location: poi.location,
+        type: poi.type,
+      };
+      await request.post('/amap/favorites', item);
+      message.success('已添加到收藏');
+      loadFavorites();
+    } catch {
+      message.error('收藏失败');
+    }
   };
 
-  // 删除收藏
-  const handleRemoveFavorite = (id: string) => {
-    const newFavorites = favorites.filter(f => f.id !== id);
-    setFavorites(newFavorites);
-    localStorage.setItem('amap_favorites', JSON.stringify(newFavorites));
-    message.success('已移除收藏');
+  // 删除收藏 — 调用后端API
+  const handleRemoveFavorite = async (id: string) => {
+    try {
+      await request.delete(`/amap/favorites/${id}`);
+      message.success('已移除收藏');
+      loadFavorites();
+    } catch {
+      message.error('删除失败');
+    }
   };
 
-  // 路径规划
+  // 路径规划 — 调用后端API
   const handleRoute = async () => {
     if (!routeStart.trim() || !routeEnd.trim()) {
       message.warning('请输入起点和终点');
@@ -265,27 +277,41 @@ export default function AMapPage() {
 
     setLoading(true);
     try {
-      // 模拟路径规划结果
-      setRouteResult({
-        distance: '12.5公里',
-        time: '约35分钟',
-        steps: [
-          { instruction: '从当前位置出发，沿建国路向东', distance: '500米' },
-          { instruction: '左转进入东三环北路', distance: '2公里' },
-          { instruction: '沿三环路向北', distance: '8公里' },
-          { instruction: '右转进入目的地附近道路', distance: '1公里' },
-          { instruction: '到达目的地', distance: '0米' },
-        ],
+      const res = await request.post('/amap/route', {
+        origin: routeStart,
+        destination: routeEnd,
+        mode: routeType,
       });
-      message.success('路径规划完成');
-    } catch (error) {
-      message.error('路径规划失败');
+
+      if (res.data) {
+        setRouteResult(res.data);
+        message.success('路径规划完成');
+
+        // 在地图上绘制路线
+        if (mapLoaded && mapRef.current && window.AMap && res.data.path) {
+          mapRef.current.clearMap();
+          const path = res.data.path.map((p: any) =>
+            new window.AMap.LngLat(p.lng, p.lat)
+          );
+          const polyline = new window.AMap.Polyline({
+            path,
+            strokeColor: '#1890ff',
+            strokeWeight: 4,
+          });
+          mapRef.current.add(polyline);
+          mapRef.current.setFitView();
+        }
+      } else {
+        message.warning('未找到路线');
+      }
+    } catch (error: any) {
+      message.error(error?.response?.data?.error || '路径规划失败');
     } finally {
       setLoading(false);
     }
   };
 
-  // 地理编码
+  // 地理编码 — 调用后端API
   const handleGeocode = async (address: string) => {
     if (!address.trim()) {
       message.warning('请输入地址');
@@ -294,27 +320,24 @@ export default function AMapPage() {
 
     setLoading(true);
     try {
-      // 模拟地理编码结果
-      const result: GeocoderResult = {
-        location: { lng: 116.397428, lat: 39.90923 },
-        formattedAddress: address,
-        addressComponent: {
-          province: '北京市',
-          city: '北京市',
-          district: '朝阳区',
-          township: '建外街道',
-          street: '建国路',
-          streetNumber: '88号',
-        },
-      };
+      const res = await request.post('/amap/geocode', { address });
 
-      if (mapLoaded && mapRef.current && window.AMap) {
-        mapRef.current.setCenter([result.location.lng, result.location.lat]);
+      if (res.data) {
+        const result: GeocoderResult = res.data;
+
+        if (mapLoaded && mapRef.current && window.AMap) {
+          mapRef.current.setCenter([result.location.lng, result.location.lat]);
+          const marker = new window.AMap.Marker({
+            position: new window.AMap.LngLat(result.location.lng, result.location.lat),
+            title: result.formattedAddress,
+          });
+          mapRef.current.add(marker);
+        }
+
+        message.success(`地理编码完成: ${result.formattedAddress}`);
       }
-
-      message.success('地理编码完成');
-    } catch (error) {
-      message.error('地理编码失败');
+    } catch (error: any) {
+      message.error(error?.response?.data?.error || '地理编码失败');
     } finally {
       setLoading(false);
     }
@@ -385,7 +408,7 @@ export default function AMapPage() {
                 <Spin size="large" />
               ) : (
                 <Empty
-                  description={mapLoaded ? '地图加载中...' : '地图服务（需配置高德Key）'}
+                  description={mapLoaded ? '搜索地点以在地图上显示' : '地图服务（需配置高德Key）'}
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                 />
               )}
@@ -415,8 +438,9 @@ export default function AMapPage() {
                         <Avatar
                           shape="square"
                           size={60}
-                          src={poi.photos?.[0] || `https://picsum.photos/60?random=${poi.id}`}
+                          src={poi.photos?.[0]}
                           style={{ backgroundColor: '#1890ff' }}
+                          icon={<EnvironmentOutlined />}
                         />
                       }
                       title={
@@ -445,9 +469,11 @@ export default function AMapPage() {
           {/* 工具卡片 */}
           <Card style={{ marginBottom: 16 }} title="快捷工具">
             <Space direction="vertical" style={{ width: '100%' }}>
-              <Button block icon={<EnvironmentOutlined />} onClick={() => handleGeocode('北京市朝阳区建国路88号')}>
-                地理编码
-              </Button>
+              <Input.Search
+                placeholder="输入地址进行地理编码"
+                enterButton="编码"
+                onSearch={handleGeocode}
+              />
               <Button block icon={<AimOutlined />} onClick={() => setRouteVisible(true)}>
                 路径规划
               </Button>
@@ -525,7 +551,7 @@ export default function AMapPage() {
               <Descriptions.Item label="名称" span={2}>{selectedPoi.name}</Descriptions.Item>
               <Descriptions.Item label="地址" span={2}>{selectedPoi.address}</Descriptions.Item>
               <Descriptions.Item label="类型">{selectedPoi.type}</Descriptions.Item>
-              <Descriptions.Item label="距离">{selectedPoi.distance}米</Descriptions.Item>
+              <Descriptions.Item label="距离">{selectedPoi.distance ? `${selectedPoi.distance}米` : '-'}</Descriptions.Item>
               {selectedPoi.tel && (
                 <Descriptions.Item label="电话" span={2}>
                   <Space>
@@ -571,7 +597,6 @@ export default function AMapPage() {
               placeholder="输入起点地址"
               value={routeStart}
               onChange={e => setRouteStart(e.target.value)}
-              addonAfter={<Button size="small" type="link">定位</Button>}
             />
           </Form.Item>
           <Form.Item label="终点">
@@ -579,12 +604,6 @@ export default function AMapPage() {
               placeholder="输入终点地址"
               value={routeEnd}
               onChange={e => setRouteEnd(e.target.value)}
-              addonAfter={
-                <Select value="gcj02" style={{ width: 80 }}>
-                  <Select.Option value="gcj02">GCJ-02</Select.Option>
-                  <Select.Option value="bd09">BD-09</Select.Option>
-                </Select>
-              }
             />
           </Form.Item>
           <Form.Item>
@@ -599,29 +618,33 @@ export default function AMapPage() {
             <Card size="small" title="规划结果">
               <Row gutter={16}>
                 <Col span={12}>
-                  <Statistic title="距离" value={routeResult.distance} />
+                  <Statistic title="距离" value={routeResult.distance || '-'} />
                 </Col>
                 <Col span={12}>
-                  <Statistic title="预计时间" value={routeResult.time} />
+                  <Statistic title="预计时间" value={routeResult.time || '-'} />
                 </Col>
               </Row>
-              <Divider />
-              <Title level={5}>导航步骤</Title>
-              <List
-                size="small"
-                dataSource={routeResult.steps}
-                renderItem={(step: any, index: number) => (
-                  <List.Item>
-                    <Space>
-                      <Avatar size="small">{index + 1}</Avatar>
-                      <div>
-                        <Text>{step.instruction}</Text>
-                        <Text type="secondary" style={{ marginLeft: 8 }}>{step.distance}</Text>
-                      </div>
-                    </Space>
-                  </List.Item>
-                )}
-              />
+              {routeResult.steps && routeResult.steps.length > 0 && (
+                <>
+                  <Divider />
+                  <Title level={5}>导航步骤</Title>
+                  <List
+                    size="small"
+                    dataSource={routeResult.steps}
+                    renderItem={(step: any, index: number) => (
+                      <List.Item>
+                        <Space>
+                          <Avatar size="small">{index + 1}</Avatar>
+                          <div>
+                            <Text>{step.instruction}</Text>
+                            <Text type="secondary" style={{ marginLeft: 8 }}>{step.distance}</Text>
+                          </div>
+                        </Space>
+                      </List.Item>
+                    )}
+                  />
+                </>
+              )}
             </Card>
           </div>
         )}

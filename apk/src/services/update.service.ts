@@ -1,6 +1,9 @@
 /**
- * 版本更新服务
+ * 版本更新服务 — 调用真实后端API
  */
+import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
+import { Platform } from 'react-native';
 import { API_CONFIG } from './api.config';
 
 export interface VersionInfo {
@@ -10,6 +13,8 @@ export interface VersionInfo {
   releaseNotes: string;
   downloadUrl: string;
   isMandatory: boolean;
+  platform?: string;
+  minClientVersion?: string;
 }
 
 export interface UpdateCheckResult {
@@ -19,69 +24,100 @@ export interface UpdateCheckResult {
 }
 
 /**
- * 获取当前应用版本信息
+ * 获取当前应用版本号
  */
 export const getCurrentVersion = (): string => {
-  // 在实际应用中，这应该从 app.json 或原生模块获取
-  return '1.0.0';
+  return Constants.expoConfig?.version || Constants.manifest?.version || '1.0.0';
 };
 
 /**
- * 检查应用更新
+ * 获取当前构建号
+ */
+export const getCurrentBuildNumber = (): string => {
+  return String(Constants.expoConfig?.ios?.buildNumber || Constants.expoConfig?.android?.versionCode || 1);
+};
+
+/**
+ * 检查应用更新 — 调用后端真实API
  */
 export const checkForUpdate = async (): Promise<UpdateCheckResult> => {
   const currentVersion = getCurrentVersion();
-  
-  // 模拟API调用检查更新
+  const currentBuild = getCurrentBuildNumber();
+
   try {
-    // 实际应用中应该调用真实API
-    // const response = await apiClient.get<VersionInfo>('/app/version/latest');
-    
-    // 模拟：假设当前版本是最新的
-    const mockResponse: UpdateCheckResult = {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/version/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentVersion,
+        currentBuildNumber: currentBuild,
+        platform: Platform.OS,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`版本检查请求失败: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    if (result.data && result.data.hasUpdate) {
+      return {
+        hasUpdate: true,
+        versionInfo: {
+          version: result.data.version,
+          buildNumber: result.data.buildNumber,
+          releaseDate: result.data.releaseDate,
+          releaseNotes: result.data.releaseNotes,
+          downloadUrl: result.data.downloadUrl,
+          isMandatory: result.data.isMandatory || false,
+          platform: result.data.platform,
+          minClientVersion: result.data.minClientVersion,
+        },
+        currentVersion,
+      };
+    }
+
+    return {
       hasUpdate: false,
       currentVersion,
-      // 以下是如果有更新时的响应格式
-      // versionInfo: {
-      //   version: '1.1.0',
-      //   buildNumber: '11',
-      //   releaseDate: '2024-05-01',
-      //   releaseNotes: '1. 新增AI图片生成功能\n2. 优化界面设计\n3. 修复已知问题',
-      //   downloadUrl: 'https://example.com/app.apk',
-      //   isMandatory: false
-      // }
     };
-    
-    // 模拟延迟
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return mockResponse;
   } catch (error) {
     console.error('检查更新失败:', error);
     return {
       hasUpdate: false,
-      currentVersion
+      currentVersion,
     };
   }
 };
 
 /**
  * 下载并安装更新
+ * 优先使用 expo-updates 的 OTA 热更新，降级为下载安装包
  */
-export const downloadAndInstall = async (downloadUrl: string): Promise<void> => {
-  // 在实际应用中，应该使用 expo-linking 或原生模块打开下载链接
-  // 或使用 expo-updates 库来处理应用内更新
+export const downloadAndInstall = async (versionInfo: VersionInfo): Promise<void> => {
   try {
-    const { Linking } = require('react-native');
-    await Linking.openURL(downloadUrl);
+    // 如果是 expo-updates 支持的热更新
+    if (versionInfo.downloadUrl?.includes('expo-updates') || versionInfo.platform === 'ota') {
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+      return;
+    }
+
+    // 否则打开下载链接
+    if (versionInfo.downloadUrl) {
+      const { Linking } = require('react-native');
+      await Linking.openURL(versionInfo.downloadUrl);
+    }
   } catch (error) {
-    console.error('打开下载链接失败:', error);
+    console.error('下载更新失败:', error);
     throw error;
   }
 };
 
 export default {
   getCurrentVersion,
+  getCurrentBuildNumber,
   checkForUpdate,
-  downloadAndInstall
+  downloadAndInstall,
 };

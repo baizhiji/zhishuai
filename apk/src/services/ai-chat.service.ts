@@ -129,7 +129,8 @@ class AIChatService {
    */
   async chatStream(
     request: ChatRequest,
-    onChunk: (content: string) => void
+    onChunk: (content: string) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     const response = await fetch(`${apiClient.baseUrl}/ai-chat/chat`, {
       method: 'POST',
@@ -142,6 +143,7 @@ class AIChatService {
         model: request.model,
         stream: true,
       }),
+      signal,
     });
 
     const reader = response.body?.getReader();
@@ -151,24 +153,29 @@ class AIChatService {
       throw new Error('无法读取响应流');
     }
 
+    let buffer = '';
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') return;
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data: ')) continue;
 
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.content) {
-              onChunk(parsed.content);
-            }
-          } catch (e) {}
+        const data = trimmed.slice(6);
+        if (data === '[DONE]') return;
+
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.content) {
+            onChunk(parsed.content);
+          }
+        } catch (e) {
+          console.warn('[AIChat] 解析SSE数据块失败:', e);
         }
       }
     }

@@ -33,13 +33,21 @@ function getUserPermissions(role: UserRole): Permission[] {
   return rolePermissions[role] || [];
 }
 
-// 获取当前用户信息的hook（简化版，实际项目中应该从context或store获取）
+// 获取当前用户信息的hook（从UserContext获取）
 function useCurrentUser() {
-  // 模拟用户信息，实际项目中应该从auth context获取
-  return {
-    role: UserRole.CUSTOMER,
-    enabledFeatures: {},
-  };
+  try {
+    const { useUser } = require('@/components/auth/UserProvider');
+    const { user, featureToggles } = useUser();
+    return {
+      role: user?.role || UserRole.CUSTOMER,
+      enabledFeatures: featureToggles || {},
+    };
+  } catch {
+    return {
+      role: UserRole.CUSTOMER,
+      enabledFeatures: {},
+    };
+  }
 }
 
 // 获取当前用户角色
@@ -86,26 +94,16 @@ export function PermissionWrapper({
   fallback = null,
   children,
 }: PermissionWrapperProps) {
-<<<<<<< HEAD
-  const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } = usePermissionCheck();
-=======
   const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } =
     usePermissionCheck();
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   let hasAccess = true;
 
   if (permission) {
     hasAccess = checkPermission(permission);
   } else if (permissions && permissions.length > 0) {
-<<<<<<< HEAD
-    hasAccess = mode === 'all'
-      ? permissions.every(p => checkPermission(p))
-      : checkAnyPermission(permissions);
-=======
     hasAccess =
       mode === 'all' ? permissions.every(p => checkPermission(p)) : checkAnyPermission(permissions);
->>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 
   return <>{hasAccess ? children : fallback}</>;
@@ -139,39 +137,22 @@ export function withPermission<P extends object>(
   mode: 'all' | 'any' = 'any'
 ) {
   return function PermissionGuardComponent(props: P) {
-<<<<<<< HEAD
-    const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } = usePermissionCheck();
-=======
     const { hasPermission: checkPermission, hasAnyPermission: checkAnyPermission } =
       usePermissionCheck();
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
     let hasAccess = true;
 
     if (permission) {
       hasAccess = checkPermission(permission);
     } else if (permissions && permissions.length > 0) {
-<<<<<<< HEAD
-      hasAccess = mode === 'all'
-        ? permissions.every(p => checkPermission(p))
-        : checkAnyPermission(permissions);
-=======
       hasAccess =
         mode === 'all'
           ? permissions.every(p => checkPermission(p))
           : checkAnyPermission(permissions);
->>>>>>> 962968886be726cd434c792933b5515366d34518
     }
 
     if (!hasAccess) {
       return (
-<<<<<<< HEAD
-        <div style={{
-          padding: '40px',
-          textAlign: 'center',
-          color: '#999'
-        }}>
-=======
         <div
           style={{
             padding: '40px',
@@ -179,7 +160,6 @@ export function withPermission<P extends object>(
             color: '#999',
           }}
         >
->>>>>>> 962968886be726cd434c792933b5515366d34518
           <h2>无权限访问</h2>
           <p>您没有权限访问此页面</p>
         </div>

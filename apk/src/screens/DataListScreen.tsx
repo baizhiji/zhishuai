@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   FlatList,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ContentCategory } from '../services/content.service';
 import PageHeader from '../components/PageHeader';
+import { apiClient } from '../services/api.client';
 
 interface PublishedContent {
   id: string;
@@ -47,21 +50,50 @@ const CATEGORY_NAMES: Record<string, string> = {
   [ContentCategory.DIGITAL_HUMAN]: '数字人',
 };
 
-// 模拟已发布内容数据
-const MOCK_PUBLISHED_DATA: PublishedContent[] = [
-  { id: '1', title: 'AI赋能企业数字化转型', platform: 'douyin', category: 'copywriting', reads: 12580, likes: 856, comments: 123, shares: 45, leads: 23, publishTime: '2024-03-25 10:30', status: 'published' },
-  { id: '2', title: '智枢AI产品介绍', platform: 'xiaohongshu', category: 'xhs', reads: 8920, likes: 1205, comments: 234, shares: 89, leads: 45, publishTime: '2024-03-24 15:20', status: 'published' },
-  { id: '3', title: '数字人视频推广', platform: 'kuaishou', category: 'digital_human', reads: 23410, likes: 1890, comments: 456, shares: 234, leads: 89, publishTime: '2024-03-24 08:00', status: 'published' },
-  { id: '4', title: '企业效率神器分享', platform: 'weixin', category: 'xhs', reads: 5680, likes: 423, comments: 67, shares: 34, leads: 12, publishTime: '2024-03-23 14:00', status: 'published' },
-  { id: '5', title: '爆款标题集合', platform: 'weibo', category: 'title', reads: 3450, likes: 234, comments: 45, shares: 23, leads: 8, publishTime: '2024-03-23 09:00', status: 'published' },
-];
 
 type TabType = 'list' | 'stats';
 
 export default function DataListScreen() {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('list');
-  const [data] = useState<PublishedContent[]>(MOCK_PUBLISHED_DATA);
+  const [data, setData] = useState<PublishedContent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const response = await apiClient.get<{ items: any[]; total: number }>('/statistics/publish-records');
+      const items = response.items || [];
+      setData(items.map((r: any) => ({
+        id: r.id,
+        title: r.title || '无标题',
+        platform: r.platform || r.accountId || 'unknown',
+        category: r.category || 'copywriting',
+        reads: r.reads || r.views || 0,
+        likes: r.likes || 0,
+        comments: r.comments || 0,
+        shares: r.shares || 0,
+        leads: r.leads || 0,
+        publishTime: r.publishedAt || r.createdAt || '',
+        status: r.status === 'published' ? 'published' : 'pending',
+      })));
+    } catch (error) {
+      console.error('加载发布数据失败:', error);
+      setData([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
 
   const formatNumber = (num: number) => {
     if (num >= 10000) return (num / 10000).toFixed(1) + 'w';

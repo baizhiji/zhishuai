@@ -3,7 +3,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Layout, Menu, Button, Dropdown, Space } from 'antd';
+import { Layout, Menu, Button, Dropdown, Space, Image } from 'antd';
 import {
   HomeOutlined,
   UserOutlined,
@@ -67,7 +67,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <Layout className={styles.layout}>
       <Header className={styles.header}>
         <div className={styles.logo}>
-          <RocketOutlined style={{ fontSize: 24, color: '#1890ff', marginRight: 8 }} />
+          <Image src="/logo.png" alt="智枢AI" width={24} height={24} preview={false} style={{ marginRight: 8 }} />
           <span className={styles.logoText}>智枢 AI</span>
         </div>
         <Menu
@@ -82,24 +82,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
           </Dropdown>
         </Space>
       </Header>
-<<<<<<< HEAD
-      <Content className={styles.content}>
-        {children}
-      </Content>
-=======
       <Content className={styles.content}>{children}</Content>
->>>>>>> 962968886be726cd434c792933b5515366d34518
       <Footer className={styles.footer}>
         <div className={styles.footerContent}>
           <div className={styles.footerSection}>
             <h4>产品功能</h4>
             <ul>
-<<<<<<< HEAD
-              <li><Link href="/features#matrix">矩阵管理</Link></li>
-              <li><Link href="/features#ai-content">AI内容生成</Link></li>
-              <li><Link href="/features#recruitment">智能招聘</Link></li>
-              <li><Link href="/features#acquisition">智能获客</Link></li>
-=======
               <li>
                 <Link href="/features#matrix">矩阵管理</Link>
               </li>
@@ -112,18 +100,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <li>
                 <Link href="/features#acquisition">智能获客</Link>
               </li>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </ul>
           </div>
           <div className={styles.footerSection}>
             <h4>帮助支持</h4>
             <ul>
-<<<<<<< HEAD
-              <li><Link href="/help">使用文档</Link></li>
-              <li><Link href="/help#faq">常见问题</Link></li>
-              <li><Link href="/help#contact">联系我们</Link></li>
-              <li><Link href="/api-test">API测试</Link></li>
-=======
               <li>
                 <Link href="/help">使用文档</Link>
               </li>
@@ -136,17 +117,11 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <li>
                 <Link href="/api-test">API测试</Link>
               </li>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </ul>
           </div>
           <div className={styles.footerSection}>
             <h4>关于我们</h4>
             <ul>
-<<<<<<< HEAD
-              <li><Link href="/about">公司介绍</Link></li>
-              <li><Link href="/about#team">团队成员</Link></li>
-              <li><Link href="/about#contact">联系方式</Link></li>
-=======
               <li>
                 <Link href="/about">公司介绍</Link>
               </li>
@@ -156,7 +131,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
               <li>
                 <Link href="/about#contact">联系方式</Link>
               </li>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </ul>
           </div>
           <div className={styles.footerSection}>
@@ -168,13 +142,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </ul>
           </div>
         </div>
-<<<<<<< HEAD
-        <div className={styles.copyright}>
-          © 2024 智枢 AI SaaS 系统 版权所有
-        </div>
-=======
         <div className={styles.copyright}>© 2024 智枢 AI SaaS 系统 版权所有</div>
->>>>>>> 962968886be726cd434c792933b5515366d34518
       </Footer>
     </Layout>
   );

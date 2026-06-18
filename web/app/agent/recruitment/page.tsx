@@ -80,16 +80,12 @@ const RecruitmentPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('jobs');
   const [jobs, setJobs] = useState<Job[]>([]);
   const [resumes, setResumes] = useState<Resume[]>([]);
-<<<<<<< HEAD
-  const [stats, setStats] = useState<Stats>({ totalJobs: 0, activeJobs: 0, totalResumes: 0, newResumes: 0 });
-=======
   const [stats, setStats] = useState<Stats>({
     totalJobs: 0,
     activeJobs: 0,
     totalResumes: 0,
     newResumes: 0,
   });
->>>>>>> 962968886be726cd434c792933b5515366d34518
   const [loading, setLoading] = useState(false);
   const [jobModalVisible, setJobModalVisible] = useState(false);
   const [resumeModalVisible, setResumeModalVisible] = useState(false);
@@ -101,13 +97,9 @@ const RecruitmentPage: React.FC = () => {
   const [jobForm] = Form.useForm();
   const [resumeForm] = Form.useForm();
   const [interviewForm] = Form.useForm();
-<<<<<<< HEAD
-  const [interviewQuestions, setInterviewQuestions] = useState<{ question: string; answer: string }[]>([]);
-=======
   const [interviewQuestions, setInterviewQuestions] = useState<
     { question: string; answer: string }[]
   >([]);
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   useEffect(() => {
     fetchJobs();
@@ -290,18 +282,10 @@ const RecruitmentPage: React.FC = () => {
       title: '薪资范围',
       dataIndex: 'salaryMin',
       key: 'salary',
-<<<<<<< HEAD
-      render: (_: any, record: Job) => (
-        record.salaryMin && record.salaryMax
-          ? `${record.salaryMin}K - ${record.salaryMax}K`
-          : '面议'
-      ),
-=======
       render: (_: any, record: Job) =>
         record.salaryMin && record.salaryMax
           ? `${record.salaryMin}K - ${record.salaryMax}K`
           : '面议',
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     { title: '学历要求', dataIndex: 'education', key: 'education' },
     { title: '经验要求', dataIndex: 'experience', key: 'experience' },
@@ -329,13 +313,9 @@ const RecruitmentPage: React.FC = () => {
           <Button size="small" onClick={() => handleBatchScreen(record.id)}>
             AI筛选
           </Button>
-<<<<<<< HEAD
-          <Button size="small" type="link">编辑</Button>
-=======
           <Button size="small" type="link">
             编辑
           </Button>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         </Space>
       ),
     },
@@ -351,11 +331,7 @@ const RecruitmentPage: React.FC = () => {
       title: 'AI评分',
       dataIndex: 'aiScore',
       key: 'aiScore',
-<<<<<<< HEAD
-      render: (score?: number) => (
-=======
       render: (score?: number) =>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         score ? (
           <Progress
             percent={score}
@@ -363,14 +339,9 @@ const RecruitmentPage: React.FC = () => {
             status={score >= 60 ? 'normal' : 'exception'}
             strokeColor={score >= 80 ? '#52c41a' : score >= 60 ? '#1890ff' : '#ff4d4f'}
           />
-<<<<<<< HEAD
-        ) : '-'
-      ),
-=======
         ) : (
           '-'
         ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
@@ -390,17 +361,6 @@ const RecruitmentPage: React.FC = () => {
       render: (_: any, record: Resume) => (
         <Space>
           <Tooltip title="AI匹配">
-<<<<<<< HEAD
-            <Button size="small" icon={<RobotOutlined />} onClick={() => handleMatchJob(record.id)} />
-          </Tooltip>
-          <Tooltip title="生成面试问题">
-            <Button size="small" icon={<AimOutlined />} onClick={() => handleGenerateQuestions(record.id)} />
-          </Tooltip>
-          <Button size="small" type="link" onClick={() => {
-            setSelectedResume(record);
-            setResumeModalVisible(true);
-          }}>详情</Button>
-=======
             <Button
               size="small"
               icon={<RobotOutlined />}
@@ -424,7 +384,6 @@ const RecruitmentPage: React.FC = () => {
           >
             详情
           </Button>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         </Space>
       ),
     },
@@ -488,9 +447,6 @@ const RecruitmentPage: React.FC = () => {
         <Divider />
 
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-<<<<<<< HEAD
-          <TabPane tab={<span><FileTextOutlined /> 岗位管理</span>} key="jobs">
-=======
           <TabPane
             tab={
               <span>
@@ -499,7 +455,6 @@ const RecruitmentPage: React.FC = () => {
             }
             key="jobs"
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Table
               dataSource={jobs}
               columns={jobColumns}
@@ -508,9 +463,6 @@ const RecruitmentPage: React.FC = () => {
               pagination={{ pageSize: 10 }}
             />
           </TabPane>
-<<<<<<< HEAD
-          <TabPane tab={<span><TeamOutlined /> 简历管理</span>} key="resumes">
-=======
           <TabPane
             tab={
               <span>
@@ -519,7 +471,6 @@ const RecruitmentPage: React.FC = () => {
             }
             key="resumes"
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Table
               dataSource={resumes}
               columns={resumeColumns}
@@ -528,11 +479,6 @@ const RecruitmentPage: React.FC = () => {
               pagination={{ pageSize: 10 }}
             />
           </TabPane>
-<<<<<<< HEAD
-          <TabPane tab={<span><RobotOutlined /> AI分析</span>} key="ai">
-            <Empty description="选择简历后进行AI分析">
-              <Button type="primary" icon={<RobotOutlined />} onClick={() => setActiveTab('resumes')}>
-=======
           <TabPane
             tab={
               <span>
@@ -547,7 +493,6 @@ const RecruitmentPage: React.FC = () => {
                 icon={<RobotOutlined />}
                 onClick={() => setActiveTab('resumes')}
               >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 去添加简历
               </Button>
             </Empty>
@@ -628,13 +573,6 @@ const RecruitmentPage: React.FC = () => {
         }}
         width={700}
         footer={[
-<<<<<<< HEAD
-          <Button key="parse" onClick={handleParseResume} loading={parseLoading} icon={<RobotOutlined />}>
-            AI解析
-          </Button>,
-          <Button key="cancel" onClick={() => setResumeModalVisible(false)}>取消</Button>,
-          <Button key="submit" type="primary" onClick={() => resumeForm.submit()}>保存</Button>,
-=======
           <Button
             key="parse"
             onClick={handleParseResume}
@@ -649,7 +587,6 @@ const RecruitmentPage: React.FC = () => {
           <Button key="submit" type="primary" onClick={() => resumeForm.submit()}>
             保存
           </Button>,
->>>>>>> 962968886be726cd434c792933b5515366d34518
         ]}
       >
         <Form form={resumeForm} layout="vertical" onFinish={handleCreateResume}>
@@ -658,13 +595,9 @@ const RecruitmentPage: React.FC = () => {
               <Form.Item name="jobId" label="投递岗位" rules={[{ required: true }]}>
                 <Select placeholder="选择岗位">
                   {jobs.map(job => (
-<<<<<<< HEAD
-                    <Select.Option key={job.id} value={job.id}>{job.title}</Select.Option>
-=======
                     <Select.Option key={job.id} value={job.id}>
                       {job.title}
                     </Select.Option>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   ))}
                 </Select>
               </Form.Item>
@@ -711,17 +644,6 @@ const RecruitmentPage: React.FC = () => {
               <Descriptions.Item label="姓名">{parsedData.name || '-'}</Descriptions.Item>
               <Descriptions.Item label="电话">{parsedData.phone || '-'}</Descriptions.Item>
               <Descriptions.Item label="学历">{parsedData.education || '-'}</Descriptions.Item>
-<<<<<<< HEAD
-              <Descriptions.Item label="工作年限">{parsedData.workExperience || '-'}</Descriptions.Item>
-              <Descriptions.Item label="当前公司" span={2}>{parsedData.currentCompany || '-'}</Descriptions.Item>
-              <Descriptions.Item label="当前职位" span={2}>{parsedData.currentPosition || '-'}</Descriptions.Item>
-              <Descriptions.Item label="技能" span={2}>
-                {parsedData.skills?.map((s: string, i: number) => (
-                  <Tag key={i} color="blue">{s}</Tag>
-                )) || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="个人简介" span={2}>{parsedData.summary || '-'}</Descriptions.Item>
-=======
               <Descriptions.Item label="工作年限">
                 {parsedData.workExperience || '-'}
               </Descriptions.Item>
@@ -741,7 +663,6 @@ const RecruitmentPage: React.FC = () => {
               <Descriptions.Item label="个人简介" span={2}>
                 {parsedData.summary || '-'}
               </Descriptions.Item>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </Descriptions>
           </>
         )}
@@ -759,13 +680,9 @@ const RecruitmentPage: React.FC = () => {
         <div style={{ marginBottom: 16 }}>
           {aiQuestions.map((q, i) => (
             <Card key={i} size="small" style={{ marginBottom: 8 }}>
-<<<<<<< HEAD
-              <Text strong>Q{i + 1}: {q}</Text>
-=======
               <Text strong>
                 Q{i + 1}: {q}
               </Text>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </Card>
           ))}
         </div>

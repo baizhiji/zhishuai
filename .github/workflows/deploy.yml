@@ -1,62 +1,149 @@
-name: Deploy to Server
+# zhishuai AI SaaS - Deploy Pipeline
+name: Deploy to Production
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests?'
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+  SERVER_IP: 150.109.60.130
+  SERVER_USER: root
+  DEPLOY_DIR: /var/www/zhishuai
 
 jobs:
-  deploy:
+  # ============================================================
+  # Gate: Run CI checks first
+  # ============================================================
+  gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
-    
+    if: ${{ !inputs.skip_tests }}
+    defaults:
+      run:
+        working-directory: server
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          
-      - name: Install dependencies
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+      - run: npm test -- --passWithNoTests
+
+  # ============================================================
+  # Deploy: Build + Upload + Remote Deploy
+  # ============================================================
+  deploy:
+    name: Deploy to ${{ env.SERVER_IP }}
+    runs-on: ubuntu-latest
+    needs: ${{ inputs.skip_tests && [] || ['gate'] }}
+    if: ${{ !failure() && !cancelled() }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install sshpass & rsync
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass rsync
+
+      # ---- Server Build ----
+      - name: Build Server
         run: |
           cd server
-          npm install
-          
-      - name: Generate Prisma Client
-        run: |
-          cd server
+          npm ci
           npx prisma generate
-          
-      - name: Deploy to server
-        env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
+          npx tsc
+
+      # ---- Web Build ----
+      - name: Build Web
         run: |
-          # Install sshpass
-          apt-get update && apt-get install -y sshpass rsync
-          
-          # Test SSH connection
-          echo "Testing SSH connection..."
-          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 $SERVER_USER@$SERVER_IP "echo 'SSH OK'; pwd"
-          
-          # Create remote directory
-          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "mkdir -p /home/ubuntu/zhishuai-server"
-          
-          # Stop current service
-          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "pkill -f tsx || true; pkill -f node || true; echo 'Services stopped'"
-          
-          # Sync files
-          sshpass -p '$SERVER_PASSWORD' rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'dist' -e "ssh -o StrictHostKeyChecking=no" ./server/ $SERVER_USER@$SERVER_IP:/home/ubuntu/zhishuai-server/ || echo "Rsync completed"
-          
-          # Install dependencies and restart
-          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "cd /home/ubuntu/zhishuai-server && npm install && npx prisma generate && (nohup npx tsx src/index.ts > /tmp/server.log 2>&1 &)"
-          
-      - name: Verify deployment
+          cd web
+          npm ci
+          npm run build
         env:
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+          NEXT_PUBLIC_API_BASE_URL: https://api.baizhiji.net/api
+          NEXT_PUBLIC_USE_MOCK: 'false'
+
+      # ---- Package & Upload ----
+      - name: Package & Upload
+        env:
+          SSH_PASS: ${{ secrets.SERVER_PASSWORD }}
         run: |
-          sleep 10
-          sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ubuntu@$SERVER_IP "curl -s http://localhost:3000/api/health || echo 'Service check done'"
+          # Package server (with dist)
+          tar --exclude='node_modules' --exclude='src' --exclude='.git' -czf /tmp/server.tar.gz server/
+          
+          # Package web (with .next)
+          tar --exclude='node_modules' --exclude='src' --exclude='.git' -czf /tmp/web.tar.gz web/
+          
+          # Upload
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no /tmp/server.tar.gz ${{ env.SERVER_USER }}@${{ env.SERVER_IP }}:/tmp/
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no /tmp/web.tar.gz ${{ env.SERVER_USER }}@${{ env.SERVER_IP }}:/tmp/
+          sshpass -p "$SSH_PASS" scp -o StrictHostKeyChecking=no deploy/deploy.sh ${{ env.SERVER_USER }}@${{ env.SERVER_IP }}:/tmp/
+
+      # ---- Remote Deploy ----
+      - name: Remote Deploy
+        env:
+          SSH_PASS: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no ${{ env.SERVER_USER }}@${{ env.SERVER_IP }} bash << 'REMOTE_SCRIPT'
+            set -e
+            
+            # Extract
+            cd ${{ env.DEPLOY_DIR }}
+            tar -xzf /tmp/server.tar.gz --overwrite
+            tar -xzf /tmp/web.tar.gz --overwrite
+            
+            # Install server deps & restart
+            cd server
+            npm ci --production
+            npx prisma generate
+            pm2 delete zhishuai-api 2>/dev/null || true
+            pm2 start dist/index.js --name zhishuai-api --node-args="--max-old-space-size=512"
+            
+            # Install web deps & restart
+            cd ../web
+            npm ci --production
+            pm2 delete zhishuai-web 2>/dev/null || true
+            pm2 start node_modules/.bin/next --name zhishuai-web -- start -p 3000
+            
+            # Reload Nginx
+            nginx -t && systemctl reload nginx
+            
+            # Save PM2
+            pm2 save
+            
+            # Cleanup
+            rm -f /tmp/server.tar.gz /tmp/web.tar.gz
+            
+            echo "DEPLOY_SUCCESS"
+          REMOTE_SCRIPT
+
+      # ---- Verify ----
+      - name: Verify Deployment
+        env:
+          SSH_PASS: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          sleep 5
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no ${{ env.SERVER_USER }}@${{ env.SERVER_IP }} "
+            echo '=== PM2 Status ==='
+            pm2 status
+            echo ''
+            echo '=== Health Check ==='
+            curl -sf http://localhost:3001/api/health && echo '' || echo 'API health check failed'
+            curl -sf -o /dev/null -w 'Web: %{http_code}\n' http://localhost:3000 || echo 'Web check failed'
+          "

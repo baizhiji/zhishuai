@@ -75,12 +75,8 @@ export default function ProfilePage() {
                 </Upload>
               </div>
               <p style={{ marginTop: 16, color: '#999', fontSize: 12 }}>
-<<<<<<< HEAD
-                支持 JPG、PNG 格式<br />
-=======
                 支持 JPG、PNG 格式
                 <br />
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 文件小于 2MB
               </p>
             </div>
@@ -91,15 +87,6 @@ export default function ProfilePage() {
               <p style={{ margin: 0, fontSize: 16, fontWeight: 'bold' }}>{user?.name}</p>
               <p style={{ margin: '8px 0 0', color: '#666' }}>{user?.phone}</p>
               <div style={{ marginTop: 8 }}>
-<<<<<<< HEAD
-                <span style={{ 
-                  padding: '4px 12px', 
-                  background: user?.role === 'admin' ? '#ff4d4f' : user?.role === 'agent' ? '#1890ff' : '#52c41a',
-                  color: '#fff',
-                  borderRadius: 4,
-                  fontSize: 12
-                }}>
-=======
                 <span
                   style={{
                     padding: '4px 12px',
@@ -114,7 +101,6 @@ export default function ProfilePage() {
                     fontSize: 12,
                   }}
                 >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   {user?.role === 'admin' ? '管理员' : user?.role === 'agent' ? '代理商' : '用户'}
                 </span>
               </div>
@@ -124,15 +110,7 @@ export default function ProfilePage() {
 
         <Col span={16}>
           <Card title="基本信息">
-<<<<<<< HEAD
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleUpdateProfile}
-            >
-=======
             <Form form={form} layout="vertical" onFinish={handleUpdateProfile}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item name="name" label="姓名">
@@ -168,15 +146,7 @@ export default function ProfilePage() {
           </Card>
 
           <Card title="修改密码" style={{ marginTop: 16 }}>
-<<<<<<< HEAD
-            <Form
-              form={passwordForm}
-              layout="vertical"
-              onFinish={handleChangePassword}
-            >
-=======
             <Form form={passwordForm} layout="vertical" onFinish={handleChangePassword}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <Form.Item
                 name="oldPassword"
                 label="当前密码"
@@ -190,11 +160,7 @@ export default function ProfilePage() {
                 label="新密码"
                 rules={[
                   { required: true, message: '请输入新密码' },
-<<<<<<< HEAD
-                  { min: 6, message: '密码至少6位' }
-=======
                   { min: 6, message: '密码至少6位' },
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 ]}
               >
                 <Input.Password prefix={<LockOutlined />} placeholder="请输入新密码" />

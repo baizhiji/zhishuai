@@ -1,16 +1,8 @@
-<<<<<<< HEAD
-'use client'
-
-import { useState, useEffect } from 'react'
-=======
 'use client';
 
 import { useState, useEffect } from 'react';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   Card,
-  Row,
-  Col,
   Typography,
   Button,
   Space,
@@ -18,63 +10,42 @@ import {
   Tag,
   Modal,
   message,
-  Image,
   Upload,
   Form,
   Input,
   Select,
   Radio,
-  Divider,
   Avatar,
   Popconfirm,
   Empty,
   Tabs,
-<<<<<<< HEAD
-} from 'antd'
-=======
+  Spin,
 } from 'antd';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   PlusOutlined,
   UploadOutlined,
   DeleteOutlined,
-  EditOutlined,
   VideoCameraOutlined,
   CameraOutlined,
   RobotOutlined,
   ApiOutlined,
-  CheckCircleOutlined,
-<<<<<<< HEAD
-} from '@ant-design/icons'
-import { DigitalHuman, DigitalHumanType } from '@/lib/content/types'
-
-const { Title, Text } = Typography
-
-export default function DigitalHumanWarehousePage() {
-  const [digitalHumans, setDigitalHumans] = useState<DigitalHuman[]>([])
-  const [isAddModalVisible, setIsAddModalVisible] = useState(false)
-  const [isApiModalVisible, setIsApiModalVisible] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('all')
-
-  // 从 localStorage 加载数字人数据
-  useEffect(() => {
-    loadDigitalHumans()
-  }, [])
-
-  const loadDigitalHumans = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('digital-humans')
-      if (saved) {
-        try {
-          setDigitalHumans(JSON.parse(saved))
-        } catch (error) {
-          console.error('加载数字人失败:', error)
-=======
 } from '@ant-design/icons';
-import { DigitalHuman, DigitalHumanType } from '@/lib/content/types';
+import request from '@/utils/request';
 
 const { Title, Text } = Typography;
+
+interface DigitalHuman {
+  id: string;
+  name: string;
+  type: string;
+  avatar: string;
+  gender?: string;
+  ageRange?: string;
+  style?: string;
+  status: string;
+  tags?: string[];
+  createdAt: string;
+}
 
 export default function DigitalHumanWarehousePage() {
   const [digitalHumans, setDigitalHumans] = useState<DigitalHuman[]>([]);
@@ -83,602 +54,136 @@ export default function DigitalHumanWarehousePage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
 
-  // 从 localStorage 加载数字人数据
   useEffect(() => {
     loadDigitalHumans();
   }, []);
 
-  const loadDigitalHumans = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('digital-humans');
-      if (saved) {
-        try {
-          setDigitalHumans(JSON.parse(saved));
-        } catch (error) {
-          console.error('加载数字人失败:', error);
->>>>>>> 962968886be726cd434c792933b5515366d34518
-        }
-      }
-
-      // 初始化系统自带数字人
-<<<<<<< HEAD
-      initializeSystemDigitalHumans()
-    }
-  }
-=======
-      initializeSystemDigitalHumans();
-    }
-  };
->>>>>>> 962968886be726cd434c792933b5515366d34518
-
-  const initializeSystemDigitalHumans = () => {
-    if (typeof window !== 'undefined') {
-      const systemHumans: DigitalHuman[] = [
-<<<<<<< HEAD
-        {
-          id: 'system_male_1',
-          name: '商务男1',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150?text=男1',
-          gender: 'male',
-          ageRange: '30-35',
-          style: '商务',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_1',
-          name: '商务女1',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150?text=女1',
-          gender: 'female',
-          ageRange: '28-32',
-          style: '商务',
-=======
-        // 商务风格 - 男
-        {
-          id: 'system_male_1',
-          name: '商务精英-沉稳',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/1e3a5f/ffffff?text=商务男1',
-          gender: 'male',
-          ageRange: '35-40',
-          style: '商务精英',
->>>>>>> 962968886be726cd434c792933b5515366d34518
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_2',
-<<<<<<< HEAD
-          name: '活泼男1',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150?text=男2',
-          gender: 'male',
-          ageRange: '25-30',
-          style: '活泼',
-=======
-          name: '商务精英-活力',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/2563eb/ffffff?text=商务男2',
-          gender: 'male',
-          ageRange: '30-35',
-          style: '商务精英',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_3',
-          name: '知识博主',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/0891b2/ffffff?text=知识男',
-          gender: 'male',
-          ageRange: '32-38',
-          style: '知识分享',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_4',
-          name: '科技达人的',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/6366f1/ffffff?text=科技男',
-          gender: 'male',
-          ageRange: '28-33',
-          style: '科技数码',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        // 商务风格 - 女
-        {
-          id: 'system_female_1',
-          name: '职场女强人',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/be185d/ffffff?text=职场女1',
-          gender: 'female',
-          ageRange: '30-35',
-          style: '职场精英',
->>>>>>> 962968886be726cd434c792933b5515366d34518
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_2',
-<<<<<<< HEAD
-          name: '活泼女1',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150?text=女2',
-          gender: 'female',
-          ageRange: '23-28',
-          style: '活泼',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-      ]
-
-      // 合并系统数字人和已存在的数字人
-      const existing = localStorage.getItem('digital-humans')
-      const existingHumans = existing ? JSON.parse(existing) : []
-
-      // 过滤出非系统数字人
-      const nonSystemHumans = existingHumans.filter((h: DigitalHuman) => h.type !== DigitalHumanType.SYSTEM)
-
-      // 合并
-      const allHumans = [...systemHumans, ...nonSystemHumans]
-      localStorage.setItem('digital-humans', JSON.stringify(allHumans))
-      setDigitalHumans(allHumans)
-    }
-  }
-
-  // 上传真人照片克隆
-  const handlePhotoClone = async (values: any) => {
-    setLoading(true)
-    try {
-      // 模拟克隆过程
-      await new Promise(resolve => setTimeout(resolve, 2000))
-=======
-          name: '知性女神',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/db2777/ffffff?text=知性女',
-          gender: 'female',
-          ageRange: '28-33',
-          style: '知性优雅',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_3',
-          name: '美妆达人',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/ec4899/ffffff?text=美妆女',
-          gender: 'female',
-          ageRange: '25-30',
-          style: '美妆时尚',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_4',
-          name: '健身教练',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/f43f5e/ffffff?text=健身女',
-          gender: 'female',
-          ageRange: '26-32',
-          style: '运动健身',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        // 活泼风格 - 男
-        {
-          id: 'system_male_5',
-          name: '阳光男孩',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/22c55e/ffffff?text=阳光男',
-          gender: 'male',
-          ageRange: '22-27',
-          style: '阳光活力',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_6',
-          name: '搞笑达人',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/84cc16/ffffff?text=搞笑男',
-          gender: 'male',
-          ageRange: '24-30',
-          style: '幽默搞笑',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_7',
-          name: '美食博主',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/f97316/ffffff?text=美食男',
-          gender: 'male',
-          ageRange: '26-32',
-          style: '美食生活',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_8',
-          name: '旅游达人',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/14b8a6/ffffff?text=旅游男',
-          gender: 'male',
-          ageRange: '28-34',
-          style: '旅游出行',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        // 活泼风格 - 女
-        {
-          id: 'system_female_5',
-          name: '甜系少女',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/f472b6/ffffff?text=甜系女',
-          gender: 'female',
-          ageRange: '20-25',
-          style: '甜美可爱',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_6',
-          name: '萌系主播',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/a855f7/ffffff?text=萌系女',
-          gender: 'female',
-          ageRange: '22-27',
-          style: '萌系可爱',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_7',
-          name: '家居博主',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/8b5cf6/ffffff?text=家居女',
-          gender: 'female',
-          ageRange: '28-35',
-          style: '家居生活',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_8',
-          name: '亲子妈妈',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/06b6d4/ffffff?text=亲子女',
-          gender: 'female',
-          ageRange: '30-36',
-          style: '亲子育儿',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        // 专业风格 - 男
-        {
-          id: 'system_male_9',
-          name: '金融分析师',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/0d9488/ffffff?text=金融男',
-          gender: 'male',
-          ageRange: '33-40',
-          style: '金融财经',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_10',
-          name: '法律顾问',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/4338ca/ffffff?text=法律男',
-          gender: 'male',
-          ageRange: '35-42',
-          style: '法律咨询',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_11',
-          name: '医疗专家',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/dc2626/ffffff?text=医疗男',
-          gender: 'male',
-          ageRange: '38-45',
-          style: '医疗健康',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_male_12',
-          name: '教育培训师',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/ea580c/ffffff?text=教育男',
-          gender: 'male',
-          ageRange: '30-38',
-          style: '教育培训',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        // 专业风格 - 女
-        {
-          id: 'system_female_9',
-          name: '金融女神',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/059669/ffffff?text=金融女',
-          gender: 'female',
-          ageRange: '30-36',
-          style: '金融财经',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_10',
-          name: '律政佳人',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/7c3aed/ffffff?text=法律女',
-          gender: 'female',
-          ageRange: '32-38',
-          style: '法律咨询',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_11',
-          name: '医疗护士',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/e11d48/ffffff?text=医疗女',
-          gender: 'female',
-          ageRange: '28-35',
-          style: '医疗健康',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-        {
-          id: 'system_female_12',
-          name: '培训讲师',
-          type: DigitalHumanType.SYSTEM,
-          avatar: 'https://via.placeholder.com/150/d97706/ffffff?text=培训女',
-          gender: 'female',
-          ageRange: '30-36',
-          style: '教育培训',
-          createdAt: Date.now(),
-          status: 'active',
-        },
-      ];
-
-      // 合并系统数字人和已存在的数字人
-      const existing = localStorage.getItem('digital-humans');
-      const existingHumans = existing ? JSON.parse(existing) : [];
-
-      // 过滤出非系统数字人
-      const nonSystemHumans = existingHumans.filter(
-        (h: DigitalHuman) => h.type !== DigitalHumanType.SYSTEM
-      );
-
-      // 合并
-      const allHumans = [...systemHumans, ...nonSystemHumans];
-      localStorage.setItem('digital-humans', JSON.stringify(allHumans));
-      setDigitalHumans(allHumans);
-    }
-  };
-
-  // 上传真人照片克隆
-  const handlePhotoClone = async (values: any) => {
+  const loadDigitalHumans = async () => {
     setLoading(true);
     try {
-      // 模拟克隆过程
-      await new Promise(resolve => setTimeout(resolve, 2000));
->>>>>>> 962968886be726cd434c792933b5515366d34518
-
-      const newHuman: DigitalHuman = {
-        id: `cloned_photo_${Date.now()}`,
-        name: values.name || `克隆数字人-${digitalHumans.length + 1}`,
-        type: DigitalHumanType.CLONED,
-        avatar: 'https://via.placeholder.com/150?text=克隆',
-        gender: values.gender,
-        ageRange: values.ageRange,
-        style: values.style,
-        createdAt: Date.now(),
-        status: 'active',
-<<<<<<< HEAD
+      const res = await request.get('/digital-human/humans');
+      if (res.data?.success !== false) {
+        setDigitalHumans(res.data?.data || res.data || []);
       }
-
-      const updatedHumans = [...digitalHumans, newHuman]
-      setDigitalHumans(updatedHumans)
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans))
-
-      setIsAddModalVisible(false)
-      message.success('数字人克隆成功！')
-    } catch (error) {
-      message.error('克隆失败，请重试')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 上传真人视频克隆
-  const handleVideoClone = async (values: any) => {
-    setLoading(true)
-    try {
-      // 模拟克隆过程
-      await new Promise(resolve => setTimeout(resolve, 3000))
-=======
-      };
-
-      const updatedHumans = [...digitalHumans, newHuman];
-      setDigitalHumans(updatedHumans);
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans));
-
-      setIsAddModalVisible(false);
-      message.success('数字人克隆成功！');
-    } catch (error) {
-      message.error('克隆失败，请重试');
+    } catch (error: any) {
+      message.error(error.message || '加载数字人失败');
     } finally {
       setLoading(false);
     }
   };
 
-  // 上传真人视频克隆
-  const handleVideoClone = async (values: any) => {
+  const handlePhotoClone = async (values: any) => {
     setLoading(true);
     try {
-      // 模拟克隆过程
-      await new Promise(resolve => setTimeout(resolve, 3000));
->>>>>>> 962968886be726cd434c792933b5515366d34518
-
-      const newHuman: DigitalHuman = {
-        id: `cloned_video_${Date.now()}`,
-        name: values.name || `克隆数字人-${digitalHumans.length + 1}`,
-        type: DigitalHumanType.CLONED,
-        avatar: 'https://via.placeholder.com/150?text=视频克隆',
-        gender: values.gender,
-        ageRange: values.ageRange,
-        style: values.style,
-        createdAt: Date.now(),
-        status: 'active',
-<<<<<<< HEAD
+      const formData = new FormData();
+      if (values.photo?.[0]?.originFileObj) {
+        formData.append('photo', values.photo[0].originFileObj);
       }
+      formData.append('name', values.name);
+      formData.append('gender', values.gender);
+      formData.append('ageRange', values.ageRange);
+      formData.append('style', values.style);
+      formData.append('type', 'cloned_photo');
 
-      const updatedHumans = [...digitalHumans, newHuman]
-      setDigitalHumans(updatedHumans)
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans))
-
-      setIsAddModalVisible(false)
-      message.success('数字人克隆成功！')
-    } catch (error) {
-      message.error('克隆失败，请重试')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // 从API调用数字人
-  const handleApiCall = async (values: any) => {
-    setLoading(true)
-    try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1500))
-=======
-      };
-
-      const updatedHumans = [...digitalHumans, newHuman];
-      setDigitalHumans(updatedHumans);
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans));
-
+      const res = await request.post('/digital-human/humans', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.success !== false) {
+        message.success('数字人克隆任务已提交，正在处理中');
+        loadDigitalHumans();
+      } else {
+        message.error(res.data?.error || '克隆失败');
+      }
       setIsAddModalVisible(false);
-      message.success('数字人克隆成功！');
-    } catch (error) {
-      message.error('克隆失败，请重试');
+    } catch (error: any) {
+      message.error(error.message || '克隆失败，请重试');
     } finally {
       setLoading(false);
     }
   };
 
-  // 从API调用数字人
+  const handleVideoClone = async (values: any) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      if (values.video?.[0]?.originFileObj) {
+        formData.append('video', values.video[0].originFileObj);
+      }
+      formData.append('name', values.name);
+      formData.append('gender', values.gender);
+      formData.append('ageRange', values.ageRange);
+      formData.append('style', values.style);
+      formData.append('type', 'cloned_video');
+
+      const res = await request.post('/digital-human/humans', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.success !== false) {
+        message.success('数字人克隆任务已提交，正在处理中');
+        loadDigitalHumans();
+      } else {
+        message.error(res.data?.error || '克隆失败');
+      }
+      setIsAddModalVisible(false);
+    } catch (error: any) {
+      message.error(error.message || '克隆失败，请重试');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleApiCall = async (values: any) => {
     setLoading(true);
     try {
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 1500));
->>>>>>> 962968886be726cd434c792933b5515366d34518
-
-      const newHuman: DigitalHuman = {
-        id: `api_${Date.now()}`,
-        name: values.name || `API数字人-${digitalHumans.length + 1}`,
-        type: DigitalHumanType.API,
-        avatar: 'https://via.placeholder.com/150?text=API',
+      const res = await request.post('/digital-human/humans', {
+        name: values.name,
         gender: values.gender,
         ageRange: values.ageRange,
         style: values.style,
-        createdAt: Date.now(),
-        status: 'active',
-<<<<<<< HEAD
+        type: 'api',
+        provider: values.provider,
+        apiHumanId: values.apiHumanId,
+      });
+      if (res.data?.success !== false) {
+        message.success('数字人添加成功');
+        loadDigitalHumans();
+      } else {
+        message.error(res.data?.error || '添加失败');
       }
-
-      const updatedHumans = [...digitalHumans, newHuman]
-      setDigitalHumans(updatedHumans)
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans))
-
-      setIsApiModalVisible(false)
-      message.success('数字人添加成功！')
-    } catch (error) {
-      message.error('添加失败，请重试')
-    } finally {
-      setLoading(false)
-    }
-  }
-=======
-      };
-
-      const updatedHumans = [...digitalHumans, newHuman];
-      setDigitalHumans(updatedHumans);
-      localStorage.setItem('digital-humans', JSON.stringify(updatedHumans));
-
       setIsApiModalVisible(false);
-      message.success('数字人添加成功！');
-    } catch (error) {
-      message.error('添加失败，请重试');
+    } catch (error: any) {
+      message.error(error.message || '添加失败，请重试');
     } finally {
       setLoading(false);
     }
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
-  // 删除数字人
-  const handleDelete = (id: string) => {
-    if (id.startsWith('system_')) {
-<<<<<<< HEAD
-      message.warning('系统自带数字人不能删除')
-      return
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await request.delete(`/digital-human/humans/${id}`);
+      if (res.data?.success !== false) {
+        message.success('已删除');
+        loadDigitalHumans();
+      } else {
+        message.error(res.data?.error || '删除失败');
+      }
+    } catch (error: any) {
+      message.error(error.message || '删除失败');
     }
-
-    const newHumans = digitalHumans.filter((h) => h.id !== id)
-    setDigitalHumans(newHumans)
-    localStorage.setItem('digital-humans', JSON.stringify(newHumans))
-    message.success('已删除')
-  }
-
-  // 筛选数字人
-  const filteredHumans = digitalHumans.filter((human) => {
-    if (activeTab === 'all') return true
-    return human.type === activeTab
-  })
-=======
-      message.warning('系统自带数字人不能删除');
-      return;
-    }
-
-    const newHumans = digitalHumans.filter(h => h.id !== id);
-    setDigitalHumans(newHumans);
-    localStorage.setItem('digital-humans', JSON.stringify(newHumans));
-    message.success('已删除');
   };
 
-  // 筛选数字人
   const filteredHumans = digitalHumans.filter(human => {
     if (activeTab === 'all') return true;
     return human.type === activeTab;
   });
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
-  // 表格列定义
   const columns = [
     {
       title: '头像',
       dataIndex: 'avatar',
       key: 'avatar',
       width: 80,
-<<<<<<< HEAD
-      render: (avatar: string) => (
-        <Avatar src={avatar} size={60} />
-      ),
-=======
       render: (avatar: string) => <Avatar src={avatar} size={60} />,
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '名称',
@@ -687,13 +192,7 @@ export default function DigitalHumanWarehousePage() {
       render: (name: string, record: DigitalHuman) => (
         <Space>
           <Text strong>{name}</Text>
-<<<<<<< HEAD
-          {record.type === DigitalHumanType.SYSTEM && (
-            <Tag color="blue">系统自带</Tag>
-          )}
-=======
-          {record.type === DigitalHumanType.SYSTEM && <Tag color="blue">系统自带</Tag>}
->>>>>>> 962968886be726cd434c792933b5515366d34518
+          {record.type === 'system' && <Tag color="blue">系统自带</Tag>}
         </Space>
       ),
     },
@@ -702,27 +201,15 @@ export default function DigitalHumanWarehousePage() {
       dataIndex: 'type',
       key: 'type',
       width: 100,
-      render: (type: DigitalHumanType) => {
-        const typeMap = {
-          [DigitalHumanType.SYSTEM]: { label: '系统自带', color: 'blue', icon: <RobotOutlined /> },
-          [DigitalHumanType.CLONED]: { label: '克隆', color: 'green', icon: <CameraOutlined /> },
-          [DigitalHumanType.API]: { label: 'API', color: 'purple', icon: <ApiOutlined /> },
-<<<<<<< HEAD
-        }
-        const config = typeMap[type]
-=======
+      render: (type: string) => {
+        const typeMap: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+          system: { label: '系统自带', color: 'blue', icon: <RobotOutlined /> },
+          cloned_photo: { label: '照片克隆', color: 'green', icon: <CameraOutlined /> },
+          cloned_video: { label: '视频克隆', color: 'cyan', icon: <VideoCameraOutlined /> },
+          api: { label: 'API', color: 'purple', icon: <ApiOutlined /> },
         };
-        const config = typeMap[type];
->>>>>>> 962968886be726cd434c792933b5515366d34518
-        return (
-          <Tag color={config.color} icon={config.icon}>
-            {config.label}
-          </Tag>
-<<<<<<< HEAD
-        )
-=======
-        );
->>>>>>> 962968886be726cd434c792933b5515366d34518
+        const config = typeMap[type] || { label: type, color: 'default', icon: null };
+        return <Tag color={config.color} icon={config.icon}>{config.label}</Tag>;
       },
     },
     {
@@ -730,11 +217,7 @@ export default function DigitalHumanWarehousePage() {
       dataIndex: 'gender',
       key: 'gender',
       width: 80,
-<<<<<<< HEAD
-      render: (gender: string) => gender === 'male' ? '男' : '女',
-=======
-      render: (gender: string) => (gender === 'male' ? '男' : '女'),
->>>>>>> 962968886be726cd434c792933b5515366d34518
+      render: (gender: string) => gender === 'male' ? '男' : gender === 'female' ? '女' : '-',
     },
     {
       title: '年龄范围',
@@ -760,34 +243,13 @@ export default function DigitalHumanWarehousePage() {
       ),
     },
     {
-<<<<<<< HEAD
-=======
-      title: '标签',
-      dataIndex: 'tags',
-      key: 'tags',
-      width: 200,
-      render: (_: any, record: DigitalHuman) => (
-        <Space wrap size={4}>
-          {(record as any).tags?.map((tag: string) => (
-            <Tag key={tag} color="blue">{tag}</Tag>
-          )) || '-'}
-        </Space>
-      ),
-    },
-    {
->>>>>>> 962968886be726cd434c792933b5515366d34518
       title: '操作',
       key: 'action',
       width: 150,
       render: (_: any, record: DigitalHuman) => (
         <Space size="small">
-<<<<<<< HEAD
-          <Button type="link" size="small" icon={<EditOutlined />}>
-            编辑
-=======
           <Button type="link" size="small" icon={<VideoCameraOutlined />}>
             预览
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Button>
           <Popconfirm
             title="确定删除？"
@@ -795,374 +257,169 @@ export default function DigitalHumanWarehousePage() {
             okText="确定"
             cancelText="取消"
           >
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              disabled={record.type === DigitalHumanType.SYSTEM}
-            >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
           </Popconfirm>
         </Space>
       ),
     },
-<<<<<<< HEAD
-  ]
-=======
   ];
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
-      {/* 页面头部 */}
       <div className="mb-6">
         <Title level={2}>数字人仓库</Title>
-<<<<<<< HEAD
-        <Text type="secondary">
-          管理您的数字人，支持真人克隆、系统自带和API调用的数字人
-        </Text>
-=======
         <Text type="secondary">管理您的数字人，支持真人克隆、系统自带和API调用的数字人</Text>
->>>>>>> 962968886be726cd434c792933b5515366d34518
       </div>
 
-      {/* 操作按钮 */}
       <Card className="mb-4">
         <Space>
-<<<<<<< HEAD
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsAddModalVisible(true)}
-          >
-            克隆数字人
-          </Button>
-          <Button
-            icon={<ApiOutlined />}
-            onClick={() => setIsApiModalVisible(true)}
-          >
-=======
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsAddModalVisible(true)}>
             克隆数字人
           </Button>
           <Button icon={<ApiOutlined />} onClick={() => setIsApiModalVisible(true)}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             从API添加
           </Button>
-          <Button
-            icon={<VideoCameraOutlined />}
-<<<<<<< HEAD
-            onClick={() => window.location.href = '/media/factory'}
-=======
-            onClick={() => (window.location.href = '/media/factory')}
->>>>>>> 962968886be726cd434c792933b5515366d34518
-          >
+          <Button icon={<VideoCameraOutlined />} onClick={() => (window.location.href = '/media/factory')}>
             使用数字人生成视频
           </Button>
         </Space>
       </Card>
 
-      {/* 数字人列表 */}
       <Card>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
           items={[
-            {
-              key: 'all',
-              label: `全部 (${digitalHumans.length})`,
-            },
-            {
-              key: DigitalHumanType.SYSTEM,
-              label: `系统自带 (${digitalHumans.filter(h => h.type === DigitalHumanType.SYSTEM).length})`,
-            },
-            {
-              key: DigitalHumanType.CLONED,
-              label: `克隆 (${digitalHumans.filter(h => h.type === DigitalHumanType.CLONED).length})`,
-            },
-            {
-              key: DigitalHumanType.API,
-              label: `API (${digitalHumans.filter(h => h.type === DigitalHumanType.API).length})`,
-            },
+            { key: 'all', label: `全部 (${digitalHumans.length})` },
+            { key: 'system', label: `系统自带 (${digitalHumans.filter(h => h.type === 'system').length})` },
+            { key: 'cloned_photo', label: `照片克隆 (${digitalHumans.filter(h => h.type === 'cloned_photo').length})` },
+            { key: 'cloned_video', label: `视频克隆 (${digitalHumans.filter(h => h.type === 'cloned_video').length})` },
+            { key: 'api', label: `API (${digitalHumans.filter(h => h.type === 'api').length})` },
           ]}
         />
-
         <div className="mt-4">
-          {filteredHumans.length === 0 ? (
-            <Empty description="暂无数字人" />
-          ) : (
-            <Table
-              columns={columns}
-              dataSource={filteredHumans}
-              rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-<<<<<<< HEAD
-                showTotal: (total) => `共 ${total} 个数字人`,
-=======
-                showTotal: total => `共 ${total} 个数字人`,
->>>>>>> 962968886be726cd434c792933b5515366d34518
-              }}
-            />
-          )}
+          <Spin spinning={loading}>
+            {filteredHumans.length === 0 ? (
+              <Empty description="暂无数字人" />
+            ) : (
+              <Table
+                columns={columns}
+                dataSource={filteredHumans}
+                rowKey="id"
+                pagination={{ pageSize: 10, showSizeChanger: true, showTotal: total => `共 ${total} 个数字人` }}
+              />
+            )}
+          </Spin>
         </div>
       </Card>
 
-      {/* 克隆数字人模态框 */}
-      <Modal
-        title="克隆数字人"
-        open={isAddModalVisible}
-        onCancel={() => setIsAddModalVisible(false)}
-        footer={null}
-        width={600}
-      >
-        <Tabs
-          items={[
-            {
-              key: 'photo',
-              label: '照片克隆',
-              children: (
-                <Form layout="vertical" onFinish={handlePhotoClone}>
-                  <Form.Item
-                    label="上传真人照片"
-                    name="photo"
-                    rules={[{ required: true, message: '请上传照片' }]}
-                  >
-<<<<<<< HEAD
-                    <Upload
-                      listType="picture-card"
-                      maxCount={1}
-                      beforeUpload={() => false}
-                    >
-=======
-                    <Upload listType="picture-card" maxCount={1} beforeUpload={() => false}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
-                      <div>
-                        <CameraOutlined />
-                        <div style={{ marginTop: 8 }}>上传照片</div>
-                      </div>
-                    </Upload>
-                  </Form.Item>
-                  <Form.Item
-                    label="数字人名称"
-                    name="name"
-                    rules={[{ required: true, message: '请输入名称' }]}
-                  >
-                    <Input placeholder="为数字人起个名字" />
-                  </Form.Item>
-                  <Form.Item
-                    label="性别"
-                    name="gender"
-                    rules={[{ required: true, message: '请选择性别' }]}
-                  >
-                    <Radio.Group>
-                      <Radio value="male">男</Radio>
-                      <Radio value="female">女</Radio>
-                    </Radio.Group>
-                  </Form.Item>
-                  <Form.Item
-                    label="年龄范围"
-                    name="ageRange"
-                    rules={[{ required: true, message: '请选择年龄范围' }]}
-                  >
-                    <Select>
-                      <Select.Option value="18-25">18-25岁</Select.Option>
-                      <Select.Option value="25-30">25-30岁</Select.Option>
-                      <Select.Option value="30-35">30-35岁</Select.Option>
-                      <Select.Option value="35-40">35-40岁</Select.Option>
-                      <Select.Option value="40-50">40-50岁</Select.Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item
-                    label="风格"
-                    name="style"
-                    rules={[{ required: true, message: '请选择风格' }]}
-                  >
-                    <Select>
-                      <Select.Option value="商务">商务</Select.Option>
-                      <Select.Option value="活泼">活泼</Select.Option>
-                      <Select.Option value="亲和">亲和</Select.Option>
-                      <Select.Option value="专业">专业</Select.Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item>
-<<<<<<< HEAD
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                    >
-=======
-                    <Button type="primary" htmlType="submit" loading={loading} block>
->>>>>>> 962968886be726cd434c792933b5515366d34518
-                      开始克隆
-                    </Button>
-                  </Form.Item>
-                </Form>
-              ),
-            },
-            {
-              key: 'video',
-              label: '视频克隆',
-              children: (
-                <Form layout="vertical" onFinish={handleVideoClone}>
-                  <Form.Item
-                    label="上传真人视频"
-                    name="video"
-                    rules={[{ required: true, message: '请上传视频' }]}
-                  >
-<<<<<<< HEAD
-                    <Upload
-                      listType="text"
-                      maxCount={1}
-                      beforeUpload={() => false}
-                    >
-=======
-                    <Upload listType="text" maxCount={1} beforeUpload={() => false}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
-                      <Button icon={<UploadOutlined />}>选择视频文件</Button>
-                    </Upload>
-                  </Form.Item>
-                  <Form.Item
-                    label="数字人名称"
-                    name="name"
-                    rules={[{ required: true, message: '请输入名称' }]}
-                  >
-                    <Input placeholder="为数字人起个名字" />
-                  </Form.Item>
-                  <Form.Item
-                    label="性别"
-                    name="gender"
-                    rules={[{ required: true, message: '请选择性别' }]}
-                  >
-                    <Radio.Group>
-                      <Radio value="male">男</Radio>
-                      <Radio value="female">女</Radio>
-                    </Radio.Group>
-                  </Form.Item>
-                  <Form.Item
-                    label="年龄范围"
-                    name="ageRange"
-                    rules={[{ required: true, message: '请选择年龄范围' }]}
-                  >
-                    <Select>
-                      <Select.Option value="18-25">18-25岁</Select.Option>
-                      <Select.Option value="25-30">25-30岁</Select.Option>
-                      <Select.Option value="30-35">30-35岁</Select.Option>
-                      <Select.Option value="35-40">35-40岁</Select.Option>
-                      <Select.Option value="40-50">40-50岁</Select.Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item
-                    label="风格"
-                    name="style"
-                    rules={[{ required: true, message: '请选择风格' }]}
-                  >
-                    <Select>
-                      <Select.Option value="商务">商务</Select.Option>
-                      <Select.Option value="活泼">活泼</Select.Option>
-                      <Select.Option value="亲和">亲和</Select.Option>
-                      <Select.Option value="专业">专业</Select.Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item>
-<<<<<<< HEAD
-                    <Button
-                      type="primary"
-                      htmlType="submit"
-                      loading={loading}
-                      block
-                    >
-=======
-                    <Button type="primary" htmlType="submit" loading={loading} block>
->>>>>>> 962968886be726cd434c792933b5515366d34518
-                      开始克隆
-                    </Button>
-                  </Form.Item>
-                </Form>
-              ),
-            },
-          ]}
-        />
+      <Modal title="克隆数字人" open={isAddModalVisible} onCancel={() => setIsAddModalVisible(false)} footer={null} width={600}>
+        <Tabs items={[
+          {
+            key: 'photo',
+            label: '照片克隆',
+            children: (
+              <Form layout="vertical" onFinish={handlePhotoClone}>
+                <Form.Item label="上传真人照片" name="photo" rules={[{ required: true, message: '请上传照片' }]}>
+                  <Upload listType="picture-card" maxCount={1} beforeUpload={() => false}>
+                    <div><CameraOutlined /><div style={{ marginTop: 8 }}>上传照片</div></div>
+                  </Upload>
+                </Form.Item>
+                <Form.Item label="数字人名称" name="name" rules={[{ required: true, message: '请输入名称' }]}>
+                  <Input placeholder="为数字人起个名字" />
+                </Form.Item>
+                <Form.Item label="性别" name="gender" rules={[{ required: true, message: '请选择性别' }]}>
+                  <Radio.Group><Radio value="male">男</Radio><Radio value="female">女</Radio></Radio.Group>
+                </Form.Item>
+                <Form.Item label="年龄范围" name="ageRange" rules={[{ required: true, message: '请选择年龄范围' }]}>
+                  <Select>
+                    <Select.Option value="18-25">18-25岁</Select.Option>
+                    <Select.Option value="25-30">25-30岁</Select.Option>
+                    <Select.Option value="30-35">30-35岁</Select.Option>
+                    <Select.Option value="35-40">35-40岁</Select.Option>
+                    <Select.Option value="40-50">40-50岁</Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item label="风格" name="style" rules={[{ required: true, message: '请选择风格' }]}>
+                  <Select>
+                    <Select.Option value="商务">商务</Select.Option>
+                    <Select.Option value="活泼">活泼</Select.Option>
+                    <Select.Option value="亲和">亲和</Select.Option>
+                    <Select.Option value="专业">专业</Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item><Button type="primary" htmlType="submit" loading={loading} block>开始克隆</Button></Form.Item>
+              </Form>
+            ),
+          },
+          {
+            key: 'video',
+            label: '视频克隆',
+            children: (
+              <Form layout="vertical" onFinish={handleVideoClone}>
+                <Form.Item label="上传真人视频" name="video" rules={[{ required: true, message: '请上传视频' }]}>
+                  <Upload listType="text" maxCount={1} beforeUpload={() => false}>
+                    <Button icon={<UploadOutlined />}>选择视频文件</Button>
+                  </Upload>
+                </Form.Item>
+                <Form.Item label="数字人名称" name="name" rules={[{ required: true, message: '请输入名称' }]}>
+                  <Input placeholder="为数字人起个名字" />
+                </Form.Item>
+                <Form.Item label="性别" name="gender" rules={[{ required: true, message: '请选择性别' }]}>
+                  <Radio.Group><Radio value="male">男</Radio><Radio value="female">女</Radio></Radio.Group>
+                </Form.Item>
+                <Form.Item label="年龄范围" name="ageRange" rules={[{ required: true, message: '请选择年龄范围' }]}>
+                  <Select>
+                    <Select.Option value="18-25">18-25岁</Select.Option>
+                    <Select.Option value="25-30">25-30岁</Select.Option>
+                    <Select.Option value="30-35">30-35岁</Select.Option>
+                    <Select.Option value="35-40">35-40岁</Select.Option>
+                    <Select.Option value="40-50">40-50岁</Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item label="风格" name="style" rules={[{ required: true, message: '请选择风格' }]}>
+                  <Select>
+                    <Select.Option value="商务">商务</Select.Option>
+                    <Select.Option value="活泼">活泼</Select.Option>
+                    <Select.Option value="亲和">亲和</Select.Option>
+                    <Select.Option value="专业">专业</Select.Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item><Button type="primary" htmlType="submit" loading={loading} block>开始克隆</Button></Form.Item>
+              </Form>
+            ),
+          },
+        ]} />
       </Modal>
 
-      {/* API添加模态框 */}
-      <Modal
-        title="从API添加数字人"
-        open={isApiModalVisible}
-        onCancel={() => setIsApiModalVisible(false)}
-        footer={null}
-      >
+      <Modal title="从API添加数字人" open={isApiModalVisible} onCancel={() => setIsApiModalVisible(false)} footer={null}>
         <Form layout="vertical" onFinish={handleApiCall}>
-          <Form.Item
-            label="API提供商"
-            name="provider"
-            rules={[{ required: true, message: '请选择API提供商' }]}
-          >
+          <Form.Item label="API提供商" name="provider" rules={[{ required: true, message: '请选择API提供商' }]}>
             <Select>
-              <Select.Option value="provider1">API提供商1</Select.Option>
-              <Select.Option value="provider2">API提供商2</Select.Option>
-              <Select.Option value="provider3">API提供商3</Select.Option>
+              <Select.Option value="tencent">腾讯云TokenHub</Select.Option>
+              <Select.Option value="aliyun">阿里云百炼</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item
-            label="选择数字人"
-            name="apiHumanId"
-            rules={[{ required: true, message: '请选择数字人' }]}
-          >
-            <Select placeholder="从API选择数字人">
-              <Select.Option value="api1">数字人1</Select.Option>
-              <Select.Option value="api2">数字人2</Select.Option>
-              <Select.Option value="api3">数字人3</Select.Option>
-            </Select>
+          <Form.Item label="选择数字人" name="apiHumanId" rules={[{ required: true, message: '请选择数字人' }]}>
+            <Input placeholder="输入API数字人ID" />
           </Form.Item>
-          <Form.Item
-            label="数字人名称"
-            name="name"
-            rules={[{ required: true, message: '请输入名称' }]}
-          >
+          <Form.Item label="数字人名称" name="name" rules={[{ required: true, message: '请输入名称' }]}>
             <Input placeholder="为数字人起个名字" />
           </Form.Item>
-<<<<<<< HEAD
-          <Form.Item
-            label="性别"
-            name="gender"
-            rules={[{ required: true, message: '请选择性别' }]}
-          >
-=======
           <Form.Item label="性别" name="gender" rules={[{ required: true, message: '请选择性别' }]}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
-            <Radio.Group>
-              <Radio value="male">男</Radio>
-              <Radio value="female">女</Radio>
-            </Radio.Group>
+            <Radio.Group><Radio value="male">男</Radio><Radio value="female">女</Radio></Radio.Group>
           </Form.Item>
-          <Form.Item
-            label="年龄范围"
-            name="ageRange"
-            rules={[{ required: true, message: '请选择年龄范围' }]}
-          >
+          <Form.Item label="年龄范围" name="ageRange">
             <Select>
               <Select.Option value="18-25">18-25岁</Select.Option>
               <Select.Option value="25-30">25-30岁</Select.Option>
               <Select.Option value="30-35">30-35岁</Select.Option>
               <Select.Option value="35-40">35-40岁</Select.Option>
-              <Select.Option value="40-50">40-50岁</Select.Option>
             </Select>
           </Form.Item>
-<<<<<<< HEAD
-          <Form.Item
-            label="风格"
-            name="style"
-            rules={[{ required: true, message: '请选择风格' }]}
-          >
-=======
-          <Form.Item label="风格" name="style" rules={[{ required: true, message: '请选择风格' }]}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
+          <Form.Item label="风格" name="style">
             <Select>
               <Select.Option value="商务">商务</Select.Option>
               <Select.Option value="活泼">活泼</Select.Option>
@@ -1170,26 +427,9 @@ export default function DigitalHumanWarehousePage() {
               <Select.Option value="专业">专业</Select.Option>
             </Select>
           </Form.Item>
-          <Form.Item>
-<<<<<<< HEAD
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={loading}
-              block
-            >
-=======
-            <Button type="primary" htmlType="submit" loading={loading} block>
->>>>>>> 962968886be726cd434c792933b5515366d34518
-              添加数字人
-            </Button>
-          </Form.Item>
+          <Form.Item><Button type="primary" htmlType="submit" loading={loading} block>添加数字人</Button></Form.Item>
         </Form>
       </Modal>
     </div>
-<<<<<<< HEAD
-  )
-=======
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

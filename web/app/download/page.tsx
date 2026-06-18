@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Button, Space, Typography, message, Modal, Steps, Descriptions, Tag, Alert } from 'antd';
+import { Card, Button, Space, Typography, message, Modal, Steps, Descriptions, Tag, Alert, Image } from 'antd';
 import {
   AndroidOutlined,
   DownloadOutlined,
@@ -85,21 +85,10 @@ export default function DownloadPage() {
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{
-            width: 100,
-            height: 100,
-            borderRadius: 24,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 20px',
-            boxShadow: '0 12px 40px rgba(102, 126, 234, 0.4)',
-          }}>
-            <AndroidOutlined style={{ fontSize: 50, color: '#fff' }} />
-          </div>
+          <Image src="/logo.png" alt="智枢AI" width={100} height={100} preview={false}
+            style={{ borderRadius: 24, margin: '0 auto 20px', display: 'block', boxShadow: '0 12px 40px rgba(102, 126, 234, 0.4)' }} />
           <Title level={2} style={{ marginBottom: 8 }}>智枢AI</Title>
-          <Text type="secondary">智能内容创作与营销平台</Text>
+          <Text type="secondary">智能中枢 · AI驱动的一站式SaaS平台</Text>
         </div>
 
         {/* 下载按钮 */}

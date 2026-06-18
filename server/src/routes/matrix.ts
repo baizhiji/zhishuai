@@ -1,16 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
+router.use(authMiddleware);
 
 // 获取矩阵账号列表
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id;
-    if (!userId) {
-      return res.status(401).json({ success: false, error: '未授权' });
-    }
+    const userId = (req as AuthRequest).userId;
     const accounts = await prisma.matrixAccount.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },

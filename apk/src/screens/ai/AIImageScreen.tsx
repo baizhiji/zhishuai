@@ -11,8 +11,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Image,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import {
   generateImage,
@@ -226,7 +226,7 @@ export default function AIImageScreen({ navigation }: Props) {
               <Image
                 source={{ uri: imageUrl }}
                 style={styles.previewImage}
-                resizeMode="contain"
+                contentFit="contain"
               />
             </View>
           </View>

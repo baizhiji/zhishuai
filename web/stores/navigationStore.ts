@@ -16,6 +16,8 @@ export const useNavigationStore = create<NavigationStore>()(
         // 根据路径自动更新展开的菜单
         // 使用更精确的路径匹配
         const menuMapping: Record<string, string> = {
+          // 编程助手
+          '/code-assistant': 'code-assistant',
           // 自媒体运营
           '/media/factory': 'media',
           '/media/matrix': 'media',

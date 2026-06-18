@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Switch,
@@ -19,6 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as VideoPicker from 'expo-video-thumbnails';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -873,7 +873,7 @@ export default function AICreateDetailScreen() {
             {generatedUrls.map((url, index) => (
               <View key={index} style={styles.mediaContainer}>
                 {config.type === 'image' ? (
-                  <Image source={{ uri: url }} style={styles.generatedImage} resizeMode="contain" />
+                  <Image source={{ uri: url }} style={styles.generatedImage} contentFit="contain" />
                 ) : (
                   <View style={styles.videoPlaceholder}>
                     <Ionicons name="videocam" size={40} color="#64748b" />

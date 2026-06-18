@@ -1,12 +1,16 @@
+/**
+ * Admin: 贴牌配置管理
+ * 仅限 Admin 角色操作
+ */
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware, adminMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
-// ============================================
-// Admin: 贴牌配置管理
-// ============================================
+// 所有路由都需要 admin 权限
+router.use(authMiddleware, adminMiddleware);
 
 // 获取贴牌配置（租户级别）
 router.get('/branding', async (req, res) => {
@@ -93,7 +97,6 @@ router.post('/branding/:userId/logo', async (req, res) => {
 // 获取全局默认贴牌配置（Admin查看）
 router.get('/branding/default', async (req, res) => {
   try {
-    // 获取第一个有贴牌配置的用户，或者返回默认值
     let config = await prisma.brandingConfig.findFirst({
       orderBy: { createdAt: 'asc' }
     });

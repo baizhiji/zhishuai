@@ -29,49 +29,11 @@ interface Lead {
   tags: string[];
 }
 
-// 统计数据
-const stats = {
-  discover: 1256,
-  discoverChange: 15.8,
-  sent: 45892,
-  sentChange: 12.3,
-  scanned: 8934,
-  scannedChange: 8.5,
-  converted: 1523,
-  convertedChange: 18.2,
-};
+// 统计数据 - 已通过API动态获取
 
-// 漏斗数据
-const funnelData = [
-  { stage: '发送消息', count: 45892, rate: 100 },
-  { stage: '查看消息', count: 28934, rate: 63 },
-  { stage: '扫码次数', count: 8934, rate: 19 },
-  { stage: '成功转化', count: 1523, rate: 3.3 },
-];
+// 漏斗数据 - 已通过API动态获取
 
-// 渠道分布
-const channelData = [
-  { channel: '抖音', count: 1856, rate: 12.2, color: '#ff4757' },
-  { channel: '微信', count: 4567, rate: 30.0, color: '#07c160' },
-  { channel: '短信', count: 8934, rate: 58.7, color: '#4F46E5' },
-  { channel: '小红书', count: 1234, rate: 8.1, color: '#ff6b9d' },
-];
-
-// 模拟任务数据
-const mockTasks: Task[] = [
-  { id: '1', name: '新品推广活动', channel: 'douyin', status: 'running', progress: 78, sent: 1234, scanned: 456, converted: 78, startTime: '2024-03-25 10:30' },
-  { id: '2', name: '限时优惠引流', channel: 'wechat', status: 'running', progress: 55, sent: 2345, scanned: 876, converted: 156, startTime: '2024-03-25 09:15' },
-  { id: '3', name: '会员招募短信', channel: 'sms', status: 'completed', progress: 100, sent: 5678, scanned: 1234, converted: 234, startTime: '2024-03-24 14:20' },
-  { id: '4', name: '新品预约通知', channel: 'douyin', status: 'paused', progress: 45, sent: 987, scanned: 345, converted: 56, startTime: '2024-03-24 11:45' },
-];
-
-// 模拟线索数据
-const mockLeads: Lead[] = [
-  { id: '1', name: '张先生', phone: '138****1234', source: '抖音广告', status: 'new', createTime: '2024-03-25', tags: ['高意向', '北京'] },
-  { id: '2', name: '李女士', phone: '139****5678', source: '微信推广', status: 'contacted', createTime: '2024-03-25', tags: ['已咨询', '上海'] },
-  { id: '3', name: '王先生', phone: '137****9012', source: '短信链接', status: 'converted', createTime: '2024-03-24', tags: ['已付费', '深圳'] },
-  { id: '4', name: '刘女士', phone: '136****3456', source: '小红书', status: 'new', createTime: '2024-03-24', tags: ['高意向'] },
-];
+// 渠道分布 - 已通过API动态获取
 
 export default function AcquisitionScreen() {
   const { user } = useAuth();

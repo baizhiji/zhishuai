@@ -34,17 +34,9 @@ export async function getLogs(params?: {
   endDate?: string;
   keyword?: string;
 }) {
-<<<<<<< HEAD
-  return request.get('/api/admin/logs', params);
-}
-
-export async function getLogStats(days: number = 7): Promise<LogStats> {
-  return request.get('/api/admin/logs/stats', { days });
-=======
   return request.get('/api/admin/logs', { params });
 }
 
 export async function getLogStats(days: number = 7): Promise<LogStats> {
   return request.get('/api/admin/logs/stats', { params: { days } });
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

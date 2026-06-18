@@ -1,10 +1,10 @@
 /**
  * 内容自动生成服务
  * 匹配Web端'内容自动生成'功能
+ * 使用后端 /ai/generate, /ai/image 等真实路由
  */
-import apiClient from './api.client'
-import { apiConfig } from './api.config'
-import { Storage } from '../utils/tokenStorage'
+import { apiClient } from './api.client';
+import TokenStorage from '../utils/tokenStorage';
 
 // 内容分类
 export enum ContentCategory {
@@ -280,134 +280,82 @@ export interface GenerationRecord {
   status: 'success' | 'failed'
 }
 
-// 生成文本内容
+// 生成文本内容 - 使用后端 /ai/generate 路由
 export async function generateText(params: GenerateTextParams): Promise<{ output: { text: string } }> {
-  try {
-    const response = await apiClient.post('/content/generate', {
-      category: params.category,
-      type: 'text',
-      prompt: buildTextPrompt(params),
-      count: params.count || 1,
-      options: {
-        style: params.style,
-        wordCount: params.wordCount,
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        text: getMockText(params.category, params.description),
-      },
-    }
-  }
+  const response = await apiClient.post('/ai/generate', {
+    category: params.category,
+    type: 'text',
+    prompt: buildTextPrompt(params),
+    count: params.count || 1,
+    options: {
+      style: params.style,
+      wordCount: params.wordCount,
+    },
+  });
+  return response;
 }
 
-// 生成图片
+// 生成图片 - 使用后端 /ai/image 路由
 export async function generateImage(params: GenerateImageParams): Promise<{ output: { results: { url: string }[] } }> {
-  try {
-    const response = await apiClient.post('/content/generate', {
-      category: ContentCategory.IMAGE,
-      type: 'image',
-      prompt: `生成一张${params.style || '写实'}风格的图片，主题：${params.description}`,
-      options: {
-        size: params.size || '1024x1024',
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        results: [
-          {
-            url: `https://via.placeholder.com/1024x1024?text=AI生成图片-${params.description}`,
-          },
-        ],
-      },
-    }
-  }
+  const response = await apiClient.post('/ai/image', {
+    prompt: `生成一张${params.style || '写实'}风格的图片，主题：${params.description}`,
+    size: params.size || '1024x1024',
+  });
+  return response;
 }
 
-// 生成视频
+// 生成视频 - 使用后端 /ai/generate 路由
 export async function generateVideo(params: GenerateVideoParams): Promise<{ output: { url: string } }> {
-  try {
-    const response = await apiClient.post('/content/generate', {
-      category: params.category,
-      type: 'video',
-      prompt: params.description,
-      options: {
-        style: params.style,
-        size: params.size,
-        duration: params.duration,
-        subtitle: params.subtitle,
-        voiceover: params.voiceover,
-        bgm: params.bgm,
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        url: `https://via.placeholder.com/${params.size?.replace('x', '/') || '1920/1080'}?text=视频生成中...`,
-      },
-    }
-  }
+  const response = await apiClient.post('/ai/generate', {
+    category: params.category,
+    type: 'video',
+    prompt: params.description,
+    options: {
+      style: params.style,
+      size: params.size,
+      duration: params.duration,
+      subtitle: params.subtitle,
+      voiceover: params.voiceover,
+      bgm: params.bgm,
+    },
+  });
+  return response;
 }
 
-// 视频解析
+// 视频解析 - 使用后端 /ai/generate 路由 (video-analysis 类别)
 export async function analyzeVideo(params: VideoAnalysisParams): Promise<{ output: { url: string; analysis: string } }> {
-  try {
-    const response = await apiClient.post('/content/analyze-video', {
-      videoUrl: params.videoUrl,
-      dimensions: params.analysisDimensions,
-      viralElements: params.viralElements,
-      description: params.description,
-      options: {
-        size: params.size,
-        duration: params.duration,
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        url: `https://via.placeholder.com/${params.size?.replace('x', '/') || '1920/1080'}?text=爆款视频生成中...`,
-        analysis: `分析完成：该视频采用黄金3秒开头，包含多个转场效果，背景音乐为${params.viralElements.join('、')}。`,
-      },
-    }
-  }
+  const response = await apiClient.post('/ai/generate', {
+    category: ContentCategory.VIDEO_ANALYSIS,
+    type: 'video',
+    prompt: `解析视频 ${params.videoUrl}，分析维度：${params.analysisDimensions.join(',')}, 爆款元素：${params.viralElements.join(',')}, 描述：${params.description}`,
+    videoUrl: params.videoUrl,
+    dimensions: params.analysisDimensions,
+    viralElements: params.viralElements,
+    options: {
+      size: params.size,
+      duration: params.duration,
+    },
+  });
+  return response;
 }
 
-// 数字人视频
+// 数字人视频 - 使用后端 /ai/generate 路由
 export async function generateDigitalHumanVideo(params: DigitalHumanParams): Promise<{ output: { url: string } }> {
-  try {
-    const response = await apiClient.post('/content/generate', {
-      category: ContentCategory.DIGITAL_HUMAN,
-      type: 'video',
-      prompt: params.description,
-      options: {
-        digitalHumanId: params.digitalHumanId,
-        wordCount: params.wordCount,
-        size: params.size,
-        duration: params.duration,
-        subtitle: params.subtitle,
-        voiceover: params.voiceover,
-        bgm: params.bgm,
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        url: `https://via.placeholder.com/${params.size?.replace('x', '/') || '1080/1920'}?text=数字人视频-${params.digitalHumanId}`,
-      },
-    }
-  }
+  const response = await apiClient.post('/ai/generate', {
+    category: ContentCategory.DIGITAL_HUMAN,
+    type: 'video',
+    prompt: params.description,
+    options: {
+      digitalHumanId: params.digitalHumanId,
+      wordCount: params.wordCount,
+      size: params.size,
+      duration: params.duration,
+      subtitle: params.subtitle,
+      voiceover: params.voiceover,
+      bgm: params.bgm,
+    },
+  });
+  return response;
 }
 
 // 构建文本提示词
@@ -432,92 +380,6 @@ function buildTextPrompt(params: GenerateTextParams): string {
   }
 }
 
-// 获取Mock文本
-function getMockText(category: ContentCategory, description: string): string {
-  switch (category) {
-    case ContentCategory.TITLE:
-      return `1. 【爆款标题】${description}的惊人秘密！
-2. 为什么都在说${description}？看完你就懂了
-3. ${description}，99%的人都做错了
-4. 学会这招，${description}轻松搞定！
-5. ${description}全攻略，看完收藏！`
-    case ContentCategory.TAGS:
-      return `#${description} #热门话题 #必看推荐 #干货分享 #涨知识 #生活小技巧 #每日打卡 #一起成长`
-    case ContentCategory.COPYWRITING:
-      return `关于"${description}"的详细文案内容正在生成中...
-
-本文将从多个角度为您详细介绍${description}的相关内容。
-
-第一部分：基础介绍
-${description}是一个非常重要的概念，我们需要深入理解其核心含义。
-
-第二部分：实际应用
-在实际工作中，${description}可以帮助我们解决很多问题，提高工作效率。
-
-第三部分：注意事项
-使用${description}时，需要注意以下几点...
-
-第四部分：总结建议
-通过对${description}的学习和应用，我们可以更好地完成工作任务。`
-    case ContentCategory.IMAGE_TO_TEXT:
-      return `图片描述：这张图片展示了${description}的场景，画面清晰，色彩鲜明，主体突出。
-
-详细解读：
-- 场景：描述图片中的具体环境和背景
-- 主体：图片中的主要对象或人物
-- 细节：值得注意的特色细节
-- 氛围：整体传达的情感或氛围`
-    case ContentCategory.XIAOHONGSHU:
-      return `🌸✨ Hey宝贝们～今天来聊聊${description}呀！
-
-👀 先说说我的感受：
-真的是太棒了！完全超出预期！
-
-📝 具体体验：
-1️⃣ 第一点超赞的地方
-2️⃣ 第二点惊喜发现
-3️⃣ 第三点必须推荐
-
-💡 小tips：
-- 建议大家可以先从XX开始
-- 注意XX会更好哦
-- 最后一定要试试这个！
-
-❤️ 总结：
-真的超级推荐！答应我一定要试试！
-
-#${description} #生活分享 #好物推荐 #种草日记`
-    case ContentCategory.ECOMMERCE:
-      return `【产品名称】${description}
-
-【产品介绍】
-本产品是专为追求品质生活的您设计的优质产品。
-
-【核心卖点】
-✓ 品质保证
-✓ 性价比高
-✓ 实用性强
-✓ 外观精美
-
-【使用场景】
-- 日常使用
-- 送礼佳品
-- 收藏价值
-
-【用户评价】
-"非常好用，强烈推荐！" - 好评买家
-"超出预期，性价比超高！" - 回头客
-
-【购买建议】
-根据您的需求，推荐选择适合的规格和款式。
-
-【温馨提示】
-如有疑问，欢迎咨询客服，我们将为您提供专业的解答。`
-    default:
-      return `关于"${description}"的内容正在生成中...`
-  }
-}
-
 // 保存到素材库
 export async function saveToMaterials(
   category: ContentCategory,
@@ -525,16 +387,15 @@ export async function saveToMaterials(
   content: string
 ): Promise<boolean> {
   try {
-    const token = Storage.getToken()
-    const response = await apiClient.post('/materials', {
+    await apiClient.post('/materials', {
       category,
       title,
       content,
-    })
-    return response.data.success
+    });
+    return true;
   } catch (error) {
-    // Mock: 保存到本地
-    const materials = Storage.get('materials') || []
+    // 回退: 保存到本地
+    const materials = (await TokenStorage.get('materials')) || [];
     materials.push({
       id: `material_${Date.now()}`,
       category,
@@ -542,27 +403,28 @@ export async function saveToMaterials(
       content,
       timestamp: Date.now(),
       status: 'unused',
-    })
-    Storage.set('materials', materials)
-    return true
+    });
+    await TokenStorage.set('materials', materials);
+    return true;
   }
 }
 
 // 获取创作历史
-export function getGenerationHistory(): GenerationRecord[] {
-  return Storage.get('generation-history') || []
+export async function getGenerationHistory(): Promise<GenerationRecord[]> {
+  const history = await TokenStorage.get('generation-history');
+  return history || [];
 }
 
 // 保存创作历史
-export function saveGenerationHistory(record: GenerationRecord): void {
-  const history = getGenerationHistory()
-  const newHistory = [record, ...history].slice(0, 50)
-  Storage.set('generation-history', newHistory)
+export async function saveGenerationHistory(record: GenerationRecord): Promise<void> {
+  const history = await getGenerationHistory();
+  const newHistory = [record, ...history].slice(0, 50);
+  await TokenStorage.set('generation-history', newHistory);
 }
 
 // 删除创作历史
-export function deleteGenerationHistory(id: string): void {
-  const history = getGenerationHistory()
-  const newHistory = history.filter((r) => r.id !== id)
-  Storage.set('generation-history', newHistory)
+export async function deleteGenerationHistory(id: string): Promise<void> {
+  const history = await getGenerationHistory();
+  const newHistory = history.filter((r) => r.id !== id);
+  await TokenStorage.set('generation-history', newHistory);
 }

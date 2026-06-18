@@ -9,16 +9,28 @@
 ## 项目结构
 
 ```
-zhishuai/
-├── apk/                   # APK端（Android应用）
-├── web/                   # Web端（管理后台）
-├── backend/               # 后端服务
-├── shared/                # 共享代码
-│   ├── types/             # TypeScript类型定义
-│   ├── api/               # API配置
-│   └── utils/             # 工具函数
-├── docs/                  # 文档
-└── scripts/               # 脚本
+zhishuai/                          # 项目根目录
+├── apk/                           # APK端 - React Native/Expo (Android 应用)
+├── web/                           # WEB端 - Next.js 14 (管理后台 + 用户前台)
+├── server/                        # 后端服务 - Express + Prisma (API 服务)
+├── shared/                        # 共享代码
+│   ├── types/                     # TypeScript 类型定义
+│   ├── api/                       # API 配置
+│   └── utils/                     # 工具函数
+├── deploy/                        # 部署相关
+│   ├── nginx/                     # Nginx 配置文件
+│   ├── *.conf                     # Nginx 站点配置
+│   ├── *.sh                       # 部署 Shell 脚本
+│   └── *.py, *.ps1                # 部署自动化脚本
+├── scripts/                       # 运维和开发脚本
+│   ├── debug/                     # 调试/检查/修复脚本归档 (开发临时脚本)
+│   ├── tools/                     # 配置工具脚本
+│   └── *.sh, *.py                 # 构建/启动/重启/同步脚本
+├── docs/                          # 项目文档
+├── docker-compose.yml             # Docker 编排配置
+├── ecosystem.config.js            # PM2 进程管理配置
+├── package.json                   # Monorepo 根配置
+└── README.md                      # 本文件
 ```
 
 ## 功能模块
@@ -83,11 +95,19 @@ zhishuai/
 - 知识库管理
 - APP定制
 
-### APK端（待开发）
-- 即将开发...
+### APK端（React Native + Expo）
+- **框架**: Expo 52, React Native 0.78
+- **UI组件库**: React Native Elements + 自定义组件
+- **导航**: React Navigation 6
+- **状态管理**: Context API
+- **25个主页面**：工作台、AI对话、素材库、内容工厂、矩阵管理、发布中心、招聘助手、获客、CRM等
 
-### 后端服务（待开发）
-- 即将开发...
+### 后端服务（Express + Prisma）
+- **框架**: Express.js 4.21 + TypeScript
+- **数据库**: MySQL (TDSQL-C) + Prisma ORM
+- **认证**: JWT + bcrypt
+- **API路由**: 55+ 路由 (AI对话/生成、素材库、发布系统、CRM、招聘、获客、转介绍、管理等)
+- **服务层**: 39 个服务模块
 
 ## 技术栈
 
@@ -101,10 +121,16 @@ zhishuai/
 - **样式**: Tailwind CSS 3.4
 
 ### APK端
-- 待定
+- **框架**: Expo 52, React Native 0.78
+- **UI组件库**: React Native Elements + 自定义组件
+- **导航**: React Navigation 6
+- **状态管理**: Context API
 
 ### 后端
-- 待定
+- **框架**: Express.js 4.21 + TypeScript 5.4
+- **数据库**: MySQL (Prisma ORM)
+- **认证**: JWT + bcrypt
+- **AI集成**: 阿里云百炼 (DashScope) + 火山引擎
 
 ## 快速开始
 
@@ -129,10 +155,12 @@ npm run dev
 ### 后端服务
 
 ```bash
-cd backend
+cd server
 npm install
 npm run dev
 ```
+
+访问 http://localhost:3001
 
 ## 账号体系
 

@@ -1,42 +1,3 @@
-<<<<<<< HEAD
-// API配置
-export const apiConfig = {
-  // 是否使用Mock数据
-  useMock: process.env.NEXT_PUBLIC_USE_MOCK === 'true',
-
-  // API基础URL
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.zhishuai.com/v1',
-
-  // 超时时间（毫秒）
-  timeout: 30000,
-
-  // 是否显示请求日志
-  enableLog: process.env.NODE_ENV === 'development',
-
-  // 重试次数
-  retryTimes: 3,
-
-  // 重试延迟（毫秒）
-  retryDelay: 1000,
-
-  // 请求成功回调
-  onSuccess: (response: any) => {
-    console.log('API请求成功:', response);
-  },
-
-  // 请求失败回调
-  onError: (error: any) => {
-    console.error('API请求失败:', error);
-  }
-};
-
-// 判断当前环境
-export const isDevelopment = process.env.NODE_ENV === 'development';
-export const isProduction = process.env.NODE_ENV === 'production';
-
-// 导出配置
-export default apiConfig;
-=======
 /**
  * 统一 API 配置
  * 所有前端模块应使用此配置文件
@@ -158,6 +119,21 @@ export const API_ENDPOINTS = {
     READ_ALL: '/notifications/read-all',
   },
   
+  // 管道服务
+  PIPELINE: {
+    LIST: '/pipeline/list',
+    EXECUTE: '/pipeline/execute',
+    MODEL_ASSIGNMENTS: '/pipeline/model-assignments',
+  },
+
+  // 合规检测
+  COMPLIANCE: {
+    CHECK: '/compliance/check',
+    QUICK_CHECK: '/compliance/quick-check',
+    PLATFORM_RULES: '/compliance/platform-rules/:platform',
+    PLATFORMS: '/compliance/platforms',
+  },
+
   // 智能体
   AGENT: {
     LIST: '/agent/list',
@@ -166,5 +142,12 @@ export const API_ENDPOINTS = {
   },
 };
 
+// 向后兼容的 apiConfig 导出（旧代码使用）
+// 默认关闭 Mock，使用真实 API；仅在明确设置环境变量时开启 Mock
+export const apiConfig = {
+  useMock: process.env.NEXT_PUBLIC_USE_MOCK === 'true',
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+};
+
 export default API_CONFIG;
->>>>>>> 962968886be726cd434c792933b5515366d34518

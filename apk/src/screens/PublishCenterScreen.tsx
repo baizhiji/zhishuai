@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,15 @@ import {
   Modal,
   FlatList,
   Image,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { ContentCategory } from '../services/content.service';
 import PageHeader from '../components/PageHeader';
+import { matrixService } from '../services/matrix.service';
+import { materialsService } from '../services/materials.service';
 
 // 矩阵账号接口
 interface MatrixAccount {
@@ -79,17 +83,11 @@ const PLATFORMS = [
   { id: 'kuaishou', name: '快手', color: '#ff4906', icon: 'flash' },
   { id: 'xiaohongshu', name: '小红书', color: '#fe2c55', icon: 'book' },
   { id: 'weixin', name: '视频号', color: '#07c160', icon: 'chatbubbles' },
-<<<<<<< HEAD
-  { id: 'weibo', name: '微博', color: '#ff8200', icon: 'cloud' },
-];
-
-=======
 ];
 
 // 即将上线的平台
 const UPCOMING_PLATFORMS = ['weibo', 'bilibili', 'toutiao'];
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
 // 分类名称
 const CATEGORY_NAMES: Record<string, string> = {
   [ContentCategory.TITLE]: '标题',
@@ -104,36 +102,55 @@ const CATEGORY_NAMES: Record<string, string> = {
   [ContentCategory.DIGITAL_HUMAN]: '数字人',
 };
 
-// 模拟矩阵账号数据
-const MOCK_MATRIX_ACCOUNTS: MatrixAccount[] = [
-  { id: 'a1', platform: 'douyin', accountName: '智枢AI官方号', avatar: '', fans: 12580, status: 'active' },
-  { id: 'a2', platform: 'douyin', accountName: '智枢AI运营号', avatar: '', fans: 8560, status: 'active' },
-  { id: 'a3', platform: 'xiaohongshu', accountName: '智枢AI助手', avatar: '', fans: 8642, status: 'active' },
-  { id: 'a4', platform: 'xiaohongshu', accountName: '智枢科技号', avatar: '', fans: 5230, status: 'active' },
-  { id: 'a5', platform: 'weixin', accountName: '智枢AI视频号', avatar: '', fans: 5320, status: 'inactive' },
-  { id: 'a6', platform: 'kuaishou', accountName: '智枢科技', avatar: '', fans: 3260, status: 'active' },
-<<<<<<< HEAD
-  { id: 'a7', platform: 'weibo', accountName: '智枢AI', avatar: '', fans: 1580, status: 'active' },
-=======
->>>>>>> 962968886be726cd434c792933b5515366d34518
-];
-
-// 模拟素材数据
-const MOCK_MATERIALS: Material[] = [
-  { id: '1', category: ContentCategory.COPYWRITING, title: 'AI赋能企业数字化转型', content: '在当今竞争激烈的商业环境中，企业需要借助AI技术提升效率...', timestamp: Date.now() - 86400000 },
-  { id: '2', category: ContentCategory.TITLE, title: '爆款标题集合', content: '1. 【重磅】企业数字化转型的关键一步\n2. 揭秘！AI如何帮助企业降本增效...', timestamp: Date.now() - 172800000 },
-  { id: '3', category: ContentCategory.XIAOHONGSHU, title: '企业效率神器分享', content: '今日种草 | 企业效率神器分享\n\n姐妹们，今天给大家推荐一款超好用的企业AI工具...', timestamp: Date.now() - 259200000 },
-  { id: '4', category: ContentCategory.IMAGE, title: '产品宣传图', content: '[图片内容]', thumbnail: '', timestamp: Date.now() - 345600000 },
-  { id: '5', category: ContentCategory.DIGITAL_HUMAN, title: '数字人宣传视频', content: '[视频内容]', timestamp: Date.now() - 432000000 },
-];
-
 export default function PublishCenterScreen() {
   const { theme } = useTheme();
-  const [matrixAccounts] = useState<MatrixAccount[]>(MOCK_MATRIX_ACCOUNTS);
-  const [materials] = useState<Material[]>(MOCK_MATERIALS);
+  const [matrixAccounts, setMatrixAccounts] = useState<MatrixAccount[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [tasks, setTasks] = useState<PublishTask[]>([]);
   const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
   const [continuousTasks, setContinuousTasks] = useState<ContinuousTask[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // 加载数据
+  const loadData = useCallback(async () => {
+    try {
+      const [accountsData, materialsData] = await Promise.all([
+        matrixService.getAccounts().catch(() => []),
+        materialsService.getMaterials({ pageSize: 100 }).then(r => r.items).catch(() => []),
+      ]);
+      setMatrixAccounts(accountsData.map((a: any) => ({
+        id: a.id,
+        platform: a.platform,
+        accountName: a.accountName,
+        avatar: a.avatar || '',
+        fans: a.fans || 0,
+        status: a.status || 'active',
+      })));
+      setMaterials(materialsData.map((m: any) => ({
+        id: m.id,
+        category: m.type || ContentCategory.COPYWRITING,
+        title: m.title,
+        content: m.content,
+        thumbnail: m.thumbnail || m.url,
+        timestamp: new Date(m.createdAt).getTime(),
+      })));
+    } catch (error) {
+      console.error('加载发布中心数据失败:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
   
   // 发布模式：immediate=立即发布, scheduled=定时发布, continuous=连续发布
   const [publishMode, setPublishMode] = useState<'immediate' | 'scheduled' | 'continuous'>('immediate');

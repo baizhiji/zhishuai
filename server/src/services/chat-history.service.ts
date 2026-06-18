@@ -3,8 +3,8 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../utils/db';
 
-const prisma = new PrismaClient();
 
 export interface SaveMessageParams {
   userId: string;

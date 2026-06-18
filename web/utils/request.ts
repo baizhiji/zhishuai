@@ -1,67 +1,10 @@
-<<<<<<< HEAD
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
-const instance: AxiosInstance = axios.create({
-  baseURL: API_BASE,
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// 请求拦截器
-instance.interceptors.request.use(
-  (config) => {
-    // 从 localStorage 获取 token
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// 响应拦截器
-instance.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
-    }
-    return Promise.reject(error.response?.data || error);
-  }
-);
-
-export const request = {
-  get: <T = any, R = any>(url: string, params?: any, config?: AxiosRequestConfig) => 
-    instance.get<T, R>(url, { params, ...config }),
-  post: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
-    instance.post<T, R>(url, data, config),
-  put: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
-    instance.put<T, R>(url, data, config),
-  delete: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
-    instance.delete<T, R>(url, { params: data, ...config }),
-  patch: <T = any, R = any>(url: string, data?: any, config?: AxiosRequestConfig) => 
-    instance.patch<T, R>(url, data, config),
-};
-
-=======
 /**
  * 统一 API 请求工具
  * 使用环境变量配置 baseURL
  */
 
-// API 基础地址 - 统一使用环境变量
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://43.129.16.148:3001/api';
+// API 基础地址 - 生产环境通过 Nginx 代理，开发环境通过环境变量
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
 export interface ApiResponse<T = any> {
   code: number;
@@ -99,8 +42,42 @@ class Request {
     return headers;
   }
 
-  private handleResponse<T>(response: Response): Promise<T> {
+  // 尝试刷新 token
+  private async tryRefreshToken(): Promise<string | null> {
+    if (typeof window === 'undefined') return null;
+    const currentToken = localStorage.getItem('token');
+    if (!currentToken) return null;
+    try {
+      const res = await fetch(`${this.baseURL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const newToken = data.data?.token || data.token;
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          return newToken;
+        }
+      }
+    } catch {}
+    return null;
+  }
+
+  private async handleResponse<T>(response: Response, retryUrl?: string, retryMethod?: string, retryData?: any): Promise<T> {
     if (!response.ok) {
+      if (response.status === 401 && retryUrl) {
+        // 尝试刷新 token 并重试
+        const newToken = await this.tryRefreshToken();
+        if (newToken) {
+          const retryRes = await fetch(`${this.baseURL}${retryUrl}`, {
+            method: retryMethod || 'GET',
+            headers: this.getHeaders(),
+            body: retryData ? JSON.stringify(retryData) : undefined,
+          });
+          return this.handleResponse<T>(retryRes);
+        }
+      }
       if (response.status === 401) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
@@ -115,13 +92,9 @@ class Request {
     }
 
     return response.json().then((result: any) => {
-      // 支持两种响应格式：
-      // 1. { success: true, data: {...} } - 认证相关API格式
-      // 2. { code: 200, data: {...} } - 其他API格式
       if (result.code !== 200 && result.success !== true) {
         throw result;
       }
-      // 如果是 success 格式，返回整个 result；否则返回 result.data
       return result.success === true ? result : result.data;
     });
   }
@@ -141,7 +114,7 @@ class Request {
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, url, 'GET');
   }
 
   async post<T = any>(url: string, data?: any): Promise<T> {
@@ -151,7 +124,7 @@ class Request {
       body: data ? JSON.stringify(data) : undefined,
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, url, 'POST', data);
   }
 
   async put<T = any>(url: string, data?: any): Promise<T> {
@@ -161,7 +134,7 @@ class Request {
       body: data ? JSON.stringify(data) : undefined,
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, url, 'PUT', data);
   }
 
   async delete<T = any>(url: string): Promise<T> {
@@ -170,7 +143,7 @@ class Request {
       headers: this.getHeaders(),
     });
 
-    return this.handleResponse<T>(response);
+    return this.handleResponse<T>(response, url, 'DELETE');
   }
 
   async upload<T = any>(
@@ -196,5 +169,4 @@ class Request {
 
 // 导出单例
 export const request = new Request();
->>>>>>> 962968886be726cd434c792933b5515366d34518
 export default request;

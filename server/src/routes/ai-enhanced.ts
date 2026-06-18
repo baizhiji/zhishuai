@@ -2,13 +2,15 @@
  * AI Enhanced Routes - Simplified version
  */
 import { Router } from 'express';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { chatCompletion } from '../services/ai-service';
 
 const router = Router();
 
 // Generate title
-router.post('/title', async (req, res) => {
+router.post('/title', authMiddleware, async (req, res) => {
   try {
+    const userId = (req as AuthRequest).userId!;
     const { topic, platform, count = 5 } = req.body;
     
     const prompt = `You are an expert at creating viral video titles. Generate ${count} high CTR titles for:
@@ -21,7 +23,7 @@ Requirements:
 3. Avoid clickbait
 4. One title per line`;
     
-    const result = await chatCompletion('system', { 
+    const result = await chatCompletion(userId, { 
       model: 'qwen-max',
       messages: [{ role: 'user', content: prompt }] 
     });
@@ -37,8 +39,9 @@ Requirements:
 });
 
 // Generate script
-router.post('/script', async (req, res) => {
+router.post('/script', authMiddleware, async (req, res) => {
   try {
+    const userId = (req as AuthRequest).userId!;
     const { topic, duration = 60, style = 'knowledge' } = req.body;
     
     const prompt = `Generate a short video script:
@@ -46,7 +49,7 @@ Topic: ${topic}
 Duration: ${duration} seconds
 Style: ${style}`;
     
-    const result = await chatCompletion('system', { 
+    const result = await chatCompletion(userId, { 
       model: 'qwen-max',
       messages: [{ role: 'user', content: prompt }] 
     });
@@ -62,14 +65,15 @@ Style: ${style}`;
 });
 
 // Generate hashtags
-router.post('/hashtags', async (req, res) => {
+router.post('/hashtags', authMiddleware, async (req, res) => {
   try {
+    const userId = (req as AuthRequest).userId!;
     const { topic, platform, count = 10 } = req.body;
     
     const prompt = `Generate ${count} hashtags for ${platform || 'Douyin'}:
 Topic: ${topic}`;
     
-    const result = await chatCompletion('system', { 
+    const result = await chatCompletion(userId, { 
       model: 'qwen-max',
       messages: [{ role: 'user', content: prompt }] 
     });
@@ -85,14 +89,15 @@ Topic: ${topic}`;
 });
 
 // Generate post
-router.post('/post', async (req, res) => {
+router.post('/post', authMiddleware, async (req, res) => {
   try {
+    const userId = (req as AuthRequest).userId!;
     const { topic, platform } = req.body;
     
     const prompt = `Generate a social media post for ${platform || 'Douyin'}:
 Topic: ${topic}`;
     
-    const result = await chatCompletion('system', { 
+    const result = await chatCompletion(userId, { 
       model: 'qwen-max',
       messages: [{ role: 'user', content: prompt }] 
     });

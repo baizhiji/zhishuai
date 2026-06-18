@@ -1,39 +1,26 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('开始初始化数据库...');
 
-<<<<<<< HEAD
-  // 创建测试用户
-  const user = await prisma.user.upsert({
-    where: { phone: '13800138000' },
-    update: {},
-    create: {
-      phone: '13800138000',
-      password: '123456',
-      name: '测试用户',
-      role: 'admin',
-    },
-  });
-  console.log('测试用户创建成功:', user.phone);
+  // 创建管理员用户（使用bcrypt加密密码，与登录验证方式一致）
+  // 管理员默认密码: 20061218（可通过 ADMIN_SEED_PASSWORD 环境变量覆盖）
+  const adminRawPassword = process.env.ADMIN_SEED_PASSWORD || '20061218';
+  const adminPassword = bcrypt.hashSync(adminRawPassword, 10);
 
-  // 创建公司信息
-  await prisma.companyInfo.upsert({
-    where: { userId: user.id },
-    update: {},
-    create: {
-      name: '上海百智集网络科技有限公司',
-      userId: user.id,
-=======
-  // 创建管理员用户
+  // 管理员/代理商开通的终端客户默认密码: 123456
+  const DEFAULT_USER_PASSWORD = '123456';
+  const defaultPasswordHash = bcrypt.hashSync(DEFAULT_USER_PASSWORD, 10);
+
   const admin = await prisma.user.upsert({
     where: { phone: '18601655222' },
     update: {},
     create: {
       phone: '18601655222',
-      password: require('crypto').createHash('sha256').update('20061218zhishuai-secret-key-2024').digest('hex'),
+      password: adminPassword,
       name: '超级管理员',
       role: 'admin',
     },
@@ -47,7 +34,6 @@ async function main() {
     create: {
       name: '上海百智集网络科技有限公司',
       userId: admin.id,
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
   });
   console.log('公司信息创建成功');
@@ -61,11 +47,7 @@ async function main() {
 
   for (const post of posts) {
     await prisma.recruitmentPost.create({
-<<<<<<< HEAD
-      data: { ...post, userId: user.id },
-=======
       data: { ...post, userId: admin.id },
->>>>>>> 962968886be726cd434c792933b5515366d34518
     });
   }
   console.log('招聘岗位创建成功:', posts.length, '个');
@@ -85,11 +67,7 @@ async function main() {
         targetCount: task.targetCount,
         leadsCount: Math.floor(task.targetCount * 0.5),
         status: task.status,
-<<<<<<< HEAD
-        userId: user.id,
-=======
         userId: admin.id,
->>>>>>> 962968886be726cd434c792933b5515366d34518
       },
     });
   }
@@ -104,11 +82,7 @@ async function main() {
 
   for (const mat of materials) {
     await prisma.material.create({
-<<<<<<< HEAD
-      data: { ...mat, userId: user.id },
-=======
       data: { ...mat, userId: admin.id },
->>>>>>> 962968886be726cd434c792933b5515366d34518
     });
   }
   console.log('素材创建成功:', materials.length, '个');
@@ -122,11 +96,7 @@ async function main() {
 
   for (const customer of customers) {
     await prisma.crmCustomer.create({
-<<<<<<< HEAD
-      data: { ...customer, userId: user.id },
-=======
       data: { ...customer, userId: admin.id },
->>>>>>> 962968886be726cd434c792933b5515366d34518
     });
   }
   console.log('CRM客户创建成功:', customers.length, '个');

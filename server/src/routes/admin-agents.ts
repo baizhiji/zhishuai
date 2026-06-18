@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // ============================================
 // Admin: 代理商管理
 // ============================================

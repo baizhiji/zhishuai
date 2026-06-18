@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // ============================================
 // Admin: 全局功能开关管理
 // ============================================

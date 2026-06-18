@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import request from '@/lib/request';
-<<<<<<< HEAD
-import { Card, Table, Button, Modal, Form, Input, Select, Switch, Space, message, Tag, Popconfirm, Typography, Divider, Alert } from 'antd';
-=======
 import {
   Card,
   Table,
@@ -22,7 +19,6 @@ import {
   Divider,
   Alert,
 } from 'antd';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -109,11 +105,7 @@ export default function ApiProvidersPage() {
     try {
       const values = await form.validateFields();
       setSaving(true);
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
       if (editingProvider) {
         await request.put(`/admin/api-providers/providers/${editingProvider.id}`, values);
         message.success('更新成功');
@@ -121,11 +113,7 @@ export default function ApiProvidersPage() {
         await request.post('/admin/api-providers/providers', values);
         message.success('创建成功');
       }
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
       setDialogOpen(false);
       fetchProviders();
     } catch (error) {
@@ -137,47 +125,14 @@ export default function ApiProvidersPage() {
 
   const columns = [
     { title: '名称', dataIndex: 'name', key: 'name', width: 120 },
-<<<<<<< HEAD
-    { 
-      title: '类型', 
-      dataIndex: 'type', 
-=======
     {
       title: '类型',
       dataIndex: 'type',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       key: 'type',
       width: 120,
       render: (type: string) => {
         const provider = providerTypes.find(p => p.value === type);
         return <Tag color={provider?.color}>{provider?.label || type}</Tag>;
-<<<<<<< HEAD
-      }
-    },
-    { title: 'Base URL', dataIndex: 'baseUrl', key: 'baseUrl', width: 200, ellipsis: true },
-    { 
-      title: 'API Key', 
-      dataIndex: 'apiKey', 
-      key: 'apiKey',
-      width: 150,
-      ellipsis: true,
-      render: (text: string) => <Text copyable={{ text: text }}>{text ? '******' + text.slice(-4) : '-'}</Text>
-    },
-    { title: '优先级', dataIndex: 'priority', key: 'priority', width: 80 },
-    { 
-      title: '默认', 
-      dataIndex: 'isDefault', 
-      key: 'isDefault',
-      width: 80,
-      render: (isDefault: boolean) => isDefault ? <Tag color="green">默认</Tag> : null
-    },
-    { 
-      title: '状态', 
-      dataIndex: 'enabled', 
-      key: 'enabled',
-      width: 80,
-      render: (enabled: boolean) => <Tag color={enabled ? 'green' : 'red'}>{enabled ? '启用' : '禁用'}</Tag>
-=======
       },
     },
     { title: 'Base URL', dataIndex: 'baseUrl', key: 'baseUrl', width: 200, ellipsis: true },
@@ -207,7 +162,6 @@ export default function ApiProvidersPage() {
       render: (enabled: boolean) => (
         <Tag color={enabled ? 'green' : 'red'}>{enabled ? '启用' : '禁用'}</Tag>
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     { title: '备注', dataIndex: 'remark', key: 'remark', ellipsis: true },
     {
@@ -216,14 +170,6 @@ export default function ApiProvidersPage() {
       width: 180,
       render: (_: any, record: ApiProvider) => (
         <Space size="small">
-<<<<<<< HEAD
-          <Button type="link" size="small" onClick={() => handleEdit(record)}>编辑</Button>
-          {!record.isDefault && (
-            <Button type="link" size="small" onClick={() => handleSetDefault(record.id)}>设为默认</Button>
-          )}
-          <Popconfirm title="确定删除？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger>删除</Button>
-=======
           <Button type="link" size="small" onClick={() => handleEdit(record)}>
             编辑
           </Button>
@@ -236,7 +182,6 @@ export default function ApiProvidersPage() {
             <Button type="link" size="small" danger>
               删除
             </Button>
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Popconfirm>
         </Space>
       ),
@@ -245,11 +190,7 @@ export default function ApiProvidersPage() {
 
   return (
     <div style={{ padding: 24 }}>
-<<<<<<< HEAD
-      <Card 
-=======
       <Card
->>>>>>> 962968886be726cd434c792933b5515366d34518
         title={<Title level={4}>API服务商配置</Title>}
         extra={
           <Button type="primary" onClick={handleAdd}>
@@ -264,11 +205,7 @@ export default function ApiProvidersPage() {
           showIcon
           style={{ marginBottom: 16 }}
         />
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
         <Table
           columns={columns}
           dataSource={providers}
@@ -290,33 +227,6 @@ export default function ApiProvidersPage() {
           <Form.Item name="name" label="名称" rules={[{ required: true }]}>
             <Input placeholder="如：扣子-生产环境" />
           </Form.Item>
-<<<<<<< HEAD
-          
-          <Form.Item name="type" label="类型" rules={[{ required: true }]}>
-            <Select>
-              {providerTypes.map(p => (
-                <Select.Option key={p.value} value={p.value}>{p.label}</Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          
-          <Form.Item name="baseUrl" label="Base URL" rules={[{ required: true }]}>
-            <Input placeholder="如：https://ark.cn-beijing.volces.com/api/v3" />
-          </Form.Item>
-          
-          <Form.Item name="apiKey" label="API Key" rules={[{ required: true }]}>
-            <Input.Password placeholder="输入API Key" />
-          </Form.Item>
-          
-          <Form.Item name="priority" label="优先级" initialValue={100}>
-            <Input type="number" placeholder="数字越小优先级越高" />
-          </Form.Item>
-          
-          <Form.Item name="remark" label="备注">
-            <TextArea rows={2} placeholder="备注信息（可选）" />
-          </Form.Item>
-          
-=======
 
           <Form.Item name="type" label="类型" rules={[{ required: true }]}>
             <Select>
@@ -344,7 +254,6 @@ export default function ApiProvidersPage() {
             <TextArea rows={2} placeholder="备注信息（可选）" />
           </Form.Item>
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
           <Form.Item name="enabled" label="启用" valuePropName="checked" initialValue={true}>
             <Switch />
           </Form.Item>

@@ -5,15 +5,9 @@
 
 // 用户角色枚举
 export enum UserRole {
-<<<<<<< HEAD
-  ADMIN = 'admin',           // 开发者总后台
-  AGENT = 'agent',           // 区域代理
-  CUSTOMER = 'customer',     // 终端客户
-=======
   ADMIN = 'admin', // 开发者总后台
   AGENT = 'agent', // 区域代理
   CUSTOMER = 'customer', // 终端客户
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 权限枚举
@@ -54,10 +48,7 @@ export enum Permission {
   ADMIN_CONFIG = 'admin.config',
   ADMIN_BRANDING = 'admin.branding',
   ADMIN_ANALYTICS = 'admin.analytics',
-<<<<<<< HEAD
-=======
   ADMIN_CRM = 'admin.crm',
->>>>>>> 962968886be726cd434c792933b5515366d34518
   SYSTEM_SETTINGS = 'system.settings',
   SYSTEM_USERS = 'system.users',
 
@@ -79,14 +70,6 @@ export enum Permission {
   SETTINGS_COMPANY = 'settings.company',
   SETTINGS_SECURITY = 'settings.security',
   SETTINGS_THEME = 'settings.theme',
-<<<<<<< HEAD
-
-  // 预留模块
-  ECOMMERCE = 'ecommerce',
-  CRM = 'crm',
-  MARKETING = 'marketing',
-=======
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 角色权限配置

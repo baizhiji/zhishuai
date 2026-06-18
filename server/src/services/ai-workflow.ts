@@ -6,25 +6,25 @@ import { chatCompletion } from './ai-service';
 /**
  * Process workflow
  */
-export async function processWorkflow(workflowType: string, params: any): Promise<any> {
+export async function processWorkflow(workflowType: string, userId: string, params: any): Promise<any> {
   switch (workflowType) {
     case 'content_production':
-      return await contentProductionWorkflow(params);
+      return await contentProductionWorkflow(userId, params);
     case 'recruitment':
-      return await recruitmentWorkflow(params);
+      return await recruitmentWorkflow(userId, params);
     case 'customer_acquisition':
-      return await customerAcquisitionWorkflow(params);
+      return await customerAcquisitionWorkflow(userId, params);
     default:
       throw new Error(`Unknown workflow type: ${workflowType}`);
   }
 }
 
-async function contentProductionWorkflow(params: { topic: string; platform: string }) {
+async function contentProductionWorkflow(userId: string, params: { topic: string; platform: string }) {
   const prompt = `Generate complete content plan for "${params.topic}":
 Platform: ${params.platform || 'Douyin'}
 Include: titles(5), body, hashtags(10)`;
   
-  const result = await chatCompletion('system', { 
+  const result = await chatCompletion(userId, { 
     model: 'qwen-max',
     messages: [{ role: 'user', content: prompt }] 
   });
@@ -32,12 +32,12 @@ Include: titles(5), body, hashtags(10)`;
   return { content: result, topic: params.topic, platform: params.platform };
 }
 
-async function recruitmentWorkflow(params: { jobTitle: string }) {
+async function recruitmentWorkflow(userId: string, params: { jobTitle: string }) {
   const prompt = `For job "${params.jobTitle}" generate:
 1. Complete recruitment JD
 2. 5 interview questions`;
   
-  const result = await chatCompletion('system', { 
+  const result = await chatCompletion(userId, { 
     model: 'qwen-max',
     messages: [{ role: 'user', content: prompt }] 
   });
@@ -45,12 +45,12 @@ async function recruitmentWorkflow(params: { jobTitle: string }) {
   return { content: result, jobTitle: params.jobTitle };
 }
 
-async function customerAcquisitionWorkflow(params: { product: string; targetProfile: string }) {
+async function customerAcquisitionWorkflow(userId: string, params: { product: string; targetProfile: string }) {
   const prompt = `Generate outreach message for product "${params.product}":
 Target customer: ${params.targetProfile}
 Include: opening(3), value proposition, call to action`;
   
-  const result = await chatCompletion('system', { 
+  const result = await chatCompletion(userId, { 
     model: 'qwen-max',
     messages: [{ role: 'user', content: prompt }] 
   });

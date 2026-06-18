@@ -1,12 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { Card, Table, Button, Tag, Space, Modal, Form, Input, Select, Switch, message, Popconfirm } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-import { getVersions, createVersion, updateVersion, deleteVersion, type AppVersion } from '@/services/version';
-=======
 import {
   Card,
   Table,
@@ -30,7 +24,6 @@ import {
   deleteVersion,
   type AppVersion,
 } from '@/services/version';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -136,16 +129,12 @@ export default function VersionManagementPage() {
       width: 150,
       render: (_, record) => (
         <Space>
-<<<<<<< HEAD
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-=======
           <Button
             type="link"
             size="small"
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             编辑
           </Button>
           <Popconfirm title="确定删除?" onConfirm={() => handleDelete(record.id)}>
@@ -205,16 +194,12 @@ export default function VersionManagementPage() {
           <Form.Item name="downloadUrl" label="下载链接" rules={[{ required: true }]}>
             <Input placeholder="APK下载链接或App Store链接" />
           </Form.Item>
-<<<<<<< HEAD
-          <Form.Item name="forceUpdate" label="强制更新" valuePropName="checked" initialValue={false}>
-=======
           <Form.Item
             name="forceUpdate"
             label="强制更新"
             valuePropName="checked"
             initialValue={false}
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Switch />
           </Form.Item>
           <Form.Item name="updateContent" label="更新内容">

@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-'use client'
-
-import { useState } from 'react'
-=======
 'use client';
 
 import { useState } from 'react';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   Card,
   Row,
@@ -22,11 +16,7 @@ import {
   InputNumber,
   message,
   Modal,
-<<<<<<< HEAD
-} from 'antd'
-=======
 } from 'antd';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   PlusOutlined,
   EditOutlined,
@@ -37,26 +27,6 @@ import {
   EnvironmentOutlined,
   DollarOutlined,
   CalendarOutlined,
-<<<<<<< HEAD
-} from '@ant-design/icons'
-
-const { Title, Text } = Typography
-const { TextArea } = Input
-
-interface JobPosition {
-  id: string
-  title: string
-  department: string
-  location: string
-  salaryMin: number
-  salaryMax: number
-  experience: string
-  education: string
-  description?: string
-  status: 'active' | 'closed' | 'draft'
-  createdAt: string
-  applicants: number
-=======
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -75,7 +45,6 @@ interface JobPosition {
   status: 'active' | 'closed' | 'draft';
   createdAt: string;
   applicants: number;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export default function JobPublishPage() {
@@ -106,27 +75,16 @@ export default function JobPublishPage() {
       createdAt: '2024-03-24',
       applicants: 28,
     },
-<<<<<<< HEAD
-  ])
-
-  const [isModalVisible, setIsModalVisible] = useState(false)
-  const [form] = Form.useForm()
-=======
   ]);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [form] = Form.useForm();
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const statusConfig = {
     active: { text: '招聘中', color: 'success' },
     closed: { text: '已关闭', color: 'default' },
     draft: { text: '草稿', color: 'warning' },
-<<<<<<< HEAD
-  }
-=======
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const columns = [
     { title: '职位名称', dataIndex: 'title', key: 'title' },
@@ -134,13 +92,7 @@ export default function JobPublishPage() {
     {
       title: '薪资',
       key: 'salary',
-<<<<<<< HEAD
-      render: (_: any, record: JobPosition) => (
-        `${record.salaryMin}-${record.salaryMax}K`
-      ),
-=======
       render: (_: any, record: JobPosition) => `${record.salaryMin}-${record.salaryMax}K`,
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     { title: '工作地点', dataIndex: 'location', key: 'location' },
     { title: '经验要求', dataIndex: 'experience', key: 'experience' },
@@ -150,13 +102,8 @@ export default function JobPublishPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-<<<<<<< HEAD
-        const config = statusConfig[status as keyof typeof statusConfig]
-        return <Tag color={config.color}>{config.text}</Tag>
-=======
         const config = statusConfig[status as keyof typeof statusConfig];
         return <Tag color={config.color}>{config.text}</Tag>;
->>>>>>> 962968886be726cd434c792933b5515366d34518
       },
     },
     { title: '投递人数', dataIndex: 'applicants', key: 'applicants' },
@@ -167,23 +114,6 @@ export default function JobPublishPage() {
       width: 200,
       render: (_: any, record: JobPosition) => (
         <Space size="small">
-<<<<<<< HEAD
-          <Button type="link" icon={<EyeOutlined />}>查看</Button>
-          <Button type="link" icon={<EditOutlined />}>编辑</Button>
-          <Button type="link" danger icon={<DeleteOutlined />}>删除</Button>
-        </Space>
-      ),
-    },
-  ]
-
-  const handleAdd = () => {
-    setIsModalVisible(true)
-  }
-
-  const handleModalOk = async () => {
-    try {
-      const values = await form.validateFields()
-=======
           <Button type="link" icon={<EyeOutlined />}>
             查看
           </Button>
@@ -205,24 +135,12 @@ export default function JobPublishPage() {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
->>>>>>> 962968886be726cd434c792933b5515366d34518
       const newJob: JobPosition = {
         id: Date.now().toString(),
         ...values,
         status: 'active',
         createdAt: new Date().toLocaleDateString(),
         applicants: 0,
-<<<<<<< HEAD
-      }
-      setJobs([...jobs, newJob])
-      setIsModalVisible(false)
-      form.resetFields()
-      message.success('发布成功')
-    } catch (error) {
-      console.error('表单验证失败:', error)
-    }
-  }
-=======
       };
       setJobs([...jobs, newJob]);
       setIsModalVisible(false);
@@ -232,19 +150,14 @@ export default function JobPublishPage() {
       console.error('表单验证失败:', error);
     }
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-<<<<<<< HEAD
-          <Title level={2} className="mb-2">职位发布</Title>
-=======
           <Title level={2} className="mb-2">
             职位发布
           </Title>
->>>>>>> 962968886be726cd434c792933b5515366d34518
           <Text type="secondary">发布招聘职位，AI自动生成职位描述</Text>
         </div>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
@@ -292,16 +205,7 @@ export default function JobPublishPage() {
       </Row>
 
       <Card title="职位列表">
-<<<<<<< HEAD
-        <Table
-          dataSource={jobs}
-          columns={columns}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-        />
-=======
         <Table dataSource={jobs} columns={columns} rowKey="id" pagination={{ pageSize: 10 }} />
->>>>>>> 962968886be726cd434c792933b5515366d34518
       </Card>
 
       <Modal
@@ -320,16 +224,12 @@ export default function JobPublishPage() {
             </Col>
             <Col span={12}>
               <Form.Item label="所属部门" name="department" rules={[{ required: true }]}>
-<<<<<<< HEAD
-                <Select options={[{ label: '技术部', value: '技术部' }, { label: '产品部', value: '产品部' }]} />
-=======
                 <Select
                   options={[
                     { label: '技术部', value: '技术部' },
                     { label: '产品部', value: '产品部' },
                   ]}
                 />
->>>>>>> 962968886be726cd434c792933b5515366d34518
               </Form.Item>
             </Col>
           </Row>
@@ -341,16 +241,12 @@ export default function JobPublishPage() {
             </Col>
             <Col span={12}>
               <Form.Item label="经验要求" name="experience" rules={[{ required: true }]}>
-<<<<<<< HEAD
-                <Select options={[{ label: '1-3年', value: '1-3年' }, { label: '3-5年', value: '3-5年' }]} />
-=======
                 <Select
                   options={[
                     { label: '1-3年', value: '1-3年' },
                     { label: '3-5年', value: '3-5年' },
                   ]}
                 />
->>>>>>> 962968886be726cd434c792933b5515366d34518
               </Form.Item>
             </Col>
           </Row>
@@ -367,16 +263,12 @@ export default function JobPublishPage() {
             </Col>
             <Col span={8}>
               <Form.Item label="学历要求" name="education" rules={[{ required: true }]}>
-<<<<<<< HEAD
-                <Select options={[{ label: '本科', value: '本科' }, { label: '硕士', value: '硕士' }]} />
-=======
                 <Select
                   options={[
                     { label: '本科', value: '本科' },
                     { label: '硕士', value: '硕士' },
                   ]}
                 />
->>>>>>> 962968886be726cd434c792933b5515366d34518
               </Form.Item>
             </Col>
           </Row>
@@ -386,9 +278,5 @@ export default function JobPublishPage() {
         </Form>
       </Modal>
     </div>
-<<<<<<< HEAD
-  )
-=======
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

@@ -35,68 +35,30 @@ export interface LoginResponse {
   user: UserInfo;
 }
 
-// Mock测试账号
-const MOCK_USERS = [
-  { phone: '13800138000', password: '123456', name: '测试用户', role: 'admin' as const },
-  { phone: '13800138001', password: '123456', name: '管理员', role: 'admin' as const },
-];
-
-// Mock登录响应数据格式（匹配API返回格式）
-const createMockResponse = (token: string, user: UserInfo): LoginResponse => ({
-  token,
-  user,
-});
-
 class AuthService {
-  // 是否使用Mock API（已关闭，统一使用真实API）
-  private useMock = false;
-
   // 用户登录
   async login(params: LoginParams): Promise<LoginResponse> {
-    if (this.useMock) {
-      // Mock登录验证
-      const mockUser = MOCK_USERS.find(
-        u => u.phone === params.phone && u.password === params.password
-      );
-      
-      if (mockUser) {
-        const userInfo: UserInfo = {
-          id: 'mock_' + Date.now(),
-          name: mockUser.name,
-          phone: mockUser.phone,
-          role: mockUser.role,
-          status: 'active',
-          expireTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        };
-        
-        const mockToken = 'mock_token_' + Date.now();
-        
-        // 保存Token和用户信息
-        TokenStorage.setToken(mockToken);
-        TokenStorage.setUserInfo(userInfo);
-        
-        console.log('Mock登录成功:', userInfo);
-        
-        // 直接返回 { token, user } 格式
-        return createMockResponse(mockToken, userInfo);
-      } else {
-        throw new Error('手机号或密码错误');
-      }
-    }
-    
     try {
-      const response = await apiClient.post<LoginResponse>(
+      const response = await apiClient.post<any>(
         API_ENDPOINTS.LOGIN,
         params
       );
       
-      // 保存Token和用户信息
-      TokenStorage.setToken(response.token);
-      TokenStorage.setUserInfo(response.user);
+      // 兼容两种响应格式
+      const token = response.token || response.data?.token;
+      const user = response.user || response.data?.user;
       
-      return response;
-    } catch (error) {
-      console.error('登录失败:', error);
+      if (!token || !user) {
+        throw new Error('登录响应格式错误');
+      }
+      
+      // 保存Token和用户信息到持久化存储
+      await TokenStorage.setToken(token);
+      await TokenStorage.setUserInfo(user);
+      
+      return { token, user };
+    } catch (error: any) {
+      console.error('登录失败:', error.message);
       throw error;
     }
   }
@@ -104,18 +66,33 @@ class AuthService {
   // 用户注册
   async register(params: RegisterParams): Promise<LoginResponse> {
     try {
-      const response = await apiClient.post<LoginResponse>(
+      const response = await apiClient.post<any>(
         API_ENDPOINTS.REGISTER,
         params
       );
       
-      // 保存Token和用户信息
-      TokenStorage.setToken(response.token);
-      TokenStorage.setUserInfo(response.user);
+      const token = response.token || response.data?.token;
+      const user = response.user || response.data?.user;
       
-      return response;
-    } catch (error) {
-      console.error('注册失败:', error);
+      if (token && user) {
+        // 注册成功自动登录
+        await TokenStorage.setToken(token);
+        await TokenStorage.setUserInfo(user);
+      }
+      
+      return { token, user };
+    } catch (error: any) {
+      console.error('注册失败:', error.message);
+      throw error;
+    }
+  }
+
+  // 发送验证码
+  async sendVerifyCode(phone: string): Promise<void> {
+    try {
+      await apiClient.post(API_ENDPOINTS.SEND_CODE, { phone });
+    } catch (error: any) {
+      console.error('发送验证码失败:', error.message);
       throw error;
     }
   }
@@ -123,14 +100,15 @@ class AuthService {
   // 获取用户信息
   async getUserInfo(): Promise<UserInfo> {
     try {
-      const response = await apiClient.get<UserInfo>(API_ENDPOINTS.USER_INFO);
+      const response = await apiClient.get<any>(API_ENDPOINTS.USER_INFO);
       
       // 更新本地存储的用户信息
-      TokenStorage.setUserInfo(response);
+      const user = response.data || response;
+      await TokenStorage.setUserInfo(user);
       
-      return response;
-    } catch (error) {
-      console.error('获取用户信息失败:', error);
+      return user;
+    } catch (error: any) {
+      console.error('获取用户信息失败:', error.message);
       throw error;
     }
   }
@@ -140,21 +118,31 @@ class AuthService {
     try {
       await apiClient.post(API_ENDPOINTS.LOGOUT);
     } catch (error) {
-      console.error('退出登录失败:', error);
+      console.error('退出登录API调用失败:', error);
     } finally {
-      // 清除本地存储
-      TokenStorage.clearAll();
+      // 无论API是否成功，清除本地存储
+      await TokenStorage.clearAll();
     }
   }
 
-  // 检查登录状态
+  // 检查登录状态（同步，使用内存缓存）
   isLoggedIn(): boolean {
-    return TokenStorage.isLoggedIn();
+    return TokenStorage.isLoggedInSync();
   }
 
-  // 获取当前用户信息（从本地存储）
+  // 异步检查登录状态
+  async isLoggedInAsync(): Promise<boolean> {
+    return await TokenStorage.isLoggedIn();
+  }
+
+  // 获取当前用户信息（同步，使用内存缓存）
   getCurrentUser(): UserInfo | null {
-    return TokenStorage.getUserInfo();
+    return TokenStorage.getUserInfoSync();
+  }
+
+  // 异步获取当前用户信息
+  async getCurrentUserAsync(): Promise<UserInfo | null> {
+    return await TokenStorage.getUserInfo();
   }
 }
 

@@ -1,23 +1,26 @@
 // Prisma Schema for 智枢AI SaaS System
+// 合并版本 - 包含所有功能模型
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-<<<<<<< HEAD
-  provider = "postgresql"
-=======
   provider = "mysql"
->>>>>>> 962968886be726cd434c792933b5515366d34518
   url      = env("DATABASE_URL")
 }
+
+// ============================================
+// 用户系统
+// ============================================
 
 model User {
   id            String    @id @default(uuid())
   phone         String    @unique
   password      String
   name          String?
+  email         String?
+  company       String?
   avatar        String?
   role          String    @default("user") // admin, agent, user
   status        String    @default("active") // active, inactive
@@ -25,11 +28,16 @@ model User {
   updatedAt     DateTime  @updatedAt
   
   // 客户计费相关（仅租户客户使用）
-  fee           Decimal   @default(0)    // 收费金额
-  totalPaid     Decimal   @default(0)   // 累计已付金额
-  monthlyPaid   Decimal   @default(0)   // 当月已付金额（每月初重置）
+  fee           Decimal   @default(0) @db.Decimal(10,2)    // 收费金额
+  totalPaid     Decimal   @default(0) @db.Decimal(10,2)   // 累计已付金额
+  monthlyPaid   Decimal   @default(0) @db.Decimal(10,2)   // 当月已付金额（每月初重置）
   lastPaidAt    DateTime?              // 最后支付时间
   expireAt      DateTime?              // 服务到期时间
+  
+  // 推送通知
+  pushToken     String?               // FCM/APNs设备推送Token
+  pushPlatform  String?               // apns | fcm | web
+  pushTokenUpdatedAt DateTime?        // Token最后更新时间
   
   // 关联数据
   recruitmentPosts    RecruitmentPost[]
@@ -45,71 +53,41 @@ model User {
   publishedContents    PublishedContent[]
   notifications       Notification[]
   crmCustomers        CrmCustomer[]
-<<<<<<< HEAD
-=======
   crmTags             CrmTag[]
   crmAutomationRules  CrmAutomationRule[]
   crmReminders        CrmReminder[]
->>>>>>> 962968886be726cd434c792933b5515366d34518
   recruitmentResumes  RecruitmentResume[]
-  
-  // 功能开关关联
   featureSwitches    UserFeatureSwitch[]
-  
-  // 定时任务关联
+  mapFavorites       MapFavorite[]
+  liveRooms          LiveRoom[]
+  orders             Order[]
   scheduledTasks     ScheduledTask[]
-  
-  // 代理商关联
   agent              Agent?
   agentRelation      UserAgentRelation?
-  
-  // 贴牌配置关联
   brandingConfig     BrandingConfig?
-  
-  // 操作日志
   adminLogs          AdminLog[]
-  
-  // 员工管理
   employees          Employee[]
-  
-  // 话术模板
   scriptTemplates    ScriptTemplate[]
-  
-<<<<<<< HEAD
-=======
-  // 获客数据源配置
   acquisitionSources  AcquisitionSource[]
   acquisitionData     AcquisitionData[]
   dataCollectionTasks DataCollectionTask[]
-  
->>>>>>> 962968886be726cd434c792933b5515366d34518
-  // 对话记录
   conversationLogs   ConversationLog[]
-  
-  // 数字人
   digitalHumans      DigitalHuman[]
-  
-<<<<<<< HEAD
-=======
-  // 声音克隆
   voiceClones        VoiceClone[]
-  
-  // 视频克隆
   videoClones        VideoClone[]
-  
->>>>>>> 962968886be726cd434c792933b5515366d34518
-  // 视频任务
   videoTasks         VideoTask[]
-  
-  // 支付记录
   payments           Payment[]
-<<<<<<< HEAD
-=======
-  
-  // 发布记录
   publishRecords     PublishRecord[]
->>>>>>> 962968886be726cd434c792933b5515366d34518
+  recruitmentCommunications RecruitmentCommunication[]
+  interviews         Interview[]
+  candidateSearchConfigs CandidateSearchConfig[]
+  userSettings          UserSettings?
+  socialAccounts        SocialAccount[]
 }
+
+// ============================================
+// 招聘系统
+// ============================================
 
 model RecruitmentPost {
   id          String    @id @default(uuid())
@@ -118,13 +96,13 @@ model RecruitmentPost {
   title       String
   salaryMin   Int?
   salaryMax   Int?
-  education   String?   // 初中及以下, 高中, 大专, 本科, 硕士, 博士
-  experience  String?   // 不限, 1年以下, 1-3年, 3-5年, 5-10年, 10年以上
-  jobType     String?   // 全职, 兼职, 实习, 合同工
+  education   String?
+  experience  String?
+  jobType     String?
   description String?
   requirements String?
   benefits    String?
-  status      String    @default("recruiting") // recruiting, paused, closed
+  status      String    @default("recruiting")
   candidateCount Int    @default(0)
   recruiterName String?
   recruiterPhone String?
@@ -134,6 +112,9 @@ model RecruitmentPost {
   candidates  Candidate[]
   resumes     RecruitmentResume[]
   processes   RecruitmentProcess[]
+  communications RecruitmentCommunication[]
+  interviews     Interview[]
+  searchConfigs  CandidateSearchConfig[]
 }
 
 model Candidate {
@@ -144,22 +125,157 @@ model Candidate {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   phone       String
-  resume      String?   // 简历URL
+  email       String?
+  resume      String?
   education   String?
   experience  String?
-  status      String    @default("pending") // pending, contacted, interview, hired, rejected
+  skills      String?   // JSON数组
+  source      String?   @default("manual")  // manual/boss/lagou/zhipin/51job/referral
+  matchScore  Int?      @default(0)  // AI匹配评分 0-100
+  location    String?
+  status      String    @default("pending")  // pending/contacted/communicating/interviewed/offered/hired/rejected
   remark      String?
+  lastContactedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  communications RecruitmentCommunication[]
+  interviews     Interview[]
 }
+
+model RecruitmentResume {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId       String
+  job         RecruitmentPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  name        String
+  phone       String
+  email       String?
+  education   String?
+  experience  String?
+  resumeUrl   String?
+  coverLetter String?
+  status      String    @default("pending")
+  notes       String?
+  aiScore     Int?
+  aiAnalysis  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  processes   RecruitmentProcess[]
+  
+  @@index([userId, status])
+  @@index([jobId])
+  @@index([createdAt])
+}
+
+model RecruitmentProcess {
+  id            String    @id @default(uuid())
+  userId        String
+  resumeId      String
+  jobId         String
+  stage         String    @default("screening")
+  notes         String?
+  scheduledAt   DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  resume        RecruitmentResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  job           RecruitmentPost   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, stage])
+  @@index([resumeId])
+  @@index([jobId])
+}
+
+// 招聘沟通记录
+model RecruitmentCommunication {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidateId   String
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  postId        String?
+  post          RecruitmentPost? @relation(fields: [postId], references: [id], onDelete: SetNull)
+  channel       String    @default("platform")  // platform/phone/email/wechat
+  direction     String    @default("outbound")  // outbound(主动联系)/inbound(候选人回复)
+  content       String
+  aiGenerated   Boolean   @default(false)
+  readByCandidate Boolean @default(false)
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, candidateId])
+  @@index([postId])
+  @@index([createdAt])
+}
+
+// 面试安排
+model Interview {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  candidateId   String
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  postId        String
+  post          RecruitmentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  round         Int       @default(1)  // 面试轮次
+  type          String    @default("video")  // video/phone/onsite
+  scheduledAt   DateTime
+  duration      Int       @default(60)  // 分钟
+  location      String?   // 面试地点或会议链接
+  interviewer   String?   // 面试官
+  status        String    @default("scheduled")  // scheduled/confirmed/completed/cancelled/no_show
+  feedback      String?   // 面试反馈
+  score         Int?      // 面试评分 1-100
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([candidateId])
+  @@index([postId])
+  @@index([scheduledAt])
+}
+
+// 候选人搜索配置
+model CandidateSearchConfig {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId        String
+  post          RecruitmentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  platform      String    @default("boss")  // boss/lagou/zhipin/51job
+  keywords      String?   // 搜索关键词 JSON数组
+  location      String?
+  experienceMin Int?
+  experienceMax Int?
+  education     String?
+  salaryMin     Int?
+  salaryMax     Int?
+  skills        String?   // 技能要求 JSON数组
+  autoContact   Boolean   @default(false)  // 是否自动联系匹配候选人
+  contactTemplate String? // 联系话术模板
+  status        String    @default("active")  // active/paused/completed
+  lastSearchedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId, postId])
+  @@index([platform, status])
+}
+
+// ============================================
+// 获客系统
+// ============================================
 
 model AcquisitionTask {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
-  channel     String    // douyin, wechat, xiaohongshu, sms
-  status      String    @default("pending") // pending, running, completed, paused
+  channel     String
+  status      String    @default("pending")
   progress    Int       @default(0)
   leadsCount  Int       @default(0)
   targetCount Int?
@@ -180,17 +296,15 @@ model AcquisitionLead {
   name        String?
   phone       String
   email       String?
-  source      String?   // douyin, wechat, xiaohongshu, sms, scan_qr, organic
-  status      String    @default("new") // new, contacted, qualified, converted, invalid
+  source      String?
+  status      String    @default("new")
   convertedAt DateTime?
-  // AI 分析字段
-  aiScore     Int?                          // AI 质量评分
-  aiQuality   String?                       // 高/中/低
-  aiInsights  String?                       // AI 洞察 (JSON array)
-  aiFollowup  String?                       // AI 跟进建议
-  // 跟进记录
-  notes       String?                       // 备注
-  lastContact DateTime?                    // 最后联系时间
+  aiScore     Int?
+  aiQuality   String?
+  aiInsights  String?
+  aiFollowup  String?
+  notes       String?
+  lastContact DateTime?
   followups   LeadFollowup[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -200,43 +314,115 @@ model AcquisitionLead {
   @@index([aiScore])
 }
 
-// 线索跟进记录
 model LeadFollowup {
   id          String    @id @default(uuid())
   leadId      String
   lead        AcquisitionLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String    @default("note") // call, message, visit, note
-  content     String                        // 跟进内容
-  nextDate    DateTime?                    // 下次跟进时间
+  type        String    @default("note")
+  content     String
+  nextDate    DateTime?
   createdAt   DateTime  @default(now())
   
   @@index([leadId])
 }
 
-// 获客自动化
 model AcquisitionAutomation {
   id              String    @id @default(uuid())
   userId          String
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name            String                      // 自动化名称
-  platform        String                      // 目标平台
-  status          String    @default("draft") // draft, scheduled, running, paused, completed
-  targetLeads     Int       @default(100)     // 目标线索数
-  currentLeads    Int       @default(0)       // 当前线索数
-  productInfo     String?                     // 产品信息
-  targetAudience  String?                     // 目标受众描述
-  strategy        Json?                       // AI 生成的策略
-  schedule        DateTime?                   // 计划执行时间
-  startedAt       DateTime?                   // 实际开始时间
-  completedAt     DateTime?                   // 完成时间
-  notes           String?                     // 备注
+  name            String
+  platform        String
+  status          String    @default("draft")
+  targetLeads     Int       @default(100)
+  currentLeads    Int       @default(0)
+  productInfo     String?
+  targetAudience  String?
+  strategy        Json?
+  schedule        DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  notes           String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
   @@index([userId, status])
 }
+
+model AcquisitionSource {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  type        String
+  config      Json?
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@unique([userId, type])
+}
+
+model AcquisitionData {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source      String
+  sourceType  String
+  name        String?
+  phone       String?
+  email       String?
+  wechat      String?
+  company     String?
+  position    String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  business    String?
+  employeeCount String?
+  roomId      String?
+  roomName    String?
+  platform    String?
+  intentScore Int?
+  intentLevel String?
+  intentTags  String?
+  status      String    @default("new")
+  followupAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, source])
+  @@index([userId, status])
+  @@index([intentScore])
+}
+
+model DataCollectionTask {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source      String
+  keywords    String?
+  industry    String?
+  region      String?
+  radius      Int?
+  centerLat   Float?
+  centerLng   Float?
+  status      String    @default("pending")
+  totalCount  Int       @default(0)
+  collectedCount Int    @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([userId, status])
+}
+
+// ============================================
+// 分享与推荐
+// ============================================
 
 model ShareRecord {
   id          String    @id @default(uuid())
@@ -244,9 +430,9 @@ model ShareRecord {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   qrCodeId    String?
   qrCode      ShareQrCode? @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
-  platform    String    // douyin, kuaishou, xiaohongshu, videoname
-  scannerId   String?   // 扫码用户ID
-  status      String    @default("scanned") // scanned, published, converted
+  platform    String
+  scannerId   String?
+  status      String    @default("scanned")
   scannedAt   DateTime  @default(now())
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -260,10 +446,10 @@ model ShareQrCode {
   title       String
   videoUrl    String?
   videoCover  String?
-  platforms   String    // 逗号分隔: douyin,kuaishou,xiaohongshu,videoname
+  platforms   String
   qrCodeUrl   String?
   scanCount   Int       @default(0)
-  publishCount Int       @default(0)
+  publishCount Int      @default(0)
   activeCount Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -271,99 +457,10 @@ model ShareQrCode {
   shareRecords ShareRecord[]
 }
 
-<<<<<<< HEAD
-=======
-// ==================== 获客数据源配置 ====================
+// ============================================
+// 素材库与发布
+// ============================================
 
-// 获客数据源配置
-model AcquisitionSource {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String    // 天眼查, 高德地图, 抖音直播间等
-  type        String    // tianyancha, amap, douyin_live, kuaishou_live
-  config      Json?     // API密钥等配置
-  enabled     Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  @@unique([userId, type])
-}
-
-// 获客数据记录（从各平台采集的数据）
-model AcquisitionData {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  source      String    // tianyancha, amap, douyin_live, kuaishou_live
-  sourceType  String    // enterprise, merchant, live_audience
-  
-  // 基本信息
-  name        String?
-  phone       String?
-  email       String?
-  wechat      String?   // 微信号
-  
-  // 企业信息（天眼查）
-  company     String?
-  position    String?
-  address     String?
-  latitude    Float?
-  longitude   Float?
-  business    String?   // 主营业务
-  employeeCount String? // 员工规模
-  
-  // 直播间信息
-  roomId      String?   // 直播间ID
-  roomName    String?
-  platform    String?   // douyin, kuaishou
-  
-  // AI分析
-  intentScore Int?      // 意向评分 0-100
-  intentLevel String?    // 高, 中, 低
-  intentTags  String?    // 标签，多个逗号分隔
-  
-  // 状态
-  status      String    @default("new") // new, contacted, qualified, converted, invalid
-  followupAt  DateTime?
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  @@index([userId, source])
-  @@index([userId, status])
-  @@index([intentScore])
-}
-
-// 采集任务
-model DataCollectionTask {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  source      String    // 数据源类型
-  keywords    String?   // 搜索关键词
-  industry    String?   // 行业
-  region      String?   // 地区
-  radius      Int?      // 半径（米）
-  centerLat   Float?
-  centerLng   Float?
-  
-  status      String    @default("pending") // pending, running, completed, failed
-  totalCount  Int       @default(0)
-  collectedCount Int    @default(0)
-  
-  startedAt   DateTime?
-  completedAt DateTime?
-  error       String?
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  @@index([userId, status])
-}
-
->>>>>>> 962968886be726cd434c792933b5515366d34518
 model Material {
   id          String    @id @default(uuid())
   userId      String
@@ -372,24 +469,30 @@ model Material {
   title       String?
   content     String?
   fileUrl     String?
-  fileType    String?   // pdf, doc, jpg, png, mp4, mp3
+  fileType    String?
   thumbnail   String?
-<<<<<<< HEAD
-  status      String    @default("unused") // unused, used
-  usedCount   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-=======
-  status      String    @default("unused") // unused, used, pending, publishing, published, failed, scheduled, partially_failed
+  status      String    @default("unused") // unused, used, pending, publishing, published, failed, scheduled
   usedCount   Int       @default(0)
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  
+
+  // 素材去重与使用追踪
+  contentHash   String?  // 文本内容 SHA256 哈希（精确匹配）
+  fileHash      String?  // 文件 SHA256 哈希（精确匹配）
+  simHash       String?  // SimHash 指纹（模糊匹配）
+  usagePlatforms String? // 已使用平台列表 JSON，如 ["douyin","kuaishou"]
+  isDuplicate   Boolean  @default(false) // 是否被标记为重复素材
+
   publishRecords PublishRecord[]
+
+  @@index([userId, type])
+  @@index([contentHash])
+  @@index([fileHash])
+  @@index([simHash])
+  @@index([userId, isDuplicate])
 }
 
-// 发布记录
 model PublishRecord {
   id            String    @id @default(uuid())
   materialId    String
@@ -398,8 +501,8 @@ model PublishRecord {
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accountId     String
   socialAccount SocialAccount? @relation(fields: [accountId], references: [id])
-  platform      String    // douyin, kuaishou, xiaohongshu, weibo, etc.
-  status        String    @default("pending") // pending, scheduled, publishing, success, failed
+  platform      String
+  status        String    @default("pending")
   publishedUrl  String?
   publishedId   String?
   error         String?
@@ -414,18 +517,21 @@ model PublishRecord {
   @@index([materialId])
   @@index([userId])
   @@index([status])
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
+
+// ============================================
+// 矩阵账号与发布
+// ============================================
 
 model MatrixAccount {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  platform    String    // douyin, kuaishou, xiaohongshu, videoname, wechat
-  accountId   String    // 平台账号ID
+  platform    String
+  accountId   String
   accountName String
   avatar      String?
-  status      String    @default("active") // active, inactive, expired
+  status      String    @default("active")
   autoPublish Boolean   @default(false)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -441,10 +547,10 @@ model PublishedContent {
   matrixAccount MatrixAccount? @relation(fields: [matrixAccountId], references: [id], onDelete: SetNull)
   title       String
   content     String?
-  mediaUrls   String?   // JSON数组
+  mediaUrls   String?
   platform    String
   accountName String?
-  status      String    @default("published") // pending, published, failed
+  status      String    @default("published")
   views       Int       @default(0)
   likes       Int       @default(0)
   comments    Int       @default(0)
@@ -454,33 +560,19 @@ model PublishedContent {
   updatedAt   DateTime  @updatedAt
 }
 
-// 定时发布任务
 model ScheduledTask {
   id            String    @id @default(uuid())
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // 内容信息
   title         String
   content       String
-<<<<<<< HEAD
-  images        String[]  // 图片URL列表
-=======
-  images        String    @db.LongText  // 图片URL列表，JSON格式
->>>>>>> 962968886be726cd434c792933b5515366d34518
-  
-  // 发布目标
-  platform      String    // douyin, kuaishou, xiaohongshu
-  accountId     String    // 社交账号ID
-  
-  // 定时信息
-  scheduledTime DateTime  // 定时发布时间
-  status        String    @default("pending") // pending, running, completed, failed, cancelled
-  
-  // 执行结果
-  result        String?   // 执行结果信息
-  publishedAt   DateTime? // 实际发布时间
-  
+  images        String?   // JSON格式
+  platform      String
+  accountId     String
+  scheduledTime DateTime
+  status        String    @default("pending")
+  result        String?
+  publishedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -489,16 +581,9 @@ model ScheduledTask {
   @@index([scheduledTime])
 }
 
-model Notification {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String    // system, order, activity
-  title       String
-  content     String
-  isRead      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-}
+// ============================================
+// CRM 系统
+// ============================================
 
 model CrmCustomer {
   id          String    @id @default(uuid())
@@ -510,21 +595,15 @@ model CrmCustomer {
   company     String?
   position    String?
   source      String?
-  level       String?   // A, B, C, D
-  status      String    @default("potential") // potential, active, inactive
+  level       String?
+  status      String    @default("potential")
   remark      String?
-<<<<<<< HEAD
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-=======
-  tags        String?   // JSON数组，标签ID列表
-  lastFollowUpAt DateTime? // 最后跟进时间
+  tags        String?
+  lastFollowUpAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
-  // 关联跟进记录
   followUps   CrmFollowUp[]
-  // 关联提醒
   reminders   CrmReminder[]
 }
 
@@ -532,7 +611,7 @@ model CrmFollowUp {
   id              String    @id @default(uuid())
   customerId      String
   customer        CrmCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  type            String    // call, visit, wechat, email, other
+  type            String
   content         String
   nextPlan        String?
   nextFollowUpAt  DateTime?
@@ -540,27 +619,25 @@ model CrmFollowUp {
   createdAt       DateTime  @default(now())
 }
 
-// CRM标签
 model CrmTag {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String    // 标签名称
-  color       String    @default("#1890ff") // 标签颜色
+  name        String
+  color       String    @default("#1890ff")
   createdAt   DateTime  @default(now())
   
   @@unique([userId, name])
 }
 
-// CRM自动化规则
 model CrmAutomationRule {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String    // 规则名称
-  trigger     String    // trigger: follow_up_overdue, level_change, source_change, tag_added, days_inactive
-  condition   String    // JSON格式的条件
-  action      String    // JSON格式的动作: notify, assign, tag, status_change
+  name        String
+  trigger     String
+  condition   String
+  action      String
   isActive    Boolean   @default(true)
   lastRunAt   DateTime?
   runCount    Int       @default(0)
@@ -568,21 +645,34 @@ model CrmAutomationRule {
   updatedAt   DateTime  @updatedAt
 }
 
-// CRM到期提醒
 model CrmReminder {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   customerId  String
   customer    CrmCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  type        String    // follow_up, contract, birthday, custom
+  type        String
   title       String
-  remindAt    DateTime  // 提醒时间
+  remindAt    DateTime
   isCompleted Boolean   @default(false)
   createdAt   DateTime  @default(now())
   
   @@index([userId, remindAt])
->>>>>>> 962968886be726cd434c792933b5515366d34518
+}
+
+// ============================================
+// 通知、设置、企业信息
+// ============================================
+
+model Notification {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String
+  title       String
+  content     String
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
 }
 
 model CompanyInfo {
@@ -613,61 +703,31 @@ model Setting {
   @@unique([userId, key])
 }
 
-model RecruitmentResume {
-  id          String    @id @default(uuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobId       String
-  job         RecruitmentPost @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  name        String
-  phone       String
-  email       String?
-  education   String?                       // 学历
-  experience  String?                       // 工作经验
-  resumeUrl   String?
-  coverLetter String?
-  status      String    @default("pending") // pending, screening, interview, offer, hired, rejected
-  notes       String?
-  aiScore     Int?                          // AI匹配分数
-  aiAnalysis  String?                      // AI分析结果
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  processes   RecruitmentProcess[]
-  
-  @@index([userId, status])
-  @@index([jobId])
-  @@index([createdAt])
-}
-
 // ============================================
 // 功能开关系统
 // ============================================
 
-// 功能开关定义表（系统级）
 model FeatureSwitch {
   id          String    @id @default(uuid())
-  code        String    @unique  // 功能代码：media, recruitment, acquisition, share, referral
-  name        String              // 功能名称：自媒体运营, 招聘助手, 智能获客, 推荐分享, 转介绍
-  description String?             // 功能描述
-  icon        String?             // 图标
-  enabled     Boolean   @default(true)  // 默认开启
-  sortOrder   Int       @default(0)     // 排序
+  code        String    @unique
+  name        String
+  description String?
+  icon        String?
+  enabled     Boolean   @default(true)
+  sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
-  // 子功能开关
   subFeatures FeatureSubSwitch[]
 }
 
-// 子功能开关定义表
 model FeatureSubSwitch {
   id          String    @id @default(uuid())
-  featureCode String              // 关联功能代码
-  code        String              // 子功能代码
-  name        String              // 子功能名称
-  description String?             // 描述
-  enabled     Boolean   @default(true)  // 默认开启
+  featureCode String
+  code        String
+  name        String
+  description String?
+  enabled     Boolean   @default(true)
   sortOrder   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -677,12 +737,11 @@ model FeatureSubSwitch {
   @@unique([featureCode, code])
 }
 
-// 用户功能开关表（租户级覆盖）
 model UserFeatureSwitch {
   id          String    @id @default(uuid())
-  userId      String              // 用户ID
-  featureCode String              // 功能代码
-  enabled     Boolean             // 是否开启
+  userId      String
+  featureCode String
+  enabled     Boolean
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
@@ -691,44 +750,37 @@ model UserFeatureSwitch {
   @@unique([userId, featureCode])
 }
 
-// 代理商表
+// ============================================
+// 代理商系统
+// ============================================
+
 model Agent {
   id            String    @id @default(uuid())
-  userId        String    @unique  // 关联的用户ID
-  name          String              // 代理商名称
-  level         String    @default("district")  // 级别: country, province, city, district
-  region        String?             // 区域
-  
-  // 计费相关
-  agentType     String    @default("commission")  // 计费类型: one_time(一次性付费), commission(按比例分成)
-  commissionRate Decimal   @default(0.3)  // 分成比例（按比例分成时使用）
-  oneTimeFee    Decimal   @default(0)    // 一次性付费金额
-  totalPaid     Decimal   @default(0)   // 累计已付金额
-  monthlyPaid   Decimal   @default(0)   // 当月已付金额（每月初重置）
-  lastPaidAt    DateTime?              // 最后支付时间
-  
-  status        String    @default("active")  // active, frozen
-  balance       Decimal   @default(0)  // 账户余额（仅按比例分成代理商）
-  totalRevenue  Decimal   @default(0)  // 累计收益
+  userId        String    @unique
+  name          String
+  level         String    @default("district")
+  region        String?
+  agentType     String    @default("commission")
+  commissionRate Decimal  @default(0.3) @db.Decimal(10,2)
+  oneTimeFee    Decimal   @default(0) @db.Decimal(10,2)
+  totalPaid     Decimal   @default(0) @db.Decimal(10,2)
+  monthlyPaid   Decimal   @default(0) @db.Decimal(10,2)
+  lastPaidAt    DateTime?
+  status        String    @default("active")
+  balance       Decimal   @default(0) @db.Decimal(10,2)
+  totalRevenue  Decimal   @default(0) @db.Decimal(10,2)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // 关联的用户
   user          User      @relation(fields: [userId], references: [id])
-  
-  // 下级代理
   parentId      String?
   parent        Agent?    @relation("AgentHierarchy", fields: [parentId], references: [id])
   children      Agent[]   @relation("AgentHierarchy")
-  
-  // 关联关系
   agentRelations UserAgentRelation[]
-  
-  // 支付记录
   payments      Payment[]
+  settlements   Settlement[]
 }
 
-// 用户与代理商关联表
 model UserAgentRelation {
   id          String    @id @default(uuid())
   userId      String
@@ -741,101 +793,105 @@ model UserAgentRelation {
   @@unique([userId])
 }
 
-// 贴牌配置表
-model BrandingConfig {
-  id          String    @id @default(uuid())
-  userId      String    @unique  // 租户用户ID
-  appName     String    @default("智枢AI")  // APP名称
-  logo        String?             // LOGO URL
-  favicon     String?             // favicon
-  themeColor  String    @default("#1890ff")  // 主题色
-  primaryColor String    @default("#1890ff")  // 主色
-  secondaryColor String  @default("#52c41a")  // 次色
-  welcomeText String?             // 欢迎语
-  description String?             // 描述
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// 代理商业绩统计表
 model AgentStats {
   id          String    @id @default(uuid())
   agentId     String
-  period      String              // 统计周期: daily, weekly, monthly
-  periodStart DateTime            // 周期开始时间
-  periodEnd   DateTime            // 周期结束时间
-  newCustomers Int       @default(0)  // 新增客户
-  activeCustomers Int   @default(0)  // 活跃客户
-  totalRevenue Decimal   @default(0)  // 收益
-  commission  Decimal   @default(0)  // 佣金
+  period      String
+  periodStart DateTime
+  periodEnd   DateTime
+  newCustomers Int     @default(0)
+  activeCustomers Int  @default(0)
+  totalRevenue Decimal  @default(0) @db.Decimal(10,2)
+  commission  Decimal   @default(0) @db.Decimal(10,2)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
   @@unique([agentId, period, periodStart])
 }
 
-// 操作日志表
+// ============================================
+// 贴牌配置
+// ============================================
+
+model BrandingConfig {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  appName     String    @default("智枢AI")
+  logo        String?
+  favicon     String?
+  themeColor  String    @default("#1890ff")
+  primaryColor String   @default("#1890ff")
+  secondaryColor String @default("#52c41a")
+  welcomeText String?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// 操作日志
+// ============================================
+
 model AdminLog {
   id          String    @id @default(uuid())
-  userId      String              // 操作人ID
-  userName    String?             // 操作人名称
-  action      String              // 操作类型
-  target      String?             // 操作对象
-  detail      String?             // 详情
-  ip          String?             // IP地址
-  userAgent   String?             // 浏览器UA
+  userId      String
+  userName    String?
+  action      String
+  target      String?
+  detail      String?
+  ip          String?
+  userAgent   String?
   createdAt   DateTime  @default(now())
   
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// API服务商表
+// ============================================
+// API 服务商配置
+// ============================================
+
 model ApiProvider {
   id          String    @id @default(uuid())
-  name        String    @unique           // 服务商名称
-  type        String    @default("coze")  // coze, volcengine, openai, custom
-  baseUrl     String                     // API地址
-  apiKey      String                     // API密钥（加密存储）
-  enabled     Boolean   @default(true)    // 是否启用
-  isDefault   Boolean   @default(false)  // 是否默认
-  priority    Int      @default(0)        // 优先级（数字越小优先级越高）
-  config      Json?                      // 其他配置（模型列表等）
-  remark      String?                    // 备注
+  name        String    @unique
+  type        String    @default("coze")
+  baseUrl     String
+  apiKey      String
+  enabled     Boolean   @default(true)
+  isDefault   Boolean   @default(false)
+  priority    Int       @default(0)
+  config      Json?
+  remark      String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
-// 代理商API配置表（覆盖系统默认配置）
 model AgentApiConfig {
   id          String    @id @default(uuid())
-  agentId     String    @unique           // 代理商ID（关联User）
-  providerId  String                     // 指定的API服务商ID
-  apiKey      String                     // 代理商自己的API密钥
-  enabled     Boolean   @default(true)    // 是否启用
+  agentId     String    @unique
+  providerId  String
+  apiKey      String
+  enabled     Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
   @@index([agentId])
 }
 
-<<<<<<< HEAD
-=======
-// 用户API Key配置表（简化版）
 model ApiKey {
   id          String    @id @default(uuid())
-  userId      String                     // 用户ID
-  provider    String                     // 服务商：dashscope(阿里云百炼) / tokenhub(腾讯云TokenHub)
-  apiKey      String                     // API密钥（加密存储）
-  secretKey   String                     // Secret密钥（加密存储）
-  status      String    @default("active") // active / disabled
-  isPrimary   Boolean   @default(false)  // 是否主Key
-  isSecondary Boolean   @default(false)  // 是否备用Key
-  usage       Int       @default(0)      // 使用次数
-  limit       Int       @default(0)     // 额度限制
-  failCount   Int       @default(0)     // 连续失败次数
-  lastUsedAt  DateTime?                  // 最后使用时间
+  userId      String
+  provider    String
+  apiKey      String
+  secretKey   String
+  status      String    @default("active")
+  isPrimary   Boolean   @default(false)
+  isSecondary Boolean   @default(false)
+  usage       Int       @default(0)
+  limit       Int       @default(0)
+  failCount   Int       @default(0)
+  lastUsedAt  DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   
@@ -843,115 +899,132 @@ model ApiKey {
   @@index([userId])
 }
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
-// API使用日志表
 model ApiUsageLog {
   id          String    @id @default(uuid())
-  userId      String                     // 用户ID
-  agentId     String?                    // 代理商ID
-  providerId  String                     // 使用的服务商ID
-  providerName String                    // 服务商名称
-  endpoint    String                     // 调用的端点
-  model       String?                    // 使用的模型
-  requestTokens Int?                    // 请求Token数
-  responseTokens Int?                   // 响应Token数
-  cost        Decimal?   @default(0)     // 费用
-  duration    Int?                       // 耗时(ms)
-  status      String    @default("success") // success, failed
-  errorMsg    String?                    // 错误信息
+  userId      String
+  agentId     String?
+  providerId  String
+  providerName String
+  endpoint    String
+  model       String?
+  requestTokens Int?
+  responseTokens Int?
+  cost        Decimal?   @default(0) @db.Decimal(10,4)
+  duration    Int?
+  status      String    @default("success")
+  errorMsg    String?
   createdAt   DateTime  @default(now())
   
   @@index([userId, createdAt])
   @@index([agentId, createdAt])
 }
 
-// 短信发送记录表
+// ============================================
+// 短信系统
+// ============================================
+
 model SmsLog {
   id          String    @id @default(uuid())
-  phone       String                     // 手机号
-  type        String                     // 类型: register, login, forgot_password, verify
-  code        String                     // 验证码
-  expiresAt   DateTime                   // 过期时间
-  used        Boolean   @default(false)  // 是否已使用
-  usedAt      DateTime?                  // 使用时间
-  ip          String?                    // 请求IP
-  userId      String?                    // 用户ID（登录/注册后）
-  status      String    @default("pending") // pending, sent, verified, expired, failed
-  errorMsg    String?                    // 错误信息
-  provider    String    @default("aliyun") // 短信服务商: aliyun, tencent
+  phone       String
+  type        String
+  code        String
+  expiresAt   DateTime
+  used        Boolean   @default(false)
+  usedAt      DateTime?
+  ip          String?
+  userId      String?
+  status      String    @default("pending")
+  errorMsg    String?
+  provider    String    @default("aliyun")
   createdAt   DateTime  @default(now())
   
   @@index([phone, createdAt])
   @@index([code, type])
 }
 
-// 短信配置表
 model SmsConfig {
   id          String    @id @default(uuid())
-  provider    String    @unique           // 服务商: aliyun, tencent
-  accessKeyId String                     // 访问密钥ID（加密存储）
-  accessKeySecret String                  // 访问密钥密钥（加密存储）
-  signName    String                     // 签名名称
-  templateCode String                    // 模板CODE
-  enabled     Boolean   @default(true)    // 是否启用
-  isDefault   Boolean   @default(false)  // 是否默认
-  config      Json?                      // 其他配置
+  provider    String    @unique
+  accessKeyId String
+  accessKeySecret String
+  signName    String
+  templateCode String
+  enabled     Boolean   @default(true)
+  isDefault   Boolean   @default(false)
+  config      Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
 
-// 社交平台账号表 - 存储各平台的授权账号
+// ============================================
+// 社交平台与 OAuth
+// ============================================
+
 model SocialAccount {
   id            String    @id @default(uuid())
-  userId        String                      // 用户ID
-  agentId       String?                     // 代理商ID
-  platform      String                      // 平台: douyin, kuaishou, xiaohongshu, weibo, zhihu, bilibili, boss, zhipin, lagou, liepin
-  accountId     String?                     // 平台账号ID
-  accountName   String?                     // 平台账号名称
-  avatar        String?                     // 头像
-<<<<<<< HEAD
-  cookies       String?                     // 登录cookies（加密存储）
-=======
-  cookies       String?   @db.Text                     // 登录cookies（加密存储）
->>>>>>> 962968886be726cd434c792933b5515366d34518
-  headers       String?                     // 请求头（加密存储）
-  accessToken   String?                     // OAuth access token
-  refreshToken  String?                     // OAuth refresh token
-  tokenExpiry   DateTime?                   // Token过期时间
-  status        String    @default("active") // active, inactive, expired, error
-  lastSyncAt    DateTime?                   // 最后同步时间
-  syncError     String?                     // 同步错误信息
-  config        Json?                       // 平台特定配置
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId       String?
+  platform      String
+  accountId     String?
+  accountName   String?
+  avatar        String?
+  cookies       String?  @db.Text
+  headers       String?
+  accessToken   String?
+  refreshToken  String?
+  tokenExpiry   DateTime?
+  isConnected   Boolean   @default(false)
+  status        String    @default("active")
+  lastSyncAt    DateTime?
+  syncError     String?
+  config        Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-<<<<<<< HEAD
-=======
   publishRecords PublishRecord[]
-
->>>>>>> 962968886be726cd434c792933b5515366d34518
+  
   @@index([userId, platform])
   @@index([agentId])
 }
 
-// 自动化任务表
+model OAuthSession {
+  id            String    @id @default(uuid())
+  userId        String
+  platform      String
+  sessionId     String    @unique
+  state         String
+  redirectUrl   String?
+  qrcodeUrl     String?
+  status        String    @default("pending")
+  cookies       String?  @db.Text
+  accountInfo   Json?
+  expiresAt     DateTime
+  completedAt   DateTime?
+  error         String?
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId, platform])
+  @@index([status, expiresAt])
+}
+
 model AutomationTask {
   id            String    @id @default(uuid())
-  userId        String                      // 用户ID
-  agentId       String?                     // 代理商ID
-  name          String                      // 任务名称
-  type          String                      // 任务类型: publish, auto_reply, recruit, acquire
-  platform      String                      // 平台
-  accountId     String                      // 使用的账号ID
-  config        Json                        // 任务配置
-  schedule      Json?                       // 定时配置
-  enabled       Boolean   @default(true)    // 是否启用
-  status        String    @default("idle") // idle, running, paused, error
-  lastRunAt     DateTime?                   // 最后运行时间
-  nextRunAt     DateTime?                   // 下次运行时间
-  runCount      Int      @default(0)        // 运行次数
-  successCount  Int      @default(0)       // 成功次数
-  failCount     Int      @default(0)        // 失败次数
+  userId        String
+  agentId       String?
+  name          String
+  type          String
+  platform      String
+  accountId     String
+  config        Json
+  schedule      Json?
+  enabled       Boolean   @default(true)
+  status        String    @default("idle")
+  lastRunAt     DateTime?
+  nextRunAt     DateTime?
+  runCount      Int       @default(0)
+  successCount  Int       @default(0)
+  failCount     Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -959,22 +1032,21 @@ model AutomationTask {
   @@index([status, enabled])
 }
 
-// 任务执行记录表
 model TaskExecution {
   id            String    @id @default(uuid())
-  taskId        String                      // 任务ID
-  userId        String                      // 用户ID
-  platform      String                      // 平台
-  action        String                      // 执行动作
-  status        String    @default("pending") // pending, running, success, failed, cancelled
-  startTime     DateTime?                   // 开始时间
-  endTime       DateTime?                   // 结束时间
-  duration      Int?                        // 耗时(ms)
-  input         Json?                       // 输入数据
-  output        Json?                       // 输出数据
-  error         String?                     // 错误信息
-  screenshots   String?                     // 截图URLs (JSON array)
-  logs          String?                     // 执行日志 (JSON array)
+  taskId        String
+  userId        String
+  platform      String
+  action        String
+  status        String    @default("pending")
+  startTime     DateTime?
+  endTime       DateTime?
+  duration      Int?
+  input         Json?
+  output        Json?
+  error         String?
+  screenshots   String?
+  logs          String?
   createdAt     DateTime  @default(now())
   
   @@index([taskId, createdAt])
@@ -982,64 +1054,36 @@ model TaskExecution {
   @@index([status])
 }
 
-// OAuth授权会话表 - 用于扫码授权
-model OAuthSession {
-  id            String    @id @default(uuid())
-  userId        String                      // 用户ID
-  platform      String                      // 平台
-  sessionId     String    @unique            // 会话ID
-  state         String                      // OAuth state
-  redirectUrl   String?                     // 回调URL
-  qrcodeUrl     String?                     // 二维码URL
-  status        String    @default("pending") // pending, scanning, confirmed, expired, failed
-<<<<<<< HEAD
-  cookies       String?                     // 授权后cookies
-=======
-  cookies       String?   @db.Text                     // 授权后cookies
->>>>>>> 962968886be726cd434c792933b5515366d34518
-  accountInfo   Json?                       // 账号信息
-  expiresAt     DateTime                    // 过期时间
-  completedAt   DateTime?                   // 完成时间
-  error         String?                     // 错误信息
-  createdAt     DateTime  @default(now())
-  
-  @@index([userId, platform])
-  @@index([status, expiresAt])
-}
-
 // ============================================
-// AI对话系统
+// AI 对话系统
 // ============================================
 
-// AI对话会话表
 model ChatConversation {
   id            String    @id @default(uuid())
-  userId        String                      // 用户ID
-  title         String    @default("新对话") // 对话标题
-  modelKey      String?                     // 使用的模型
-  provider      String?                     // 服务商
-  messageCount  Int       @default(0)       // 消息数量
-  lastMessage   String?                     // 最后一条消息摘要
+  userId        String
+  title         String    @default("新对话")
+  modelKey      String?
+  provider      String?
+  messageCount  Int       @default(0)
+  lastMessage   String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // 关联的消息
   messages      ChatMessage[]
   
   @@index([userId, createdAt])
 }
 
-// AI对话消息表
 model ChatMessage {
   id            String    @id @default(uuid())
-  conversationId String                      // 会话ID
-  role          String    @default("user")    // user, assistant, system
-  content       String                        // 消息内容
-  model         String?                       // 使用的模型
-  provider      String?                       // 服务商
-  tokens        Int?                          // Token数
-  latency       Int?                          // 响应延迟(ms)
-  metadata      Json?                         // 其他元数据
+  conversationId String
+  role          String    @default("user")
+  content       String
+  model         String?
+  provider      String?
+  tokens        Int?
+  latency       Int?
+  metadata      Json?
   createdAt     DateTime  @default(now())
   
   conversation  ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -1048,65 +1092,37 @@ model ChatMessage {
 }
 
 // ============================================
-// 招聘流程管理
+// 员工管理
 // ============================================
 
-// 招聘流程表
-model RecruitmentProcess {
-  id            String    @id @default(uuid())
-  userId        String                      // 用户ID
-  resumeId      String                      // 简历ID
-  jobId         String                      // 岗位ID
-  stage         String    @default("screening") // screening, interview, offer, hired, rejected
-  notes         String?                     // 备注
-  scheduledAt   DateTime?                   // 预约时间
-  completedAt   DateTime?                   // 完成时间
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  resume        RecruitmentResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
-  job           RecruitmentPost   @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  
-  @@index([userId, stage])
-  @@index([resumeId])
-  @@index([jobId])
-}
-
-// ============================================
-// 员工管理（子账号）
-// ============================================
-
-// 员工表
 model Employee {
   id            String    @id @default(uuid())
-  userId        String                      // 主账号ID（老板/管理员）
-  name          String                      // 员工姓名
-  phone         String    @unique           // 登录手机号
-  password      String                      // 密码（加密）
-  email         String?                     // 邮箱
-  avatar        String?                     // 头像
-  role          String    @default("staff")  // staff, manager, admin
-  permissions   Json?                       // 权限列表
-  status        String    @default("active") // active, disabled
-  lastLoginAt   DateTime?                   // 最后登录时间
+  userId        String
+  name          String
+  phone         String    @unique
+  password      String
+  email         String?
+  avatar        String?
+  role          String    @default("staff")
+  permissions   Json?
+  status        String    @default("active")
+  lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // 关联主账号
   owner         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
   @@index([phone])
 }
 
-// 员工登录日志
 model EmployeeLoginLog {
   id            String    @id @default(uuid())
-  employeeId    String                      // 员工ID
-  ip            String?                     // IP地址
-  userAgent     String?                     // 浏览器UA
-  status        String    @default("success") // success, failed
-  errorMsg      String?                     // 错误信息
+  employeeId    String
+  ip            String?
+  userAgent     String?
+  status        String    @default("success")
+  errorMsg      String?
   createdAt     DateTime  @default(now())
 }
 
@@ -1114,44 +1130,48 @@ model EmployeeLoginLog {
 // 工单系统
 // ============================================
 
-// 工单表
 model Ticket {
   id            String    @id @default(uuid())
-  ticketNo      String    @unique           // 工单编号
-  userId        String                      // 创建用户ID
-  agentId       String?                     // 代理商ID (处理人)
-  category      String                      // 类别: upgrade, downgrade, refund, consult, complaint, other
-  priority      String    @default("normal") // priority: low, normal, high, urgent
-  title         String                      // 标题
-  content       String                      // 内容
-  attachments   Json?                       // 附件列表
-  status        String    @default("pending") // pending, processing, resolved, closed, rejected
-  assigneeId    String?                     // 处理人ID
-  assigneeName  String?                     // 处理人名称
-  responses     TicketResponse[]             // 回复列表
-  closedAt      DateTime?                   // 关闭时间
+  ticketNo      String    @unique
+  userId        String?
+  agentId       String?
+  category      String?   // 客服分类（如 billing/technical/general）
+  type          String    @default("feature")  // feature | quota | tech
+  priority      String    @default("medium")   // low | medium | high | normal
+  title         String
+  content       String?   // 客服工单详细内容
+  description   String?   // 申请工单描述
+  attachments   Json?
+  status        String    @default("pending")  // pending | approved | rejected | closed
+  assigneeId    String?
+  assigneeName  String?
+  rejectReason  String?
+  closedAt      DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
+  responses     TicketResponse[]
+
   @@index([userId, createdAt])
   @@index([agentId, status])
   @@index([status, createdAt])
 }
 
-// 工单回复表
 model TicketResponse {
   id            String    @id @default(uuid())
-  ticketId      String                      // 工单ID
-  userId        String                      // 回复人ID
-  userName      String                      // 回复人名称
-  userRole      String                      // 回复人角色: user, agent, admin
-  content       String                      // 回复内容
-  attachments   Json?                       // 附件
-  isInternal    Boolean   @default(false)  // 是否内部回复（用户不可见）
+  ticketId      String
+  userId        String?
+  userName      String?
+  userRole      String?
+  action        String?   // approve | reject | comment
+  content       String?
+  attachments   Json?
+  isInternal    Boolean   @default(false)
+  operatorId    String?
+  operatorRole  String?   // admin | agent
   createdAt     DateTime  @default(now())
   
-  // 关联工单
-  ticket        Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket        Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   
   @@index([ticketId, createdAt])
 }
@@ -1160,16 +1180,15 @@ model TicketResponse {
 // 系统公告
 // ============================================
 
-// 公告表
 model Announcement {
   id            String    @id @default(uuid())
-  title         String                      // 标题
-  content       String                      // 内容 (富文本)
-  type          String    @default("info")  // 类型: info, warning, important
-  target        String    @default("all")   // 目标: all, agent, user
-  agentId       String?                     // 指定代理商
-  status        String    @default("draft") // 状态: draft, published, closed
-  publishedAt   DateTime?                   // 发布时间
+  title         String
+  content       String
+  type          String    @default("info")
+  target        String    @default("all")
+  agentId       String?
+  status        String    @default("draft")
+  publishedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -1177,51 +1196,45 @@ model Announcement {
 }
 
 // ============================================
-// 智能沟通系统
+// 话术模板
 // ============================================
 
-// 话术模板表
 model ScriptTemplate {
   id            String    @id @default(uuid())
-  userId        String                      // 所属用户
-  name          String                      // 模板名称
-  scenario      String                      // 场景: recruitment, social_media, customer_service, common
-  category      String                      // 分类
-  content       String                      // 话术内容
-  style         String                      // 风格: professional, friendly, casual, concise
-  isAI          Boolean   @default(false)   // 是否AI生成
-  status        Boolean   @default(true)    // 启用状态
-  useCount      Int       @default(0)      // 使用次数
-  successRate   Int       @default(85)      // 成功率
+  userId        String
+  name          String
+  scenario      String
+  category      String
+  content       String
+  style         String
+  isAI          Boolean   @default(false)
+  status        Boolean   @default(true)
+  useCount      Int       @default(0)
+  successRate   Int       @default(85)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // 关联用户
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // 关联对话记录
   conversations ConversationLog[]
   
   @@index([userId, scenario])
   @@index([userId, status])
 }
 
-// 对话记录表
 model ConversationLog {
   id               String    @id @default(uuid())
-  userId           String                      // 所属用户
-  sender           String                      // 发送者
-  receiver         String                      // 接收者
-  originalMessage  String                      // 原始消息
-  generatedReply   String                      // 生成回复
-  templateId       String?                     // 使用的模板ID
+  userId           String
+  sender           String
+  receiver         String
+  originalMessage  String
+  generatedReply   String
+  templateId       String?
   template         ScriptTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  scenario         String                      // 场景
-  style            String                      // 风格
-  feedback         String?                     // 反馈: good, bad
+  scenario         String
+  style            String
+  feedback         String?
   createdAt        DateTime  @default(now())
   
-  // 关联用户
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId, createdAt])
@@ -1232,120 +1245,103 @@ model ConversationLog {
 // 数字人视频系统
 // ============================================
 
-// 数字人模型
 model DigitalHuman {
   id            String    @id @default(uuid())
-  userId        String                      // 所属用户
-  name          String                      // 名称
-  gender        String                      // 性别: male, female
-  style         String                      // 风格: professional, friendly, casual, serious
-  voice         String                      // 音色
-  description   String?                     // 描述
-  avatar        String?                     // 头像URL
-  status        String    @default("active") // 状态: active, training, inactive
-  usageCount    Int       @default(0)        // 使用次数
+  userId        String
+  name          String
+  gender        String
+  style         String
+  voice         String
+  description   String?
+  avatar        String?
+  status        String    @default("active")
+  usageCount    Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // 关联用户
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // 关联视频任务
   videoTasks    VideoTask[]
   
   @@index([userId])
   @@index([status])
 }
 
-<<<<<<< HEAD
-=======
-// 声音克隆模型
 model VoiceClone {
   id            String    @id @default(uuid())
-  userId        String                      // 所属用户
-  name          String                      // 名称
-  gender        String    @default("female") // 性别
-  description   String?                     // 描述
-  audioUrl      String?                     // 音频文件URL
-  language      String    @default("zh-CN") // 语言
-  status        String    @default("ready") // 状态: ready, processing, failed
-  usageCount    Int       @default(0)        // 使用次数
+  userId        String
+  name          String
+  gender        String    @default("female")
+  description   String?
+  audioUrl      String?
+  language      String    @default("zh-CN")
+  status        String    @default("ready")
+  usageCount    Int       @default(0)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // 关联用户
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
   @@index([status])
 }
 
-// 视频克隆模型
 model VideoClone {
   id               String    @id @default(uuid())
-  userId           String                      // 所属用户
-  name             String                      // 名称
-  type             String    @default("digital_human") // 类型: digital_human, talking_photo, lip_sync
-  sourceVideoUrl   String?                     // 源视频URL
-  sourceImageUrl   String?                     // 源图片URL
-  videoUrl         String?                     // 生成后的视频URL
-  thumbnail        String?                     // 缩略图
-  description      String?                     // 描述
-  status           String    @default("processing") // 状态: processing, ready, failed
-  progress         Int       @default(0)        // 处理进度 0-100
+  userId           String
+  name             String
+  type             String    @default("digital_human")
+  sourceVideoUrl   String?
+  sourceImageUrl   String?
+  videoUrl         String?
+  thumbnail        String?
+  description      String?
+  status           String    @default("processing")
+  progress         Int       @default(0)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   
-  // 关联用户
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
   @@index([status])
 }
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
-// 视频模板
 model VideoTemplate {
   id            String    @id @default(uuid())
-  name          String                      // 模板名称
-  thumbnail     String?                     // 缩略图
-  duration      Int       @default(30)      // 时长（秒）
-  style         String                      // 风格
-  scenes        Int       @default(1)       // 场景数
-  usageCount    Int       @default(0)        // 使用次数
-  config        Json?                       // 模板配置
+  name          String
+  thumbnail     String?
+  duration      Int       @default(30)
+  style         String
+  scenes        Int       @default(1)
+  usageCount    Int       @default(0)
+  config        Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // 关联视频任务
   videoTasks    VideoTask[]
   
   @@index([style])
 }
 
-// 视频生成任务
 model VideoTask {
   id               String    @id @default(uuid())
-  userId           String                      // 所属用户
-  humanId          String?                     // 使用的数字人ID
-  templateId       String?                     // 使用的模板ID
-  title            String                      // 视频标题
-  script           String                      // 视频脚本
-  backgroundMusic  String?                     // 背景音乐
-  status           String    @default("pending") // 状态: pending, processing, completed, failed, cancelled
-  progress         Int       @default(0)        // 进度 0-100
-  videoUrl         String?                     // 生成的视频URL
-  thumbnailUrl     String?                     // 视频封面
-  errorMessage     String?                     // 错误信息
-  startedAt        DateTime?                   // 开始时间
-  completedAt      DateTime?                   // 完成时间
+  userId           String
+  humanId          String?
+  templateId       String?
+  title            String
+  script           String
+  backgroundMusic  String?
+  status           String    @default("pending")
+  progress         Int       @default(0)
+  videoUrl         String?
+  thumbnailUrl     String?
+  errorMessage     String?
+  startedAt        DateTime?
+  completedAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   
-  // 关联用户
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // 关联数字人和模板
   human            DigitalHuman? @relation(fields: [humanId], references: [id])
   template         VideoTemplate? @relation(fields: [templateId], references: [id])
   
@@ -1354,43 +1350,27 @@ model VideoTask {
   @@index([templateId])
 }
 
-// 支付记录表
+// ============================================
+// 支付记录
+// ============================================
+
 model Payment {
   id            String    @id @default(uuid())
-  
-  // 支付类型: agent_fee(代理商费用), customer_fee(客户费用), commission(佣金分成)
   type          String    @default("customer_fee")
-  
-  // 支付金额
-  amount        Decimal   @default(0)
-  
-  // 支付状态: pending(待支付), paid(已支付), refunded(已退款), failed(失败)
+  amount        Decimal   @default(0) @db.Decimal(10,2)
+  planId        String?
+  period        String    @default("monthly")
   status        String    @default("paid")
-  
-  // 支付方式: wechat(微信), alipay(支付宝), bank(银行转账), admin(管理员操作)
-  paymentMethod String?   
-  
-  // 关联用户（客户或代理商）
-  userId        String?                      // 客户用户ID
-  user          User?      @relation(fields: [userId], references: [id])
-  
-  // 代理商支付关联
-  agentId       String?                      // 代理商ID
-  agent         Agent?     @relation(fields: [agentId], references: [id])
-  
-  // 关联的租户客户（客户支付时关联）
-  tenantId      String?                      // 租户用户ID
-  
-  // 支付描述
-  description   String?                     // 支付描述
-  
-  // 交易流水号
-  transactionId String?                     // 第三方交易流水号
-  
-  // 备注
-  remark        String?                     // 备注信息
-  
-  paidAt        DateTime?                   // 支付时间
+  paymentMethod String?
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+  agentId       String?
+  agent         Agent?    @relation(fields: [agentId], references: [id])
+  tenantId      String?
+  description   String?
+  transactionId String?
+  remark        String?
+  paidAt        DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -1399,74 +1379,111 @@ model Payment {
   @@index([status])
   @@index([createdAt])
 }
-<<<<<<< HEAD
-=======
 
-// AI 示例库表 - 存储高质量内容示例
+// ============================================
+// AI 反馈与统计系统
+// ============================================
+
 model AIExample {
   id          String    @id @default(uuid())
-  type        String                      // 类型: title, post, script, message, jd, reply
-  platform    String?                     // 平台: 抖音, 快手, 小红书, 视频号, 通用
-  content     String                      // 内容
-  quality     Float     @default(7)       // 质量评分 1-10
-  tags        String?                     // 标签（逗号分隔）
-  metadata    Json?                        // 其他元数据
-  source      String?                     // 来源: user_adopted, system_default
-  usageCount  Int      @default(0)        // 使用次数
+  type        String
+  platform    String?
+  content     String
+  quality     Float     @default(7)
+  tags        String?
+  metadata    Json?
+  source      String?
+  usageCount  Int       @default(0)
   createdAt   DateTime  @default(now())
   
   @@index([type, platform])
   @@index([quality])
 }
 
-// AI 内容反馈表 - 记录用户对生成内容的反馈
 model AIContentFeedback {
   id          String    @id @default(uuid())
-  userId      String                      // 用户ID
-  contentId   String?                     // 内容ID
-  contentType String                      // 内容类型
-  content     String                      // 生成的内容
-  adopted     Boolean   @default(false)   // 是否被采纳
-  edited      Boolean   @default(false)   // 是否被编辑
-  rating      Int?                        // 满意度 1-5
-  edits       String?                     // 编辑内容
-  platform    String?                     // 平台
+  userId      String
+  contentId   String?
+  contentType String
+  content     String
+  adopted     Boolean   @default(false)
+  edited      Boolean   @default(false)
+  rating      Int?
+  edits       String?
+  platform    String?
   createdAt   DateTime  @default(now())
   
   @@index([userId, createdAt])
   @@index([contentType])
 }
 
-// AI 使用统计表
 model AIUsageStats {
   id            String    @id @default(uuid())
-  userId        String                      // 用户ID
-  agentId       String?                     // 代理商ID
-  feature       String                      // 功能: chat, generate_title, generate_post, etc
-  model         String                      // 使用的模型
-  tokens        Int      @default(0)        // Token消耗
-  cost          Decimal   @default(0)        // 费用
-  successCount  Int      @default(0)        // 成功次数
-  failCount     Int      @default(0)        // 失败次数
-  period        String    @default("daily") // 统计周期: daily, monthly
-  periodStart   DateTime                    // 周期开始
+  userId        String
+  agentId       String?
+  feature       String
+  model         String
+  tokens        Int       @default(0)
+  cost          Decimal   @default(0) @db.Decimal(10,4)
+  successCount  Int       @default(0)
+  failCount     Int       @default(0)
+  period        String    @default("daily")
+  periodStart   DateTime
   createdAt     DateTime  @default(now())
   
   @@unique([userId, feature, model, periodStart])
   @@index([userId, periodStart])
 }
 
-// AI 内容反馈表
+// ============================================
+// 编程助手对话
+// ============================================
+
+model CodeAssistantConversation {
+  id            String    @id @default(uuid())
+  userId        String
+  taskType      String    @default("generate")  // generate, explain, debug, testgen, review, nl2code, lowcode
+  language      String    @default("javascript")
+  userMode      String    @default("developer")  // developer, non-developer
+  title         String    @default("新对话")
+  modelKey      String?
+  messageCount  Int       @default(0)
+  lastMessage   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages      CodeAssistantMessage[]
+
+  @@index([userId, createdAt])
+  @@index([userId, taskType])
+}
+
+model CodeAssistantMessage {
+  id              String    @id @default(uuid())
+  conversationId  String
+  role            String    @default("user")  // user, assistant, system
+  content         String    @db.MediumText
+  model           String?
+  tokens          Int?
+  latency         Int?
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+
+  conversation    CodeAssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
 model ContentFeedback {
   id                 String   @id @default(uuid())
-  contentType        String                      // 内容类型: title, script, post, hashtags, etc
-  prompt             String   @db.Text            // 使用的提示词
-  generatedContent   String   @db.Text            // 生成的内容
-  adopted            Boolean  @default(false)     // 是否被采纳
-  edited             Boolean  @default(false)     // 是否被编辑
-  rating             Int?                        // 用户评分 1-5
-  editedContent      String?  @db.Text            // 编辑后的内容
-  userId             String?                     // 用户ID
+  contentType        String
+  prompt             String
+  generatedContent   String
+  adopted            Boolean  @default(false)
+  edited             Boolean  @default(false)
+  rating             Int?
+  editedContent      String?
+  userId             String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   
@@ -1475,57 +1492,204 @@ model ContentFeedback {
   @@index([userId])
 }
 
-// AI 智能体反馈表
 model AgentFeedback {
   id             String   @id @default(uuid())
-  agentId        String                      // 智能体ID
-  conversationId String?                     // 对话ID
-  messageIndex   Int?                        // 消息索引
-  userMessage    String?  @db.Text           // 用户消息
-  agentResponse  String?  @db.Text          // 智能体回复
-  helpful        Boolean?                    // 是否有帮助
-  rating         Int?                        // 评分 1-5
-  userId         String?                     // 用户ID
+  agentId        String
+  conversationId String?
+  messageIndex   Int?
+  userMessage    String?
+  agentResponse  String?
+  helpful        Boolean?
+  rating         Int?
+  userId         String?
   createdAt      DateTime @default(now())
   
   @@index([agentId, createdAt])
   @@index([helpful, createdAt])
 }
 
-
-// 提示词优化表
 model PromptOptimization {
   id            String   @id @default(uuid())
-  contentType   String   @unique            // 内容类型
-  sampleCount   Int      @default(0)         // 样本数量
-  adoptionRate  Float    @default(0)        // 采纳率
-  avgRating     Float    @default(0)        // 平均评分
-  optimizedPrompt String? @db.Text          // 优化后的提示词
-  insights      String?  @db.Text           // 分析洞察
+  contentType   String   @unique
+  sampleCount   Int      @default(0)
+  adoptionRate  Float    @default(0)
+  avgRating     Float    @default(0)
+  optimizedPrompt String?
+  insights      String?
   lastUpdated   DateTime @default(now())
   createdAt     DateTime @default(now())
   
   @@index([adoptionRate])
 }
 
-// 热点话题缓存表
 model HotspotCache {
   id         String   @id @default(uuid())
-  platform   String                      // 平台
-  keyword    String                      // 关键词
-  heat       Int      @default(0)        // 热度值
-  label      String?                     // 标签
-  category   String?                     // 分类
-  url        String?                     // 链接
-  rawData    String?  @db.Text           // 原始数据
+  platform   String
+  keyword    String
+  heat       Int      @default(0)
+  label      String?
+  category   String?
+  url        String?
+  rawData    String?
   cachedAt   DateTime @default(now())
-  expiresAt  DateTime                    // 过期时间
+  expiresAt  DateTime
   
   @@unique([platform, keyword, cachedAt])
   @@index([platform, cachedAt])
   @@index([heat])
 }
 
-// 添加到 User 模型的反向关系（在最后的 } 之前）
-// 这部分需要手动添加到 User 模型的字段中
->>>>>>> 962968886be726cd434c792933b5515366d34518
+// ============================================
+// 合规审计日志
+// ============================================
+
+model ComplianceAuditLog {
+  id            String    @id @default(uuid())
+  userId        String
+  contentPreview String   @db.Text
+  contentType   String    @default("text")
+  platform      String?
+  passed        Boolean
+  score         Int
+  issueCount    Int       @default(0)
+  criticalCount Int       @default(0)
+  warningCount  Int       @default(0)
+  issues        String?   @db.Text
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([passed, createdAt])
+  @@index([platform, createdAt])
+}
+
+// ============================================
+// 版本管理
+// ============================================
+
+model AppVersion {
+  id            String    @id @default(uuid())
+  version       String
+  platform      String    @default("android")
+  buildNumber   Int       @default(1)
+  changelog     String?
+  downloadUrl   String?
+  forceUpdate   Boolean   @default(false)
+  status        String    @default("released")
+  releasedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([platform, version])
+  @@index([platform, status])
+}
+
+// ============================================
+// 用户偏好与安全设置
+// ============================================
+
+model UserSettings {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  language      String    @default("zh-CN")
+  timezone      String    @default("Asia/Shanghai")
+  theme         String    @default("light")
+  loginNotify   Boolean   @default(true)
+  riskNotify    Boolean   @default(true)
+  deviceManage  Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// 地图收藏与直播间采集
+// ============================================
+
+model MapFavorite {
+  id        String   @id @default(uuid())
+  userId    String
+  poiId     String?
+  name      String
+  address   String?
+  location  Json?
+  type      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([poiId])
+}
+
+model LiveRoom {
+  id            String   @id @default(uuid())
+  userId        String
+  platform      String   @default("douyin")
+  roomId        String
+  roomName      String
+  hostName      String?
+  link          String?
+  coverUrl      String?
+  status        String   @default("offline")
+  viewerCount   Int      @default(0)
+  likeCount     Int      @default(0)
+  giftCount     Int      @default(0)
+  followerCount Int      @default(0)
+  salesAmount   Decimal  @default(0) @db.Decimal(10,2)
+  productCount  Int      @default(0)
+  startTime     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform])
+  @@index([status])
+}
+
+// ============================================
+// 订单与结算系统
+// ============================================
+
+model Order {
+  id             String    @id @default(uuid())
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id])
+  agentId        String?
+  planId         String?
+  amount         Decimal   @default(0) @db.Decimal(10,2)
+  status         String    @default("pending")
+  paymentMethod  String?
+  transactionId  String?
+  description    String?
+  paidAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId, status])
+  @@index([agentId, status])
+  @@index([createdAt])
+}
+
+model Settlement {
+  id           String    @id @default(uuid())
+  agentId      String
+  amount       Decimal   @db.Decimal(10,2)
+  status       String    @default("pending")
+  bankAccount  String?
+  bankName     String?
+  remark       String?
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  paidAt       DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  agent        Agent     @relation(fields: [agentId], references: [id])
+
+  @@index([agentId, status])
+  @@index([createdAt])
+}
+
+

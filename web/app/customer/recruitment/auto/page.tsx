@@ -1,13 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { Card, Row, Col, Button, Table, Tag, Space, Modal, Form, Input, Select, Switch, message, Typography, Tabs, List, Avatar, Statistic, Divider, Badge, Tooltip, Popconfirm, Empty, Spin, Alert } from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-=======
 import {
   Card,
   Row,
@@ -39,7 +32,6 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
->>>>>>> 962968886be726cd434c792933b5515366d34518
   RobotOutlined,
   MessageOutlined,
   ClockCircleOutlined,
@@ -95,9 +87,6 @@ interface ConversationLog {
 
 // 知识库分类
 const SCRIPT_CATEGORIES: Record<Scenario, string[]> = {
-<<<<<<< HEAD
-  recruitment: ['开场白', '职位介绍', '面试邀请', '面试提醒', '拒绝话术', '入职邀请', '跟进话术', '常见问题'],
-=======
   recruitment: [
     '开场白',
     '职位介绍',
@@ -108,7 +97,6 @@ const SCRIPT_CATEGORIES: Record<Scenario, string[]> = {
     '跟进话术',
     '常见问题',
   ],
->>>>>>> 962968886be726cd434c792933b5515366d34518
   social_media: ['评论回复', '私信回复', '私信群发', '活动推广', '感谢回复', '投诉处理'],
   customer_service: ['欢迎语', '常见问题', '投诉处理', '退款处理', '订单咨询', '会员服务'],
   common: ['问候语', '告别语', '道歉解释', '感谢语'],
@@ -132,23 +120,15 @@ export default function SmartCommunication() {
   const [selectedScenario, setSelectedScenario] = useState<Scenario>('recruitment');
   const [form] = Form.useForm();
   const [aiForm] = Form.useForm();
-<<<<<<< HEAD
-  
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
   const [templates, setTemplates] = useState<ScriptTemplate[]>([
     {
       id: '1',
       name: '收到简历自动回复',
       scenario: 'recruitment',
       category: '开场白',
-<<<<<<< HEAD
-      content: '您好！感谢您投递简历，我们已收到您的申请。HR会在3个工作日内审核您的简历，通过初审后会电话联系您安排面试。请保持电话畅通！',
-=======
       content:
         '您好！感谢您投递简历，我们已收到您的申请。HR会在3个工作日内审核您的简历，通过初审后会电话联系您安排面试。请保持电话畅通！',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       style: 'friendly',
       isAI: false,
       status: true,
@@ -162,12 +142,8 @@ export default function SmartCommunication() {
       name: '面试邀请',
       scenario: 'recruitment',
       category: '面试邀请',
-<<<<<<< HEAD
-      content: '您好！恭喜您通过简历筛选。我们诚邀您参加面试。\n📅 时间：{date}\n📍 地点：{address}\n👔 穿着：商务休闲\n请回复"确认参加"，如有疑问请联系 HR。期待与您见面！',
-=======
       content:
         '您好！恭喜您通过简历筛选。我们诚邀您参加面试。\n📅 时间：{date}\n📍 地点：{address}\n👔 穿着：商务休闲\n请回复"确认参加"，如有疑问请联系 HR。期待与您见面！',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       style: 'professional',
       isAI: false,
       status: true,
@@ -181,12 +157,8 @@ export default function SmartCommunication() {
       name: '面试提醒',
       scenario: 'recruitment',
       category: '面试提醒',
-<<<<<<< HEAD
-      content: '您好！明天就是面试了，请记得：\n1️⃣ 带好身份证和简历\n2️⃣ 提前10分钟到达\n3️⃣ 如有变动请提前告知\n\n期待明天见面！',
-=======
       content:
         '您好！明天就是面试了，请记得：\n1️⃣ 带好身份证和简历\n2️⃣ 提前10分钟到达\n3️⃣ 如有变动请提前告知\n\n期待明天见面！',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       style: 'friendly',
       isAI: false,
       status: true,
@@ -200,12 +172,8 @@ export default function SmartCommunication() {
       name: '不合适回复',
       scenario: 'recruitment',
       category: '拒绝话术',
-<<<<<<< HEAD
-      content: '您好！感谢您对我们公司的关注。经过认真审核，您的简历与我们当前招聘岗位的要求不太匹配。我们已将您的简历存入人才库，后续有合适岗位会再联系您。祝您早日找到满意的工作！',
-=======
       content:
         '您好！感谢您对我们公司的关注。经过认真审核，您的简历与我们当前招聘岗位的要求不太匹配。我们已将您的简历存入人才库，后续有合适岗位会再联系您。祝您早日找到满意的工作！',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       style: 'professional',
       isAI: false,
       status: false,
@@ -231,12 +199,6 @@ export default function SmartCommunication() {
   ]);
 
   const [logs] = useState<ConversationLog[]>([
-<<<<<<< HEAD
-    { id: '1', sender: 'HR小王', receiver: '李明', originalMessage: '您好，我想咨询一下这个岗位的薪资范围', generatedReply: '您好，我们岗位薪资范围是15-25K，具体根据您的工作经验...', template: '收到简历自动回复', scenario: 'recruitment', style: 'friendly', feedback: 'good', timestamp: '10:30' },
-    { id: '2', sender: 'HR小李', receiver: '王芳', originalMessage: '请问贵公司加班多吗？', generatedReply: '您好，我们公司实行弹性工作制，不强制加班...', template: '收到简历自动回复', scenario: 'recruitment', style: 'friendly', feedback: 'good', timestamp: '10:25' },
-    { id: '3', sender: 'HR小张', receiver: '赵六', originalMessage: '可以远程面试吗？', generatedReply: '您好！当然可以，我们支持线上面试，请问您方便什么时间呢？', template: '面试邀请', scenario: 'recruitment', style: 'friendly', feedback: null, timestamp: '10:20' },
-    { id: '4', sender: '运营小明', receiver: '粉丝A', originalMessage: '这个产品好用吗？', generatedReply: '感谢您的关注！这款产品我们卖得特别好，用户反馈很不错呢~', template: '感谢关注回复', scenario: 'social_media', style: 'casual', feedback: 'good', timestamp: '09:15' },
-=======
     {
       id: '1',
       sender: 'HR小王',
@@ -285,7 +247,6 @@ export default function SmartCommunication() {
       feedback: 'good',
       timestamp: '09:15',
     },
->>>>>>> 962968886be726cd434c792933b5515366d34518
   ]);
 
   // 统计数据
@@ -293,13 +254,9 @@ export default function SmartCommunication() {
     totalTemplates: templates.length,
     activeTemplates: templates.filter(t => t.status).length,
     totalUsage: templates.reduce((acc, t) => acc + t.useCount, 0),
-<<<<<<< HEAD
-    avgSuccessRate: Math.round(templates.reduce((acc, t) => acc + t.successRate, 0) / templates.length),
-=======
     avgSuccessRate: Math.round(
       templates.reduce((acc, t) => acc + t.successRate, 0) / templates.length
     ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     todayUsage: logs.length,
     aiGenerated: templates.filter(t => t.isAI).length,
   };
@@ -308,11 +265,7 @@ export default function SmartCommunication() {
   const handleAIGenerate = async () => {
     const values = await aiForm.validateFields();
     setGeneratingAI(true);
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
     try {
       // 调用后端 API 生成话术
       const response = await fetch('/api/ai/generate-script', {
@@ -329,15 +282,9 @@ export default function SmartCommunication() {
           maxTokens: values.maxTokens || 300,
         }),
       });
-<<<<<<< HEAD
-      
-      const result = await response.json();
-      
-=======
 
       const result = await response.json();
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
       if (result.success) {
         aiForm.setFieldValue('generatedContent', result.data.script);
         message.success('AI 已生成话术，请预览或调整');
@@ -371,11 +318,7 @@ export default function SmartCommunication() {
       };
 
       if (editingTemplate) {
-<<<<<<< HEAD
-        setTemplates(templates.map(t => t.id === editingTemplate.id ? newTemplate : t));
-=======
         setTemplates(templates.map(t => (t.id === editingTemplate.id ? newTemplate : t)));
->>>>>>> 962968886be726cd434c792933b5515366d34518
         message.success('话术已更新');
       } else {
         setTemplates([...templates, newTemplate]);
@@ -401,28 +344,13 @@ export default function SmartCommunication() {
 
   // 表格列
   const columns = [
-<<<<<<< HEAD
-    { 
-      title: '话术名称', 
-      dataIndex: 'name', 
-=======
     {
       title: '话术名称',
       dataIndex: 'name',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       key: 'name',
       render: (name: string, record: ScriptTemplate) => (
         <Space>
           <Text strong>{name}</Text>
-<<<<<<< HEAD
-          {record.isAI && <Tag color="purple" icon={<StarOutlined />}>AI</Tag>}
-        </Space>
-      )
-    },
-    { 
-      title: '场景', 
-      dataIndex: 'scenario', 
-=======
           {record.isAI && (
             <Tag color="purple" icon={<StarOutlined />}>
               AI
@@ -434,7 +362,6 @@ export default function SmartCommunication() {
     {
       title: '场景',
       dataIndex: 'scenario',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       key: 'scenario',
       render: (scenario: Scenario) => {
         const config: Record<Scenario, { label: string; color: string }> = {
@@ -444,45 +371,18 @@ export default function SmartCommunication() {
           common: { label: '通用', color: 'default' },
         };
         return <Tag color={config[scenario].color}>{config[scenario].label}</Tag>;
-<<<<<<< HEAD
-      }
-    },
-    { title: '分类', dataIndex: 'category', key: 'category' },
-    { 
-      title: '风格', 
-      dataIndex: 'style', 
-=======
       },
     },
     { title: '分类', dataIndex: 'category', key: 'category' },
     {
       title: '风格',
       dataIndex: 'style',
->>>>>>> 962968886be726cd434c792933b5515366d34518
       key: 'style',
       render: (style: string) => (
         <Space>
           <span>{STYLE_CONFIG[style as keyof typeof STYLE_CONFIG]?.icon}</span>
           <Text>{STYLE_CONFIG[style as keyof typeof STYLE_CONFIG]?.label}</Text>
         </Space>
-<<<<<<< HEAD
-      )
-    },
-    { title: '使用次数', dataIndex: 'useCount', key: 'useCount', render: (v: number) => <Text>{v}次</Text> },
-    { 
-      title: '成功率', 
-      dataIndex: 'successRate', 
-      key: 'successRate',
-      render: (v: number) => (
-        <Text type={v >= 90 ? 'success' : v >= 80 ? 'warning' : 'danger'}>{v}%</Text>
-      )
-    },
-    { 
-      title: '状态', 
-      dataIndex: 'status', 
-      key: 'status',
-      render: (status: boolean) => <Badge status={status ? 'success' : 'default'} text={status ? '已启用' : '已禁用'} />
-=======
       ),
     },
     {
@@ -506,23 +406,12 @@ export default function SmartCommunication() {
       render: (status: boolean) => (
         <Badge status={status ? 'success' : 'default'} text={status ? '已启用' : '已禁用'} />
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '操作',
       key: 'action',
       render: (_: any, record: ScriptTemplate) => (
         <Space>
-<<<<<<< HEAD
-          <Button type="link" size="small" onClick={() => handlePreview(record)}>预览</Button>
-          <Button type="link" size="small" icon={<EditOutlined />} onClick={() => {
-            setEditingTemplate(record);
-            form.setFieldsValue(record);
-            setTemplateModalVisible(true);
-          }}>编辑</Button>
-          <Popconfirm title="确定删除此话术？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" size="small" danger>删除</Button>
-=======
           <Button type="link" size="small" onClick={() => handlePreview(record)}>
             预览
           </Button>
@@ -542,7 +431,6 @@ export default function SmartCommunication() {
             <Button type="link" size="small" danger>
               删除
             </Button>
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Popconfirm>
         </Space>
       ),
@@ -556,13 +444,7 @@ export default function SmartCommunication() {
           <RobotOutlined style={{ marginRight: 8 }} />
           智能沟通
         </Title>
-<<<<<<< HEAD
-        <Text type="secondary">
-          AI 驱动的智能话术系统，支持多场景沟通，让人机对话更自然高效
-        </Text>
-=======
         <Text type="secondary">AI 驱动的智能话术系统，支持多场景沟通，让人机对话更自然高效</Text>
->>>>>>> 962968886be726cd434c792933b5515366d34518
       </div>
 
       {/* 统计卡片 */}
@@ -574,15 +456,11 @@ export default function SmartCommunication() {
         </Col>
         <Col span={6}>
           <Card size="small">
-<<<<<<< HEAD
-            <Statistic title="启用中" value={stats.activeTemplates} valueStyle={{ color: '#52c41a' }} />
-=======
             <Statistic
               title="启用中"
               value={stats.activeTemplates}
               valueStyle={{ color: '#52c41a' }}
             />
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Card>
         </Col>
         <Col span={6}>
@@ -592,16 +470,12 @@ export default function SmartCommunication() {
         </Col>
         <Col span={6}>
           <Card size="small">
-<<<<<<< HEAD
-            <Statistic title="平均成功率" value={stats.avgSuccessRate} suffix="%" valueStyle={{ color: '#1890ff' }} />
-=======
             <Statistic
               title="平均成功率"
               value={stats.avgSuccessRate}
               suffix="%"
               valueStyle={{ color: '#1890ff' }}
             />
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Card>
         </Col>
       </Row>
@@ -617,116 +491,6 @@ export default function SmartCommunication() {
       />
 
       <Card>
-<<<<<<< HEAD
-        <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
-          {
-            key: 'communicate',
-            label: <span><MessageOutlined /> 话术管理</span>,
-            children: (
-              <>
-                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-                  <Space>
-                    <Select value={selectedScenario} onChange={setSelectedScenario} style={{ width: 150 }}>
-                      <Option value="recruitment">招聘场景</Option>
-                      <Option value="social_media">自媒体场景</Option>
-                      <Option value="customer_service">客服场景</Option>
-                      <Option value="common">通用场景</Option>
-                    </Select>
-                  </Space>
-                  <Space>
-                    <Button icon={<BulbOutlined />} onClick={() => {
-                      aiForm.resetFields();
-                      aiForm.setFieldsValue({ scenario: selectedScenario, style: 'friendly' });
-                      setAiGenerateModalVisible(true);
-                    }}>
-                      <StarOutlined /> AI 生成
-                    </Button>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-                      setEditingTemplate(null);
-                      form.resetFields();
-                      form.setFieldsValue({ scenario: selectedScenario, style: 'friendly', status: true });
-                      setTemplateModalVisible(true);
-                    }}>
-                      新建话术
-                    </Button>
-                  </Space>
-                </div>
-                
-                <Table 
-                  columns={columns} 
-                  dataSource={templates.filter(t => t.scenario === selectedScenario)} 
-                  rowKey="id"
-                  pagination={{ pageSize: 10 }}
-                />
-              </>
-            ),
-          },
-          {
-            key: 'records',
-            label: <span><HistoryOutlined /> 对话记录</span>,
-            children: (
-              <>
-                <List
-                  itemLayout="horizontal"
-                  dataSource={logs}
-                  renderItem={(item) => (
-                    <List.Item
-                      actions={[
-                        <Tooltip title="好评"><Button type="text" icon={<LikeOutlined />} style={{ color: item.feedback === 'good' ? '#52c41a' : undefined }} /></Tooltip>,
-                        <Tooltip title="差评"><Button type="text" icon={<DislikeOutlined />} style={{ color: item.feedback === 'bad' ? '#ff4d4f' : undefined }} /></Tooltip>,
-                      ]}
-                    >
-                      <List.Item.Meta
-                        avatar={<Avatar icon={<MessageOutlined />} style={{ background: '#1890ff' }} />}
-                        title={
-                          <Space>
-                            <Text strong>{item.receiver}</Text>
-                            <Tag>{item.template || 'AI生成'}</Tag>
-                            <Text type="secondary">{item.timestamp}</Text>
-                          </Space>
-                        }
-                        description={
-                          <div>
-                            <div style={{ marginBottom: 8 }}>
-                              <Text type="secondary">候选人：</Text>
-                              <Text>{item.originalMessage}</Text>
-                            </div>
-                            <div>
-                              <Text type="secondary">回复：</Text>
-                              <Text type="success">{item.generatedReply}</Text>
-                            </div>
-                          </div>
-                        }
-                      />
-                    </List.Item>
-                  )}
-                />
-              </>
-            ),
-          },
-          {
-            key: 'settings',
-            label: <span><SettingOutlined /> 人设配置</span>,
-            children: (
-              <Row gutter={[24, 24]}>
-                {Object.entries(STYLE_CONFIG).map(([key, config]) => (
-                  <Col span={12} key={key}>
-                    <Card size="small" title={
-                      <Space>
-                        <span style={{ fontSize: 20 }}>{config.icon}</span>
-                        <Text strong>{config.label}</Text>
-                      </Space>
-                    }>
-                      <Paragraph type="secondary">{config.desc}</Paragraph>
-                      <Tag color="blue">{templates.filter(t => t.style === key).length} 个话术</Tag>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            ),
-          },
-        ]} />
-=======
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -887,7 +651,6 @@ export default function SmartCommunication() {
             },
           ]}
         />
->>>>>>> 962968886be726cd434c792933b5515366d34518
       </Card>
 
       {/* 新建/编辑话术弹窗 */}
@@ -899,29 +662,21 @@ export default function SmartCommunication() {
         width={700}
       >
         <Form form={form} layout="vertical">
-<<<<<<< HEAD
-          <Form.Item name="name" label="话术名称" rules={[{ required: true, message: '请输入话术名称' }]}>
-=======
           <Form.Item
             name="name"
             label="话术名称"
             rules={[{ required: true, message: '请输入话术名称' }]}
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Input placeholder="例如：收到简历自动回复" />
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="scenario" label="使用场景" rules={[{ required: true }]}>
-<<<<<<< HEAD
-                <Select onChange={(v) => { form.setFieldValue('category', SCRIPT_CATEGORIES[v as Scenario][0]); }}>
-=======
                 <Select
                   onChange={v => {
                     form.setFieldValue('category', SCRIPT_CATEGORIES[v as Scenario][0]);
                   }}
                 >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   <Option value="recruitment">招聘场景</Option>
                   <Option value="social_media">自媒体场景</Option>
                   <Option value="customer_service">客服场景</Option>
@@ -932,10 +687,6 @@ export default function SmartCommunication() {
             <Col span={12}>
               <Form.Item name="category" label="话术分类" rules={[{ required: true }]}>
                 <Select>
-<<<<<<< HEAD
-                  {(form.getFieldValue('scenario') ? SCRIPT_CATEGORIES[form.getFieldValue('scenario') as Scenario] : SCRIPT_CATEGORIES.recruitment).map(cat => (
-                    <Option key={cat} value={cat}>{cat}</Option>
-=======
                   {(form.getFieldValue('scenario')
                     ? SCRIPT_CATEGORIES[form.getFieldValue('scenario') as Scenario]
                     : SCRIPT_CATEGORIES.recruitment
@@ -943,7 +694,6 @@ export default function SmartCommunication() {
                     <Option key={cat} value={cat}>
                       {cat}
                     </Option>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   ))}
                 </Select>
               </Form.Item>
@@ -953,26 +703,18 @@ export default function SmartCommunication() {
             <Select>
               {Object.entries(STYLE_CONFIG).map(([key, config]) => (
                 <Option key={key} value={key}>
-<<<<<<< HEAD
-                  <Space>{config.icon} {config.label}</Space>
-=======
                   <Space>
                     {config.icon} {config.label}
                   </Space>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 </Option>
               ))}
             </Select>
           </Form.Item>
-<<<<<<< HEAD
-          <Form.Item name="content" label="话术内容" rules={[{ required: true, message: '请输入话术内容' }]}>
-=======
           <Form.Item
             name="content"
             label="话术内容"
             rules={[{ required: true, message: '请输入话术内容' }]}
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <TextArea rows={6} placeholder="请输入话术内容，支持 {变量} 格式" />
           </Form.Item>
           <Form.Item name="status" label="启用状态" valuePropName="checked">
@@ -986,15 +728,11 @@ export default function SmartCommunication() {
 
       {/* AI 生成话术弹窗 */}
       <Modal
-<<<<<<< HEAD
-        title={<Space><StarOutlined /> AI 智能生成话术</Space>}
-=======
         title={
           <Space>
             <StarOutlined /> AI 智能生成话术
           </Space>
         }
->>>>>>> 962968886be726cd434c792933b5515366d34518
         open={aiGenerateModalVisible}
         onCancel={() => setAiGenerateModalVisible(false)}
         footer={null}
@@ -1017,23 +755,15 @@ export default function SmartCommunication() {
                 <Select>
                   {Object.entries(STYLE_CONFIG).map(([key, config]) => (
                     <Option key={key} value={key}>
-<<<<<<< HEAD
-                      <Space>{config.icon} {config.label}</Space>
-=======
                       <Space>
                         {config.icon} {config.label}
                       </Space>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                     </Option>
                   ))}
                 </Select>
               </Form.Item>
             </Col>
           </Row>
-<<<<<<< HEAD
-          <Form.Item name="context" label="话术主题/场景描述" rules={[{ required: true, message: '请描述话术主题' }]}>
-            <TextArea rows={3} placeholder="例如：面试前一天的提醒，需要包含时间、地点、注意事项等" />
-=======
           <Form.Item
             name="context"
             label="话术主题/场景描述"
@@ -1043,21 +773,14 @@ export default function SmartCommunication() {
               rows={3}
               placeholder="例如：面试前一天的提醒，需要包含时间、地点、注意事项等"
             />
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Form.Item>
           <Form.Item name="generatedContent" label="生成结果">
             <TextArea rows={6} placeholder="点击「开始生成」后将显示AI生成的话术" />
           </Form.Item>
           <div style={{ textAlign: 'center', marginTop: 16 }}>
-<<<<<<< HEAD
-            <Button 
-              type="primary" 
-              icon={<StarOutlined />} 
-=======
             <Button
               type="primary"
               icon={<StarOutlined />}
->>>>>>> 962968886be726cd434c792933b5515366d34518
               onClick={handleAIGenerate}
               loading={generatingAI}
               size="large"
@@ -1083,13 +806,9 @@ export default function SmartCommunication() {
                 <Text strong>{editingTemplate.name}</Text>
                 <Tag>{editingTemplate.scenario}</Tag>
                 <Tag>{editingTemplate.category}</Tag>
-<<<<<<< HEAD
-                <Space>{STYLE_CONFIG[editingTemplate.style as keyof typeof STYLE_CONFIG]?.icon}</Space>
-=======
                 <Space>
                   {STYLE_CONFIG[editingTemplate.style as keyof typeof STYLE_CONFIG]?.icon}
                 </Space>
->>>>>>> 962968886be726cd434c792933b5515366d34518
               </Space>
             </Card>
             <Card title="话术内容">

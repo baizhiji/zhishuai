@@ -182,7 +182,31 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
       '.name',
       '.nickname',
     ],
-    status: 'coming'
+    status: 'available'
+  },
+  channels: {
+    name: '视频号',
+    icon: '📺',
+    color: '#07c160',
+    loginUrls: [
+      'https://channels.weixin.qq.com/login',
+    ],
+    qrSelectors: [
+      '.qrcode img',
+      'img[class*="qrcode"]',
+      'canvas',
+      'img[src*="qr"]',
+    ],
+    successSelectors: [
+      '.user-info',
+      '.home-page',
+      '[class*="header"]',
+    ],
+    userInfoSelectors: [
+      '.nickname',
+      '.user-name',
+    ],
+    status: 'available'
   }
 };
 

@@ -66,7 +66,7 @@ export default function ReferralScreen() {
       return;
     }
     
-    const shareUrl = `https://zhishuai.com/register?code=${referralCode.code}`;
+    const shareUrl = `https://baizhiji.net/register?code=${referralCode.code}`;
     const shareText = `注册智枢AI，享专属优惠！\n邀请码：${referralCode.code}\n${shareUrl}`;
     
     try {

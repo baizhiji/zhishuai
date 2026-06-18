@@ -9,9 +9,9 @@ import {
   Alert,
   FlatList,
   Modal,
-  Image,
   RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import PageHeader from '../components/PageHeader';
@@ -42,50 +42,10 @@ const platformConfig: Record<Platform, { name: string; color: string; icon: stri
   video: { name: '视频号', color: '#07C160', icon: 'videocam' },
 };
 
-// 模拟数据
-const mockReferralCodes: ReferralCode[] = [
-  {
-    id: '1',
-    title: '夏季穿搭分享',
-    videoUrl: 'https://example.com/video1.mp4',
-    videoThumbnail: 'https://picsum.photos/200',
-    platforms: ['douyin', 'xiaohongshu'],
-    code: 'ZS2024ABC001',
-    scanCount: 156,
-    publishCount: 89,
-    createdAt: '2024-03-25',
-  },
-  {
-    id: '2',
-    title: '美食制作教程',
-    videoUrl: 'https://example.com/video2.mp4',
-    videoThumbnail: 'https://picsum.photos/201',
-    platforms: ['kuaishou', 'video'],
-    code: 'ZS2024DEF002',
-    scanCount: 234,
-    publishCount: 145,
-    createdAt: '2024-03-24',
-  },
-  {
-    id: '3',
-    title: '健身打卡挑战',
-    videoUrl: 'https://example.com/video3.mp4',
-    videoThumbnail: 'https://picsum.photos/202',
-    platforms: ['douyin', 'kuaishou', 'xiaohongshu', 'video'],
-    code: 'ZS2024GHI003',
-    scanCount: 567,
-    publishCount: 423,
-    createdAt: '2024-03-23',
-  },
-];
+// 模拟数据 - 已通过API加载
+// const mockReferralCodes 已删除
 
-// 统计数据
-const stats = {
-  totalScans: 957,
-  totalPublish: 657,
-  activeCodes: 12,
-  conversionRate: '68.6%',
-};
+// 平台配置
 
 export default function ShareScreen() {
   const [activeTab, setActiveTab] = useState<'my' | 'codes' | 'data'>('my');
@@ -94,6 +54,8 @@ export default function ShareScreen() {
   const [showCodeModal, setShowCodeModal] = useState(false);
   const [selectedCode, setSelectedCode] = useState<ReferralCode | null>(null);
   const [loading, setLoading] = useState(false);
+  const [myReferralCode, setMyReferralCode] = useState('');
+  const [stats, setStats] = useState({ totalScans: 0, totalPublish: 0, activeCodes: 0, conversionRate: '0%' });
   
   // 创建表单
   const [form, setForm] = useState({
@@ -102,15 +64,37 @@ export default function ShareScreen() {
     platforms: [] as Platform[],
   });
 
-  // 我的推荐码
-  const myReferralCode = 'ZS2024USER001';
-
-  // 加载推荐码列表
+  // 加载推荐码列表和统计
   const loadReferralCodes = async () => {
     setLoading(true);
     try {
-      const data = await shareService.getReferralCodes();
-      setReferralCodes(data);
+      const [codesData, statsData, myCodeData] = await Promise.all([
+        shareService.getShareCodes().catch(() => []),
+        shareService.getStatistics().catch(() => ({})),
+        shareService.getMyReferralCode().catch(() => ({ code: '' })),
+      ]);
+      setReferralCodes(codesData.map((c: any) => ({
+        id: c.id,
+        title: c.title,
+        videoUrl: c.videoUrl || '',
+        videoThumbnail: c.qrCode || '',
+        platforms: (c.platforms || []).filter((p: string) => ['douyin', 'kuaishou', 'xiaohongshu', 'video'].includes(p)),
+        code: c.id?.slice(0, 12).toUpperCase() || '',
+        scanCount: c.scanCount || 0,
+        publishCount: c.publishCount || 0,
+        createdAt: c.createdAt ? new Date(c.createdAt).toLocaleDateString('zh-CN') : '',
+      })));
+      setStats({
+        totalScans: statsData.totalScans || statsData.totalScanCount || 0,
+        totalPublish: statsData.totalPublish || statsData.totalPublishCount || 0,
+        activeCodes: statsData.activeCodes || statsData.activeCount || codesData.length || 0,
+        conversionRate: statsData.conversionRate
+          ? `${(statsData.conversionRate * 100).toFixed(1)}%`
+          : statsData.totalScans > 0
+            ? `${((statsData.totalPublish || 0) / statsData.totalScans * 100).toFixed(1)}%`
+            : '0%',
+      });
+      setMyReferralCode(myCodeData.code || '');
     } catch (error) {
       console.error('加载推荐码失败:', error);
     } finally {
@@ -144,7 +128,7 @@ export default function ShareScreen() {
     }
 
     try {
-      await shareService.createReferralCode({
+      await shareService.createShareCode({
         title: form.title,
         videoUrl: form.videoUrl,
         platforms: form.platforms,

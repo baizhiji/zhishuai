@@ -1,9 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-<<<<<<< HEAD
-import { Layout, Dropdown, Avatar, Space, Typography, MenuProps, Modal, Form, Input, message, Result } from 'antd';
-=======
 import {
   Layout,
   Dropdown,
@@ -17,7 +14,6 @@ import {
   message,
   Result,
 } from 'antd';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import { UserOutlined, LockOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import AgentNavbar from './layout/Navbar';
 import { useRouter } from 'next/navigation';
@@ -25,15 +21,7 @@ import { useRouter } from 'next/navigation';
 const { Header, Content } = Layout;
 const { Text } = Typography;
 
-<<<<<<< HEAD
-export default function AgentLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-=======
 export default function AgentLayout({ children }: { children: React.ReactNode }) {
->>>>>>> 962968886be726cd434c792933b5515366d34518
   const router = useRouter();
   const [userInfo, setUserInfo] = useState({ username: '代理商', phone: '' });
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
@@ -46,31 +34,19 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     // 权限检查：只有 agent 或 admin（以 agent 视角）才能访问
     const userStr = localStorage.getItem('user');
     const viewingRole = localStorage.getItem('viewing_role');
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         const currentRole = viewingRole || user.role;
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
         // admin 用户可以 agent 视角访问，agent 用户只能看到 agent 角色
         if (currentRole === 'agent') {
           setIsAuthorized(true);
         } else {
           setIsAuthorized(false);
         }
-<<<<<<< HEAD
-        
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
         // 获取用户信息
         const stored = localStorage.getItem('userInfo');
         if (stored) {
@@ -97,11 +73,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   };
 
   const handlePasswordChange = () => {
-<<<<<<< HEAD
-    form.validateFields().then((values) => {
-=======
     form.validateFields().then(values => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
       if (values.newPassword !== values.confirmPassword) {
         message.error('两次输入的密码不一致');
         return;
@@ -113,11 +85,7 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
   };
 
   const handleProfileUpdate = () => {
-<<<<<<< HEAD
-    profileForm.validateFields().then((values) => {
-=======
     profileForm.validateFields().then(values => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
       localStorage.setItem('userInfo', JSON.stringify(values));
       message.success('个人信息更新成功');
       setProfileModalVisible(false);
@@ -131,24 +99,13 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
         status="403"
         title="无权限访问"
         subTitle="您没有权限访问代理商后台。"
-<<<<<<< HEAD
-        extra={
-          <button onClick={() => router.push('/')}>
-            返回首页
-          </button>
-        }
-=======
         extra={<button onClick={() => router.push('/')}>返回首页</button>}
->>>>>>> 962968886be726cd434c792933b5515366d34518
       />
     );
   }
 
   // 加载中
   if (isAuthorized === null) {
-<<<<<<< HEAD
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>加载中...</div>;
-=======
     return (
       <div
         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
@@ -156,7 +113,6 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
         加载中...
       </div>
     );
->>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 
   const userMenuItems: MenuProps['items'] = [
@@ -186,9 +142,6 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
     <Layout style={{ minHeight: '100vh' }}>
       <AgentNavbar />
       <Layout>
-<<<<<<< HEAD
-        <Header style={{ padding: '0 24px', marginLeft: 220, background: '#fff', borderBottom: '1px solid #f0f0f0', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
-=======
         <Header
           style={{
             padding: '0 24px',
@@ -200,7 +153,6 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
             alignItems: 'center',
           }}
         >
->>>>>>> 962968886be726cd434c792933b5515366d34518
           <Space size="large">
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
@@ -210,9 +162,6 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
             </Dropdown>
           </Space>
         </Header>
-<<<<<<< HEAD
-        <Content style={{ padding: 24, marginLeft: 220, background: '#f0f2f5', minHeight: 'calc(100vh - 64px)' }}>
-=======
         <Content
           style={{
             padding: 24,
@@ -221,7 +170,6 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
             minHeight: 'calc(100vh - 64px)',
           }}
         >
->>>>>>> 962968886be726cd434c792933b5515366d34518
           {children}
         </Content>
       </Layout>

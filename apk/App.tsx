@@ -6,6 +6,7 @@ import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initNotifications } from './src/services/notification.service';
 import { initSyncStorage, getUnreadCount } from './src/utils/storage';
+import TokenStorage from './src/utils/tokenStorage';
 import * as Updates from 'expo-updates';
 
 // 更新检查结果组件
@@ -137,6 +138,9 @@ function AppLoader({ children }: { children: React.ReactNode }) {
       try {
         // 检查并下载更新
         await checkForUpdates();
+        
+        // 初始化Token存储（从AsyncStorage恢复登录态）
+        await TokenStorage.init();
         
         // 初始化同步存储
         await initSyncStorage();

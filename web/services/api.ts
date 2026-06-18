@@ -45,9 +45,9 @@ export const authApi = {
     return request.post<ApiResponse<LoginResponse>>('/auth/register', data);
   },
 
-  // 获取用户信息
+  // 获取用户信息（后端路由: /api/account/info）
   getUserInfo: () => {
-    return request.get<ApiResponse<User>>('/user/info');
+    return request.get<ApiResponse<User>>('/account/info');
   },
 
   // 退出登录
@@ -122,34 +122,34 @@ export const contentApi = {
 // ==================== 矩阵管理相关 ====================
 
 export const accountsApi = {
-  // 获取账号列表
+  // 获取账号列表（后端路由: /api/matrix/accounts）
   list: () => {
-    return request.get<ApiResponse<Account[]>>('/accounts');
+    return request.get<ApiResponse<Account[]>>('/matrix/accounts');
   },
 
   // 获取账号详情
   get: (id: string) => {
-    return request.get<ApiResponse<Account>>(`/accounts/${id}`);
+    return request.get<ApiResponse<Account>>(`/matrix/accounts/${id}`);
   },
 
   // 添加账号
   create: (data: Partial<Account>) => {
-    return request.post<ApiResponse<Account>>('/accounts', data);
+    return request.post<ApiResponse<Account>>('/matrix/accounts', data);
   },
 
   // 更新账号
   update: (id: string, data: Partial<Account>) => {
-    return request.put<ApiResponse<Account>>(`/accounts/${id}`, data);
+    return request.put<ApiResponse<Account>>(`/matrix/accounts/${id}`, data);
   },
 
   // 删除账号
   delete: (id: string) => {
-    return request.delete<ApiResponse<void>>(`/accounts/${id}`);
+    return request.delete<ApiResponse<void>>(`/matrix/accounts/${id}`);
   },
 
   // 同步账号数据
   sync: (id: string) => {
-    return request.post<ApiResponse<void>>(`/accounts/${id}/sync`);
+    return request.post<ApiResponse<void>>(`/matrix/accounts/${id}/sync`);
   }
 };
 
@@ -315,29 +315,29 @@ export const orderApi = {
 // ==================== 用户中心相关 ====================
 
 export const userApi = {
-  // 更新用户信息
+  // 更新用户信息（后端路由: /api/account/update）
   update: (data: Partial<User>) => {
-    return request.put<ApiResponse<User>>('/user/info', data);
+    return request.put<ApiResponse<User>>('/account/update', data);
   },
 
-  // 修改密码
+  // 修改密码（后端路由: /api/account/password）
   changePassword: (data: { oldPassword: string; newPassword: string }) => {
-    return request.put<ApiResponse<void>>('/user/password', data);
+    return request.put<ApiResponse<void>>('/account/password', data);
   },
 
-  // 获取余额
+  // 获取余额（后端路由: /api/account/balance）
   getBalance: () => {
-    return request.get<ApiResponse<UserBalance>>('/user/balance');
+    return request.get<ApiResponse<UserBalance>>('/account/balance');
   },
 
-  // 获取积分
+  // 获取积分（后端路由: /api/account/points）
   getPoints: () => {
-    return request.get<ApiResponse<UserPoints>>('/user/points');
+    return request.get<ApiResponse<UserPoints>>('/account/points');
   },
 
-  // 获取转介绍记录
+  // 获取转介绍记录（后端路由: /api/referral/records）
   getReferrals: (params: { page: number; pageSize: number }) => {
-    return request.get<ApiResponse<{ list: ReferralRecord[]; total: number }>>('/user/referrals', { params });
+    return request.get<ApiResponse<{ list: ReferralRecord[]; total: number }>>('/referral/records', { params });
   }
 };
 

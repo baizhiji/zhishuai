@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 获取日志列表
 router.get('/logs', async (req, res) => {
   try {

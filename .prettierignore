@@ -1,0 +1,12 @@
+node_modules
+dist
+.next
+.turbo
+coverage
+*.min.js
+*.min.css
+pnpm-lock.yaml
+package-lock.json
+apk/android
+apk/ios
+apk/.expo

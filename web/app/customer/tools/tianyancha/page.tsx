@@ -119,41 +119,7 @@ export default function TianyanchaPage() {
         }, ...prev.slice(0, 9)]);
         message.success('查询成功');
       } else {
-        // 演示数据
-        setCompanyInfo({
-          name: keyword.trim(),
-          creditCode: '91110000XXXXXXXX',
-          legalPerson: '张三',
-          registeredCapital: '1000万元人民币',
-          paidCapital: '500万元人民币',
-          establishmentDate: '2020-01-15',
-          businessTerm: '2020-01-15 至 2040-01-14',
-          status: '存续（在营、开业、在册）',
-          registrationAuthority: '北京市市场监督管理局',
-          address: '北京市朝阳区建国路88号SOHO现代城',
-          businessScope: '技术开发、技术咨询、技术服务；软件开发；计算机系统服务；销售自行开发的产品...',
-          phone: '010-88888888',
-          email: 'contact@company.com',
-          website: 'www.example.com',
-          shareholders: [
-            { name: '张三', capital: '600万元', ratio: '60%' },
-            { name: '李四', capital: '400万元', ratio: '40%' },
-          ],
-          branches: [
-            { name: 'XX分公司', creditCode: '91110000XXXXXXXX01', status: '存续' },
-            { name: 'YY分公司', creditCode: '91110000XXXXXXXX02', status: '存续' },
-          ],
-          changeRecords: [
-            { date: '2023-06-01', item: '注册资本', before: '500万元', after: '1000万元' },
-            { date: '2022-03-15', item: '经营范围', before: '技术咨询', after: '技术开发、技术咨询、技术服务' },
-          ],
-        });
-        setHistory(prev => [{
-          keyword: keyword.trim(),
-          time: new Date().toLocaleString(),
-          result: keyword.trim(),
-        }, ...prev.slice(0, 9)]);
-        message.success('查询成功（演示数据）');
+        message.error('查询失败，请检查天眼查 API 配置');
       }
     } catch (error) {
       console.error('查询失败:', error);

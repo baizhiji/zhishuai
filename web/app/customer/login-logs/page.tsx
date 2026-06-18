@@ -11,22 +11,14 @@ import {
   DatePicker,
   Button,
   Modal,
-<<<<<<< HEAD
-  Descriptions
-=======
   Descriptions,
->>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'antd';
 import {
   LoginOutlined,
   LogoutOutlined,
   DesktopOutlined,
   MobileOutlined,
-<<<<<<< HEAD
-  EnvironmentOutlined
-=======
   EnvironmentOutlined,
->>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -59,11 +51,7 @@ export default function LoginLogsPage() {
     userType: undefined as string | undefined,
     action: undefined as string | undefined,
     status: undefined as string | undefined,
-<<<<<<< HEAD
-    dateRange: undefined as [dayjs.Dayjs, dayjs.Dayjs] | undefined
-=======
     dateRange: undefined as [dayjs.Dayjs, dayjs.Dayjs] | undefined,
->>>>>>> 962968886be726cd434c792933b5515366d34518
   });
   const [userId, setUserId] = useState<string>('');
 
@@ -79,62 +67,18 @@ export default function LoginLogsPage() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-<<<<<<< HEAD
-      const res = await request.get('/api/auth/login-logs', {
-        userId,
-        ...filters
-      });
-=======
       const params: Record<string, string | number | boolean> = { userId };
       if (filters.userType) params.userType = filters.userType;
       if (filters.action) params.action = filters.action;
       if (filters.status) params.status = filters.status;
       const res = await request.get('/api/auth/login-logs', params);
->>>>>>> 962968886be726cd434c792933b5515366d34518
-      setLogs(res.data?.logs || generateMockData());
+      setLogs(res.data?.logs || res?.logs || []);
     } catch (error) {
-      setLogs(generateMockData());
+      console.error('获取登录日志失败:', error);
+      setLogs([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const generateMockData = () => {
-    const logs: LoginLog[] = [];
-    const users = ['张三', '李四', '王五', '赵六', '孙七'];
-    const actions = ['login', 'logout'];
-    const devices = ['desktop', 'mobile', 'tablet'];
-    const browsers = ['Chrome 120', 'Firefox 121', 'Safari 17', 'Edge 120'];
-    const osList = ['Windows 11', 'macOS 14', 'iOS 17', 'Android 14'];
-    const locations = ['北京市', '上海市', '广州市', '深圳市', '杭州市'];
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> 962968886be726cd434c792933b5515366d34518
-    for (let i = 0; i < 30; i++) {
-      const action = actions[Math.floor(Math.random() * actions.length)];
-      logs.push({
-        id: `log-${i}`,
-        userId: `user-${i % 5}`,
-        userName: users[i % 5],
-        userType: ['admin', 'agent', 'customer', 'employee'][i % 4] as any,
-        action: action as any,
-        device: devices[Math.floor(Math.random() * devices.length)] as any,
-        browser: browsers[Math.floor(Math.random() * browsers.length)],
-        os: osList[Math.floor(Math.random() * osList.length)],
-        ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        location: locations[Math.floor(Math.random() * locations.length)],
-        status: Math.random() > 0.1 ? 'success' : 'failed',
-        failReason: Math.random() > 0.9 ? '密码错误' : undefined,
-<<<<<<< HEAD
-        createdAt: dayjs().subtract(i, 'hour').format('YYYY-MM-DD HH:mm:ss')
-=======
-        createdAt: dayjs().subtract(i, 'hour').format('YYYY-MM-DD HH:mm:ss'),
->>>>>>> 962968886be726cd434c792933b5515366d34518
-      });
-    }
-    return logs;
   };
 
   const showDetail = (log: LoginLog) => {
@@ -147,11 +91,7 @@ export default function LoginLogsPage() {
       admin: 'red',
       agent: 'blue',
       customer: 'green',
-<<<<<<< HEAD
-      employee: 'purple'
-=======
       employee: 'purple',
->>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return colors[type] || 'default';
   };
@@ -161,11 +101,7 @@ export default function LoginLogsPage() {
       admin: '管理员',
       agent: '代理商',
       customer: '客户',
-<<<<<<< HEAD
-      employee: '员工'
-=======
       employee: '员工',
->>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return texts[type] || type;
   };
@@ -174,11 +110,7 @@ export default function LoginLogsPage() {
     const icons: Record<string, React.ReactNode> = {
       desktop: <DesktopOutlined />,
       mobile: <MobileOutlined />,
-<<<<<<< HEAD
-      tablet: <MobileOutlined />
-=======
       tablet: <MobileOutlined />,
->>>>>>> 962968886be726cd434c792933b5515366d34518
     };
     return icons[device] || <DesktopOutlined />;
   };
@@ -196,23 +128,13 @@ export default function LoginLogsPage() {
             </Tag>
           </div>
         </Space>
-<<<<<<< HEAD
-      )
-=======
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '操作',
       dataIndex: 'action',
       key: 'action',
       render: (action: string) => (
-<<<<<<< HEAD
-        <Tag color={action === 'login' ? 'green' : 'orange'} icon={action === 'login' ? <LoginOutlined /> : <LogoutOutlined />}>
-          {action === 'login' ? '登录' : '登出'}
-        </Tag>
-      )
-=======
         <Tag
           color={action === 'login' ? 'green' : 'orange'}
           icon={action === 'login' ? <LoginOutlined /> : <LogoutOutlined />}
@@ -220,7 +142,6 @@ export default function LoginLogsPage() {
           {action === 'login' ? '登录' : '登出'}
         </Tag>
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '设备',
@@ -229,13 +150,6 @@ export default function LoginLogsPage() {
         <Space direction="vertical" size={0}>
           <Space>
             {getDeviceIcon(record.device)}
-<<<<<<< HEAD
-            <Text>{record.device === 'desktop' ? '桌面端' : record.device === 'mobile' ? '移动端' : '平板'}</Text>
-          </Space>
-          <Text type="secondary" className="text-xs">{record.browser}</Text>
-        </Space>
-      )
-=======
             <Text>
               {record.device === 'desktop'
                 ? '桌面端'
@@ -249,7 +163,6 @@ export default function LoginLogsPage() {
           </Text>
         </Space>
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: 'IP / 位置',
@@ -261,11 +174,7 @@ export default function LoginLogsPage() {
             <EnvironmentOutlined /> {record.location}
           </Text>
         </Space>
-<<<<<<< HEAD
-      )
-=======
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
@@ -277,29 +186,18 @@ export default function LoginLogsPage() {
             {status === 'success' ? '成功' : '失败'}
           </Tag>
           {record.failReason && (
-<<<<<<< HEAD
-            <Text type="danger" className="text-xs">{record.failReason}</Text>
-          )}
-        </Space>
-      )
-=======
             <Text type="danger" className="text-xs">
               {record.failReason}
             </Text>
           )}
         </Space>
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
-<<<<<<< HEAD
-      render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss')
-=======
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '操作',
@@ -308,13 +206,8 @@ export default function LoginLogsPage() {
         <Button type="link" size="small" onClick={() => showDetail(record)}>
           详情
         </Button>
-<<<<<<< HEAD
-      )
-    }
-=======
       ),
     },
->>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   return (
@@ -332,11 +225,7 @@ export default function LoginLogsPage() {
             allowClear
             style={{ width: 120 }}
             value={filters.userType}
-<<<<<<< HEAD
-            onChange={(val) => setFilters({ ...filters, userType: val })}
-=======
             onChange={val => setFilters({ ...filters, userType: val })}
->>>>>>> 962968886be726cd434c792933b5515366d34518
           >
             <Select.Option value="admin">管理员</Select.Option>
             <Select.Option value="agent">代理商</Select.Option>
@@ -348,11 +237,7 @@ export default function LoginLogsPage() {
             allowClear
             style={{ width: 120 }}
             value={filters.action}
-<<<<<<< HEAD
-            onChange={(val) => setFilters({ ...filters, action: val })}
-=======
             onChange={val => setFilters({ ...filters, action: val })}
->>>>>>> 962968886be726cd434c792933b5515366d34518
           >
             <Select.Option value="login">登录</Select.Option>
             <Select.Option value="logout">登出</Select.Option>
@@ -362,21 +247,12 @@ export default function LoginLogsPage() {
             allowClear
             style={{ width: 100 }}
             value={filters.status}
-<<<<<<< HEAD
-            onChange={(val) => setFilters({ ...filters, status: val })}
-=======
             onChange={val => setFilters({ ...filters, status: val })}
->>>>>>> 962968886be726cd434c792933b5515366d34518
           >
             <Select.Option value="success">成功</Select.Option>
             <Select.Option value="failed">失败</Select.Option>
           </Select>
           <RangePicker
-<<<<<<< HEAD
-            onChange={(dates) => setFilters({ ...filters, dateRange: dates as [any, any] || undefined })}
-          />
-          <Button type="primary" onClick={fetchLogs}>查询</Button>
-=======
             onChange={dates =>
               setFilters({ ...filters, dateRange: (dates as [any, any]) || undefined })
             }
@@ -384,7 +260,6 @@ export default function LoginLogsPage() {
           <Button type="primary" onClick={fetchLogs}>
             查询
           </Button>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         </Space>
       </Card>
 
@@ -425,15 +300,11 @@ export default function LoginLogsPage() {
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="设备类型">
-<<<<<<< HEAD
-              {selectedLog.device === 'desktop' ? '桌面端' : selectedLog.device === 'mobile' ? '移动端' : '平板'}
-=======
               {selectedLog.device === 'desktop'
                 ? '桌面端'
                 : selectedLog.device === 'mobile'
                   ? '移动端'
                   : '平板'}
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </Descriptions.Item>
             <Descriptions.Item label="浏览器">{selectedLog.browser}</Descriptions.Item>
             <Descriptions.Item label="操作系统">{selectedLog.os}</Descriptions.Item>

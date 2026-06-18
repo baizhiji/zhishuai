@@ -30,25 +30,17 @@ export default function ForgotPasswordPage() {
   };
 
   // 重置密码
-<<<<<<< HEAD
-  const handleReset = async (values: { phone: string; code: string; newPassword: string; confirmPassword: string }) => {
-=======
   const handleReset = async (values: {
     phone: string;
     code: string;
     newPassword: string;
     confirmPassword: string;
   }) => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
     if (values.newPassword !== values.confirmPassword) {
       message.error('两次密码输入不一致');
       return;
     }
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
     setLoading(true);
     try {
       const res = await ForgotPasswordAPI.reset(values);
@@ -66,16 +58,6 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-<<<<<<< HEAD
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px'
-    }}>
-=======
     <div
       style={{
         minHeight: '100vh',
@@ -86,7 +68,6 @@ export default function ForgotPasswordPage() {
         padding: '20px',
       }}
     >
->>>>>>> 962968886be726cd434c792933b5515366d34518
       <Card style={{ width: '100%', maxWidth: 420, padding: 32 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <h1 style={{ fontSize: 24, fontWeight: 'bold', marginBottom: 8, color: '#333' }}>
@@ -104,11 +85,7 @@ export default function ForgotPasswordPage() {
               label="手机号"
               rules={[
                 { required: true, message: '请输入手机号' },
-<<<<<<< HEAD
-                { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }
-=======
                 { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' },
->>>>>>> 962968886be726cd434c792933b5515366d34518
               ]}
             >
               <Input placeholder="请输入手机号" size="large" />
@@ -121,14 +98,10 @@ export default function ForgotPasswordPage() {
             </Form.Item>
 
             <div style={{ textAlign: 'center', marginTop: 16 }}>
-<<<<<<< HEAD
-              <a onClick={() => router.push('/login')} style={{ color: '#1890ff', cursor: 'pointer' }}>
-=======
               <a
                 onClick={() => router.push('/login')}
                 style={{ color: '#1890ff', cursor: 'pointer' }}
               >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 返回登录
               </a>
             </div>
@@ -156,11 +129,7 @@ export default function ForgotPasswordPage() {
               label="新密码"
               rules={[
                 { required: true, message: '请输入新密码' },
-<<<<<<< HEAD
-                { min: 6, message: '密码至少6位' }
-=======
                 { min: 6, message: '密码至少6位' },
->>>>>>> 962968886be726cd434c792933b5515366d34518
               ]}
             >
               <Input.Password placeholder="请输入新密码" size="large" />

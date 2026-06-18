@@ -17,19 +17,11 @@ export interface AppVersion {
 }
 
 export async function getVersions(params?: { page?: number; pageSize?: number; platform?: string }) {
-<<<<<<< HEAD
-  return request.get('/api/version/versions', params);
-}
-
-export async function getLatestVersion(platform: string = 'android') {
-  return request.get('/api/version/latest', { platform });
-=======
   return request.get('/api/version/versions', { params });
 }
 
 export async function getLatestVersion(platform: string = 'android') {
   return request.get('/api/version/latest', { params: { platform } });
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export async function createVersion(data: Partial<AppVersion>) {
@@ -59,11 +51,7 @@ export interface Announcement {
 }
 
 export async function getAnnouncements(params?: { page?: number; pageSize?: number; status?: string }) {
-<<<<<<< HEAD
-  return request.get('/api/version/announcements', params);
-=======
   return request.get('/api/version/announcements', { params });
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export async function getLatestAnnouncements() {

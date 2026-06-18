@@ -13,11 +13,11 @@ import { Request, Response } from 'express';
 
 // ==================== 模型配置 ====================
 
-// 腾讯云TokenHub模型列表
+// 腾讯云TokenHub模型列表（主）
 const TENCENT_MODELS = {
   hunyuan_instruct: {
     id: 'hunyuan-2.0-instruct-20251111',
-    name: '混元日常',
+    name: '混元指令版',
     provider: 'tencent',
     type: 'chat',
     priority: 1,
@@ -29,7 +29,7 @@ const TENCENT_MODELS = {
   },
   hunyuan_thinking: {
     id: 'hunyuan-2.0-thinking-20251109',
-    name: '混元思考',
+    name: '混元思考版',
     provider: 'tencent',
     type: 'reasoning',
     priority: 2,
@@ -39,48 +39,156 @@ const TENCENT_MODELS = {
     keywords: ['分析', '推理', '计算', '证明', '思考', '逻辑'],
     fallback: 'deepseek_r1',
   },
-  kimi_k2: {
-    id: 'kimi-k2.6',
-    name: 'Kimi长文',
+  hunyuan_role: {
+    id: 'hunyuan-role-latest',
+    name: '混元角色版',
     provider: 'tencent',
-    type: 'long_text',
-    priority: 2,
+    type: 'chat',
+    priority: 1,
     cost: 'medium',
-    maxTokens: 128000,
-    description: '超长文本、报告生成',
-    keywords: ['报告', '总结', '文章', '论文', '文档', '小说', '长文'],
-    fallback: 'qwen_long',
+    maxTokens: 8192,
+    description: '角色扮演、拟人化回复、像真人对话',
+    keywords: ['回复', '聊天', '沟通', '拟人', '角色'],
+    fallback: 'qwen_plus',
   },
-  glm_5: {
-    id: 'glm-5',
-    name: 'GLM-5 Agent',
+  hy3_preview: {
+    id: 'hy3-preview',
+    name: '混元3预览版',
     provider: 'tencent',
-    type: 'agent',
+    type: 'chat',
     priority: 3,
     cost: 'medium',
     maxTokens: 32768,
-    description: 'Agent任务、代码生成',
-    keywords: ['代码', '编程', '开发', '任务', '执行'],
+    description: '最新能力体验、创意写作',
+    keywords: ['创意', '创新', '最新'],
+    fallback: 'deepseek_v4_pro',
+  },
+  deepseek_v4_flash: {
+    id: 'deepseek-v4-flash',
+    name: 'DeepSeek V4 Flash',
+    provider: 'tencent',
+    type: 'chat',
+    priority: 1,
+    cost: 'low',
+    maxTokens: 8192,
+    description: '快速响应、低成本、日常文案',
+    keywords: ['快速', '简单', '轻量'],
+    fallback: 'qwen_turbo',
+  },
+  deepseek_v4_pro: {
+    id: 'deepseek-v4-pro',
+    name: 'DeepSeek V4 Pro',
+    provider: 'tencent',
+    type: 'chat',
+    priority: 2,
+    cost: 'medium',
+    maxTokens: 32768,
+    description: '高质量输出、专业任务',
+    keywords: ['专业', '高质量', '详细', '深入'],
     fallback: 'qwen_plus',
+  },
+  deepseek_v32: {
+    id: 'deepseek-v3.2',
+    name: 'DeepSeek V3.2',
+    provider: 'tencent',
+    type: 'chat',
+    priority: 2,
+    cost: 'low',
+    maxTokens: 32768,
+    description: '平衡性能、日常专业任务',
+    keywords: ['平衡', '通用'],
+    fallback: 'qwen_plus',
+  },
+  deepseek_r1: {
+    id: 'deepseek-r1-0528',
+    name: 'DeepSeek R1',
+    provider: 'tencent',
+    type: 'reasoning',
+    priority: 2,
+    cost: 'medium',
+    maxTokens: 64000,
+    description: '深度思考、复杂推理、代码推理',
+    keywords: ['深度', '推理', '分析', '思考', '复杂', '数学', '代码推理', '算法分析', '逻辑推理'],
+    fallback: 'hunyuan_thinking',
+  },
+  kimi_k2: {
+    id: 'kimi-k2.6',
+    name: 'Kimi K2.6',
+    provider: 'tencent',
+    type: 'long_text',
+    priority: 1,
+    cost: 'medium',
+    maxTokens: 128000,
+    description: '超长文本、内容创作',
+    keywords: ['报告', '总结', '文章', '论文', '文档', '小说', '长文'],
+    fallback: 'qwen_long',
+  },
+  kimi_k25: {
+    id: 'kimi-k2.5',
+    name: 'Kimi K2.5',
+    provider: 'tencent',
+    type: 'chat',
+    priority: 3,
+    cost: 'medium',
+    maxTokens: 32768,
+    description: '代码生成、推理分析',
+    keywords: ['代码', '编程', '推理'],
+    fallback: 'glm_5',
+  },
+  glm_5: {
+    id: 'glm-5',
+    name: 'GLM-5',
+    provider: 'tencent',
+    type: 'agent',
+    priority: 1,
+    cost: 'medium',
+    maxTokens: 32768,
+    description: 'Agent任务、代码生成',
+    keywords: ['代码', '编程', '开发', '任务', '执行', '函数', 'API', '前端', '后端', '算法', '调试', '代码生成', '代码解释', '代码Review', '单测', 'SQL', '写代码', '实现', '重构'],
+    fallback: 'qwen_plus',
+  },
+  glm_51: {
+    id: 'glm-5.1',
+    name: 'GLM-5.1',
+    provider: 'tencent',
+    type: 'agent',
+    priority: 2,
+    cost: 'medium',
+    maxTokens: 32768,
+    description: '增强版GLM、Agent工程',
+    keywords: ['Agent', '智能体', '工作流'],
+    fallback: 'glm_5',
   },
   glm_5v: {
     id: 'glm-5v-turbo',
-    name: 'GLM视觉',
+    name: 'GLM-5V Turbo',
     provider: 'tencent',
     type: 'vision',
-    priority: 2,
+    priority: 1,
     cost: 'medium',
     maxTokens: 8192,
     description: '图片理解、图表分析',
     keywords: ['图片', '图像', '看图', '图表', '截图', '照片'],
     fallback: null,
   },
+  minimax_m27: {
+    id: 'minimax-m2.7',
+    name: 'MiniMax M2.7',
+    provider: 'tencent',
+    type: 'chat',
+    priority: 3,
+    cost: 'medium',
+    maxTokens: 32768,
+    description: '高性能、长文本',
+    keywords: ['高性能', '长文本'],
+    fallback: 'kimi_k2',
+  },
   youtu_vita: {
     id: 'youtu-vita',
     name: '视频解析',
     provider: 'tencent',
     type: 'video',
-    priority: 2,
+    priority: 1,
     cost: 'high',
     maxTokens: 16384,
     description: '视频理解、视频分析',
@@ -98,6 +206,17 @@ const TENCENT_MODELS = {
     keywords: ['生成图片', '画图', '创作图片', 'AI绘图'],
     fallback: null,
   },
+  hy_image_lite: {
+    id: 'HY-Image-Lite',
+    name: '图片生成(轻量)',
+    provider: 'tencent',
+    type: 'image',
+    priority: 2,
+    cost: 'low',
+    description: '轻量图像生成、快速出图',
+    keywords: ['快速出图', '简单图片'],
+    fallback: null,
+  },
   digital_human: {
     id: 'YT-Video-HumanActor',
     name: '数字人口播',
@@ -107,6 +226,17 @@ const TENCENT_MODELS = {
     cost: 'high',
     description: '数字人口播视频',
     keywords: ['数字人', '口播', '配音', '主播', '虚拟人'],
+    fallback: null,
+  },
+  hy_video: {
+    id: 'HY-Video-1.5',
+    name: '混元生视频',
+    provider: 'tencent',
+    type: 'video_gen',
+    priority: 1,
+    cost: 'high',
+    description: '短视频生成',
+    keywords: ['生成视频', '制作视频', 'AI视频'],
     fallback: null,
   },
 };
@@ -157,8 +287,8 @@ const ALIYUN_MODELS = {
     priority: 2,
     cost: 'medium',
     maxTokens: 64000,
-    description: '深度思考、复杂推理',
-    keywords: ['深度', '推理', '分析', '思考', '复杂', '数学'],
+    description: '深度思考、复杂推理、代码推理',
+    keywords: ['深度', '推理', '分析', '思考', '复杂', '数学', '代码推理', '算法分析', '逻辑推理'],
     fallback: 'hunyuan_thinking',
   },
 };
@@ -186,6 +316,7 @@ export class AIModelRouter {
 
   // 初始化默认启用的模型
   private initDefaultModels() {
+    // 腾讯云TokenHub为主，阿里云百炼为辅
     Object.keys(TENCENT_MODELS).forEach(key => {
       this.availableModels.add(key);
     });
@@ -234,7 +365,7 @@ export class AIModelRouter {
     }
     
     // 5. 检查代码/Agent任务
-    if (this.matchKeywords(input, ['代码', '编程', '开发', '任务', '执行', '自动化'])) {
+    if (this.matchKeywords(input, ['代码', '编程', '开发', '任务', '执行', '自动化', '代码生成', '代码解释', '代码Review', '单元测试', '写代码', '实现功能', '调试', 'bug', 'fix', 'deploy', 'refactor', 'debug'])) {
       return 'agent';
     }
     
@@ -271,7 +402,7 @@ export class AIModelRouter {
     const candidates = this.getCandidateModels(taskType, preferProvider);
     
     if (candidates.length === 0) {
-      return { modelKey: 'hunyuan_instruct', provider: 'tencent', isFallback: false };
+      return { modelKey: 'qwen_turbo', provider: 'aliyun', isFallback: false };
     }
 
     // 优先选择低并发的模型

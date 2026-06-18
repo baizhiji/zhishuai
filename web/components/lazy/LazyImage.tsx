@@ -1,19 +1,3 @@
-<<<<<<< HEAD
-'use client'
-
-import { useState } from 'react'
-import { Image } from 'antd'
-import { useInView } from 'react-intersection-observer'
-
-interface LazyImageProps {
-  src: string
-  alt: string
-  width?: number | string
-  height?: number | string
-  className?: string
-  preview?: boolean
-  fallback?: string
-=======
 'use client';
 
 import { useState } from 'react';
@@ -28,7 +12,6 @@ interface LazyImageProps {
   className?: string;
   preview?: boolean;
   fallback?: string;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function LazyImage({
@@ -43,15 +26,9 @@ export function LazyImage({
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.1,
-<<<<<<< HEAD
-  })
-
-  const [isLoaded, setIsLoaded] = useState(false)
-=======
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   if (!inView) {
     return (
@@ -60,11 +37,7 @@ export function LazyImage({
         className={`bg-gray-200 animate-pulse ${className}`}
         style={{ width, height }}
       />
-<<<<<<< HEAD
-    )
-=======
     );
->>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 
   return (
@@ -78,18 +51,6 @@ export function LazyImage({
       fallback={fallback}
       onLoad={() => setIsLoaded(true)}
       placeholder={
-<<<<<<< HEAD
-        <div
-          className={`bg-gray-200 animate-pulse ${className}`}
-          style={{ width, height }}
-        />
-      }
-    />
-  )
-}
-
-export default LazyImage
-=======
         <div className={`bg-gray-200 animate-pulse ${className}`} style={{ width, height }} />
       }
     />
@@ -97,4 +58,3 @@ export default LazyImage
 }
 
 export default LazyImage;
->>>>>>> 962968886be726cd434c792933b5515366d34518

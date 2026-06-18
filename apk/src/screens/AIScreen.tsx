@@ -1,8 +1,8 @@
 /**
  * AI助手页面
- * 智能问答、任务处理
+ * 智能问答、任务处理 - 连接真实AI对话API
  */
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,10 +13,12 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAppNavigation } from '../context/NavigationContext';
+import { aiChatService } from '../services/ai-chat.service';
 
 interface Message {
   id: string;
@@ -32,7 +34,6 @@ interface QuickAction {
   description: string;
 }
 
-// 快捷操作
 const quickActions: QuickAction[] = [
   { id: '1', icon: 'document-text-outline', title: '写文案', description: '帮您快速生成各类文案' },
   { id: '2', icon: 'images-outline', title: '做图片', description: 'AI生成精美图片' },
@@ -40,7 +41,6 @@ const quickActions: QuickAction[] = [
   { id: '4', icon: 'bulb-outline', title: '出方案', description: '智能生成营销方案' },
 ];
 
-// 预置问答
 const presetQuestions = [
   '如何提升短视频的播放量？',
   '怎样写出吸引人的标题？',
@@ -61,70 +61,89 @@ export default function AIScreen() {
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // 发送消息
-  const handleSend = async () => {
-    if (!inputText.trim()) return;
+  // 清理：组件卸载时取消进行中的请求
+  useEffect(() => {
+    return () => { abortRef.current?.abort(); };
+  }, []);
+
+  const sendMessage = useCallback(async (text: string) => {
+    if (!text.trim() || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputText.trim(),
+      content: text.trim(),
       timestamp: Date.now(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputText('');
     setIsTyping(true);
 
-    // 模拟AI回复
-    setTimeout(() => {
-      const responses = [
-        '根据您的需求，我建议从内容定位、用户画像、发布时机这三个方面入手。首先要明确您的目标用户群体，然后根据他们的喜好制定内容策略。',
-        '这个问题很常见！提高播放量的关键在于：1）优化开头3秒，抓住用户注意力；2）使用热门话题和音乐；3）保持稳定的更新频率；4）积极与用户互动。',
-        '很高兴为您解答！小红书运营的核心是"利他性"内容，让用户觉得看完有收获。同时要注意图片质量、标题优化、标签选择等细节。',
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+    // 创建空的助手消息占位符 — 打字机效果
+    const assistantId = (Date.now() + 1).toString();
+    setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: randomResponse,
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+    try {
+      // 取消之前的请求
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const chatHistory = updatedMessages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
+
+      // 使用流式对话
+      let fullContent = '';
+      await aiChatService.chatStream(
+        { messages: chatHistory, stream: true },
+        (chunk: string) => {
+          fullContent += chunk;
+          setMessages(prev =>
+            prev.map(m => m.id === assistantId ? { ...m, content: fullContent } : m)
+          );
+        },
+        controller.signal
+      );
+
+      // 如果流式没有收到内容，回退到非流式
+      if (!fullContent) {
+        const response = await aiChatService.chat({ messages: chatHistory });
+        fullContent = response.message || '抱歉，我暂时无法回答这个问题，请稍后再试。';
+        setMessages(prev =>
+          prev.map(m => m.id === assistantId ? { ...m, content: fullContent } : m)
+        );
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') return;
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantId && !m.content
+            ? { ...m, content: '网络请求失败，请检查网络连接后重试。' }
+            : m
+        )
+      );
+    } finally {
       setIsTyping(false);
-    }, 1500);
+      abortRef.current = null;
+    }
+  }, [messages, isTyping]);
+
+  const handleSend = () => {
+    sendMessage(inputText);
   };
 
-  // 快捷操作点击
   const handleQuickAction = (action: QuickAction) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `帮我${action.title}`,
-      timestamp: Date.now(),
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const response = `好的，我来帮您${action.title}！请详细描述您的需求，比如：\n\n1. 您的目标平台是？\n2. 目标受众是谁？\n3. 有没有参考案例？\n\n描述越详细，我生成的内容越符合您的要求！`;
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response,
-        timestamp: Date.now(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsTyping(false);
-    }, 1000);
+    sendMessage(`帮我${action.title}。${action.description}`);
   };
 
-  // 预置问题点击
   const handlePresetQuestion = (question: string) => {
-    setInputText(question);
+    sendMessage(question);
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
@@ -157,7 +176,7 @@ export default function AIScreen() {
   );
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
@@ -188,43 +207,46 @@ export default function AIScreen() {
         ListFooterComponent={
           isTyping ? (
             <View style={styles.typingIndicator}>
-              <Text style={styles.typingText}>AI正在输入...</Text>
+              <ActivityIndicator size="small" color="#2563EB" />
+              <Text style={styles.typingText}>AI正在思考...</Text>
             </View>
           ) : null
         }
         ListHeaderComponent={
-          <View style={styles.quickActions}>
-            <Text style={styles.quickTitle}>快捷操作</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.quickActionsRow}>
-                {quickActions.map(action => (
+          messages.length <= 1 ? (
+            <View style={styles.quickActions}>
+              <Text style={styles.quickTitle}>快捷操作</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.quickActionsRow}>
+                  {quickActions.map(action => (
+                    <TouchableOpacity
+                      key={action.id}
+                      style={styles.quickActionItem}
+                      onPress={() => handleQuickAction(action)}
+                    >
+                      <View style={styles.quickActionIcon}>
+                        <Ionicons name={action.icon as any} size={24} color="#2563EB" />
+                      </View>
+                      <Text style={styles.quickActionTitle}>{action.title}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+
+              <Text style={styles.presetTitle}>常见问题</Text>
+              <View style={styles.presetQuestions}>
+                {presetQuestions.map((question, index) => (
                   <TouchableOpacity
-                    key={action.id}
-                    style={styles.quickActionItem}
-                    onPress={() => handleQuickAction(action)}
+                    key={index}
+                    style={styles.presetItem}
+                    onPress={() => handlePresetQuestion(question)}
                   >
-                    <View style={styles.quickActionIcon}>
-                      <Ionicons name={action.icon as any} size={24} color="#2563EB" />
-                    </View>
-                    <Text style={styles.quickActionTitle}>{action.title}</Text>
+                    <Text style={styles.presetText}>{question}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-            </ScrollView>
-
-            <Text style={styles.presetTitle}>常见问题</Text>
-            <View style={styles.presetQuestions}>
-              {presetQuestions.map((question, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.presetItem}
-                  onPress={() => handlePresetQuestion(question)}
-                >
-                  <Text style={styles.presetText}>{question}</Text>
-                </TouchableOpacity>
-              ))}
             </View>
-          </View>
+          ) : null
         }
       />
 
@@ -238,11 +260,12 @@ export default function AIScreen() {
           onChangeText={setInputText}
           multiline
           maxLength={500}
+          editable={!isTyping}
         />
         <TouchableOpacity
-          style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+          style={[styles.sendButton, (!inputText.trim() || isTyping) && styles.sendButtonDisabled]}
           onPress={handleSend}
-          disabled={!inputText.trim()}
+          disabled={!inputText.trim() || isTyping}
         >
           <Ionicons name="send" size={20} color="#fff" />
         </TouchableOpacity>
@@ -395,8 +418,11 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   typingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingLeft: 48,
     marginBottom: 16,
+    gap: 8,
   },
   typingText: {
     fontSize: 12,

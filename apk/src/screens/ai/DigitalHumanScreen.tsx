@@ -1,20 +1,3 @@
-<<<<<<< HEAD
-
-import AIFeatureTemplate from './AIFeatureTemplate';
-
-export default function DigitalHumanScreen({ navigation }: { navigation: any }) {
-  return (
-    <AIFeatureTemplate
-      navigation={navigation}
-      title="数字人"
-      icon="person-outline"
-      color="#D97706"
-      description="AI虚拟主播带货"
-      placeholder="请输入主播形象要求、脚本内容、背景场景等..."
-    />
-  );
-}
-=======
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -531,4 +514,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
->>>>>>> 962968886be726cd434c792933b5515366d34518

@@ -12,22 +12,16 @@ import {
   Space,
   Typography,
   Progress,
-<<<<<<< HEAD
-  Statistic
-=======
   Statistic,
->>>>>>> 962968886be726cd434c792933b5515366d34518
+  Empty,
+  Spin,
 } from 'antd';
 import {
   ApiOutlined,
   AreaChartOutlined,
   FieldTimeOutlined,
   CheckCircleOutlined,
-<<<<<<< HEAD
-  CloseCircleOutlined
-=======
   CloseCircleOutlined,
->>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
 import dayjs from 'dayjs';
@@ -40,11 +34,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   BarChart,
-<<<<<<< HEAD
-  Bar
-=======
   Bar,
->>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'recharts';
 
 const { Title, Text } = Typography;
@@ -86,11 +76,7 @@ export default function ApiStatsPage() {
     totalCalls: 0,
     totalTokens: 0,
     totalCost: 0,
-<<<<<<< HEAD
-    avgSuccessRate: 0
-=======
     avgSuccessRate: 0,
->>>>>>> 962968886be726cd434c792933b5515366d34518
   });
 
   useEffect(() => {
@@ -100,129 +86,33 @@ export default function ApiStatsPage() {
   const fetchApiStats = async () => {
     setLoading(true);
     try {
-      const res = await request.get('/api/admin/api-providers/usage');
+      const res = await request.get('/admin/api-providers/usage');
       if (res.data) {
-        setUsage(res.data.usage || generateMockUsage());
-        setTrendData(res.data.trendData || generateMockTrend());
-        setProviderData(res.data.providerData || generateMockProvider());
-<<<<<<< HEAD
+        setUsage(res.data.usage || []);
+        setTrendData(res.data.trendData || []);
+        setProviderData(res.data.providerData || []);
         setStats(res.data.stats || {
-          totalCalls: 156789,
-          totalTokens: 45678900,
-          totalCost: 1289.56,
-          avgSuccessRate: 98.5
+          totalCalls: 0,
+          totalTokens: 0,
+          totalCost: 0,
+          avgSuccessRate: 0,
         });
-=======
-        setStats(
-          res.data.stats || {
-            totalCalls: 156789,
-            totalTokens: 45678900,
-            totalCost: 1289.56,
-            avgSuccessRate: 98.5,
-          }
-        );
->>>>>>> 962968886be726cd434c792933b5515366d34518
       }
     } catch (error) {
-      setUsage(generateMockUsage());
-      setTrendData(generateMockTrend());
-      setProviderData(generateMockProvider());
+      // API失败时显示空数据，不再用mock兜底
+      setUsage([]);
+      setTrendData([]);
+      setProviderData([]);
       setStats({
-        totalCalls: 156789,
-        totalTokens: 45678900,
-        totalCost: 1289.56,
-<<<<<<< HEAD
-        avgSuccessRate: 98.5
-=======
-        avgSuccessRate: 98.5,
->>>>>>> 962968886be726cd434c792933b5515366d34518
+        totalCalls: 0,
+        totalTokens: 0,
+        totalCost: 0,
+        avgSuccessRate: 0,
       });
     } finally {
       setLoading(false);
     }
   };
-
-  const generateMockUsage = () => [
-    {
-      id: '1',
-      provider: 'coze',
-      modelName: 'doubao-pro-32k',
-      totalCalls: 45678,
-      successCalls: 45234,
-      failedCalls: 444,
-      successRate: 99.0,
-      totalTokens: 12345678,
-      cost: 456.78,
-      avgLatency: 1.2,
-<<<<<<< HEAD
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
-=======
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
->>>>>>> 962968886be726cd434c792933b5515366d34518
-    },
-    {
-      id: '2',
-      provider: 'coze',
-      modelName: 'doubao-pro-128k',
-      totalCalls: 23456,
-      successCalls: 23100,
-      failedCalls: 356,
-      successRate: 98.5,
-      totalTokens: 8900000,
-      cost: 567.89,
-      avgLatency: 2.5,
-<<<<<<< HEAD
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
-=======
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
->>>>>>> 962968886be726cd434c792933b5515366d34518
-    },
-    {
-      id: '3',
-      provider: 'coze',
-      modelName: 'doubao-vision',
-      totalCalls: 12345,
-      successCalls: 12100,
-      failedCalls: 245,
-      successRate: 98.0,
-      totalTokens: 5678900,
-      cost: 234.56,
-      avgLatency: 3.2,
-<<<<<<< HEAD
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
-    }
-=======
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    },
->>>>>>> 962968886be726cd434c792933b5515366d34518
-  ];
-
-  const generateMockTrend = () => {
-    const data = [];
-    for (let i = 6; i >= 0; i--) {
-      data.push({
-        date: dayjs().subtract(i, 'day').format('MM-DD'),
-        calls: Math.floor(Math.random() * 20000) + 15000,
-        tokens: Math.floor(Math.random() * 5000000) + 3000000,
-<<<<<<< HEAD
-        cost: Math.random() * 200 + 100
-=======
-        cost: Math.random() * 200 + 100,
->>>>>>> 962968886be726cd434c792933b5515366d34518
-      });
-    }
-    return data;
-  };
-
-  const generateMockProvider = () => [
-    { provider: 'coze-doubao', calls: 65000, cost: 890.23 },
-    { provider: 'coze-vision', calls: 25000, cost: 234.56 },
-<<<<<<< HEAD
-    { provider: 'coze-32k', calls: 40000, cost: 123.45 }
-=======
-    { provider: 'coze-32k', calls: 40000, cost: 123.45 },
->>>>>>> 962968886be726cd434c792933b5515366d34518
-  ];
 
   const columns = [
     {
@@ -233,42 +123,27 @@ export default function ApiStatsPage() {
           <Text strong>{record.modelName}</Text>
           <Tag>{record.provider}</Tag>
         </Space>
-<<<<<<< HEAD
-      )
-=======
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '调用次数',
       dataIndex: 'totalCalls',
       key: 'totalCalls',
-<<<<<<< HEAD
-      render: (val: number) => val.toLocaleString()
-=======
-      render: (val: number) => val.toLocaleString(),
->>>>>>> 962968886be726cd434c792933b5515366d34518
+      render: (val: number) => val?.toLocaleString() || 0,
     },
     {
       title: '成功/失败',
       key: 'result',
       render: (_: any, record: ApiUsage) => (
         <Space direction="vertical" size={0}>
-<<<<<<< HEAD
-          <Text type="success"><CheckCircleOutlined /> {record.successCalls.toLocaleString()}</Text>
-          <Text type="danger"><CloseCircleOutlined /> {record.failedCalls.toLocaleString()}</Text>
-        </Space>
-      )
-=======
           <Text type="success">
-            <CheckCircleOutlined /> {record.successCalls.toLocaleString()}
+            <CheckCircleOutlined /> {(record.successCalls || 0).toLocaleString()}
           </Text>
           <Text type="danger">
-            <CloseCircleOutlined /> {record.failedCalls.toLocaleString()}
+            <CloseCircleOutlined /> {(record.failedCalls || 0).toLocaleString()}
           </Text>
         </Space>
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '成功率',
@@ -276,60 +151,37 @@ export default function ApiStatsPage() {
       key: 'successRate',
       render: (rate: number) => (
         <Progress
-          percent={rate}
+          percent={rate || 0}
           size="small"
-          status={rate > 99 ? 'success' : 'active'}
-<<<<<<< HEAD
-          format={(p) => `${p}%`}
-        />
-      )
-=======
+          status={(rate || 0) > 99 ? 'success' : 'active'}
           format={p => `${p}%`}
         />
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: 'Tokens',
       dataIndex: 'totalTokens',
       key: 'totalTokens',
-<<<<<<< HEAD
-      render: (val: number) => (val / 1000000).toFixed(2) + 'M'
-=======
-      render: (val: number) => (val / 1000000).toFixed(2) + 'M',
->>>>>>> 962968886be726cd434c792933b5515366d34518
+      render: (val: number) => val ? `${(val / 1000000).toFixed(2)}M` : '0M',
     },
     {
       title: '费用',
       dataIndex: 'cost',
       key: 'cost',
-<<<<<<< HEAD
-      render: (val: number) => `¥${val.toFixed(2)}`
-=======
-      render: (val: number) => `¥${val.toFixed(2)}`,
->>>>>>> 962968886be726cd434c792933b5515366d34518
+      render: (val: number) => `¥${(val || 0).toFixed(2)}`,
     },
     {
       title: '平均延迟',
       dataIndex: 'avgLatency',
       key: 'avgLatency',
-<<<<<<< HEAD
-      render: (val: number) => `${val}s`
-=======
-      render: (val: number) => `${val}s`,
->>>>>>> 962968886be726cd434c792933b5515366d34518
+      render: (val: number) => `${val || 0}s`,
     },
     {
       title: '最后调用',
       dataIndex: 'lastCallAt',
       key: 'lastCallAt',
-<<<<<<< HEAD
-      render: (time: string) => dayjs(time).format('HH:mm:ss')
-    }
-=======
-      render: (time: string) => dayjs(time).format('HH:mm:ss'),
+      render: (time: string) => time ? dayjs(time).format('HH:mm:ss') : '-',
     },
->>>>>>> 962968886be726cd434c792933b5515366d34518
   ];
 
   return (
@@ -356,7 +208,7 @@ export default function ApiStatsPage() {
             <Statistic
               title="总 Tokens"
               value={stats.totalTokens}
-              suffix="M"
+              suffix=""
               prefix={<AreaChartOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
@@ -389,53 +241,64 @@ export default function ApiStatsPage() {
       <Row gutter={16} className="mb-6">
         <Col span={16}>
           <Card title="调用趋势（近7天）">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip />
-<<<<<<< HEAD
-                <Line yAxisId="left" type="monotone" dataKey="calls" stroke="#1890ff" name="调用次数" />
-=======
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="calls"
-                  stroke="#1890ff"
-                  name="调用次数"
-                />
->>>>>>> 962968886be726cd434c792933b5515366d34518
-                <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#faad14" name="费用" />
-              </LineChart>
-            </ResponsiveContainer>
+            {trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis yAxisId="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="calls"
+                    stroke="#1890ff"
+                    name="调用次数"
+                  />
+                  <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#faad14" name="费用" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <Empty description="暂无调用趋势数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
           </Card>
         </Col>
         <Col span={8}>
           <Card title="服务商费用分布">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={providerData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="provider" type="category" width={100} />
-                <Tooltip />
-                <Bar dataKey="cost" fill="#faad14" name="费用" />
-              </BarChart>
-            </ResponsiveContainer>
+            {providerData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={providerData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="provider" type="category" width={100} />
+                  <Tooltip />
+                  <Bar dataKey="cost" fill="#faad14" name="费用" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <Empty description="暂无服务商数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            )}
           </Card>
         </Col>
       </Row>
 
       {/* 模型详情 */}
       <Card title="模型调用详情">
-        <Table
-          columns={columns}
-          dataSource={usage}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-        />
+        {usage.length > 0 ? (
+          <Table
+            columns={columns}
+            dataSource={usage}
+            rowKey="id"
+            loading={loading}
+            pagination={false}
+          />
+        ) : (
+          <Empty
+            description="暂无API调用记录，使用AI功能后将自动统计"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+          />
+        )}
       </Card>
     </div>
   );

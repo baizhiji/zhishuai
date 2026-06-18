@@ -5,27 +5,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-<<<<<<< HEAD
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
-=======
-    "build": "next build --no-lint",
     "start": "next start -H 0.0.0.0 -p 3000",
-    "lint": "next lint",
+    "lint": "next lint --max-warnings 0",
     "lint:fix": "next lint --fix",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,css,md}\"",
     "type-check": "tsc --noEmit",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prepare": "cd .. && husky install || true"
->>>>>>> 962968886be726cd434c792933b5515366d34518
+    "analyze": "ANALYZE=true next build",
+    "prepare": "cd .. && husky || true",
+    "clean": "rm -rf .next node_modules/.cache"
   },
   "dependencies": {
     "@ant-design/charts": "^2.6.7",
@@ -45,6 +37,7 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-intersection-observer": "^10.0.3",
+    "react-syntax-highlighter": "^15.6.6",
     "recharts": "^2.12.0",
     "tailwind-merge": "^2.3.0",
     "uuid": "^14.0.0",
@@ -52,6 +45,8 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -59,13 +54,19 @@
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@types/uuid": "^11.0.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.0.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
+    "lint-staged": "^15.2.0",
     "postcss": "^8.4.0",
+    "prettier": "^3.2.0",
+    "prettier-plugin-tailwindcss": "^0.5.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.4.0"
   },

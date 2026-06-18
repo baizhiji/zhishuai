@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,11 @@ import {
   StyleSheet,
   Dimensions,
   FlatList,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { apiClient } from '../services/api.client';
 
 const { width } = Dimensions.get('window');
 
@@ -21,87 +24,8 @@ interface Message {
   icon: string;
   iconColor: string;
   iconBg: string;
+  createdAt: string;
 }
-
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: '1',
-    type: 'ai',
-    title: 'AI创作任务完成',
-    content: '您的产品文案已生成完成，点击查看详细内容...',
-    time: '刚刚',
-    read: false,
-    icon: 'sparkles',
-    iconColor: '#f59e0b',
-    iconBg: '#fef3c7',
-  },
-  {
-    id: '2',
-    type: 'order',
-    title: '套餐购买成功',
-    content: '恭喜您成功购买智枢AI年度会员，服务已开通...',
-    time: '10分钟前',
-    read: false,
-    icon: 'card',
-    iconColor: '#10b981',
-    iconBg: '#d1fae5',
-  },
-  {
-    id: '3',
-    type: 'system',
-    title: '系统升级通知',
-    content: '智枢AI系统将于今晚22:00-23:00进行版本升级...',
-    time: '1小时前',
-    read: false,
-    icon: 'settings',
-    iconColor: '#6366f1',
-    iconBg: '#e0e7ff',
-  },
-  {
-    id: '4',
-    type: 'activity',
-    title: '限时活动提醒',
-    content: '新用户首月优惠仅剩3天，立即开通享5折优惠...',
-    time: '2小时前',
-    read: true,
-    icon: 'gift',
-    iconColor: '#ec4899',
-    iconBg: '#fce7f3',
-  },
-  {
-    id: '5',
-    type: 'system',
-    title: '账号安全提醒',
-    content: '您的账号在新设备上登录，如非本人操作请及时修改密码...',
-    time: '昨天',
-    read: true,
-    icon: 'shield-checkmark',
-    iconColor: '#3b82f6',
-    iconBg: '#dbeafe',
-  },
-  {
-    id: '7',
-    type: 'activity',
-    title: '创作大赛开启',
-    content: '智枢AI首届内容创作大赛正式开启，万元奖金等你来拿...',
-    time: '3天前',
-    read: true,
-    icon: 'trophy',
-    iconColor: '#f59e0b',
-    iconBg: '#fef3c7',
-  },
-  {
-    id: '8',
-    type: 'ai',
-    title: '批量创作完成',
-    content: '您提交的50条视频文案已全部生成完成...',
-    time: '上周',
-    read: true,
-    icon: 'film',
-    iconColor: '#06b6d4',
-    iconBg: '#cffafe',
-  },
-];
 
 const TABS = [
   { key: 'all', label: '全部', icon: 'list' },
@@ -113,22 +37,73 @@ const TABS = [
 
 export default function MessagesScreen() {
   const [activeTab, setActiveTab] = useState('all');
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filteredMessages = messages.filter(msg => 
-    activeTab === 'all' || msg.type === activeTab
-  );
+  const loadMessages = useCallback(async (showRefresh = false) => {
+    try {
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
+      const response = await apiClient.get<any[]>('/notifications');
+      const mapped: Message[] = (response || []).map((n: any) => ({
+        id: n.id,
+        type: n.type === 'ai' ? 'ai' : n.type === 'payment' ? 'order' : n.type === 'marketing' ? 'activity' : 'system',
+        title: n.title || '通知',
+        content: n.content || n.message || '',
+        time: formatTime(n.createdAt),
+        read: n.read || false,
+        icon: getNotificationIcon(n.type),
+        iconColor: getNotificationColor(n.type).color,
+        iconBg: getNotificationColor(n.type).bg,
+        createdAt: n.createdAt,
+      }));
+      setMessages(mapped);
+    } catch (e) {
+      console.error('加载消息失败:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const unreadCount = messages.filter(m => !m.read).length;
+  useEffect(() => { loadMessages(); }, [loadMessages]);
 
-  const markAsRead = (id: string) => {
-    setMessages(messages.map(m => 
-      m.id === id ? { ...m, read: true } : m
-    ));
+  const formatTime = (dateStr: string) => {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    if (diff < 60000) return '刚刚';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+    if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+    return new Date(dateStr).toLocaleDateString('zh-CN');
   };
 
-  const markAllAsRead = () => {
+  const getNotificationIcon = (type: string) => {
+    switch (type) { case 'ai': return 'sparkles'; case 'payment': return 'card'; case 'marketing': return 'gift'; default: return 'notifications'; }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'ai': return { color: '#f59e0b', bg: '#fef3c7' };
+      case 'payment': return { color: '#10b981', bg: '#d1fae5' };
+      case 'marketing': return { color: '#ec4899', bg: '#fce7f3' };
+      default: return { color: '#6366f1', bg: '#e0e7ff' };
+    }
+  };
+
+  const markAsRead = async (id: string) => {
+    setMessages(messages.map(m => m.id === id ? { ...m, read: true } : m));
+    try { await apiClient.put(`/notifications/${id}/read`); } catch (e) {
+      console.warn('[Messages] 标记已读失败:', e);
+    }
+  };
+
+  const markAllAsRead = async () => {
     setMessages(messages.map(m => ({ ...m, read: true })));
+    try { await apiClient.put('/notifications/read-all'); } catch (e) {
+      console.warn('[Messages] 全部标记已读失败:', e);
+    }
   };
 
   const renderMessage = ({ item }: { item: Message }) => (
@@ -201,12 +176,13 @@ export default function MessagesScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadMessages(true)} />}
+        ListEmptyComponent={!loading ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="mail-open-outline" size={64} color="#ddd" />
             <Text style={styles.emptyText}>暂无消息</Text>
           </View>
-        }
+        ) : <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#667eea" />}
       />
     </View>
   );

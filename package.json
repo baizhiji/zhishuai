@@ -4,29 +4,45 @@
   "description": "智枢AI SaaS多租户超级应用 - 包含APK端、Web端和后端服务",
   "private": true,
   "scripts": {
-    "install:all": "npm run install:web && npm run install:apk && npm run install:backend",
+    "prepare": "husky || true",
+    "install:all": "npm run install:web && npm run install:apk && npm run install:server",
     "install:web": "cd web && npm install",
     "install:apk": "cd apk && npm install",
-    "install:backend": "cd backend && npm install",
+    "install:server": "cd server && npm install",
     "dev:web": "cd web && npm run dev",
     "dev:apk": "cd apk && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
+    "dev:server": "cd server && npm run dev",
     "build:web": "cd web && npm run build",
     "build:apk": "cd apk && npm run build",
-    "build:backend": "cd backend && npm run build",
-    "build:all": "npm run build:web && npm run build:apk && npm run build:backend",
+    "build:server": "cd server && npm run build",
+    "build:all": "npm run build:web && npm run build:server",
     "start:web": "cd web && npm start",
     "start:apk": "cd apk && npm start",
-    "start:backend": "cd backend && npm start"
+    "start:server": "cd server && npm start",
+    "lint:all": "npm run lint:server && npm run lint:web && npm run lint:apk",
+    "lint:server": "cd server && npm run lint",
+    "lint:web": "cd web && npm run lint",
+    "lint:apk": "cd apk && npm run lint",
+    "format:all": "prettier --write \"**/*.{ts,tsx,json,css,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,css,md}\" --ignore-path .prettierignore",
+    "type-check:all": "npm run type-check:server && npm run type-check:web && npm run type-check:apk",
+    "type-check:server": "cd server && npm run type-check",
+    "type-check:web": "cd web && npm run type-check",
+    "type-check:apk": "cd apk && npm run type-check",
+    "test:all": "npm run test:server && npm run test:web",
+    "test:server": "cd server && npm test",
+    "test:web": "cd web && npm test",
+    "clean:all": "npm run clean:server && npm run clean:web && npm run clean:apk",
+    "clean:server": "cd server && npm run clean",
+    "clean:web": "cd web && npm run clean",
+    "clean:apk": "cd apk && npm run clean",
+    "check:all": "npm run format:check && npm run lint:all && npm run type-check:all && npm run test:all"
   },
-<<<<<<< HEAD
-  "workspaces": [
-    "web",
-    "apk",
-    "backend"
-  ],
-=======
->>>>>>> 962968886be726cd434c792933b5515366d34518
+  "devDependencies": {
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.0"
+  },
   "keywords": [
     "AI",
     "SaaS",
@@ -37,6 +53,6 @@
     "APK",
     "Web"
   ],
-  "author": "智枢AI",
+  "author": "智枢AI (上海百智集网络科技有限公司)",
   "license": "All rights reserved"
 }

@@ -7,9 +7,12 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { body, validationResult } from 'express-validator';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
+router.use(authMiddleware);
 
 // 获取客户列表
 router.get('/customers', async (req: Request, res: Response) => {

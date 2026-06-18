@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/db';
 
-const prisma = new PrismaClient();
+
 import { authMiddleware } from '../middleware/auth';
+import { verifyOwnership } from '../middleware/ownership';
 
 const router = Router();
 
@@ -103,7 +105,7 @@ router.post('/tasks', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // 更新获客任务
-router.put('/tasks/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/tasks/:id', authMiddleware, verifyOwnership('acquisitionTask'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).userId;
@@ -144,7 +146,7 @@ router.put('/tasks/:id', authMiddleware, async (req: Request, res: Response) => 
 });
 
 // 启动获客任务
-router.put('/tasks/:id/start', authMiddleware, async (req: Request, res: Response) => {
+router.put('/tasks/:id/start', authMiddleware, verifyOwnership('acquisitionTask'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).userId;
@@ -173,7 +175,7 @@ router.put('/tasks/:id/start', authMiddleware, async (req: Request, res: Respons
 });
 
 // 暂停获客任务
-router.put('/tasks/:id/pause', authMiddleware, async (req: Request, res: Response) => {
+router.put('/tasks/:id/pause', authMiddleware, verifyOwnership('acquisitionTask'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).userId;
@@ -199,7 +201,7 @@ router.put('/tasks/:id/pause', authMiddleware, async (req: Request, res: Respons
 });
 
 // 删除获客任务
-router.delete('/tasks/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/tasks/:id', authMiddleware, verifyOwnership('acquisitionTask'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).userId;
@@ -332,7 +334,7 @@ router.post('/leads', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // 更新潜客状态
-router.put('/leads/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/leads/:id', authMiddleware, verifyOwnership('acquisitionLead'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).userId;
@@ -376,7 +378,7 @@ router.put('/leads/:id', authMiddleware, async (req: Request, res: Response) => 
 });
 
 // 删除潜客
-router.delete('/leads/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/leads/:id', authMiddleware, verifyOwnership('acquisitionLead'), async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = (req as any).userId;

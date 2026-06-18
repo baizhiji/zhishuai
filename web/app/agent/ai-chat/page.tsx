@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-'use client'
-
-import React, { useState, useRef, useEffect, useCallback } from 'react'
-=======
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   Card,
   Input,
@@ -22,11 +16,7 @@ import {
   Tooltip,
   List,
   Modal,
-<<<<<<< HEAD
-} from 'antd'
-=======
 } from 'antd';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   SendOutlined,
   RobotOutlined,
@@ -43,23 +33,6 @@ import {
   FileTextOutlined,
   ExperimentOutlined,
   AppstoreOutlined,
-<<<<<<< HEAD
-} from '@ant-design/icons'
-import { v4 as uuidv4 } from 'uuid'
-
-const { Title, Text, Paragraph } = Typography
-const { TextArea } = Input
-
-// 消息类型
-interface Message {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp: Date
-  model?: string
-  provider?: string
-  isFallback?: boolean
-=======
 } from '@ant-design/icons';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -75,24 +48,15 @@ interface Message {
   model?: string;
   provider?: string;
   isFallback?: boolean;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 对话会话类型
 interface Conversation {
-<<<<<<< HEAD
-  id: string
-  title: string
-  messages: Message[]
-  createdAt: Date
-  updatedAt: Date
-=======
   id: string;
   title: string;
   messages: Message[];
   createdAt: Date;
   updatedAt: Date;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 // 预设提示词
@@ -117,11 +81,7 @@ const QUICK_PROMPTS = [
     title: '战略规划',
     prompt: '请帮我制定公司未来3年的发展战略规划',
   },
-<<<<<<< HEAD
-]
-=======
 ];
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
 // 模型选项
 const MODEL_OPTIONS = [
@@ -131,38 +91,6 @@ const MODEL_OPTIONS = [
   { value: 'qwen-plus', label: '通义千问 Plus', description: '均衡性能，日常对话' },
   { value: 'qwen-turbo', label: '通义千问 Turbo', description: '快速响应，效率优先' },
   { value: 'hunyuan-2.0-instruct-20251111', label: '腾讯混元', description: '腾讯混元大模型' },
-<<<<<<< HEAD
-]
-
-export default function AIChatPage() {
-  // 状态
-  const [messages, setMessages] = useState<Message[]>([])
-  const [inputValue, setInputValue] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [selectedModel, setSelectedModel] = useState('auto')
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
-  const [showHistory, setShowHistory] = useState(false)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-
-  // Refs
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<any>(null)
-
-  // 自动滚动到底部
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [])
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages, scrollToBottom])
-
-  // 发送消息
-  const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return
-=======
 ];
 
 export default function AIChatPage() {
@@ -190,47 +118,23 @@ export default function AIChatPage() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  // 发送消息
+  // 流式请求控制器（用于取消）
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // 发送消息（SSE流式 + 打字机效果）
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
     const userMessage: Message = {
       id: uuidv4(),
       role: 'user',
       content: inputValue.trim(),
       timestamp: new Date(),
-<<<<<<< HEAD
-    }
-
-    // 添加用户消息
-    setMessages(prev => [...prev, userMessage])
-    setInputValue('')
-    setIsLoading(true)
-
-    // 如果是新对话，创建会话
-    if (!currentConversationId) {
-      const newConversationId = uuidv4()
-      setCurrentConversationId(newConversationId)
-      setConversations(prev => [{
-        id: newConversationId,
-        title: inputValue.trim().slice(0, 30) + (inputValue.length > 30 ? '...' : ''),
-        messages: [userMessage],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }, ...prev])
-    } else {
-      // 更新现有会话
-      setConversations(prev => prev.map(conv =>
-        conv.id === currentConversationId
-          ? { ...conv, messages: [...conv.messages, userMessage], updatedAt: new Date() }
-          : conv
-      ))
-=======
     };
 
     // 添加用户消息
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputValue('');
     setIsLoading(true);
 
@@ -241,7 +145,7 @@ export default function AIChatPage() {
       setConversations(prev => [
         {
           id: newConversationId,
-          title: inputValue.trim().slice(0, 30) + (inputValue.length > 30 ? '...' : ''),
+          title: userMessage.content.slice(0, 30) + (userMessage.content.length > 30 ? '...' : ''),
           messages: [userMessage],
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -249,7 +153,6 @@ export default function AIChatPage() {
         ...prev,
       ]);
     } else {
-      // 更新现有会话
       setConversations(prev =>
         prev.map(conv =>
           conv.id === currentConversationId
@@ -257,154 +160,167 @@ export default function AIChatPage() {
             : conv
         )
       );
->>>>>>> 962968886be726cd434c792933b5515366d34518
     }
 
+    // 创建一个空的助手消息占位符，实现打字机效果
+    const assistantId = uuidv4();
+    const assistantPlaceholder: Message = {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, assistantPlaceholder]);
+
     try {
-      // 调用 AI 对话接口
+      // 取消之前的请求
+      abortControllerRef.current?.abort();
+
+      const chatMessages = updatedMessages.map(m => ({
+        role: m.role as 'user' | 'assistant' | 'system',
+        content: m.content,
+      }));
+
+      // 使用fetch + SSE流式
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) headers['Authorization'] = `Bearer ${token}`
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       const response = await fetch('/api/ai-chat/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content,
-          })),
+          messages: chatMessages,
           modelKey: selectedModel,
-          stream: false,
+          stream: true,
         }),
-<<<<<<< HEAD
-      })
-
-      if (!response.ok) {
-        throw new Error('请求失败')
-      }
-
-      const result = await response.json()
-=======
+        signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error('请求失败');
+        const errData = await response.json().catch(() => ({ error: `请求失败: ${response.status}` }));
+        throw new Error(errData.error || `请求失败: ${response.status}`);
       }
 
-      const result = await response.json();
->>>>>>> 962968886be726cd434c792933b5515366d34518
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('无法读取响应流');
 
-      if (result.success) {
-        const assistantMessage: Message = {
-          id: uuidv4(),
-          role: 'assistant',
-          content: result.data.message,
-          timestamp: new Date(),
-          model: result.data.modelName,
-          provider: result.data.provider,
-          isFallback: result.data.isFallback,
-<<<<<<< HEAD
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data: ')) continue;
+
+          const data = trimmed.slice(6);
+          if (data === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              fullContent += parsed.content;
+              // 逐块更新消息内容 — 打字机效果
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantId ? { ...m, content: fullContent } : m
+                )
+              );
+            }
+            // 如果有降级标记，更新
+            if (parsed.fallback || parsed.isFallback) {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantId ? { ...m, isFallback: true } : m
+                )
+              );
+            }
+          } catch {
+            // 忽略解析失败的行
+          }
         }
+      }
 
-        setMessages(prev => [...prev, assistantMessage])
+      // 流结束 — 如果没有收到任何内容，回退到非流式
+      if (!fullContent) {
+        // fallback: 非流式请求
+        const fallbackResponse = await fetch('/api/ai-chat/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: chatMessages,
+            modelKey: selectedModel,
+            stream: false,
+          }),
+        });
+        const fallbackResult = await fallbackResponse.json();
+        if (fallbackResult.success) {
+          fullContent = fallbackResult.data.message;
+          setMessages(prev =>
+            prev.map(m =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    content: fullContent,
+                    model: fallbackResult.data.modelName,
+                    provider: fallbackResult.data.provider,
+                    isFallback: fallbackResult.data.isFallback,
+                  }
+                : m
+            )
+          );
+        } else {
+          throw new Error(fallbackResult.error || 'AI服务异常');
+        }
+      }
 
-        // 更新会话
-        setConversations(prev => prev.map(conv =>
+      // 更新会话中的消息
+      setConversations(prev =>
+        prev.map(conv =>
           conv.id === currentConversationId
-            ? { ...conv, messages: [...conv.messages, assistantMessage], updatedAt: new Date() }
+            ? {
+                ...conv,
+                messages: [
+                  ...conv.messages,
+                  { ...assistantPlaceholder, content: fullContent },
+                ],
+                updatedAt: new Date(),
+              }
             : conv
-        ))
-      } else {
-        throw new Error(result.error || 'AI服务异常')
-=======
-        };
-
-        setMessages(prev => [...prev, assistantMessage]);
-
-        // 更新会话
-        setConversations(prev =>
-          prev.map(conv =>
-            conv.id === currentConversationId
-              ? { ...conv, messages: [...conv.messages, assistantMessage], updatedAt: new Date() }
-              : conv
-          )
-        );
-      } else {
-        throw new Error(result.error || 'AI服务异常');
->>>>>>> 962968886be726cd434c792933b5515366d34518
-      }
+        )
+      );
     } catch (error: any) {
-      const errorMessage: Message = {
-        id: uuidv4(),
-        role: 'assistant',
-        content: `抱歉，发生了错误：${error.message || '请稍后重试'}`,
-        timestamp: new Date(),
-<<<<<<< HEAD
+      if (error.name === 'AbortError') {
+        // 用户主动取消，不显示错误
+        return;
       }
-      setMessages(prev => [...prev, errorMessage])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // 使用快捷提示
-  const handleQuickPrompt = (prompt: string) => {
-    setInputValue(prompt)
-    inputRef.current?.focus()
-  }
-
-  // 新建对话
-  const handleNewConversation = () => {
-    setMessages([])
-    setCurrentConversationId(null)
-    inputRef.current?.focus()
-  }
-
-  // 切换会话
-  const handleSwitchConversation = (convId: string) => {
-    const conv = conversations.find(c => c.id === convId)
-    if (conv) {
-      setMessages(conv.messages)
-      setCurrentConversationId(convId)
-      setShowHistory(false)
-    }
-  }
-
-  // 删除会话
-  const handleDeleteConversation = (convId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setConversations(prev => prev.filter(c => c.id !== convId))
-    if (currentConversationId === convId) {
-      handleNewConversation()
-    }
-  }
-
-  // 清空当前对话
-  const handleClearMessages = () => {
-    setMessages([])
-    if (currentConversationId) {
-      setConversations(prev => prev.map(conv =>
-        conv.id === currentConversationId
-          ? { ...conv, messages: [], updatedAt: new Date() }
-          : conv
-      ))
-    }
-  }
-
-  // 复制消息
-  const handleCopyMessage = (messageId: string, content: string) => {
-    navigator.clipboard.writeText(content)
-    setCopiedId(messageId)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
-
-  // 格式化时间
-  const formatTime = (date: Date) => {
-    const d = new Date(date)
-    return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-  }
-=======
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      // 移除空的占位符并添加错误消息
+      setMessages(prev => {
+        const withoutEmpty = prev.filter(m => m.id !== assistantId);
+        return [
+          ...withoutEmpty,
+          {
+            id: uuidv4(),
+            role: 'assistant' as const,
+            content: `抱歉，发生了错误：${error.message || '请稍后重试'}`,
+            timestamp: new Date(),
+          },
+        ];
+      });
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -466,7 +382,6 @@ export default function AIChatPage() {
     const d = new Date(date);
     return d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: '#f0f2f5' }}>
@@ -499,11 +414,7 @@ export default function AIChatPage() {
           <List
             dataSource={conversations}
             locale={{ emptyText: '暂无历史对话' }}
-<<<<<<< HEAD
-            renderItem={(conv) => (
-=======
             renderItem={conv => (
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <List.Item
                 key={conv.id}
                 style={{
@@ -515,14 +426,7 @@ export default function AIChatPage() {
                 onClick={() => handleSwitchConversation(conv.id)}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-<<<<<<< HEAD
-                  <Text
-                    ellipsis
-                    style={{ display: 'block', fontWeight: 500 }}
-                  >
-=======
                   <Text ellipsis style={{ display: 'block', fontWeight: 500 }}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                     {conv.title || '新对话'}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>
@@ -533,11 +437,7 @@ export default function AIChatPage() {
                   type="text"
                   size="small"
                   danger
-<<<<<<< HEAD
-                  onClick={(e) => handleDeleteConversation(conv.id, e)}
-=======
                   onClick={e => handleDeleteConversation(conv.id, e)}
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 >
                   删除
                 </Button>
@@ -563,13 +463,9 @@ export default function AIChatPage() {
           <Space>
             <Avatar icon={<RobotOutlined />} style={{ background: '#1890ff' }} />
             <div>
-<<<<<<< HEAD
-              <Title level={5} style={{ margin: 0 }}>智枢AI助手</Title>
-=======
               <Title level={5} style={{ margin: 0 }}>
                 智枢AI助手
               </Title>
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <Text type="secondary" style={{ fontSize: 12 }}>
                 基于多模型混合的智能诊断与对话系统
               </Text>
@@ -602,14 +498,10 @@ export default function AIChatPage() {
                 <Avatar
                   size={80}
                   icon={<RobotOutlined />}
-<<<<<<< HEAD
-                  style={{ background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)', marginBottom: 24 }}
-=======
                   style={{
                     background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
                     marginBottom: 24,
                   }}
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 />
                 <Title level={2}>欢迎使用智枢AI助手</Title>
                 <Paragraph type="secondary" style={{ fontSize: 16 }}>
@@ -628,15 +520,7 @@ export default function AIChatPage() {
                     style={{ cursor: 'pointer' }}
                   >
                     <Space>
-<<<<<<< HEAD
-                      <Avatar
-                        size="small"
-                        icon={item.icon}
-                        style={{ background: '#1890ff' }}
-                      />
-=======
                       <Avatar size="small" icon={item.icon} style={{ background: '#1890ff' }} />
->>>>>>> 962968886be726cd434c792933b5515366d34518
                       <Text strong>{item.title}</Text>
                     </Space>
                     <Paragraph
@@ -661,11 +545,7 @@ export default function AIChatPage() {
                     { icon: '🔄', text: '智能降级 - 主模型不可用时自动切换到备用模型' },
                     { icon: '📊', text: '多模型对比 - 支持腾讯混元、阿里通义、DeepSeek等主流模型' },
                   ]}
-<<<<<<< HEAD
-                  renderItem={(item) => (
-=======
                   renderItem={item => (
->>>>>>> 962968886be726cd434c792933b5515366d34518
                     <List.Item>
                       <Space>
                         <Text>{item.icon}</Text>
@@ -678,11 +558,7 @@ export default function AIChatPage() {
             </div>
           ) : (
             <div style={{ maxWidth: 800, margin: '0 auto' }}>
-<<<<<<< HEAD
-              {messages.map((message) => (
-=======
               {messages.map(message => (
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 <div
                   key={message.id}
                   style={{
@@ -797,15 +673,6 @@ export default function AIChatPage() {
             <TextArea
               ref={inputRef}
               value={inputValue}
-<<<<<<< HEAD
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="输入您的问题，AI将为您提供专业的分析和建议..."
-              autoSize={{ minRows: 2, maxRows: 6 }}
-              onPressEnter={(e) => {
-                if (!e.shiftKey) {
-                  e.preventDefault()
-                  handleSend()
-=======
               onChange={e => setInputValue(e.target.value)}
               placeholder="输入您的问题，AI将为您提供专业的分析和建议..."
               autoSize={{ minRows: 2, maxRows: 6 }}
@@ -813,7 +680,6 @@ export default function AIChatPage() {
                 if (!e.shiftKey) {
                   e.preventDefault();
                   handleSend();
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 }
               }}
               style={{ borderRadius: 12 }}
@@ -844,20 +710,6 @@ export default function AIChatPage() {
         onCancel={() => setShowSettings(false)}
         footer={null}
       >
-<<<<<<< HEAD
-        <Paragraph>
-          AI对话功能使用多模型混合调度系统，根据问题类型自动选择最合适的模型。
-        </Paragraph>
-        <List
-          header={<Text strong>可用模型</Text>}
-          dataSource={MODEL_OPTIONS}
-          renderItem={(item) => (
-            <List.Item>
-              <List.Item.Meta
-                title={item.label}
-                description={item.description}
-              />
-=======
         <Paragraph>AI对话功能使用多模型混合调度系统，根据问题类型自动选择最合适的模型。</Paragraph>
         <List
           header={<Text strong>可用模型</Text>}
@@ -865,15 +717,10 @@ export default function AIChatPage() {
           renderItem={item => (
             <List.Item>
               <List.Item.Meta title={item.label} description={item.description} />
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </List.Item>
           )}
         />
       </Modal>
     </div>
-<<<<<<< HEAD
-  )
-=======
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

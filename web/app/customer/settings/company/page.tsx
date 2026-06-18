@@ -1,21 +1,6 @@
-<<<<<<< HEAD
-'use client'
-
-import { useState } from 'react'
-import { Card, Form, Input, Button, Upload, message, Typography, Row, Col, Avatar, Divider, Space, Tabs } from 'antd'
-import { UploadOutlined, SaveOutlined, UserOutlined, ShopOutlined, EnvironmentOutlined, PhoneOutlined, MailOutlined, BankOutlined } from '@ant-design/icons'
-import type { UploadProps } from 'antd'
-
-const { Title, Text } = Typography
-
-export default function CompanySettingsPage() {
-  const [form] = Form.useForm()
-  const [loading, setLoading] = useState(false)
-  const [logoUrl, setLogoUrl] = useState<string>('https://api.dicebear.com/7.x/miniavs/svg?seed=company')
-=======
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   Form,
@@ -30,6 +15,7 @@ import {
   Divider,
   Space,
   Tabs,
+  Spin,
 } from 'antd';
 import {
   UploadOutlined,
@@ -42,93 +28,94 @@ import {
   BankOutlined,
 } from '@ant-design/icons';
 import type { UploadProps } from 'antd';
+import request from '@/utils/request';
 
 const { Title, Text } = Typography;
 
 export default function CompanySettingsPage() {
   const [form] = Form.useForm();
+  const [financeForm] = Form.useForm();
+  const [contactForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string>(
-    'https://api.dicebear.com/7.x/miniavs/svg?seed=company'
-  );
->>>>>>> 962968886be726cd434c792933b5515366d34518
+  const [pageLoading, setPageLoading] = useState(true);
+  const [logoUrl, setLogoUrl] = useState<string>('');
 
-  // 模拟数据
-  const companyInfo = {
-    companyName: '智枢科技有限公司',
-    logo: logoUrl,
-<<<<<<< HEAD
-    description: '智枢AI是一家专注于人工智能内容创作的科技公司，致力于为企业提供智能化营销解决方案。',
-=======
-    description:
-      '智枢AI是一家专注于人工智能内容创作的科技公司，致力于为企业提供智能化营销解决方案。',
->>>>>>> 962968886be726cd434c792933b5515366d34518
-    industry: '互联网/人工智能',
-    scale: '50-100人',
-    address: '北京市海淀区中关村软件园二期',
-    phone: '010-88888888',
-    email: 'contact@zhishuai.com',
-    website: 'www.zhishuai.com',
-    taxNumber: '91110108MA01XXXXX',
-    bank: '中国工商银行北京分行',
-    bankAccount: '6222***********1234',
-<<<<<<< HEAD
-  }
-=======
-  };
->>>>>>> 962968886be726cd434c792933b5515366d34518
+  useEffect(() => {
+    fetchCompanyInfo();
+  }, []);
 
-  const [contactInfo, setContactInfo] = useState({
-    contactName: '张三',
-    contactPhone: '138****8000',
-    contactEmail: 'zhangsan@zhishuai.com',
-    wechat: 'zhishuai_ai',
-    qq: '1234567890',
-<<<<<<< HEAD
-  })
-
-  const handleLogoUpload: UploadProps['onChange'] = (info) => {
-    if (info.file.status === 'done') {
-      message.success('Logo上传成功')
-      setLogoUrl('https://api.dicebear.com/7.x/miniavs/svg?seed=newlogo')
+  const fetchCompanyInfo = async () => {
+    setPageLoading(true);
+    try {
+      const res = await request.get('/api/company');
+      const data = res?.data || res;
+      if (data) {
+        form.setFieldsValue({
+          companyName: data.companyName || '',
+          description: data.description || '',
+          industry: data.industry || '',
+          scale: data.scale || '',
+          address: data.address || '',
+          phone: data.phone || '',
+          email: data.email || '',
+          website: data.website || '',
+        });
+        financeForm.setFieldsValue({
+          taxNumber: data.taxNumber || '',
+          bank: data.bank || '',
+          bankAccount: data.bankAccount || '',
+        });
+        contactForm.setFieldsValue({
+          contactName: data.contactName || '',
+          contactPhone: data.contactPhone || '',
+          contactEmail: data.contactEmail || '',
+          wechat: data.wechat || '',
+          qq: data.qq || '',
+        });
+        setLogoUrl(data.logo || '');
+      }
+    } catch (error) {
+      console.error('Failed to fetch company info:', error);
     }
-  }
-
-  const handleSave = (type: string) => {
-    setLoading(true)
-    setTimeout(() => {
-      message.success(`${type}保存成功`)
-      setLoading(false)
-    }, 1000)
-  }
-
-  return (
-    <div className="p-6">
-      <Title level={2} className="mb-6">企业信息</Title>
-=======
-  });
+    setPageLoading(false);
+  };
 
   const handleLogoUpload: UploadProps['onChange'] = info => {
     if (info.file.status === 'done') {
       message.success('Logo上传成功');
-      setLogoUrl('https://api.dicebear.com/7.x/miniavs/svg?seed=newlogo');
+      const url = info.file.response?.data?.url || info.file.response?.url;
+      if (url) setLogoUrl(url);
     }
   };
 
-  const handleSave = (type: string) => {
-    setLoading(true);
-    setTimeout(() => {
+  const handleSave = async (type: string, formInstance: any) => {
+    try {
+      const values = await formInstance.validateFields();
+      setLoading(true);
+      await request.post('/api/company', { ...values, logo: logoUrl, type });
       message.success(`${type}保存成功`);
+      fetchCompanyInfo();
+    } catch (error: any) {
+      if (error.errorFields) return;
+      message.error('保存失败，请稍后重试');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="p-6" style={{ textAlign: 'center', paddingTop: 100 }}>
+        <Spin size="large" tip="加载中..." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
       <Title level={2} className="mb-6">
         企业信息
       </Title>
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
       <Tabs
         defaultActiveKey="basic"
@@ -147,15 +134,6 @@ export default function CompanySettingsPage() {
                           <Button icon={<UploadOutlined />}>更换Logo</Button>
                         </Upload>
                       </div>
-<<<<<<< HEAD
-                      <Text type="secondary" className="block mt-2">建议尺寸：200x200</Text>
-                    </div>
-                  </Col>
-                  <Col span={18}>
-                    <Form 
-                      form={form} 
-                      layout="vertical" 
-=======
                       <Text type="secondary" className="block mt-2">
                         建议尺寸：200x200
                       </Text>
@@ -165,21 +143,15 @@ export default function CompanySettingsPage() {
                     <Form
                       form={form}
                       layout="vertical"
->>>>>>> 962968886be726cd434c792933b5515366d34518
-                      initialValues={companyInfo}
                       className="ml-8"
                     >
                       <Row gutter={16}>
                         <Col span={12}>
-<<<<<<< HEAD
-                          <Form.Item label="企业名称" name="companyName" rules={[{ required: true, message: '请输入企业名称' }]}>
-=======
                           <Form.Item
                             label="企业名称"
                             name="companyName"
                             rules={[{ required: true, message: '请输入企业名称' }]}
                           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                             <Input prefix={<ShopOutlined />} placeholder="请输入企业名称" />
                           </Form.Item>
                         </Col>
@@ -196,30 +168,22 @@ export default function CompanySettingsPage() {
                           </Form.Item>
                         </Col>
                         <Col span={12}>
-<<<<<<< HEAD
-                          <Form.Item label="联系电话" name="phone" rules={[{ required: true, message: '请输入联系电话' }]}>
-=======
                           <Form.Item
                             label="联系电话"
                             name="phone"
                             rules={[{ required: true, message: '请输入联系电话' }]}
                           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                             <Input prefix={<PhoneOutlined />} placeholder="请输入联系电话" />
                           </Form.Item>
                         </Col>
                       </Row>
                       <Row gutter={16}>
                         <Col span={12}>
-<<<<<<< HEAD
-                          <Form.Item label="电子邮箱" name="email" rules={[{ type: 'email', message: '请输入正确的邮箱' }]}>
-=======
                           <Form.Item
                             label="电子邮箱"
                             name="email"
                             rules={[{ type: 'email', message: '请输入正确的邮箱' }]}
                           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                             <Input prefix={<MailOutlined />} placeholder="请输入电子邮箱" />
                           </Form.Item>
                         </Col>
@@ -230,30 +194,22 @@ export default function CompanySettingsPage() {
                         </Col>
                       </Row>
                       <Form.Item label="公司简介" name="description">
-<<<<<<< HEAD
-                        <Input.TextArea rows={4} placeholder="请输入公司简介" showCount maxLength={500} />
-=======
                         <Input.TextArea
                           rows={4}
                           placeholder="请输入公司简介"
                           showCount
                           maxLength={500}
                         />
->>>>>>> 962968886be726cd434c792933b5515366d34518
                       </Form.Item>
                       <Form.Item label="公司地址" name="address">
                         <Input prefix={<EnvironmentOutlined />} placeholder="请输入详细地址" />
                       </Form.Item>
-<<<<<<< HEAD
-                      <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={() => handleSave('基本信息')}>
-=======
                       <Button
                         type="primary"
                         icon={<SaveOutlined />}
                         loading={loading}
-                        onClick={() => handleSave('基本信息')}
+                        onClick={() => handleSave('基本信息', form)}
                       >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                         保存
                       </Button>
                     </Form>
@@ -267,7 +223,7 @@ export default function CompanySettingsPage() {
             label: '财务信息',
             children: (
               <Card>
-                <Form layout="vertical">
+                <Form form={financeForm} layout="vertical">
                   <Row gutter={16}>
                     <Col span={12}>
                       <Form.Item label="统一社会信用代码" name="taxNumber">
@@ -286,16 +242,12 @@ export default function CompanySettingsPage() {
                   <Divider />
                   <Text type="secondary">财务信息仅用于发票开具，请确保信息准确</Text>
                   <div className="mt-4">
-<<<<<<< HEAD
-                    <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={() => handleSave('财务信息')}>
-=======
                     <Button
                       type="primary"
                       icon={<SaveOutlined />}
                       loading={loading}
-                      onClick={() => handleSave('财务信息')}
+                      onClick={() => handleSave('财务信息', financeForm)}
                     >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                       保存
                     </Button>
                   </div>
@@ -308,70 +260,42 @@ export default function CompanySettingsPage() {
             label: '联系人信息',
             children: (
               <Card>
-                <Form layout="vertical">
+                <Form form={contactForm} layout="vertical">
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item label="联系人姓名">
-<<<<<<< HEAD
-                        <Input prefix={<UserOutlined />} placeholder="请输入联系人姓名" defaultValue={contactInfo.contactName} />
-=======
-                        <Input
-                          prefix={<UserOutlined />}
-                          placeholder="请输入联系人姓名"
-                          defaultValue={contactInfo.contactName}
-                        />
->>>>>>> 962968886be726cd434c792933b5515366d34518
+                      <Form.Item label="联系人姓名" name="contactName">
+                        <Input prefix={<UserOutlined />} placeholder="请输入联系人姓名" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item label="联系电话">
-<<<<<<< HEAD
-                        <Input prefix={<PhoneOutlined />} placeholder="请输入联系电话" defaultValue={contactInfo.contactPhone} />
-=======
-                        <Input
-                          prefix={<PhoneOutlined />}
-                          placeholder="请输入联系电话"
-                          defaultValue={contactInfo.contactPhone}
-                        />
->>>>>>> 962968886be726cd434c792933b5515366d34518
+                      <Form.Item label="联系电话" name="contactPhone">
+                        <Input prefix={<PhoneOutlined />} placeholder="请输入联系电话" />
                       </Form.Item>
                     </Col>
                   </Row>
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item label="电子邮箱">
-<<<<<<< HEAD
-                        <Input prefix={<MailOutlined />} placeholder="请输入电子邮箱" defaultValue={contactInfo.contactEmail} />
-=======
-                        <Input
-                          prefix={<MailOutlined />}
-                          placeholder="请输入电子邮箱"
-                          defaultValue={contactInfo.contactEmail}
-                        />
->>>>>>> 962968886be726cd434c792933b5515366d34518
+                      <Form.Item label="电子邮箱" name="contactEmail">
+                        <Input prefix={<MailOutlined />} placeholder="请输入电子邮箱" />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item label="微信号">
-                        <Input placeholder="请输入微信号" defaultValue={contactInfo.wechat} />
+                      <Form.Item label="微信号" name="wechat">
+                        <Input placeholder="请输入微信号" />
                       </Form.Item>
                     </Col>
                   </Row>
-                  <Form.Item label="QQ号码">
-                    <Input placeholder="请输入QQ号码" defaultValue={contactInfo.qq} />
+                  <Form.Item label="QQ号码" name="qq">
+                    <Input placeholder="请输入QQ号码" />
                   </Form.Item>
                   <Divider />
                   <Space>
-<<<<<<< HEAD
-                    <Button type="primary" icon={<SaveOutlined />} loading={loading} onClick={() => handleSave('联系人信息')}>
-=======
                     <Button
                       type="primary"
                       icon={<SaveOutlined />}
                       loading={loading}
-                      onClick={() => handleSave('联系人信息')}
+                      onClick={() => handleSave('联系人信息', contactForm)}
                     >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                       保存
                     </Button>
                   </Space>
@@ -382,9 +306,5 @@ export default function CompanySettingsPage() {
         ]}
       />
     </div>
-<<<<<<< HEAD
-  )
-=======
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

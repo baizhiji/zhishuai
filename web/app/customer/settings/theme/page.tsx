@@ -1,27 +1,15 @@
-<<<<<<< HEAD
-'use client'
-
-import { Card, Typography, Radio, ColorPicker, Switch, message } from 'antd'
-
-const { Title } = Typography
-=======
 'use client';
 
 import { Card, Typography, Radio, ColorPicker, Switch, message } from 'antd';
 
 const { Title } = Typography;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
 export default function ThemeSettingsPage() {
   return (
     <div className="p-6">
-<<<<<<< HEAD
-      <Title level={2} className="mb-6">主题设置</Title>
-=======
       <Title level={2} className="mb-6">
         主题设置
       </Title>
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
       <Card title="外观主题">
         <div className="space-y-4">
@@ -52,9 +40,5 @@ export default function ThemeSettingsPage() {
         </div>
       </Card>
     </div>
-<<<<<<< HEAD
-  )
-=======
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

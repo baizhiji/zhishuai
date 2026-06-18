@@ -1,11 +1,13 @@
 import { Router } from 'express';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { processWorkflow } from '../services/ai-workflow';
 
 const router = Router();
 
 // 执行 AI 工作流
-router.post('/execute', async (req, res) => {
+router.post('/execute', authMiddleware, async (req, res) => {
   try {
+    const userId = (req as AuthRequest).userId!;
     const { workflowType, params } = req.body;
     
     if (!workflowType) {
@@ -16,7 +18,7 @@ router.post('/execute', async (req, res) => {
       });
     }
 
-    const result = await processWorkflow(workflowType, params || {});
+    const result = await processWorkflow(workflowType, userId, params || {});
     
     res.json({
       code: 200,

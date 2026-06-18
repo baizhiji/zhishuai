@@ -1,49 +1,58 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PageHeader from '../components/PageHeader';
+import { apiClient } from '../services/api.client';
 
 const { width } = Dimensions.get('window');
 
-// 统计数据
-const overviewStats = {
-  totalViews: 125680,
-  totalLikes: 8934,
-  totalComments: 2456,
-  totalShares: 1567,
+// 统计数据 - 从API加载
+const defaultOverviewStats = {
+  totalViews: 0,
+  totalLikes: 0,
+  totalComments: 0,
+  totalShares: 0,
 };
 
-// 内容数据
-const contentData = [
-  { id: '1', title: '产品推广标题1', platform: 'douyin', views: 12500, likes: 890, comments: 234, shares: 156, ctr: 7.1 },
-  { id: '2', title: '小红书种草文案', platform: 'xiaohongshu', views: 8900, likes: 678, comments: 189, shares: 123, ctr: 7.6 },
-  { id: '3', title: '电商详情页', platform: 'xiaohongshu', views: 15600, likes: 1234, comments: 456, shares: 234, ctr: 7.9 },
-  { id: '4', title: '品牌宣传视频', platform: 'douyin', views: 23000, likes: 1567, comments: 567, shares: 345, ctr: 6.8 },
-  { id: '5', title: '限时优惠文案', platform: 'wechat', views: 45000, likes: 2345, comments: 789, shares: 456, ctr: 5.2 },
-];
-
-// 平台分布
-const platformData = [
-  { platform: '抖音', views: 45000, percentage: 35.8, color: '#ff4757' },
-  { platform: '小红书', views: 38000, percentage: 30.2, color: '#ff6b9d' },
-  { platform: '微信', views: 32000, percentage: 25.5, color: '#07c160' },
-  { platform: '其他', views: 10680, percentage: 8.5, color: '#64748b' },
-];
-
-// 每日趋势数据（最近7天）
-const trendData = [
-  { date: '03-19', views: 15200, likes: 1020 },
-  { date: '03-20', views: 18500, likes: 1250 },
-  { date: '03-21', views: 16800, likes: 1180 },
-  { date: '03-22', views: 21000, likes: 1450 },
-  { date: '03-23', views: 19500, likes: 1380 },
-  { date: '03-24', views: 22000, likes: 1560 },
-  { date: '03-25', views: 12680, likes: 894 },
-];
+const defaultContentData: any[] = [];
+const defaultPlatformData: any[] = [];
+const defaultTrendData: any[] = [];
 
 export default function StatisticsScreen() {
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'platform'>('overview');
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
+  const [overviewStats, setOverviewStats] = useState(defaultOverviewStats);
+  const [contentData, setContentData] = useState(defaultContentData);
+  const [platformData, setPlatformData] = useState(defaultPlatformData);
+  const [trendData, setTrendData] = useState(defaultTrendData);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadData = useCallback(async (showRefresh = false) => {
+    try {
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
+
+      const [statsRes, trendRes, popularRes, platformsRes] = await Promise.all([
+        apiClient.get('/statistics/overview').catch(() => defaultOverviewStats),
+        apiClient.get('/statistics/trend').catch(() => []),
+        apiClient.get('/statistics/popular').catch(() => []),
+        apiClient.get('/statistics/platforms').catch(() => []),
+      ]);
+
+      setOverviewStats(statsRes || defaultOverviewStats);
+      setTrendData(Array.isArray(trendRes) ? trendRes : []);
+      setContentData(Array.isArray(popularRes) ? popularRes : []);
+      setPlatformData(Array.isArray(platformsRes) ? platformsRes : []);
+    } catch (e) {
+      console.error('加载统计数据失败:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   // 获取平台信息
   const getPlatformInfo = (platform: string) => {
@@ -89,7 +98,10 @@ export default function StatisticsScreen() {
         ))}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}>
+        {loading ? (
+          <ActivityIndicator style={{ marginTop: 40 }} size="large" color="#4F46E5" />
+        ) : (
         {/* 总览 */}
         {activeTab === 'overview' && (
           <>
@@ -259,6 +271,7 @@ export default function StatisticsScreen() {
         )}
 
         <View style={{ height: 40 }} />
+        )}
       </ScrollView>
     </View>
   );

@@ -2,10 +2,10 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 获取 Token 使用量统计
 router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   try {

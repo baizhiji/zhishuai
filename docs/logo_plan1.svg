@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 160" width="400" height="160">
+  <defs>
+    <linearGradient id="blueGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D7AC7"/>
+      <stop offset="50%" stop-color="#1A9B5C"/>
+      <stop offset="100%" stop-color="#4CAF50"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1565C0"/>
+      <stop offset="100%" stop-color="#1976D2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 背景 -->
+  <rect width="400" height="160" fill="#FFFFFF"/>
+
+  <!-- 图标区域 -->
+  <g transform="translate(30, 10)">
+    <!-- 外层圆环 - 蓝绿渐变弧形（右上到左下） -->
+    <path d="M70,8 A62,62 0 1,1 12,55 A58,58 0 0,0 68,10" fill="none" stroke="url(#blueGreen)" stroke-width="9" stroke-linecap="round"/>
+    
+    <!-- 内部主体 - 智字首字母Z的流线变形 + AI点阵概念 -->
+    <ellipse cx="52" cy="65" rx="42" ry="48" fill="url(#blueGrad)"/>
+
+    <!-- 白色"智"字抽象 - Z形笔画代表"智"的首字母+AI数据流 -->
+    <path d="M28,45 L72,45 L28,82 L70,82" fill="none" stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- AI智能点 - Z字交叉处的发光节点 -->
+    <circle cx="50" cy="63" r="6" fill="#FFFFFF" opacity="0.95"/>
+    <circle cx="50" cy="63" r="3" fill="#4CAF50"/>
+  </g>
+
+  <!-- 文字部分 -->
+  <text x="130" y="56" font-family="'PingFang SC','Microsoft YaHei','Noto Sans SC',sans-serif" font-size="38" font-weight="700" fill="#1565C0" letter-spacing="4">智枢</text>
+  <text x="228" y="56" font-family="'SF Pro Display','Helvetica Neue',Arial,sans-serif" font-size="22" font-weight="600" fill="#1A9B5C">AI</text>
+
+  <!-- 副标题 -->
+  <text x="132" y="80" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="13" font-weight="400" fill="#888888" letter-spacing="1">智能中枢 · AI驱动的一站式SaaS平台</text>
+</svg>

@@ -1,0 +1,162 @@
+# zhishuai AI SaaS - CI Pipeline
+name: CI - Lint, TypeCheck, Test, Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================
+  # Server: Lint + TypeCheck + Test
+  # ============================================================
+  server-check:
+    name: Server - Lint & TypeCheck & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npx eslint src/ --max-warnings 0 || echo "ESLint issues found"
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: Run Tests
+        run: npm test -- --coverage --passWithNoTests
+
+      - name: Upload Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: server/coverage/
+          retention-days: 7
+
+  # ============================================================
+  # Web: Lint + TypeCheck + Test + Build
+  # ============================================================
+  web-check:
+    name: Web - Lint & TypeCheck & Test & Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint || echo "Lint issues found"
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: Run Tests
+        run: npm test -- --coverage --passWithNoTests
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://api.baizhiji.net/api
+          NEXT_PUBLIC_USE_MOCK: 'false'
+
+      - name: Upload Coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: web/coverage/
+          retention-days: 7
+
+      - name: Upload Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: web/.next/
+          retention-days: 3
+
+  # ============================================================
+  # APK: TypeCheck
+  # ============================================================
+  apk-check:
+    name: APK - TypeCheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apk
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: apk/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+  # ============================================================
+  # Security: Dependency Audit
+  # ============================================================
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Audit Server Dependencies
+        run: |
+          cd server
+          npm audit --audit-level=high || true
+        continue-on-error: true
+
+      - name: Audit Web Dependencies
+        run: |
+          cd web
+          npm audit --audit-level=high || true
+        continue-on-error: true

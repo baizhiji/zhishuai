@@ -5,16 +5,33 @@
  */
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
+import { verifyOwnership } from '../middleware/ownership';
 import { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/db';
 
-const prisma = new PrismaClient();
+
 import { 
   aiModelRouter, 
   analyzeAndSelectModel, 
   getAllModelsList 
 } from '../services/ai-model-router';
+import { getPrimaryApiKey } from '../services/user-api-key.service';
 
 const router = Router();
+
+// 获取用户API Key（优先使用用户自己配置的Key，fallback到环境变量）
+async function getUserApiKey(userId: string, provider: 'aliyun' | 'tencent'): Promise<string | null> {
+  const providerKey = provider === 'aliyun' ? 'dashscope' : 'tokenhub';
+  const userKey = await getPrimaryApiKey(userId, providerKey);
+  if (userKey?.apiKey) {
+    return userKey.apiKey;
+  }
+  // Fallback 到环境变量（管理员全局Key）
+  const envKey = provider === 'aliyun' 
+    ? process.env.DASHSCOPE_API_KEY || null
+    : process.env.TENCENT_TOKENHUB_API_KEY || null;
+  return envKey;
+}
 
 // ============ 全行业诊断分析系统提示词 ============
 export const DIAGNOSIS_SYSTEM_PROMPT = `你是【智枢AI诊断专家】，拥有全行业、全方位的商业诊断与分析能力。
@@ -101,7 +118,7 @@ export const MODEL_CONFIG = {
   },
   // 腾讯云TokenHub
   tencent: {
-    baseUrl: 'https://tokenhub.cloud.tencent.com',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     apiKeyEnv: 'TENCENT_TOKENHUB_API_KEY', // 用户配置的API Key
     models: {
       daily: { id: 'hunyuan-2.0-instruct-20251111', name: 'hunyuan-instruct', type: 'text' },
@@ -152,21 +169,23 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
     const selection = analyzeAndSelectModel(lastMessage, preferProvider);
     
     let { modelKey: selectedModelKey, provider, modelId } = selection;
+    let selectedModelName = selection.modelName;
     
     // 如果指定了模型，优先使用指定的模型
     if (modelKey && modelKey !== 'auto') {
-      selectedModelKey = modelKey;
-      const modelInfo = aiModelRouter.getModelInfo(modelKey);
+      // 兼容横线和下划线两种key格式（前端可能传qwen-turbo，router用qwen_turbo）
+      const normalizedKey = modelKey.replace(/-/g, '_');
+      selectedModelKey = normalizedKey;
+      const modelInfo = aiModelRouter.getModelInfo(normalizedKey);
       if (modelInfo) {
         provider = (modelInfo.provider === 'aliyun' || modelInfo.provider === 'tencent' ? modelInfo.provider : 'aliyun');
         modelId = modelInfo.id;
+        selectedModelName = modelInfo.name;
       }
     }
 
-    // 获取API Key
-    const apiKey = provider === 'aliyun' 
-      ? process.env.DASHSCOPE_API_KEY 
-      : process.env.TENCENT_TOKENHUB_API_KEY;
+    // 获取API Key（优先使用用户自己的Key）
+    const apiKey = await getUserApiKey(userId, provider as 'aliyun' | 'tencent');
 
     if (!apiKey) {
       res.status(400).json({ 
@@ -205,7 +224,7 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
             message: assistantMessage,
             modelKey: selectedModelKey,
             modelId: modelId,
-            modelName: selection.modelName,
+            modelName: selectedModelName,
             provider: provider,
             taskType: selection.taskType,
             isFallback: selection.isFallback,
@@ -220,9 +239,7 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
       if (fallback) {
         console.log(`降级到备用模型: ${fallback.modelKey}`);
         
-        const fallbackApiKey = fallback.provider === 'aliyun'
-          ? process.env.DASHSCOPE_API_KEY
-          : process.env.TENCENT_TOKENHUB_API_KEY;
+        const fallbackApiKey = await getUserApiKey(userId, fallback.provider as 'aliyun' | 'tencent');
         
         if (fallbackApiKey) {
           aiModelRouter.incrementConcurrent(fallback.modelKey);
@@ -369,17 +386,16 @@ function detectDiagnosisRequest(messages: ChatMessage[]): boolean {
 }
 
 // 根据模型类型解析服务商（支持诊断模式自动选择DeepSeek R1）
+// 注意：apiKey由调用方通过getUserApiKey获取，此处不再返回apiKey
 function resolveModel(modelType?: string, isDiagnosis: boolean = false): { 
   provider: 'aliyun' | 'tencent'; 
   modelId: string; 
-  apiKey: string | null;
 } {
   // 诊断模式自动使用DeepSeek R1进行深度推理
   if (isDiagnosis && (modelType === 'daily' || modelType === 'reasoning' || !modelType)) {
     return {
       provider: 'aliyun',
       modelId: DIAGNOSIS_MODEL_CONFIG.deepAnalysis,
-      apiKey: process.env.DASHSCOPE_API_KEY || null,
     };
   }
   
@@ -388,7 +404,6 @@ function resolveModel(modelType?: string, isDiagnosis: boolean = false): {
     return {
       provider: 'aliyun',
       modelId: MODEL_CONFIG.aliyun.models[modelType as keyof typeof MODEL_CONFIG.aliyun.models]?.id || 'qwen-turbo',
-      apiKey: process.env.DASHSCOPE_API_KEY || null,
     };
   }
   
@@ -396,7 +411,6 @@ function resolveModel(modelType?: string, isDiagnosis: boolean = false): {
     return {
       provider: 'aliyun',
       modelId: MODEL_CONFIG.aliyun.models.reasoning.id,
-      apiKey: process.env.DASHSCOPE_API_KEY || null,
     };
   }
 
@@ -407,7 +421,6 @@ function resolveModel(modelType?: string, isDiagnosis: boolean = false): {
     return {
       provider: 'tencent',
       modelId: MODEL_CONFIG.tencent.models[modelType as keyof typeof MODEL_CONFIG.tencent.models]?.id || modelType,
-      apiKey: process.env.TENCENT_TOKENHUB_API_KEY || null,
     };
   }
 
@@ -415,38 +428,37 @@ function resolveModel(modelType?: string, isDiagnosis: boolean = false): {
   return {
     provider: 'tencent',
     modelId: MODEL_CONFIG.tencent.models.daily.id,
-    apiKey: process.env.TENCENT_TOKENHUB_API_KEY || null,
   };
 }
 
-// 获取会话列表 (占位实现)
+// 使用 chat-history.service.ts 的真实实现
+import {
+  getConversationList as _getConversationList,
+  getConversationDetail as _getConversationDetail,
+  deleteConversation as _deleteConversation,
+  clearAllConversations as _clearAllConversations,
+  updateConversationTitle as _updateConversationTitle,
+  saveMessage as _saveMessage,
+} from '../services/chat-history.service';
+
 async function getConversationList(userId: string, limit: number, offset: number) {
-  return [];
+  return _getConversationList(userId, limit, offset);
 }
 
-// 获取会话详情 (占位实现)
 async function getConversationDetail(id: string, userId: string) {
-  return null;
+  return _getConversationDetail(id, userId);
 }
 
-// 删除会话 (占位实现)
 async function deleteConversation(id: string, userId: string) {
-  return true;
+  return _deleteConversation(id, userId);
 }
 
-// 清除所有会话 (占位实现)
 async function clearAllConversations(userId: string) {
-  return true;
+  return _clearAllConversations(userId);
 }
 
-// 更新会话标题 (占位实现)
 async function updateConversationTitle(id: string, userId: string, title: string) {
-  return true;
-}
-
-// 保存消息 (占位实现)
-async function saveMessage(userId: string, conversationId: string | null, role: string, content: string) {
-  return { id: 'placeholder' } as any;
+  return _updateConversationTitle(id, userId, title);
 }
 
 
@@ -484,7 +496,6 @@ async function callAIProvider(
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      ...(provider === 'tencent' && { 'X-TC-Provider': 'tokenhub' }),
     },
     body: JSON.stringify(requestBody),
   });
@@ -546,11 +557,12 @@ router.post('/diagnosis', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const apiKey = process.env.DASHSCOPE_API_KEY;
+    // 获取API Key（优先使用用户自己的Key）
+    const apiKey = await getUserApiKey(userId, 'aliyun');
     if (!apiKey) {
       res.status(400).json({ 
         error: 'API Key未配置',
-        message: '请在「API服务商配置」页面配置阿里云百炼API Key'
+        message: '请在「API服务商配置」页面配置您的API Key，或在「个人设置」中绑定您的API Key'
       });
       return;
     }
@@ -670,6 +682,7 @@ router.get('/diagnosis/capabilities', authMiddleware, (req: Request, res: Respon
 // 图片理解
 router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId;
     const { imageUrl, question } = req.body;
 
     if (!imageUrl) {
@@ -677,9 +690,9 @@ router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const apiKey = process.env.TENCENT_TOKENHUB_API_KEY;
+    const apiKey = await getUserApiKey(userId, 'tencent');
     if (!apiKey) {
-      res.status(400).json({ error: 'API Key未配置' });
+      res.status(400).json({ error: 'API Key未配置，请在「个人设置」中绑定您的API Key' });
       return;
     }
 
@@ -689,7 +702,6 @@ router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'X-TC-Provider': 'tokenhub',
       },
       body: JSON.stringify({
         model: MODEL_CONFIG.tencent.models.vision.id,
@@ -722,6 +734,7 @@ router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
 // 图像生成
 router.post('/image', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId;
     const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
 
     if (!prompt) {
@@ -729,9 +742,9 @@ router.post('/image', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const apiKey = process.env.TENCENT_TOKENHUB_API_KEY;
+    const apiKey = await getUserApiKey(userId, 'tencent');
     if (!apiKey) {
-      res.status(400).json({ error: 'API Key未配置' });
+      res.status(400).json({ error: 'API Key未配置，请在「个人设置」中绑定您的API Key' });
       return;
     }
 
@@ -741,7 +754,6 @@ router.post('/image', authMiddleware, async (req: Request, res: Response) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'X-TC-Provider': 'tokenhub',
       },
       body: JSON.stringify({
         model: MODEL_CONFIG.tencent.models.image.id,
@@ -772,6 +784,7 @@ router.post('/image', authMiddleware, async (req: Request, res: Response) => {
 // 视频理解
 router.post('/video', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId;
     const { videoUrl, question } = req.body;
 
     if (!videoUrl) {
@@ -779,9 +792,9 @@ router.post('/video', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const apiKey = process.env.TENCENT_TOKENHUB_API_KEY;
+    const apiKey = await getUserApiKey(userId, 'tencent');
     if (!apiKey) {
-      res.status(400).json({ error: 'API Key未配置' });
+      res.status(400).json({ error: 'API Key未配置，请在「个人设置」中绑定您的API Key' });
       return;
     }
 
@@ -791,7 +804,6 @@ router.post('/video', authMiddleware, async (req: Request, res: Response) => {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'X-TC-Provider': 'tokenhub',
       },
       body: JSON.stringify({
         model: MODEL_CONFIG.tencent.models.video.id,
@@ -843,7 +855,7 @@ router.get('/conversations', authMiddleware, async (req: Request, res: Response)
 // 获取会话详情
 router.get('/conversations/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
 
     const conversation = await getConversationDetail(id, userId);
@@ -864,9 +876,9 @@ router.get('/conversations/:id', authMiddleware, async (req: Request, res: Respo
 });
 
 // 删除会话
-router.delete('/conversations/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/conversations/:id', authMiddleware, verifyOwnership('chatConversation'), async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
 
     const success = await deleteConversation(id, userId);
@@ -897,9 +909,9 @@ router.delete('/conversations', authMiddleware, async (req: Request, res: Respon
 });
 
 // 更新会话标题
-router.patch('/conversations/:id', authMiddleware, async (req: Request, res: Response) => {
+router.patch('/conversations/:id', authMiddleware, verifyOwnership('chatConversation'), async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).userId;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
     const { title } = req.body;
 

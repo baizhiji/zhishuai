@@ -1,0 +1,15 @@
+{
+  "*.{ts,tsx}": [
+    "prettier --write",
+    "eslint --fix --max-warnings 0"
+  ],
+  "*.{json,md,yaml,yml,css,scss}": [
+    "prettier --write"
+  ],
+  "server/**/*.{ts,tsx}": [
+    "cd server && npx tsc --noEmit"
+  ],
+  "web/**/*.{ts,tsx}": [
+    "cd web && npx tsc --noEmit"
+  ]
+}

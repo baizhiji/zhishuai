@@ -32,37 +32,23 @@ export default function PerformanceMonitor() {
 
     // 等待页面完全加载
     const measurePerformance = () => {
-<<<<<<< HEAD
-      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-=======
       const navigation = performance.getEntriesByType(
         'navigation'
       )[0] as PerformanceNavigationTiming;
->>>>>>> 962968886be726cd434c792933b5515366d34518
       const paint = performance.getEntriesByType('paint');
 
       metricsRef.current = {
         pageLoadTime: navigation.loadEventEnd - navigation.fetchStart,
         domContentLoaded: navigation.domContentLoadedEventEnd - navigation.fetchStart,
-<<<<<<< HEAD
-        firstPaint: paint.find((entry) => entry.name === 'first-paint')?.startTime || 0,
-        firstContentfulPaint:
-          paint.find((entry) => entry.name === 'first-contentful-paint')?.startTime || 0,
-=======
         firstPaint: paint.find(entry => entry.name === 'first-paint')?.startTime || 0,
         firstContentfulPaint:
           paint.find(entry => entry.name === 'first-contentful-paint')?.startTime || 0,
->>>>>>> 962968886be726cd434c792933b5515366d34518
       };
 
       // 获取LCP
       if ('PerformanceObserver' in window) {
         try {
-<<<<<<< HEAD
-          const lcpObserver = new PerformanceObserver((list) => {
-=======
           const lcpObserver = new PerformanceObserver(list => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
             const entries = list.getEntries();
             const lastEntry = entries[entries.length - 1] as any;
             metricsRef.current.largestContentfulPaint = lastEntry.renderTime || lastEntry.loadTime;
@@ -77,11 +63,7 @@ export default function PerformanceMonitor() {
       if ('PerformanceObserver' in window) {
         try {
           let clsValue = 0;
-<<<<<<< HEAD
-          const clsObserver = new PerformanceObserver((list) => {
-=======
           const clsObserver = new PerformanceObserver(list => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
             for (const entry of list.getEntries() as any[]) {
               if (!entry.hadRecentInput) {
                 clsValue += entry.value;
@@ -98,11 +80,7 @@ export default function PerformanceMonitor() {
       // 获取FID
       if ('PerformanceObserver' in window) {
         try {
-<<<<<<< HEAD
-          const fidObserver = new PerformanceObserver((list) => {
-=======
           const fidObserver = new PerformanceObserver(list => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
             const entries = list.getEntries();
             if (entries.length > 0) {
               const entry = entries[0] as PerformanceEventTiming;
@@ -121,12 +99,6 @@ export default function PerformanceMonitor() {
         console.log('Page Load Time:', `${metricsRef.current.pageLoadTime.toFixed(2)}ms`);
         console.log('DOM Content Loaded:', `${metricsRef.current.domContentLoaded.toFixed(2)}ms`);
         console.log('First Paint:', `${metricsRef.current.firstPaint.toFixed(2)}ms`);
-<<<<<<< HEAD
-        console.log('First Contentful Paint:', `${metricsRef.current.firstContentfulPaint.toFixed(2)}ms`);
-        console.log('Largest Contentful Paint:', `${metricsRef.current.largestContentfulPaint?.toFixed(2)}ms || 'N/A'}`);
-        console.log('Cumulative Layout Shift:', `${metricsRef.current.cumulativeLayoutShift?.toFixed(3)} || 'N/A'}`);
-        console.log('First Input Delay:', `${metricsRef.current.firstInputDelay?.toFixed(2)}ms || 'N/A'}`);
-=======
         console.log(
           'First Contentful Paint:',
           `${metricsRef.current.firstContentfulPaint.toFixed(2)}ms`
@@ -143,7 +115,6 @@ export default function PerformanceMonitor() {
           'First Input Delay:',
           `${metricsRef.current.firstInputDelay?.toFixed(2)}ms || 'N/A'}`
         );
->>>>>>> 962968886be726cd434c792933b5515366d34518
         console.groupEnd();
 
         // 警告信息

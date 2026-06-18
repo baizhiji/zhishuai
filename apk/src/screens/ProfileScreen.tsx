@@ -214,12 +214,14 @@ export default function ProfileScreen() {
             <MenuItem icon="cloud-download-outline" iconColor="#06B6D4" title="检查更新" subtitle="当前版本 v1.0.0" onPress={handleCheckUpdate} />
             <MenuItem icon="help-circle-outline" iconColor="#64748B" title="帮助与反馈" subtitle="帮助文档、联系客服" onPress={() => {
               Alert.alert('帮助与反馈', '请选择：', [
-                { text: '帮助文档', onPress: () => Linking.openURL('https://help.zhishuai.com') },
+                { text: '帮助文档', onPress: () => Linking.openURL('https://baizhiji.net/help') },
                 { text: '联系客服', onPress: () => Alert.alert('客服热线', '400-xxx-xxxx') },
                 { text: '取消', style: 'cancel' }
               ]);
             }} />
             <MenuItem icon="information-circle-outline" iconColor="#64748B" title="关于我们" subtitle="用AI赋能企业，让商业更智能" onPress={() => Alert.alert('关于我们', '智枢AI v1.0.0\n用AI赋能企业，让商业更智能')} />
+            <MenuItem icon="document-text-outline" iconColor="#8B5CF6" title="隐私政策" onPress={() => navigation.navigate('PrivacyPolicy' as any)} />
+            <MenuItem icon="shield-checkmark-outline" iconColor="#10B981" title="用户协议" onPress={() => navigation.navigate('TermsOfService' as any)} />
           </View>
         </View>
 

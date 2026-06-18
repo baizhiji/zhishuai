@@ -14,14 +14,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Image,
   Alert,
   Keyboard,
 } from 'react-native'
+import { Image } from 'expo-image'
 import { Ionicons } from '@expo/vector-icons'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { aiChatService, RECOMMENDED_MODELS } from '../../services/ai-chat.service'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as ImagePicker from 'expo-image-picker'
 import { 
   aiModelRouter, 
   analyzeAndSelectModel, 
@@ -1120,8 +1121,26 @@ export default function AIChatScreen({ navigation }: Props) {
           <TouchableOpacity 
             style={styles.attachButton}
             onPress={() => Alert.alert('选择类型', '请选择要添加的附件类型', [
-              { text: '图片', onPress: () => {/* TODO: 打开图片选择器 */} },
-              { text: '视频', onPress: () => {/* TODO: 打开视频选择器 */} },
+            { text: '图片', onPress: async () => {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsMultipleSelection: false,
+                quality: 0.8,
+              });
+              if (!result.canceled && result.assets[0]) {
+                setAttachments(prev => [...prev, { type: 'image' as const, uri: result.assets[0].uri }]);
+              }
+            }},
+            { text: '视频', onPress: async () => {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+                allowsMultipleSelection: false,
+                quality: 0.8,
+              });
+              if (!result.canceled && result.assets[0]) {
+                setAttachments(prev => [...prev, { type: 'video' as const, uri: result.assets[0].uri }]);
+              }
+            }},
               { text: '取消', style: 'cancel' },
             ])}
           >

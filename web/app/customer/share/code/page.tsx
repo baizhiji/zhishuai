@@ -1,82 +1,6 @@
-<<<<<<< HEAD
-'use client'
-
-import { useState } from 'react'
-import { Card, Typography, Button, Space, Table, Tag, Modal, Form, Input, message, Image, QRCode } from 'antd'
-import { PlusOutlined, ShareAltOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons'
-
-const { Title, Text } = Typography
-
-interface ReferralCode {
-  id: string
-  name: string
-  code: string
-  platform: string
-  status: 'active' | 'inactive'
-  clickCount: number
-  conversionCount: number
-  createdAt: string
-}
-
-export default function ShareCodePage() {
-  const [codes] = useState<ReferralCode[]>([
-    {
-      id: '1',
-      name: '个人推广码',
-      code: 'ZHISHUAI2024',
-      platform: 'all',
-      status: 'active',
-      clickCount: 1258,
-      conversionCount: 86,
-      createdAt: '2024-03-25',
-    },
-  ])
-
-  const [isQrModalVisible, setIsQrModalVisible] = useState(false)
-  const [selectedCode, setSelectedCode] = useState<string>('')
-
-  const columns = [
-    { title: '名称', dataIndex: 'name', key: 'name' },
-    {
-      title: '推荐码',
-      dataIndex: 'code',
-      key: 'code',
-      render: (code: string) => (
-        <Space>
-          <code>{code}</code>
-          <Button type="link" icon={<CopyOutlined />} size="small">复制</Button>
-        </Space>
-      ),
-    },
-    { title: '平台', dataIndex: 'platform', key: 'platform' },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => (
-        <Tag color={status === 'active' ? 'success' : 'default'}>
-          {status === 'active' ? '生效中' : '已失效'}
-        </Tag>
-      ),
-    },
-    { title: '点击次数', dataIndex: 'clickCount', key: 'clickCount' },
-    { title: '转化数', dataIndex: 'conversionCount', key: 'conversionCount' },
-    { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt' },
-    {
-      title: '操作',
-      key: 'action',
-      render: (_: any, record: ReferralCode) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<ShareAltOutlined />}
-            onClick={() => {
-              setSelectedCode(record.code)
-              setIsQrModalVisible(true)
-=======
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Card,
   Typography,
@@ -87,7 +11,6 @@ import {
   Input,
   Select,
   message,
-  Tabs,
   Descriptions,
   Statistic,
   Row,
@@ -96,6 +19,7 @@ import {
   Tag,
   Divider,
   Empty,
+  Spin,
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -106,6 +30,7 @@ import {
   ShareAltOutlined,
 } from '@ant-design/icons';
 import QRCode from 'qrcode.react';
+import request from '@/utils/request';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -127,21 +52,36 @@ export default function ShareCodePage() {
   const [isQrModalVisible, setIsQrModalVisible] = useState(false);
   const [selectedVideo, setSelectedVideo] = useState<VideoShareCode | null>(null);
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(true);
+  const [videoCodes, setVideoCodes] = useState<VideoShareCode[]>([]);
 
-  // 模拟数据
-  const [videoCodes, setVideoCodes] = useState<VideoShareCode[]>([
-    {
-      id: '1',
-      videoTitle: '产品宣传视频',
-      videoThumbnail: '',
-      platforms: ['douyin', 'kuaishou', 'xiaohongshu', 'video'],
-      shareUrl: 'https://baizhiji.net/share/v1',
-      code: 'VS20240608A001',
-      scanCount: 1258,
-      publishCount: 86,
-      createdAt: '2024-06-08 10:30',
-    },
-  ]);
+  useEffect(() => {
+    fetchShareCodes();
+  }, []);
+
+  const fetchShareCodes = async () => {
+    setLoading(true);
+    try {
+      const res = await request.get('/api/share/codes');
+      const data = res?.data || res?.list || res || [];
+      setVideoCodes(
+        (Array.isArray(data) ? data : []).map((c: any) => ({
+          id: c.id || c._id,
+          videoTitle: c.videoTitle || c.title || '-',
+          videoThumbnail: c.videoThumbnail || c.thumbnail || '',
+          platforms: c.platforms || [],
+          shareUrl: c.shareUrl || c.url || '',
+          code: c.code || '-',
+          scanCount: c.scanCount ?? 0,
+          publishCount: c.publishCount ?? 0,
+          createdAt: c.createdAt || '-',
+        }))
+      );
+    } catch {
+      setVideoCodes([]);
+    }
+    setLoading(false);
+  };
 
   const platformLabels: Record<string, string> = {
     douyin: '抖音',
@@ -157,22 +97,16 @@ export default function ShareCodePage() {
     video: '#fa8c16',
   };
 
-  const handleCreateCode = (values: { videoTitle: string; videoUrl: string; platforms: string[] }) => {
-    const newCode: VideoShareCode = {
-      id: Date.now().toString(),
-      videoTitle: values.videoTitle,
-      videoThumbnail: '',
-      platforms: values.platforms,
-      shareUrl: `https://baizhiji.net/share/v1?vid=${Date.now()}`,
-      code: `VS${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-      scanCount: 0,
-      publishCount: 0,
-      createdAt: new Date().toLocaleString('zh-CN'),
-    };
-    setVideoCodes([newCode, ...videoCodes]);
-    setIsCreateModalVisible(false);
-    form.resetFields();
-    message.success('短视频分享码生成成功');
+  const handleCreateCode = async (values: { videoTitle: string; videoUrl: string; platforms: string[]; remark?: string }) => {
+    try {
+      await request.post('/api/share/codes', values);
+      message.success('短视频分享码生成成功');
+      setIsCreateModalVisible(false);
+      form.resetFields();
+      fetchShareCodes();
+    } catch {
+      message.error('生成失败，请稍后重试');
+    }
   };
 
   const handleCopyLink = (url: string) => {
@@ -208,7 +142,7 @@ export default function ShareCodePage() {
         <Space size={[0, 4]}>
           {platforms.map(p => (
             <Tag key={p} color={platformColors[p]} style={{ marginRight: 4 }}>
-              {platformLabels[p]}
+              {platformLabels[p] || p}
             </Tag>
           ))}
         </Space>
@@ -254,18 +188,10 @@ export default function ShareCodePage() {
             onClick={() => {
               setSelectedVideo(record);
               setIsQrModalVisible(true);
->>>>>>> 962968886be726cd434c792933b5515366d34518
             }}
           >
             二维码
           </Button>
-<<<<<<< HEAD
-          <Button type="link" icon={<DownloadOutlined />}>下载</Button>
-        </Space>
-      ),
-    },
-  ]
-=======
           <Button 
             type="link" 
             size="small"
@@ -278,42 +204,11 @@ export default function ShareCodePage() {
       ),
     },
   ];
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-center">
         <div>
-<<<<<<< HEAD
-          <Title level={2} className="mb-2">推荐码生成</Title>
-          <Text type="secondary">生成个人推荐码和二维码</Text>
-        </div>
-        <Button type="primary" icon={<PlusOutlined />}>生成新码</Button>
-      </div>
-
-      <Card>
-        <Table dataSource={codes} columns={columns} rowKey="id" />
-      </Card>
-
-      <Modal
-        title="推荐二维码"
-        open={isQrModalVisible}
-        onCancel={() => setIsQrModalVisible(false)}
-        footer={[
-          <Button key="copy" onClick={() => { message.success('已复制图片') }}>复制图片</Button>,
-          <Button key="download" type="primary" onClick={() => { message.success('已下载') }}>下载</Button>,
-        ]}
-      >
-        <div className="text-center">
-          <QRCode value={selectedCode} size={200} />
-          <div className="mt-4">
-            <Text code>{selectedCode}</Text>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  )
-=======
           <Title level={2} className="mb-2">
             短视频分享码
           </Title>
@@ -368,23 +263,27 @@ export default function ShareCodePage() {
       </Card>
 
       <Card>
-        {videoCodes.length > 0 ? (
-          <Table 
-            dataSource={videoCodes} 
-            columns={columns} 
-            rowKey="id"
-            pagination={false}
-          />
-        ) : (
-          <Empty 
-            description="暂无分享码" 
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          >
-            <Button type="primary" onClick={() => setIsCreateModalVisible(true)}>
-              生成第一个分享码
-            </Button>
-          </Empty>
-        )}
+        <Spin spinning={loading}>
+          {videoCodes.length > 0 ? (
+            <Table 
+              dataSource={videoCodes} 
+              columns={columns} 
+              rowKey="id"
+              pagination={false}
+            />
+          ) : (
+            !loading && (
+              <Empty 
+                description="暂无分享码" 
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              >
+                <Button type="primary" onClick={() => setIsCreateModalVisible(true)}>
+                  生成第一个分享码
+                </Button>
+              </Empty>
+            )
+          )}
+        </Spin>
       </Card>
 
       {/* 生成新码弹窗 */}
@@ -483,7 +382,7 @@ export default function ShareCodePage() {
               <Space className="mb-4">
                 {selectedVideo.platforms.map(p => (
                   <Tag key={p} color={platformColors[p]}>
-                    {platformLabels[p]}
+                    {platformLabels[p] || p}
                   </Tag>
                 ))}
               </Space>
@@ -523,5 +422,4 @@ export default function ShareCodePage() {
       </Modal>
     </div>
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

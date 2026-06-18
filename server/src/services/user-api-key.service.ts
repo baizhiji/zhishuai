@@ -10,8 +10,8 @@
 
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { prisma } from '../utils/db';
 
-const prisma = new PrismaClient();
 
 // 加密密钥（生产环境应从环境变量读取）
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'zhishuai-default-key-32chars!!';
@@ -50,7 +50,7 @@ export const PROVIDER_CONFIG = {
   },
   tokenhub: {
     name: '腾讯云 TokenHub',
-    baseUrl: 'https://tokenhub.cloud.tencent.com',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     type: 'tencent',
   },
 };

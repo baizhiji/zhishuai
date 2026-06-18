@@ -1,0 +1,67 @@
+# 智枢 AI SaaS 系统 - Docker Compose 部署配置
+# 数据库: 腾讯云 TDSQL-C MySQL（外部服务，不在此编排）
+# 服务器: 腾讯云 CVM
+
+version: '3.8'
+
+services:
+  # Server 后端 API
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    container_name: zhishuai-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-https://baizhiji.net}
+      APP_URL: ${APP_URL:-https://app.baizhiji.net}
+      UPLOAD_DIR: /app/uploads
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY}
+      TENCENT_TOKENHUB_API_KEY: ${TENCENT_TOKENHUB_API_KEY}
+    ports:
+      - "3001:3001"
+    volumes:
+      - uploads_data:/app/uploads
+
+  # Web 前端
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    container_name: zhishuai-web
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_BASE_URL: ${API_BASE_URL:-https://baizhiji.net/api}
+    ports:
+      - "3000:3000"
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: zhishuai-nginx
+    restart: unless-stopped
+    depends_on:
+      - server
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/sites-available/baizhiji.net:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - uploads_data:/var/www/uploads:ro
+    command: >
+      sh -c "ln -sf /etc/nginx/sites-available/baizhiji.net /etc/nginx/conf.d/baizhiji.net.conf &&
+             nginx -g 'daemon off;'"
+    profiles:
+      - production
+
+volumes:
+  uploads_data:

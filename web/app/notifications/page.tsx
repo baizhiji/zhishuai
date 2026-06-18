@@ -61,15 +61,6 @@ const getTypeIcon = (type: string) => {
 
 const getTypeColor = (type: string) => {
   switch (type) {
-<<<<<<< HEAD
-    case 'system': return 'blue';
-    case 'message': return 'green';
-    case 'recruitment': return 'orange';
-    case 'content': return 'purple';
-    case 'chat': return 'cyan';
-    case 'payment': return 'red';
-    default: return 'default';
-=======
     case 'system':
       return 'blue';
     case 'message':
@@ -84,21 +75,11 @@ const getTypeColor = (type: string) => {
       return 'red';
     default:
       return 'default';
->>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 };
 
 const getTypeName = (type: string) => {
   switch (type) {
-<<<<<<< HEAD
-    case 'system': return '系统通知';
-    case 'message': return '消息';
-    case 'recruitment': return '招聘';
-    case 'content': return '内容';
-    case 'chat': return 'AI 对话';
-    case 'payment': return '支付';
-    default: return '其他';
-=======
     case 'system':
       return '系统通知';
     case 'message':
@@ -113,7 +94,6 @@ const getTypeName = (type: string) => {
       return '支付';
     default:
       return '其他';
->>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 };
 
@@ -132,78 +112,16 @@ export default function NotificationsPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/notifications');
-      // 模拟数据
-      const mockNotifications: Notification[] = [
-        {
-          id: 1,
-          type: 'system',
-          title: '系统升级通知',
-          content: '智枢 AI SaaS 系统将于今晚 22:00 进行例行维护，预计持续 30 分钟。',
-          isRead: false,
-          createdAt: '2024-01-15 14:30:00',
-        },
-        {
-          id: 2,
-          type: 'recruitment',
-          title: '新简历投递',
-          content: '张某某投递了"前端开发工程师"职位，请及时查看。',
-          isRead: false,
-          createdAt: '2024-01-15 13:20:00',
-          metadata: { position: '前端开发工程师', candidate: '张某某' },
-        },
-        {
-          id: 3,
-          type: 'content',
-          title: '内容发布成功',
-          content: '您的内容已在抖音平台发布成功，当前播放量 1,280。',
-          isRead: true,
-          createdAt: '2024-01-15 11:45:00',
-          metadata: { platform: '抖音', views: 1280 },
-        },
-        {
-          id: 4,
-          type: 'chat',
-          title: 'AI 对话分析',
-          content: '您与客户李某某的 AI 对话已完成分析，转化意向较高。',
-          isRead: true,
-          createdAt: '2024-01-15 10:30:00',
-        },
-        {
-          id: 5,
-          type: 'payment',
-          title: '收益到账',
-          content: '您本月的代理分成收益 ¥2,580 已到账。',
-          isRead: true,
-          createdAt: '2024-01-15 09:00:00',
-          metadata: { amount: 2580 },
-        },
-        {
-          id: 6,
-          type: 'message',
-          title: '客户反馈',
-          content: '客户王某某对您的服务给出了 5 星好评！',
-          isRead: false,
-          createdAt: '2024-01-14 16:20:00',
-        },
-        {
-          id: 7,
-          type: 'recruitment',
-          title: '面试提醒',
-          content: '明天 14:00 您有一场面试安排，邀请人：赵某某。',
-          isRead: true,
-          createdAt: '2024-01-14 15:00:00',
-          metadata: { time: '明天 14:00', candidate: '赵某某' },
-        },
-        {
-          id: 8,
-          type: 'system',
-          title: '功能更新',
-          content: '新版本已上线，新增 AI 智能推荐功能，快去体验吧！',
-          isRead: true,
-          createdAt: '2024-01-14 10:00:00',
-        },
-      ];
-      setNotifications(mockNotifications);
+      const list = res?.data?.list || res?.data || [];
+      setNotifications(list.map((n: any) => ({
+        id: n.id,
+        type: n.type || 'system',
+        title: n.title || '',
+        content: n.content || '',
+        isRead: n.isRead ?? false,
+        createdAt: n.createdAt || '',
+        metadata: n.metadata,
+      })));
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       setNotifications([]);
@@ -213,31 +131,17 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-<<<<<<< HEAD
-  const filteredNotifications = activeTab === 'all'
-    ? notifications
-    : activeTab === 'unread'
-    ? notifications.filter(n => !n.isRead)
-    : notifications.filter(n => n.type === activeTab);
-=======
   const filteredNotifications =
     activeTab === 'all'
       ? notifications
       : activeTab === 'unread'
         ? notifications.filter(n => !n.isRead)
         : notifications.filter(n => n.type === activeTab);
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const handleMarkAsRead = async (id: number) => {
     try {
       await request.put(`/api/notifications/${id}/read`);
-<<<<<<< HEAD
-      setNotifications(notifications.map(n =>
-        n.id === id ? { ...n, isRead: true } : n
-      ));
-=======
       setNotifications(notifications.map(n => (n.id === id ? { ...n, isRead: true } : n)));
->>>>>>> 962968886be726cd434c792933b5515366d34518
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
@@ -271,9 +175,6 @@ export default function NotificationsPage() {
 
   const tabItems = [
     { key: 'all', label: `全部 (${notifications.length})` },
-<<<<<<< HEAD
-    { key: 'unread', label: <Badge count={unreadCount} offset={[10, 0]}>未读</Badge> },
-=======
     {
       key: 'unread',
       label: (
@@ -282,7 +183,6 @@ export default function NotificationsPage() {
         </Badge>
       ),
     },
->>>>>>> 962968886be726cd434c792933b5515366d34518
     { key: 'system', label: '系统' },
     { key: 'recruitment', label: '招聘' },
     { key: 'content', label: '内容' },
@@ -322,20 +222,9 @@ export default function NotificationsPage() {
           <List
             dataSource={filteredNotifications}
             locale={{
-<<<<<<< HEAD
-              emptyText: (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description="暂无通知"
-                />
-              ),
-            }}
-            renderItem={(item) => (
-=======
               emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无通知" />,
             }}
             renderItem={item => (
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <List.Item
                 style={{
                   padding: '16px 24px',
@@ -350,11 +239,7 @@ export default function NotificationsPage() {
                       type="link"
                       size="small"
                       icon={<EyeOutlined />}
-<<<<<<< HEAD
-                      onClick={(e) => {
-=======
                       onClick={e => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
                         e.stopPropagation();
                         handleMarkAsRead(item.id);
                       }}
@@ -368,11 +253,7 @@ export default function NotificationsPage() {
                     size="small"
                     danger
                     icon={<DeleteOutlined />}
-<<<<<<< HEAD
-                    onClick={(e) => {
-=======
                     onClick={e => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
                       e.stopPropagation();
                       handleDelete(item.id);
                     }}
@@ -383,18 +264,6 @@ export default function NotificationsPage() {
               >
                 <List.Item.Meta
                   avatar={
-<<<<<<< HEAD
-                    <div style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 8,
-                      background: '#f0f0f0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 18,
-                    }}>
-=======
                     <div
                       style={{
                         width: 40,
@@ -407,7 +276,6 @@ export default function NotificationsPage() {
                         fontSize: 18,
                       }}
                     >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                       {getTypeIcon(item.type)}
                     </div>
                   }
@@ -460,17 +328,6 @@ export default function NotificationsPage() {
               </Tag>
               <Text type="secondary">{selectedNotification.createdAt}</Text>
             </Space>
-<<<<<<< HEAD
-            <div style={{
-              padding: 16,
-              background: '#f5f5f5',
-              borderRadius: 8,
-              marginBottom: 16,
-            }}>
-              <Text style={{ fontSize: 15, lineHeight: 1.8 }}>
-                {selectedNotification.content}
-              </Text>
-=======
             <div
               style={{
                 padding: 16,
@@ -480,7 +337,6 @@ export default function NotificationsPage() {
               }}
             >
               <Text style={{ fontSize: 15, lineHeight: 1.8 }}>{selectedNotification.content}</Text>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             </div>
             {selectedNotification.metadata && (
               <Descriptions bordered column={1} size="small">

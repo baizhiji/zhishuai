@@ -134,7 +134,7 @@ export default function LiveRoomCapturePage() {
   const [addRoomModalVisible, setAddRoomModalVisible] = useState(false);
   const [newRoomForm] = Form.useForm();
 
-  // 加载已保存的房间
+  // 加载已保存的房间列表
   useEffect(() => {
     loadRooms();
     return () => {
@@ -142,128 +142,160 @@ export default function LiveRoomCapturePage() {
     };
   }, []);
 
-  const loadRooms = () => {
-    const saved = localStorage.getItem('captured_rooms');
-    if (saved) {
-      setRooms(JSON.parse(saved));
+  const loadRooms = async () => {
+    setLoading(true);
+    try {
+      const res = await request.get('/data-acquisition/live/rooms');
+      if (res.data) {
+        setRooms(res.data);
+      }
+    } catch (error) {
+      // 首次加载无数据时显示空列表
+      setRooms([]);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const saveRooms = (newRooms: LiveRoom[]) => {
-    setRooms(newRooms);
-    localStorage.setItem('captured_rooms', JSON.stringify(newRooms));
   };
 
   // 添加直播间
   const handleAddRoom = async () => {
     try {
       const values = await newRoomForm.validateFields();
-      
-      // 解析房间链接获取ID
       const roomId = extractRoomId(values.link);
-      
-      const newRoom: LiveRoom = {
-        id: `room_${Date.now()}`,
+
+      const res = await request.post('/data-acquisition/live/rooms', {
         platform: platform,
         roomId: roomId,
         roomName: values.name || `直播间-${roomId.slice(0, 8)}`,
         hostName: values.hostName || '未知主播',
-        status: 'offline',
-        viewerCount: 0,
-        likeCount: 0,
-        giftCount: 0,
-        followerCount: 0,
-      };
+        link: values.link,
+      });
 
-      saveRooms([...rooms, newRoom]);
+      if (res.data) {
+        setRooms(prev => [...prev, res.data]);
+      }
+
       setAddRoomModalVisible(false);
       newRoomForm.resetFields();
       message.success('直播间添加成功');
-    } catch (error) {
-      console.error('添加失败:', error);
+    } catch (error: any) {
+      message.error(error?.response?.data?.error || '添加失败');
     }
   };
 
   // 从链接提取房间ID
   const extractRoomId = (link: string): string => {
-    // 抖音
     if (link.includes('douyin.com')) {
       const match = link.match(/live\.douyin\.com\/(\d+)/);
       return match ? match[1] : link.slice(-12);
     }
-    // 快手
     if (link.includes('kuaishou.com')) {
       const match = link.match(/live\.kuaishou\.com\/(\w+)/);
       return match ? match[1] : link.slice(-10);
     }
-    // 淘宝
-    if (link.includes('taobao.com') || link.includes('taobao直播')) {
-      return 'taobao_' + Math.random().toString(36).slice(-8);
+    if (link.includes('taobao.com')) {
+      const match = link.match(/id=(\d+)/);
+      return match ? match[1] : link.replace(/[^a-zA-Z0-9]/g, '').slice(-12);
     }
-    return Math.random().toString(36).slice(-10);
+    if (link.includes('bilibili.com')) {
+      const match = link.match(/blive\.bilibili\.com\/(\d+)/);
+      return match ? match[1] : link.replace(/[^a-zA-Z0-9]/g, '').slice(-10);
+    }
+    return link.replace(/[^a-zA-Z0-9]/g, '').slice(-12) || Date.now().toString();
   };
 
-  // 开始采集
-  const handleStartCapture = (room: LiveRoom) => {
+  // 开始采集 — 调用后端真实API
+  const handleStartCapture = async (room: LiveRoom) => {
     setSelectedRoom(room);
     setRoomDetailVisible(true);
     setIsCapturing(true);
+    setComments([]);
+    setLiveProducts([]);
+    setStats(null);
 
     message.info(`开始采集 ${room.roomName} 的数据...`);
 
-    // 模拟实时采集
+    // 立即采集一次
+    await captureRoomData(room);
+
+    // 定时轮询采集
     const interval = setInterval(() => {
       captureRoomData(room);
-    }, 5000);
+    }, 10000);
 
     setCaptureInterval(interval);
   };
 
-  // 采集房间数据
-  const captureRoomData = (room: LiveRoom) => {
-    // 模拟采集到的数据
-    const mockComments: CapturedComment[] = [
-      { id: '1', userId: 'u1', userName: '用户A', content: '这个产品多少钱？', time: dayjs().format('HH:mm:ss'), likes: 5 },
-      { id: '2', userId: 'u2', userName: '用户B', content: '想要！', time: dayjs().format('HH:mm:ss'), likes: 3 },
-      { id: '3', userId: 'u3', userName: '用户C', content: '下单了', time: dayjs().format('HH:mm:ss'), likes: 8 },
-    ];
+  // 采集房间数据 — 调用后端数据采集API
+  const captureRoomData = async (room: LiveRoom) => {
+    try {
+      const res = await request.post('/data-acquisition/search/live', {
+        platform: room.platform,
+        roomId: room.roomId,
+        keyword: room.roomName,
+      });
 
-    const mockProducts: Product[] = [
-      { id: 'p1', name: '智枢AI助手Pro', price: 299, originalPrice: 599, soldCount: 128 },
-      { id: 'p2', name: '企业版年度会员', price: 1999, originalPrice: 3999, soldCount: 45 },
-      { id: 'p3', name: '数字人定制服务', price: 5999, originalPrice: 9999, soldCount: 12 },
-    ];
+      if (!res.data) return;
 
-    setComments(prev => [...mockComments, ...prev].slice(0, 100));
-    setLiveProducts(mockProducts);
+      const data = res.data;
 
-    // 更新统计
-    setStats(prev => ({
-      totalViews: (prev?.totalViews || 0) + Math.floor(Math.random() * 100),
-      totalLikes: (prev?.totalLikes || 0) + Math.floor(Math.random() * 50),
-      totalComments: (prev?.totalComments || 0) + mockComments.length,
-      totalGifts: (prev?.totalGifts || 0) + Math.floor(Math.random() * 5),
-      peakViewers: Math.max(prev?.peakViewers || 0, Math.floor(Math.random() * 10000)),
-      avgViewers: Math.floor(Math.random() * 5000),
-      duration: calculateDuration(room.startTime),
-      salesAmount: (prev?.salesAmount || 0) + Math.floor(Math.random() * 1000),
-    }));
+      // 更新弹幕/评论
+      if (data.danmu && Array.isArray(data.danmu)) {
+        const newComments: CapturedComment[] = data.danmu.map((d: any) => ({
+          id: d.id || `c_${Date.now()}_${Math.random()}`,
+          userId: d.userId || d.user_id || '',
+          userName: d.nickname || d.userName || '匿名用户',
+          content: d.content || '',
+          time: d.timestamp ? dayjs(d.timestamp).format('HH:mm:ss') : dayjs().format('HH:mm:ss'),
+          likes: d.likes || 0,
+        }));
+        setComments(prev => [...newComments, ...prev].slice(0, 200));
+      }
 
-    // 更新房间实时数据
-    setSelectedRoom(prev => prev ? {
-      ...prev,
-      viewerCount: Math.floor(Math.random() * 10000),
-      likeCount: (prev.likeCount || 0) + Math.floor(Math.random() * 100),
-    } : null);
+      // 更新商品数据
+      if (data.audience && Array.isArray(data.audience)) {
+        // audience 数据不作为商品，仅作参考
+      }
+
+      // 更新直播间统计
+      if (data.stats || data.liveRoom) {
+        const liveStats = data.stats || {};
+        const liveRoom = data.liveRoom || {};
+        setStats(prev => ({
+          totalViews: liveRoom.viewers || liveStats.viewerCount || prev?.totalViews || 0,
+          totalLikes: liveStats.likeCount || prev?.totalLikes || 0,
+          totalComments: prev ? prev.totalComments + (data.danmu?.length || 0) : (data.danmu?.length || 0),
+          totalGifts: liveStats.giftCount || prev?.totalGifts || 0,
+          peakViewers: liveRoom.peakViewers || liveStats.peakViewers || prev?.peakViewers || 0,
+          avgViewers: Math.round((liveRoom.viewers || liveStats.viewerCount || prev?.avgViewers || 0)),
+          duration: formatDuration(liveStats.duration || 0),
+          salesAmount: liveStats.salesAmount || prev?.salesAmount || 0,
+        }));
+
+        // 更新房间实时数据
+        setSelectedRoom(prev => prev ? {
+          ...prev,
+          viewerCount: liveRoom.viewers || liveStats.viewerCount || prev.viewerCount,
+          likeCount: (liveStats.likeCount || 0),
+          status: 'live',
+        } : null);
+      }
+    } catch (error: any) {
+      console.error('采集数据失败:', error);
+    }
+  };
+
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   const calculateDuration = (startTime?: string): string => {
     if (!startTime) return '00:00:00';
     const seconds = Math.floor((Date.now() - new Date(startTime).getTime()) / 1000);
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return formatDuration(seconds);
   };
 
   // 停止采集
@@ -277,13 +309,23 @@ export default function LiveRoomCapturePage() {
   };
 
   // 删除房间
-  const handleDeleteRoom = (roomId: string) => {
-    saveRooms(rooms.filter(r => r.id !== roomId));
-    message.success('已删除');
+  const handleDeleteRoom = async (roomId: string) => {
+    try {
+      await request.delete(`/data-acquisition/live/rooms/${roomId}`);
+      setRooms(prev => prev.filter(r => r.id !== roomId));
+      message.success('已删除');
+    } catch (error: any) {
+      message.error('删除失败');
+    }
   };
 
   // 导出数据
   const handleExportData = () => {
+    if (!selectedRoom && !stats && comments.length === 0) {
+      message.warning('暂无数据可导出');
+      return;
+    }
+
     const exportData = {
       room: selectedRoom,
       stats,
@@ -298,6 +340,7 @@ export default function LiveRoomCapturePage() {
     a.href = url;
     a.download = `live_capture_${selectedRoom?.roomName}_${Date.now()}.json`;
     a.click();
+    URL.revokeObjectURL(url);
     message.success('数据导出成功');
   };
 
@@ -306,25 +349,25 @@ export default function LiveRoomCapturePage() {
       title: '直播间',
       key: 'room',
       render: (_: any, record: LiveRoom) => {
-        const platform = platformConfig[record.platform];
+        const pf = platformConfig[record.platform];
         return (
           <Space>
             <Avatar
               size={48}
               src={record.coverUrl}
               icon={<VideoCameraOutlined />}
-              style={{ backgroundColor: platform?.color }}
+              style={{ backgroundColor: pf?.color }}
             />
             <div>
               <div style={{ fontWeight: 500 }}>
                 <Space>
-                  {platform?.icon} {record.roomName}
+                  {pf?.icon} {record.roomName}
                   {record.status === 'live' && <Badge status="processing" text="直播中" />}
                   {record.status === 'offline' && <Badge status="default" text="未开播" />}
                 </Space>
               </div>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                {platform?.name} · {record.hostName}
+                {pf?.name} · {record.hostName}
               </Text>
             </div>
           </Space>
@@ -335,13 +378,13 @@ export default function LiveRoomCapturePage() {
       title: '观看人数',
       dataIndex: 'viewerCount',
       key: 'viewerCount',
-      render: (v: number) => <Text strong>{v.toLocaleString()}</Text>,
+      render: (v: number) => <Text strong>{(v || 0).toLocaleString()}</Text>,
     },
     {
       title: '点赞',
       dataIndex: 'likeCount',
       key: 'likeCount',
-      render: (v: number) => <Text><HeartOutlined /> {v.toLocaleString()}</Text>,
+      render: (v: number) => <Text><HeartOutlined /> {(v || 0).toLocaleString()}</Text>,
     },
     {
       title: '状态',
@@ -479,7 +522,7 @@ export default function LiveRoomCapturePage() {
             </Button>
           </Empty>
         ) : (
-          <Table dataSource={rooms} columns={columns} rowKey="id" pagination={false} />
+          <Table dataSource={rooms} columns={columns} rowKey="id" pagination={false} loading={loading} />
         )}
       </Card>
 
@@ -526,6 +569,7 @@ export default function LiveRoomCapturePage() {
                     size="small"
                     pagination={{ pageSize: 10 }}
                     scroll={{ y: 300 }}
+                    locale={{ emptyText: '暂无弹幕数据，请确保已配置平台API密钥' }}
                   />
                 ),
               },
@@ -539,6 +583,7 @@ export default function LiveRoomCapturePage() {
                     rowKey="id"
                     size="small"
                     pagination={false}
+                    locale={{ emptyText: '暂无商品数据' }}
                   />
                 ),
               },
@@ -547,7 +592,7 @@ export default function LiveRoomCapturePage() {
                 label: <span><LineChartOutlined /> 统计</span>,
                 children: (
                   <div>
-                    {stats && (
+                    {stats ? (
                       <Row gutter={16}>
                         <Col span={8}>
                           <Card size="small">
@@ -565,6 +610,8 @@ export default function LiveRoomCapturePage() {
                           </Card>
                         </Col>
                       </Row>
+                    ) : (
+                      <Empty description="开始采集后将显示统计数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                     )}
                   </div>
                 ),
@@ -606,12 +653,12 @@ export default function LiveRoomCapturePage() {
           </Form.Item>
         </Form>
         <Alert
-          message="支持的平台"
+          message="使用说明"
           description={
             <div>
               <Text>支持抖音、快手、淘宝直播、B站直播等主流平台的直播间数据采集。</Text>
               <br />
-              <Text type="secondary">注意：部分平台可能需要登录授权才能获取完整数据。</Text>
+              <Text type="secondary">采集数据依赖平台API，请先在"获客管理-数据源配置"中配置对应平台的API密钥。</Text>
             </div>
           }
           type="info"

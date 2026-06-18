@@ -241,11 +241,6 @@ const AcquisitionPage: React.FC = () => {
           title: 'AI 跟进建议',
           content: (
             <div>
-<<<<<<< HEAD
-              <p><strong>建议消息：</strong>{res.data.message}</p>
-              <p><strong>跟进方式：</strong>{res.data.approach}</p>
-              <p><strong>技巧提示：</strong></p>
-=======
               <p>
                 <strong>建议消息：</strong>
                 {res.data.message}
@@ -257,7 +252,6 @@ const AcquisitionPage: React.FC = () => {
               <p>
                 <strong>技巧提示：</strong>
               </p>
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <ul>
                 {res.data.tips?.map((tip: string, i: number) => (
                   <li key={i}>{tip}</li>
@@ -291,13 +285,9 @@ const AcquisitionPage: React.FC = () => {
     try {
       const res = await request.put(`/api/acquisition/ai/automation/${id}`, { status });
       if (res.success) {
-<<<<<<< HEAD
-        message.success(`任务${status === 'running' ? '启动' : status === 'paused' ? '暂停' : '完成'}`);
-=======
         message.success(
           `任务${status === 'running' ? '启动' : status === 'paused' ? '暂停' : '完成'}`
         );
->>>>>>> 962968886be726cd434c792933b5515366d34518
         fetchAutomations();
         fetchStats();
       }
@@ -361,13 +351,9 @@ const AcquisitionPage: React.FC = () => {
           <Avatar icon={<UserOutlined />} size="small" />
           <div>
             <div>{record.name || '未知'}</div>
-<<<<<<< HEAD
-            <Text type="secondary" style={{ fontSize: 12 }}>{record.phone}</Text>
-=======
             <Text type="secondary" style={{ fontSize: 12 }}>
               {record.phone}
             </Text>
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </div>
         </Space>
       ),
@@ -377,58 +363,29 @@ const AcquisitionPage: React.FC = () => {
       dataIndex: 'source',
       key: 'source',
       render: (source: string) => (
-<<<<<<< HEAD
-        <Tag icon={getSourceIcon(source)}>
-          {source?.toUpperCase() || 'ORGANIC'}
-        </Tag>
-=======
         <Tag icon={getSourceIcon(source)}>{source?.toUpperCase() || 'ORGANIC'}</Tag>
->>>>>>> 962968886be726cd434c792933b5515366d34518
       ),
     },
     {
       title: 'AI评分',
       dataIndex: 'aiScore',
       key: 'aiScore',
-<<<<<<< HEAD
-      render: (score?: number) => (
-=======
       render: (score?: number) =>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         score ? (
           <Progress
             percent={score}
             size="small"
-<<<<<<< HEAD
-            format={(p) => `${p}分`}
-=======
             format={p => `${p}分`}
->>>>>>> 962968886be726cd434c792933b5515366d34518
             strokeColor={score >= 80 ? '#52c41a' : score >= 60 ? '#1890ff' : '#ff4d4f'}
           />
         ) : (
           <Text type="secondary">未分析</Text>
-<<<<<<< HEAD
-        )
-      ),
-=======
         ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '质量',
       dataIndex: 'aiQuality',
       key: 'aiQuality',
-<<<<<<< HEAD
-      render: (quality?: string) => (
-        quality ? (
-          <Badge status={
-            quality === '高' ? 'success' :
-            quality === '中' ? 'processing' : 'default'
-          } text={quality} />
-        ) : '-'
-      ),
-=======
       render: (quality?: string) =>
         quality ? (
           <Badge
@@ -438,19 +395,12 @@ const AcquisitionPage: React.FC = () => {
         ) : (
           '-'
         ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-<<<<<<< HEAD
-      render: (status: string) => (
-        <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>
-      ),
-=======
       render: (status: string) => <Tag color={getStatusColor(status)}>{getStatusText(status)}</Tag>,
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '时间',
@@ -498,13 +448,7 @@ const AcquisitionPage: React.FC = () => {
       title: '平台',
       dataIndex: 'platform',
       key: 'platform',
-<<<<<<< HEAD
-      render: (platform: string) => (
-        <Tag color="blue">{platform?.toUpperCase()}</Tag>
-      ),
-=======
       render: (platform: string) => <Tag color="blue">{platform?.toUpperCase()}</Tag>,
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       title: '进度',
@@ -538,43 +482,25 @@ const AcquisitionPage: React.FC = () => {
       render: (_: any, record: Automation) => (
         <Space>
           {record.status === 'draft' && (
-<<<<<<< HEAD
-            <Button size="small" type="primary" icon={<PlayCircleOutlined />}
-              onClick={() => handleUpdateAutomation(record.id, 'running')}>
-=======
             <Button
               size="small"
               type="primary"
               icon={<PlayCircleOutlined />}
               onClick={() => handleUpdateAutomation(record.id, 'running')}
             >
->>>>>>> 962968886be726cd434c792933b5515366d34518
               启动
             </Button>
           )}
           {record.status === 'running' && (
-<<<<<<< HEAD
-            <Button size="small" icon={<PauseCircleOutlined />}
-              onClick={() => handleUpdateAutomation(record.id, 'paused')}>
-=======
             <Button
               size="small"
               icon={<PauseCircleOutlined />}
               onClick={() => handleUpdateAutomation(record.id, 'paused')}
             >
->>>>>>> 962968886be726cd434c792933b5515366d34518
               暂停
             </Button>
           )}
           {record.status === 'paused' && (
-<<<<<<< HEAD
-            <Button size="small" type="primary" icon={<PlayCircleOutlined />}
-              onClick={() => handleUpdateAutomation(record.id, 'running')}>
-              继续
-            </Button>
-          )}
-          <Button size="small" type="link">详情</Button>
-=======
             <Button
               size="small"
               type="primary"
@@ -587,7 +513,6 @@ const AcquisitionPage: React.FC = () => {
           <Button size="small" type="link">
             详情
           </Button>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         </Space>
       ),
     },
@@ -604,15 +529,11 @@ const AcquisitionPage: React.FC = () => {
         }
         extra={
           <Space>
-<<<<<<< HEAD
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setLeadModalVisible(true)}>
-=======
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => setLeadModalVisible(true)}
             >
->>>>>>> 962968886be726cd434c792933b5515366d34518
               添加线索
             </Button>
             <Button icon={<ThunderboltOutlined />} onClick={() => setAutomationModalVisible(true)}>
@@ -632,12 +553,6 @@ const AcquisitionPage: React.FC = () => {
             <Statistic title="活跃任务" value={stats.activeTasks} prefix={<PlayCircleOutlined />} />
           </Col>
           <Col span={4}>
-<<<<<<< HEAD
-            <Statistic title="自动化任务" value={stats.totalAutomations} prefix={<RobotOutlined />} />
-          </Col>
-          <Col span={4}>
-            <Statistic title="进行中" value={stats.activeAutomations} valueStyle={{ color: '#1890ff' }} />
-=======
             <Statistic
               title="自动化任务"
               value={stats.totalAutomations}
@@ -650,7 +565,6 @@ const AcquisitionPage: React.FC = () => {
               value={stats.activeAutomations}
               valueStyle={{ color: '#1890ff' }}
             />
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Col>
           <Col span={4}>
             <Button icon={<RobotOutlined />} onClick={handleBatchAnalyze} loading={aiLoading}>
@@ -662,9 +576,6 @@ const AcquisitionPage: React.FC = () => {
         <Divider />
 
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-<<<<<<< HEAD
-          <TabPane tab={<span><UserOutlined /> 线索管理</span>} key="leads">
-=======
           <TabPane
             tab={
               <span>
@@ -673,7 +584,6 @@ const AcquisitionPage: React.FC = () => {
             }
             key="leads"
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Space style={{ marginBottom: 16 }}>
               <Button icon={<BulbOutlined />} onClick={() => setStrategyModalVisible(true)}>
                 AI获客策略
@@ -687,9 +597,6 @@ const AcquisitionPage: React.FC = () => {
               pagination={{ pageSize: 10 }}
             />
           </TabPane>
-<<<<<<< HEAD
-          <TabPane tab={<span><RobotOutlined /> 自动化任务</span>} key="automations">
-=======
           <TabPane
             tab={
               <span>
@@ -698,7 +605,6 @@ const AcquisitionPage: React.FC = () => {
             }
             key="automations"
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Table
               dataSource={automations}
               columns={automationColumns}
@@ -707,9 +613,6 @@ const AcquisitionPage: React.FC = () => {
               pagination={{ pageSize: 10 }}
             />
           </TabPane>
-<<<<<<< HEAD
-          <TabPane tab={<span><BulbOutlined /> AI策略</span>} key="strategy">
-=======
           <TabPane
             tab={
               <span>
@@ -718,7 +621,6 @@ const AcquisitionPage: React.FC = () => {
             }
             key="strategy"
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             {strategyData ? (
               <div>
                 <Card title="目标客户画像" size="small">
@@ -739,13 +641,9 @@ const AcquisitionPage: React.FC = () => {
                   <div style={{ marginTop: 8 }}>
                     <Text type="secondary">兴趣标签：</Text>
                     {strategyData.targetProfile?.interests?.map((tag: string, i: number) => (
-<<<<<<< HEAD
-                      <Tag key={i} color="blue">{tag}</Tag>
-=======
                       <Tag key={i} color="blue">
                         {tag}
                       </Tag>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                     )) || '-'}
                   </div>
                 </Card>
@@ -775,13 +673,9 @@ const AcquisitionPage: React.FC = () => {
                   <div style={{ marginBottom: 8 }}>
                     <Text type="secondary">内容钩子：</Text>
                     {strategyData.content?.hooks?.map((hook: string, i: number) => (
-<<<<<<< HEAD
-                      <Tag key={i} color="green">{hook}</Tag>
-=======
                       <Tag key={i} color="green">
                         {hook}
                       </Tag>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                     ))}
                   </div>
                   <div>
@@ -792,13 +686,9 @@ const AcquisitionPage: React.FC = () => {
 
                 <Card title="标签建议" size="small" style={{ marginTop: 16 }}>
                   {strategyData.hashtags?.map((tag: string, i: number) => (
-<<<<<<< HEAD
-                    <Tag key={i} color={i < 3 ? 'blue' : 'default'}>#{tag}</Tag>
-=======
                     <Tag key={i} color={i < 3 ? 'blue' : 'default'}>
                       #{tag}
                     </Tag>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   ))}
                 </Card>
 
@@ -853,15 +743,11 @@ const AcquisitionPage: React.FC = () => {
           <Form.Item name="name" label="姓名">
             <Input placeholder="客户姓名" />
           </Form.Item>
-<<<<<<< HEAD
-          <Form.Item name="phone" label="手机号" rules={[{ required: true, message: '请输入手机号' }]}>
-=======
           <Form.Item
             name="phone"
             label="手机号"
             rules={[{ required: true, message: '请输入手机号' }]}
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Input placeholder="手机号码" />
           </Form.Item>
           <Form.Item name="email" label="邮箱">
@@ -880,13 +766,9 @@ const AcquisitionPage: React.FC = () => {
           <Form.Item name="notes" label="备注">
             <TextArea rows={3} placeholder="其他备注信息..." />
           </Form.Item>
-<<<<<<< HEAD
-          <Button type="primary" htmlType="submit" block>保存</Button>
-=======
           <Button type="primary" htmlType="submit" block>
             保存
           </Button>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         </Form>
       </Modal>
 
@@ -938,15 +820,11 @@ const AcquisitionPage: React.FC = () => {
             <TextArea rows={3} placeholder="描述您希望吸引的客户类型..." />
           </Form.Item>
           <Space>
-<<<<<<< HEAD
-            <Button type="primary" onClick={() => strategyForm.validateFields().then(handleGenerateStrategy)} loading={aiLoading}>
-=======
             <Button
               type="primary"
               onClick={() => strategyForm.validateFields().then(handleGenerateStrategy)}
               loading={aiLoading}
             >
->>>>>>> 962968886be726cd434c792933b5515366d34518
               生成策略
             </Button>
             <Button onClick={handleGenerateContent} loading={aiLoading}>
@@ -971,13 +849,9 @@ const AcquisitionPage: React.FC = () => {
                 <p>{idea.content}</p>
                 <div>
                   {idea.hashtags?.map((tag: string, j: number) => (
-<<<<<<< HEAD
-                    <Tag key={j} color="blue">#{tag}</Tag>
-=======
                     <Tag key={j} color="blue">
                       #{tag}
                     </Tag>
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   ))}
                 </div>
               </Card>

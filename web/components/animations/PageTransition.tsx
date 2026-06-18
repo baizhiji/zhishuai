@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-'use client'
-
-import { motion } from 'framer-motion'
-
-interface PageTransitionProps {
-  children: React.ReactNode
-  className?: string
-=======
 'use client';
 
 import { motion } from 'framer-motion';
@@ -14,7 +5,6 @@ import { motion } from 'framer-motion';
 interface PageTransitionProps {
   children: React.ReactNode;
   className?: string;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function PageTransition({ children, className = '' }: PageTransitionProps) {
@@ -31,17 +21,6 @@ export function PageTransition({ children, className = '' }: PageTransitionProps
     >
       {children}
     </motion.div>
-<<<<<<< HEAD
-  )
-}
-
-interface FadeInProps {
-  children: React.ReactNode
-  delay?: number
-  duration?: number
-  className?: string
-  direction?: 'up' | 'down' | 'left' | 'right'
-=======
   );
 }
 
@@ -51,7 +30,6 @@ interface FadeInProps {
   duration?: number;
   className?: string;
   direction?: 'up' | 'down' | 'left' | 'right';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function FadeIn({
@@ -66,11 +44,7 @@ export function FadeIn({
     down: { y: -20 },
     left: { x: 20 },
     right: { x: -20 },
-<<<<<<< HEAD
-  }
-=======
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <motion.div
@@ -85,16 +59,6 @@ export function FadeIn({
     >
       {children}
     </motion.div>
-<<<<<<< HEAD
-  )
-}
-
-interface ScaleInProps {
-  children: React.ReactNode
-  delay?: number
-  duration?: number
-  className?: string
-=======
   );
 }
 
@@ -103,7 +67,6 @@ interface ScaleInProps {
   delay?: number;
   duration?: number;
   className?: string;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function ScaleIn({ children, delay = 0, duration = 0.3, className = '' }: ScaleInProps) {
@@ -120,15 +83,6 @@ export function ScaleIn({ children, delay = 0, duration = 0.3, className = '' }:
     >
       {children}
     </motion.div>
-<<<<<<< HEAD
-  )
-}
-
-interface StaggerInProps {
-  children: React.ReactNode
-  staggerDelay?: number
-  className?: string
-=======
   );
 }
 
@@ -136,7 +90,6 @@ interface StaggerInProps {
   children: React.ReactNode;
   staggerDelay?: number;
   className?: string;
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 export function StaggerIn({ children, staggerDelay = 0.1, className = '' }: StaggerInProps) {
@@ -155,9 +108,5 @@ export function StaggerIn({ children, staggerDelay = 0.1, className = '' }: Stag
     >
       {children}
     </motion.div>
-<<<<<<< HEAD
-  )
-=======
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }

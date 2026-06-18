@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { verifyOwnership } from '../middleware/ownership';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 获取素材列表
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -62,7 +63,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // 更新素材
-router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.put('/:id', authMiddleware, verifyOwnership('material'), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
@@ -80,7 +81,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // 删除素材
-router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+router.delete('/:id', authMiddleware, verifyOwnership('material'), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;

@@ -1,18 +1,21 @@
 /**
  * 营销中心页面
- * 活动管理、优惠券、数据分析
+ * 活动管理、优惠券、数据分析 - 连接真实API
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAppNavigation } from '../context/NavigationContext';
+import { apiClient } from '../services/api.client';
 
 interface Campaign {
   id: string;
@@ -35,6 +38,15 @@ interface Coupon {
   used: number;
 }
 
+interface MarketingStats {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  totalParticipants: number;
+  totalConversions: number;
+  couponUsage: string;
+  revenue: string;
+}
+
 const statusColors = {
   ongoing: '#52c41a',
   pending: '#fa8c16',
@@ -45,32 +57,84 @@ export default function MarketingScreen() {
   const { theme } = useTheme();
   const { goBack } = useAppNavigation();
   const [activeTab, setActiveTab] = useState<'campaigns' | 'coupons' | 'analysis'>('campaigns');
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [stats, setStats] = useState<MarketingStats>({
+    totalCampaigns: 0,
+    activeCampaigns: 0,
+    totalParticipants: 0,
+    totalConversions: 0,
+    couponUsage: '0%',
+    revenue: '¥0',
+  });
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // 活动数据
-  const campaigns: Campaign[] = [
-    { id: '1', title: '新年限时优惠', status: 'ongoing', statusText: '进行中', startDate: '2024-01-01', endDate: '2024-01-31', participants: 1234, conversions: 456 },
-    { id: '2', title: '邀请好友得优惠券', status: 'ongoing', statusText: '进行中', startDate: '2024-01-01', endDate: '2024-03-31', participants: 892, conversions: 234 },
-    { id: '3', title: '会员专属折扣', status: 'pending', statusText: '待开始', startDate: '2024-02-01', endDate: '2024-02-28', participants: 0, conversions: 0 },
-    { id: '4', title: '双十一大促', status: 'ended', statusText: '已结束', startDate: '2023-11-01', endDate: '2023-11-11', participants: 5678, conversions: 1234 },
-  ];
+  const loadData = useCallback(async () => {
+    try {
+      const [campaignsData, couponsData, statsData] = await Promise.allSettled([
+        apiClient.get<any[]>('/acquisition/campaigns').catch(() => []),
+        apiClient.get<any[]>('/acquisition/coupons').catch(() => []),
+        apiClient.get<any>('/statistics/overview').catch(() => null),
+      ]);
 
-  // 优惠券数据
-  const coupons: Coupon[] = [
-    { id: '1', name: '新人专享券', type: 'cash', value: '¥50', condition: '满200可用', count: 1000, used: 456 },
-    { id: '2', name: '会员专属折扣', type: 'discount', value: '8折', condition: '无门槛', count: 500, used: 123 },
-    { id: '3', name: '限时秒杀券', type: 'cash', value: '¥100', condition: '满500可用', count: 200, used: 89 },
-    { id: '4', name: '推荐返利券', type: 'cash', value: '¥20', condition: '无门槛', count: 9999, used: 2345 },
-  ];
+      // 处理活动数据
+      if (campaignsData.status === 'fulfilled' && Array.isArray(campaignsData.value)) {
+        const mapped: Campaign[] = campaignsData.value.map((c: any) => ({
+          id: c.id,
+          title: c.title || c.name || '未命名活动',
+          status: c.status === 'active' ? 'ongoing' : c.status === 'pending' ? 'pending' : 'ended',
+          statusText: c.status === 'active' ? '进行中' : c.status === 'pending' ? '待开始' : '已结束',
+          startDate: c.startDate || c.createdAt?.split('T')[0] || '',
+          endDate: c.endDate || '',
+          participants: c.participants || c.leadsCount || 0,
+          conversions: c.conversions || c.convertedCount || 0,
+        }));
+        setCampaigns(mapped);
+      }
 
-  // 统计数据
-  const stats = {
-    totalCampaigns: 12,
-    activeCampaigns: 2,
-    totalParticipants: 7804,
-    totalConversions: 1923,
-    couponUsage: '34.2%',
-    revenue: '¥125,800',
-  };
+      // 处理优惠券数据
+      if (couponsData.status === 'fulfilled' && Array.isArray(couponsData.value)) {
+        const mapped: Coupon[] = couponsData.value.map((c: any) => ({
+          id: c.id,
+          name: c.name || c.title || '优惠券',
+          type: c.type || 'cash',
+          value: c.value || c.discount || '¥0',
+          condition: c.condition || c.minAmount ? `满${c.minAmount}可用` : '无门槛',
+          count: c.totalCount || c.count || 0,
+          used: c.usedCount || c.used || 0,
+        }));
+        setCoupons(mapped);
+      }
+
+      // 处理统计数据
+      if (statsData.status === 'fulfilled' && statsData.value) {
+        const s = statsData.value;
+        setStats({
+          totalCampaigns: s.totalCampaigns || s.campaigns || 0,
+          activeCampaigns: s.activeCampaigns || s.activeCampaigns || 0,
+          totalParticipants: s.totalParticipants || s.totalLeads || 0,
+          totalConversions: s.totalConversions || s.totalConverted || 0,
+          couponUsage: s.couponUsage || '0%',
+          revenue: s.revenue || s.totalRevenue || '¥0',
+        });
+      }
+    } catch (error) {
+      // 静默处理，保持空数据
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadData();
+  }, [loadData]);
 
   const renderCampaign = ({ item }: { item: Campaign }) => (
     <View style={styles.campaignCard}>
@@ -110,7 +174,7 @@ export default function MarketingScreen() {
   );
 
   const renderCoupon = ({ item }: { item: Coupon }) => {
-    const usageRate = (item.used / item.count) * 100;
+    const usageRate = item.count > 0 ? (item.used / item.count) * 100 : 0;
     return (
       <View style={styles.couponCard}>
         <View style={styles.couponLeft}>
@@ -121,7 +185,7 @@ export default function MarketingScreen() {
         <View style={styles.couponRight}>
           <Text style={styles.couponCount}>剩余 {item.count - item.used}/{item.count}</Text>
           <View style={styles.couponProgress}>
-            <View style={[styles.couponProgressFill, { width: `${usageRate}%` }]} />
+            <View style={[styles.couponProgressFill, { width: `${Math.min(usageRate, 100)}%` }]} />
           </View>
           <Text style={styles.couponUsageRate}>使用率 {usageRate.toFixed(1)}%</Text>
         </View>
@@ -129,71 +193,85 @@ export default function MarketingScreen() {
     );
   };
 
-  const renderAnalysis = () => (
-    <View style={styles.analysisContainer}>
-      {/* 概览卡片 */}
-      <View style={styles.overviewCard}>
-        <Text style={styles.sectionTitle}>营销概览</Text>
-        <View style={styles.overviewGrid}>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewValue}>{stats.totalCampaigns}</Text>
-            <Text style={styles.overviewLabel}>总活动数</Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={[styles.overviewValue, { color: '#52c41a' }]}>{stats.activeCampaigns}</Text>
-            <Text style={styles.overviewLabel}>进行中</Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewValue}>{stats.totalParticipants}</Text>
-            <Text style={styles.overviewLabel}>总参与</Text>
-          </View>
-          <View style={styles.overviewItem}>
-            <Text style={styles.overviewValue}>{stats.totalConversions}</Text>
-            <Text style={styles.overviewLabel}>总转化</Text>
-          </View>
-        </View>
-      </View>
+  const renderAnalysis = () => {
+    const couponUsageNum = parseFloat(stats.couponUsage) || 0;
+    const conversionRate = stats.totalParticipants > 0
+      ? ((stats.totalConversions / stats.totalParticipants) * 100).toFixed(1)
+      : '0';
 
-      {/* 效果分析 */}
-      <View style={styles.analysisCard}>
-        <Text style={styles.sectionTitle}>效果分析</Text>
-        <View style={styles.analysisItem}>
-          <View style={styles.analysisLabel}>
-            <Text style={styles.analysisTitle}>优惠券使用率</Text>
-            <Text style={styles.analysisValue}>{stats.couponUsage}</Text>
-          </View>
-          <View style={styles.analysisBar}>
-            <View style={[styles.analysisBarFill, { width: '34.2%' }]} />
-          </View>
-        </View>
-        <View style={styles.analysisItem}>
-          <View style={styles.analysisLabel}>
-            <Text style={styles.analysisTitle}>活动转化率</Text>
-            <Text style={styles.analysisValue}>24.6%</Text>
-          </View>
-          <View style={styles.analysisBar}>
-            <View style={[styles.analysisBarFill, { width: '24.6%', backgroundColor: '#fa8c16' }]} />
-          </View>
-        </View>
-        <View style={styles.analysisItem}>
-          <View style={styles.analysisLabel}>
-            <Text style={styles.analysisTitle}>ROI</Text>
-            <Text style={styles.analysisValue}>3.2x</Text>
-          </View>
-          <View style={styles.analysisBar}>
-            <View style={[styles.analysisBarFill, { width: '80%', backgroundColor: '#722ed1' }]} />
+    return (
+      <View style={styles.analysisContainer}>
+        {/* 概览卡片 */}
+        <View style={styles.overviewCard}>
+          <Text style={styles.sectionTitle}>营销概览</Text>
+          <View style={styles.overviewGrid}>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewValue}>{stats.totalCampaigns}</Text>
+              <Text style={styles.overviewLabel}>总活动数</Text>
+            </View>
+            <View style={styles.overviewItem}>
+              <Text style={[styles.overviewValue, { color: '#52c41a' }]}>{stats.activeCampaigns}</Text>
+              <Text style={styles.overviewLabel}>进行中</Text>
+            </View>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewValue}>{stats.totalParticipants}</Text>
+              <Text style={styles.overviewLabel}>总参与</Text>
+            </View>
+            <View style={styles.overviewItem}>
+              <Text style={styles.overviewValue}>{stats.totalConversions}</Text>
+              <Text style={styles.overviewLabel}>总转化</Text>
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* 收入统计 */}
-      <View style={styles.revenueCard}>
-        <Text style={styles.sectionTitle}>营销收入</Text>
-        <Text style={styles.revenueValue}>{stats.revenue}</Text>
-        <Text style={styles.revenueSubtitle}>本月营销带来的收入</Text>
+        {/* 效果分析 */}
+        <View style={styles.analysisCard}>
+          <Text style={styles.sectionTitle}>效果分析</Text>
+          <View style={styles.analysisItem}>
+            <View style={styles.analysisLabel}>
+              <Text style={styles.analysisTitle}>优惠券使用率</Text>
+              <Text style={styles.analysisValue}>{stats.couponUsage}</Text>
+            </View>
+            <View style={styles.analysisBar}>
+              <View style={[styles.analysisBarFill, { width: `${Math.min(couponUsageNum, 100)}%` }]} />
+            </View>
+          </View>
+          <View style={styles.analysisItem}>
+            <View style={styles.analysisLabel}>
+              <Text style={styles.analysisTitle}>活动转化率</Text>
+              <Text style={styles.analysisValue}>{conversionRate}%</Text>
+            </View>
+            <View style={styles.analysisBar}>
+              <View style={[styles.analysisBarFill, { width: `${Math.min(parseFloat(conversionRate), 100)}%`, backgroundColor: '#fa8c16' }]} />
+            </View>
+          </View>
+        </View>
+
+        {/* 收入统计 */}
+        <View style={styles.revenueCard}>
+          <Text style={styles.sectionTitle}>营销收入</Text>
+          <Text style={styles.revenueValue}>{stats.revenue}</Text>
+          <Text style={styles.revenueSubtitle}>本月营销带来的收入</Text>
+        </View>
       </View>
+    );
+  };
+
+  const renderEmptyState = (message: string) => (
+    <View style={styles.emptyContainer}>
+      <Ionicons name="analytics-outline" size={48} color="#ccc" />
+      <Text style={styles.emptyText}>{message}</Text>
     </View>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text style={styles.loadingText}>加载中...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -210,7 +288,7 @@ export default function MarketingScreen() {
 
       {/* Tab切换 */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'campaigns' && styles.tabActive]}
           onPress={() => setActiveTab('campaigns')}
         >
@@ -218,7 +296,7 @@ export default function MarketingScreen() {
             活动管理
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'coupons' && styles.tabActive]}
           onPress={() => setActiveTab('coupons')}
         >
@@ -226,7 +304,7 @@ export default function MarketingScreen() {
             优惠券
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'analysis' && styles.tabActive]}
           onPress={() => setActiveTab('analysis')}
         >
@@ -237,17 +315,29 @@ export default function MarketingScreen() {
       </View>
 
       {/* 内容区域 */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {activeTab === 'campaigns' && campaigns.map(campaign => (
-          <View key={campaign.id}>
-            {renderCampaign({ item: campaign })}
-          </View>
-        ))}
-        {activeTab === 'coupons' && coupons.map(coupon => (
-          <View key={coupon.id}>
-            {renderCoupon({ item: coupon })}
-          </View>
-        ))}
+      <ScrollView
+        style={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563EB']} />}
+      >
+        {activeTab === 'campaigns' && (
+          campaigns.length > 0
+            ? campaigns.map(campaign => (
+              <View key={campaign.id}>
+                {renderCampaign({ item: campaign })}
+              </View>
+            ))
+            : renderEmptyState('暂无活动数据')
+        )}
+        {activeTab === 'coupons' && (
+          coupons.length > 0
+            ? coupons.map(coupon => (
+              <View key={coupon.id}>
+                {renderCoupon({ item: coupon })}
+              </View>
+            ))
+            : renderEmptyState('暂无优惠券数据')
+        )}
         {activeTab === 'analysis' && renderAnalysis()}
       </ScrollView>
     </View>
@@ -257,6 +347,25 @@ export default function MarketingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#999',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    marginTop: 12,
   },
   header: {
     flexDirection: 'row',

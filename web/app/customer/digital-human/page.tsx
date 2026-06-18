@@ -1,10 +1,6 @@
 'use client';
 
-<<<<<<< HEAD
-import { useState } from 'react';
-=======
 import React, { useState, useEffect } from 'react';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   Card,
   Row,
@@ -21,14 +17,6 @@ import {
   message,
   Avatar,
   Typography,
-<<<<<<< HEAD
-  Descriptions,
-  Statistic,
-  Tabs,
-  Divider,
-  Progress,
-  Alert,
-=======
   Statistic,
   Tabs,
   Progress,
@@ -36,7 +24,6 @@ import {
   List,
   Badge,
   Timeline,
->>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'antd';
 import {
   PlusOutlined,
@@ -52,16 +39,6 @@ import {
   WomanOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
-<<<<<<< HEAD
-} from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
-
-const { Title, Text, Paragraph } = Typography;
-const { TextArea } = Input;
-const { TabPane } = Tabs;
-
-// 数字人模型类型
-=======
   AudioOutlined,
   EyeOutlined,
   DownloadOutlined,
@@ -73,7 +50,6 @@ const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
 // 数字人类型
->>>>>>> 962968886be726cd434c792933b5515366d34518
 interface DigitalHuman {
   id: string;
   name: string;
@@ -87,16 +63,6 @@ interface DigitalHuman {
   description: string;
 }
 
-<<<<<<< HEAD
-// 视频模板类型
-interface VideoTemplate {
-  id: string;
-  name: string;
-  thumbnail: string;
-  duration: number;
-  style: string;
-  scenes: number;
-=======
 // 声音克隆类型
 interface VoiceClone {
   id: string;
@@ -106,13 +72,10 @@ interface VoiceClone {
   audioUrl: string;
   language: string;
   status: 'ready' | 'processing' | 'failed';
->>>>>>> 962968886be726cd434c792933b5515366d34518
   usageCount: number;
   createdAt: string;
 }
 
-<<<<<<< HEAD
-=======
 // 视频克隆类型
 interface VideoClone {
   id: string;
@@ -128,7 +91,6 @@ interface VideoClone {
   createdAt: string;
 }
 
->>>>>>> 962968886be726cd434c792933b5515366d34518
 const STYLE_OPTIONS = [
   { value: 'professional', label: '专业正式', icon: '👔' },
   { value: 'friendly', label: '亲切友好', icon: '🤝' },
@@ -143,10 +105,6 @@ const VOICE_OPTIONS = [
   { value: 'male_professional', label: '男声-专业型', preview: '沉稳有力，适合商务内容' },
 ];
 
-<<<<<<< HEAD
-export default function DigitalHumanPage() {
-  const [loading, setLoading] = useState(false);
-=======
 const VIDEO_TYPES = [
   { value: 'digital_human', label: '数字人视频', desc: '使用数字人形象生成视频' },
   { value: 'talking_photo', label: ' talking photo', desc: '让照片说话' },
@@ -155,7 +113,6 @@ const VIDEO_TYPES = [
 
 export default function DigitalHumanPage() {
   const [activeTab, setActiveTab] = useState('humans');
->>>>>>> 962968886be726cd434c792933b5515366d34518
   const [humans, setHumans] = useState<DigitalHuman[]>([
     {
       id: '1',
@@ -182,21 +139,6 @@ export default function DigitalHumanPage() {
       description: '专业顾问形象，适合商业分析、咨询服务等场景',
     },
   ]);
-<<<<<<< HEAD
-  const [templates] = useState<VideoTemplate[]>([
-    { id: '1', name: '企业宣传片', thumbnail: '', duration: 60, style: 'professional', scenes: 5, usageCount: 45, createdAt: '2024-03-10' },
-    { id: '2', name: '产品介绍', thumbnail: '', duration: 30, style: 'friendly', scenes: 3, usageCount: 78, createdAt: '2024-03-12' },
-    { id: '3', name: '招聘宣讲', thumbnail: '', duration: 120, style: 'friendly', scenes: 8, usageCount: 23, createdAt: '2024-03-14' },
-  ]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [editingHuman, setEditingHuman] = useState<DigitalHuman | null>(null);
-  const [videoModalVisible, setVideoModalVisible] = useState(false);
-  const [generatingVideo, setGeneratingVideo] = useState(false);
-  const [videoForm] = Form.useForm();
-  const [form] = Form.useForm();
-
-  const columns: ColumnsType<DigitalHuman> = [
-=======
   const [voices, setVoices] = useState<VoiceClone[]>([]);
   const [videos, setVideos] = useState<VideoClone[]>([]);
   const [loading, setLoading] = useState(false);
@@ -235,7 +177,6 @@ export default function DigitalHumanPage() {
 
   // 数字人表格列
   const humanColumns: ColumnsType<DigitalHuman> = [
->>>>>>> 962968886be726cd434c792933b5515366d34518
     {
       title: '数字人',
       key: 'avatar',
@@ -296,12 +237,6 @@ export default function DigitalHumanPage() {
       key: 'action',
       render: (_, record) => (
         <Space>
-<<<<<<< HEAD
-          <Button type="link" size="small" icon={<VideoCameraOutlined />} onClick={() => {
-            videoForm.setFieldsValue({ humanId: record.id });
-            setVideoModalVisible(true);
-          }}>
-=======
           <Button
             type="link"
             size="small"
@@ -311,7 +246,6 @@ export default function DigitalHumanPage() {
               setVideoModalVisible(true);
             }}
           >
->>>>>>> 962968886be726cd434c792933b5515366d34518
             生成视频
           </Button>
           <Button type="link" size="small" icon={<EditOutlined />} onClick={() => {
@@ -321,9 +255,6 @@ export default function DigitalHumanPage() {
           }}>
             编辑
           </Button>
-<<<<<<< HEAD
-          <Button type="link" size="small" danger icon={<DeleteOutlined />}>
-=======
         </Space>
       ),
     },
@@ -382,7 +313,6 @@ export default function DigitalHumanPage() {
             试听
           </Button>
           <Button type="link" size="small" icon={<DeleteOutlined />} danger onClick={() => handleDeleteVoice(record.id)}>
->>>>>>> 962968886be726cd434c792933b5515366d34518
             删除
           </Button>
         </Space>
@@ -390,13 +320,6 @@ export default function DigitalHumanPage() {
     },
   ];
 
-<<<<<<< HEAD
-  const templateColumns: ColumnsType<VideoTemplate> = [
-    { title: '模板名称', dataIndex: 'name', key: 'name' },
-    { title: '时长', dataIndex: 'duration', key: 'duration', render: (d: number) => `${d}秒` },
-    { title: '场景数', dataIndex: 'scenes', key: 'scenes', render: (s: number) => `${s}个` },
-    { title: '使用次数', dataIndex: 'usageCount', key: 'usageCount', render: (c: number) => `${c}次` },
-=======
   // 视频克隆表格列
   const videoColumns: ColumnsType<VideoClone> = [
     {
@@ -438,19 +361,10 @@ export default function DigitalHumanPage() {
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleDateString(),
     },
->>>>>>> 962968886be726cd434c792933b5515366d34518
     {
       title: '操作',
       key: 'action',
       render: (_, record) => (
-<<<<<<< HEAD
-        <Button type="primary" size="small" icon={<PlayCircleOutlined />} onClick={() => {
-          videoForm.setFieldsValue({ templateId: record.id });
-          setVideoModalVisible(true);
-        }}>
-          使用模板
-        </Button>
-=======
         <Space>
           {record.status === 'ready' && (
             <>
@@ -462,44 +376,10 @@ export default function DigitalHumanPage() {
             删除
           </Button>
         </Space>
->>>>>>> 962968886be726cd434c792933b5515366d34518
       ),
     },
   ];
 
-<<<<<<< HEAD
-  const handleSubmit = () => {
-    form.validateFields().then(values => {
-      if (editingHuman) {
-        setHumans(humans.map(h => h.id === editingHuman.id ? { ...h, ...values } : h));
-        message.success('数字人已更新');
-      } else {
-        setHumans([...humans, {
-          ...values,
-          id: Date.now().toString(),
-          status: 'active',
-          usageCount: 0,
-          createdAt: new Date().toISOString().split('T')[0],
-        }]);
-        message.success('数字人已创建');
-      }
-      setModalVisible(false);
-      form.resetFields();
-    });
-  };
-
-  const handleGenerateVideo = () => {
-    videoForm.validateFields().then(values => {
-      setGeneratingVideo(true);
-      // 模拟视频生成
-      setTimeout(() => {
-        setGeneratingVideo(false);
-        setVideoModalVisible(false);
-        message.success('视频生成任务已提交，请在任务列表查看进度');
-        videoForm.resetFields();
-      }, 2000);
-    });
-=======
   // 删除声音
   const handleDeleteVoice = async (id: string) => {
     try {
@@ -551,123 +431,10 @@ export default function DigitalHumanPage() {
     } finally {
       setGeneratingVideo(false);
     }
->>>>>>> 962968886be726cd434c792933b5515366d34518
   };
 
   return (
     <div style={{ padding: 24 }}>
-<<<<<<< HEAD
-      <div style={{ marginBottom: 24 }}>
-        <Title level={3} style={{ marginBottom: 8 }}>
-          <RobotOutlined style={{ marginRight: 8 }} />
-          数字人视频
-        </Title>
-        <Text type="secondary">
-          AI数字人形象，支持一键生成宣传视频、课程讲解、产品介绍等多种场景
-        </Text>
-      </div>
-
-      {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card><Statistic title="数字人形象" value={humans.length} prefix={<RobotOutlined />} /></Card>
-        </Col>
-        <Col span={6}>
-          <Card><Statistic title="视频模板" value={templates.length} prefix={<VideoCameraOutlined />} /></Card>
-        </Col>
-        <Col span={6}>
-          <Card><Statistic title="已生成视频" value={156} prefix={<PlayCircleOutlined />} /></Card>
-        </Col>
-        <Col span={6}>
-          <Card><Statistic title="本月生成" value={23} suffix="个" valueStyle={{ color: '#52c41a' }} /></Card>
-        </Col>
-      </Row>
-
-      {/* 提示信息 */}
-      <Alert
-        message="数字人视频服务"
-        description="基于AI技术的一键视频生成，支持多种数字人形象和音色选择。生成的视频可用于宣传、教学、客服等多个场景。"
-        type="info"
-        showIcon
-        icon={<RobotOutlined />}
-        style={{ marginBottom: 24 }}
-      />
-
-      <Card>
-        <Tabs defaultActiveKey="humans">
-          <TabPane tab={<span><RobotOutlined /> 数字人管理</span>} key="humans">
-            <div style={{ marginBottom: 16, textAlign: 'right' }}>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-                setEditingHuman(null);
-                form.resetFields();
-                setModalVisible(true);
-              }}>
-                创建数字人
-              </Button>
-            </div>
-            <Table columns={columns} dataSource={humans} rowKey="id" />
-          </TabPane>
-          <TabPane tab={<span><VideoCameraOutlined /> 视频模板</span>} key="templates">
-            <Table columns={templateColumns} dataSource={templates} rowKey="id" />
-          </TabPane>
-          <TabPane tab={<span><PlayCircleOutlined /> 生成记录</span>} key="records">
-            <div style={{ textAlign: 'center', padding: 48 }}>
-              <Text type="secondary">暂无生成记录</Text>
-            </div>
-          </TabPane>
-        </Tabs>
-      </Card>
-
-      {/* 创建/编辑数字人弹窗 */}
-      <Modal
-        title={editingHuman ? '编辑数字人' : '创建数字人'}
-        open={modalVisible}
-        onOk={handleSubmit}
-        onCancel={() => setModalVisible(false)}
-        width={600}
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item name="name" label="名称" rules={[{ required: true, message: '请输入名称' }]}>
-            <Input placeholder="例如：企业助手" />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <TextArea rows={2} placeholder="简短描述数字人的用途" />
-          </Form.Item>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="gender" label="性别" rules={[{ required: true }]}>
-                <Select>
-                  <Select.Option value="female"><WomanOutlined /> 女声</Select.Option>
-                  <Select.Option value="male"><ManOutlined /> 男声</Select.Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="style" label="风格" rules={[{ required: true }]}>
-                <Select>
-                  {STYLE_OPTIONS.map(s => (
-                    <Select.Option key={s.value} value={s.value}>
-                      <Space>{s.icon} {s.label}</Space>
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="voice" label="音色" rules={[{ required: true }]}>
-            <Select>
-              {VOICE_OPTIONS.map(v => (
-                <Select.Option key={v.value} value={v.value}>
-                  {v.label} - {v.preview}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="avatar" label="头像图片">
-            <Upload maxCount={1} listType="picture">
-              <Button icon={<UploadOutlined />}>上传头像</Button>
-            </Upload>
-=======
       <Title level={4}>
         <RobotOutlined style={{ marginRight: 8 }} />
         AI 数字人中心
@@ -795,18 +562,10 @@ export default function DigitalHumanPage() {
           </Form.Item>
           <Form.Item name="description" label="描述">
             <TextArea rows={3} placeholder="请输入数字人描述" />
->>>>>>> 962968886be726cd434c792933b5515366d34518
           </Form.Item>
         </Form>
       </Modal>
 
-<<<<<<< HEAD
-      {/* 生成视频弹窗 */}
-      <Modal
-        title="生成视频"
-        open={videoModalVisible}
-        onOk={handleGenerateVideo}
-=======
       {/* 声音克隆弹窗 */}
       <Modal
         title="创建声音克隆"
@@ -852,66 +611,17 @@ export default function DigitalHumanPage() {
         title="创建视频克隆"
         open={videoModalVisible}
         onOk={handleCreateVideo}
->>>>>>> 962968886be726cd434c792933b5515366d34518
         onCancel={() => setVideoModalVisible(false)}
         width={700}
         confirmLoading={generatingVideo}
       >
         <Alert
-<<<<<<< HEAD
-          message="视频生成说明"
-          description="填写脚本内容，选择数字人形象，系统将自动生成配套视频。整个过程预计需要3-5分钟。"
-=======
           message="视频克隆说明"
           description="根据选择的类型，上传相应的源素材。处理时间取决于视频长度和服务器负载，通常需要3-10分钟。"
->>>>>>> 962968886be726cd434c792933b5515366d34518
           type="info"
           style={{ marginBottom: 16 }}
         />
         <Form form={videoForm} layout="vertical">
-<<<<<<< HEAD
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="humanId" label="选择数字人" rules={[{ required: true }]}>
-                <Select placeholder="请选择">
-                  {humans.filter(h => h.status === 'active').map(h => (
-                    <Select.Option key={h.id} value={h.id}>
-                      <Space>
-                        {h.name}
-                        <Tag>{h.gender === 'female' ? '女' : '男'}</Tag>
-                      </Space>
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="templateId" label="选择模板">
-                <Select placeholder="可选">
-                  {templates.map(t => (
-                    <Select.Option key={t.id} value={t.id}>
-                      {t.name} ({t.duration}秒)
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="title" label="视频标题" rules={[{ required: true }]}>
-            <Input placeholder="请输入视频标题" />
-          </Form.Item>
-          <Form.Item name="script" label="视频脚本" rules={[{ required: true }]}>
-            <TextArea rows={6} placeholder="请输入视频脚本内容，支持分段，每段用空行分隔..." />
-          </Form.Item>
-          <Form.Item name="backgroundMusic" label="背景音乐">
-            <Select placeholder="选择背景音乐（可选）">
-              <Select.Option value="none">无</Select.Option>
-              <Select.Option value="corporate">企业风格</Select.Option>
-              <Select.Option value="friendly">轻松友好</Select.Option>
-              <Select.Option value="dynamic">活力动感</Select.Option>
-            </Select>
-          </Form.Item>
-=======
           <Form.Item name="name" label="视频名称" rules={[{ required: true }]}>
             <Input placeholder="请输入视频名称" />
           </Form.Item>
@@ -953,7 +663,6 @@ export default function DigitalHumanPage() {
           <Form.Item name="description" label="描述">
             <TextArea rows={2} placeholder="请输入视频描述（可选）" />
           </Form.Item>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         </Form>
       </Modal>
     </div>

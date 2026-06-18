@@ -2,130 +2,168 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  poweredByHeader: false,
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: false },
 
   // Transpile @ant-design/charts
-  transpilePackages: ['@ant-design/charts'],
+  transpilePackages: ['@ant-design/charts', 'antd', '@ant-design/icons', '@ant-design/plots'],
 
-  // 图片优化配置
+  // Bundle analyzer (enable with ANALYZE=true)
+  // webpack(config) { if(process.env.ANALYZE) { const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer'); config.plugins.push(new BundleAnalyzerPlugin()); } return config; },
+
+  // Image optimization
   images: {
-    domains: ['code.coze.cn', 'api.dicebear.com', 'via.placeholder.com'],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'code.coze.cn' },
+      { protocol: 'https', hostname: 'api.dicebear.com' },
+      { protocol: 'https', hostname: 'via.placeholder.com' },
+      { protocol: 'https', hostname: 'baizhiji.net' },
+      { protocol: 'https', hostname: '**.baizhiji.net' },
+    ],
     formats: ['image/avif', 'image/webp'],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    unoptimized: false,
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 3600,
   },
 
-  // 压缩配置
+  // Compression
   compress: true,
 
-  // 实验性功能
+  // Experimental features
   experimental: {
-    optimizePackageImports: ['antd'],
-<<<<<<< HEAD
+    optimizePackageImports: ['antd', '@ant-design/icons', '@ant-design/charts', 'echarts'],
     optimizeCss: true,
-=======
-    optimizeCss: false,
->>>>>>> 962968886be726cd434c792933b5515366d34518
+    scrollRestoration: true,
+    webpackBuildWorker: true,
   },
 
-  // 环境变量
+  // Env
   env: {
     NEXT_PUBLIC_APP_NAME: '智枢AI',
     NEXT_PUBLIC_APP_VERSION: '1.0.0',
   },
 
-  // Webpack配置
-  webpack: (config, { isServer }) => {
-    // 优化打包体积
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: 'all',
-        cacheGroups: {
-          default: false,
-          vendors: false,
-          // 代码分割配置
-          commons: {
-            name: 'commons',
-            chunks: 'all',
-            minChunks: 2,
-            priority: -10,
-          },
-          // Antd 单独打包
-          antd: {
-            name: 'antd',
-            chunks: 'all',
-            test: /[\\/]node_modules[\\/](antd|@ant-design)[\\/]/,
-            priority: 10,
-          },
-          // React 相关库
-          react: {
-            name: 'react',
-            chunks: 'all',
-            test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-            priority: 20,
-          },
-          // 工具库
-          utils: {
-            name: 'utils',
-            chunks: 'all',
-            test: /[\\/]node_modules[\\/](lodash|axios|dayjs)[\\/]/,
-            priority: 5,
+  // Webpack
+  webpack: (config, { isServer, dev }) => {
+    // Production-only optimizations
+    if (!dev) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          maxInitialRequests: 25,
+          minSize: 20000,
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            commons: {
+              name: 'commons',
+              chunks: 'all',
+              minChunks: 2,
+              priority: -10,
+              reuseExistingChunk: true,
+            },
+            antd: {
+              name: 'antd',
+              test: /[\\/]node_modules[\\/](antd|@ant-design|rc-)[\\/]/,
+              chunks: 'all',
+              priority: 15,
+            },
+            react: {
+              name: 'react',
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              chunks: 'all',
+              priority: 20,
+            },
+            charts: {
+              name: 'charts',
+              test: /[\\/]node_modules[\\/](echarts|recharts|@ant-design\/(charts|plots))[\\/]/,
+              chunks: 'all',
+              priority: 10,
+            },
+            utils: {
+              name: 'utils',
+              test: /[\\/]node_modules[\\/](lodash|axios|dayjs|clsx|uuid|tailwind-merge)[\\/]/,
+              chunks: 'all',
+              priority: 5,
+            },
+            framer: {
+              name: 'framer',
+              test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
+              chunks: 'all',
+              priority: 8,
+            },
           },
         },
-      },
+      };
     }
 
-    // 移除 moment.js 的 locale 减小体积
+    // Remove moment.js locale bloat
     if (!isServer) {
       config.resolve.alias = {
         ...config.resolve.alias,
         moment$: 'moment/moment.js',
-      }
+      };
     }
 
-    return config
+    return config;
   },
 
-  // 页面预加载
+  // On-demand entries
   onDemandEntries: {
     maxInactiveAge: 60 * 1000,
     pagesBufferLength: 2,
   },
 
-  // 生产环境优化
+  // Production: no sourcemaps
   productionBrowserSourceMaps: false,
 
-  // 头部配置
+  // Security & performance headers
   async headers() {
     return [
       {
-        source: '/:all*(svg|jpg|png|webp|avif)',
+        source: '/:all*(svg|jpg|jpeg|png|webp|avif|ico)',
         locale: false,
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
       {
         source: '/static/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
-    ]
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+    ];
   },
 
-  // 重定向配置
+  // Redirects
   async redirects() {
-    return []
+    return [
+      {
+        source: '/admin',
+        destination: '/admin/dashboard',
+        permanent: true,
+      },
+    ];
   },
-}
+};
 
-module.exports = nextConfig
+module.exports = nextConfig;

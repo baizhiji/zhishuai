@@ -6,10 +6,10 @@ import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
 import { exportCustomers, exportAcquisitionData, exportPublishRecords, exportStatistics, generateFilename } from '../services/export.service';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 router.use(authMiddleware);
 
 // ==================== 客户数据导出 ====================

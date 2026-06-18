@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
+
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 获取分享码列表
 router.get('/codes', authMiddleware, async (req: Request, res: Response) => {
   try {

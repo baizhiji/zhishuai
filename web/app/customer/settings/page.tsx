@@ -8,11 +8,8 @@ import {
   Button,
   Switch,
   Space,
-<<<<<<< HEAD
-=======
   Row,
   Col,
->>>>>>> 962968886be726cd434c792933b5515366d34518
   Tabs,
   List,
   Avatar,
@@ -23,11 +20,8 @@ import {
   Modal,
   Select,
   InputNumber,
-<<<<<<< HEAD
-=======
   Steps,
   Alert,
->>>>>>> 962968886be726cd434c792933b5515366d34518
 } from 'antd';
 import {
   UserOutlined,
@@ -39,12 +33,9 @@ import {
   SunOutlined,
   DeleteOutlined,
   WarningOutlined,
-<<<<<<< HEAD
-=======
   AndroidOutlined,
   DownloadOutlined,
   QuestionCircleOutlined,
->>>>>>> 962968886be726cd434c792933b5515366d34518
 } from '@ant-design/icons';
 import request from '@/utils/request';
 
@@ -80,6 +71,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [activeTab, setActiveTab] = useState('profile');
   const [form] = Form.useForm();
+  const [preferencesForm] = Form.useForm();
 
   useEffect(() => {
     fetchSettings();
@@ -88,38 +80,39 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const res = await request.get('/api/account/profile');
-      // Mock 数据
-      const mockSettings: UserSettings = {
-        profile: {
-          name: '张三',
-          email: 'zhangsan@example.com',
-          phone: '138****1234',
-          company: '科技有限公司',
-        },
-        preferences: {
-          language: 'zh-CN',
-          timezone: 'Asia/Shanghai',
-          theme: 'light',
-          notifications: {
-            email: true,
-            sms: false,
-            push: true,
+      if (res.data) {
+        // 使用真实API返回的数据
+        const realSettings: UserSettings = {
+          profile: {
+            name: res.data.name || '',
+            email: res.data.email || '',
+            phone: res.data.phone || '',
+            company: res.data.company || '',
+            avatar: res.data.avatar,
           },
-        },
-        security: {
-          twoFactor: false,
-          loginAlerts: true,
-        },
-        connectedApps: [
-          { id: 1, name: '钉钉', icon: 'dingtalk', connected: true },
-          { id: 2, name: '企业微信', icon: 'wecom', connected: false },
-          { id: 3, name: '飞书', icon: 'feishu', connected: true },
-        ],
-      };
-      setSettings(mockSettings);
-      form.setFieldsValue(mockSettings.profile);
+          preferences: {
+            language: res.data.preferences?.language || 'zh-CN',
+            timezone: res.data.preferences?.timezone || 'Asia/Shanghai',
+            theme: res.data.preferences?.theme || 'light',
+            notifications: {
+              email: res.data.preferences?.notifications?.email ?? true,
+              sms: res.data.preferences?.notifications?.sms ?? false,
+              push: res.data.preferences?.notifications?.push ?? true,
+            },
+          },
+          security: {
+            twoFactor: res.data.security?.twoFactor ?? false,
+            loginAlerts: res.data.security?.loginAlerts ?? true,
+          },
+          connectedApps: res.data.connectedApps || [],
+        };
+        setSettings(realSettings);
+        form.setFieldsValue(realSettings.profile);
+        preferencesForm.setFieldsValue(realSettings.preferences);
+      }
     } catch (error) {
       console.error('Failed to fetch settings:', error);
+      message.error('加载设置失败');
     }
   };
 
@@ -128,6 +121,7 @@ export default function SettingsPage() {
     try {
       await request.put('/api/account/profile', values);
       message.success('保存成功');
+      fetchSettings();
     } catch (error) {
       message.error('保存失败');
     }
@@ -150,24 +144,27 @@ export default function SettingsPage() {
     }
   };
 
+  // 通知和安全设置变更 - 调用真实API
   const handleNotificationChange = async (key: string, value: boolean) => {
     try {
-      await request.put('/api/settings/notifications', {
+      await request.put('/api/account/preferences', {
         [key]: value,
       });
       message.success('设置已更新');
+      fetchSettings();
     } catch (error) {
       message.error('设置失败');
     }
   };
 
+  // 连接/断开第三方应用 - 调用真实API（之前注释掉了）
   const handleConnectApp = (appId: number, connected: boolean) => {
     Modal.confirm({
       title: connected ? '确认断开连接' : '确认连接',
       content: `确定要${connected ? '断开' : '连接'}此应用吗？`,
       onOk: async () => {
         try {
-          // await request.post(`/api/settings/app/${appId}/${connected ? 'disconnect' : 'connect'}`);
+          await request.post(`/api/account/app/${appId}/${connected ? 'disconnect' : 'connect'}`);
           message.success(connected ? '已断开连接' : '连接成功');
           fetchSettings();
         } catch (error) {
@@ -175,6 +172,18 @@ export default function SettingsPage() {
         }
       },
     });
+  };
+
+  // 偏好设置保存 - 调用真实API（之前是假message.success）
+  const handleSavePreferences = async () => {
+    try {
+      const values = preferencesForm.getFieldsValue();
+      await request.put('/api/account/preferences', values);
+      message.success('偏好设置已保存');
+      fetchSettings();
+    } catch (error) {
+      message.error('保存失败');
+    }
   };
 
   const tabItems = [
@@ -203,12 +212,6 @@ export default function SettingsPage() {
             <Form.Item label="姓名" name="name" rules={[{ required: true, message: '请输入姓名' }]}>
               <Input placeholder="请输入姓名" />
             </Form.Item>
-<<<<<<< HEAD
-            <Form.Item label="邮箱" name="email" rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入正确的邮箱格式' },
-            ]}>
-=======
             <Form.Item
               label="邮箱"
               name="email"
@@ -217,7 +220,6 @@ export default function SettingsPage() {
                 { type: 'email', message: '请输入正确的邮箱格式' },
               ]}
             >
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <Input placeholder="请输入邮箱" />
             </Form.Item>
             <Form.Item label="手机号" name="phone">
@@ -289,11 +291,7 @@ export default function SettingsPage() {
                 actions={[
                   <Switch
                     checked={settings?.security.twoFactor}
-<<<<<<< HEAD
-                    onChange={(checked) => {
-=======
                     onChange={checked => {
->>>>>>> 962968886be726cd434c792933b5515366d34518
                       Modal.confirm({
                         title: '确认开启两步验证',
                         content: '启用后，登录时需要输入手机验证码',
@@ -313,11 +311,7 @@ export default function SettingsPage() {
                 actions={[
                   <Switch
                     checked={settings?.security.loginAlerts}
-<<<<<<< HEAD
-                    onChange={(checked) => handleNotificationChange('loginAlerts', checked)}
-=======
                     onChange={checked => handleNotificationChange('loginAlerts', checked)}
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   />,
                 ]}
               >
@@ -348,11 +342,7 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.email}
-<<<<<<< HEAD
-                  onChange={(checked) => handleNotificationChange('email', checked)}
-=======
                   onChange={checked => handleNotificationChange('email', checked)}
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 />,
               ]}
             >
@@ -366,11 +356,7 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.sms}
-<<<<<<< HEAD
-                  onChange={(checked) => handleNotificationChange('sms', checked)}
-=======
                   onChange={checked => handleNotificationChange('sms', checked)}
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 />,
               ]}
             >
@@ -384,11 +370,7 @@ export default function SettingsPage() {
               actions={[
                 <Switch
                   checked={settings?.preferences.notifications.push}
-<<<<<<< HEAD
-                  onChange={(checked) => handleNotificationChange('push', checked)}
-=======
                   onChange={checked => handleNotificationChange('push', checked)}
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 />,
               ]}
             >
@@ -412,7 +394,7 @@ export default function SettingsPage() {
       ),
       children: (
         <Card>
-          <Form layout="vertical" initialValues={settings?.preferences}>
+          <Form form={preferencesForm} layout="vertical" initialValues={settings?.preferences}>
             <Form.Item label="语言" name="language">
               <Select
                 options={[
@@ -440,7 +422,7 @@ export default function SettingsPage() {
               />
             </Form.Item>
             <Form.Item>
-              <Button type="primary" onClick={() => message.success('偏好设置已保存')}>
+              <Button type="primary" onClick={handleSavePreferences}>
                 保存设置
               </Button>
             </Form.Item>
@@ -461,11 +443,7 @@ export default function SettingsPage() {
           <Title level={5}>已连接的应用</Title>
           <List
             dataSource={settings?.connectedApps}
-<<<<<<< HEAD
-            renderItem={(app) => (
-=======
             renderItem={app => (
->>>>>>> 962968886be726cd434c792933b5515366d34518
               <List.Item
                 actions={[
                   <Button
@@ -488,12 +466,6 @@ export default function SettingsPage() {
         </Card>
       ),
     },
-<<<<<<< HEAD
-  ];
-
-  return (
-    <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh', maxWidth: 800, margin: '0 auto' }}>
-=======
     {
       key: 'app-download',
       label: (
@@ -573,7 +545,6 @@ export default function SettingsPage() {
         margin: '0 auto',
       }}
     >
->>>>>>> 962968886be726cd434c792933b5515366d34518
       <Card>
         <Title level={3}>账户设置</Title>
         <Tabs

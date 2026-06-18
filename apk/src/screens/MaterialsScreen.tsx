@@ -1,12 +1,17 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, Image, ScrollView, Share } from 'react-native';
+/**
+ * 素材库页面 - 对接真实API
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, ScrollView, Share, RefreshControl, ActivityIndicator } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import PageHeader from '../components/PageHeader';
+import { materialsService } from '../services/materials.service';
 
-// 内容分类配置 - 与WEB端保持一致
+// 内容分类配置
 const categoryConfig: Record<string, { label: string; icon: string; color: string; type: string }> = {
   title: { label: '标题', icon: 'text', color: '#3B82F6', type: 'text' },
   tags: { label: '话题/标签', icon: 'pricetags', color: '#8B5CF6', type: 'text' },
@@ -18,95 +23,147 @@ const categoryConfig: Record<string, { label: string; icon: string; color: strin
   video: { label: '短视频', icon: 'videocam', color: '#EC4899', type: 'video' },
   'video-analysis': { label: '视频解析', icon: 'film', color: '#84CC16', type: 'text' },
   'digital-human': { label: '数字人短视频', icon: 'person', color: '#6366F1', type: 'video' },
+  topic: { label: '话题/标签', icon: 'pricetags', color: '#8B5CF6', type: 'text' },
+  link: { label: '链接', icon: 'link', color: '#06B6D4', type: 'text' },
 };
 
-// 素材类型
 interface Material {
   id: string;
   title: string;
   category: string;
   content: string;
   thumbnail?: string;
-  url?: string; // 用于下载的原始URL
+  url?: string;
   status: 'unused' | 'used';
   createTime: string;
   tags: string[];
-  isFavorite?: boolean; // 收藏状态
+  isFavorite?: boolean;
 }
 
-// 模拟素材数据
-const mockMaterials: Material[] = [
-  { id: '1', title: '产品推广标题', category: 'title', content: '限时优惠！智枢AI SaaS系统让营销更简单，点击查看详情...', status: 'unused', createTime: '2024-03-25 14:30', tags: ['推广', '限时'], isFavorite: true },
-  { id: '2', title: '#智枢AI#话题标签', category: 'tags', content: '#智枢AI# #智能营销# #企业必备#', status: 'unused', createTime: '2024-03-25 13:20', tags: ['热门', '营销'], isFavorite: false },
-  { id: '3', title: '小红书种草文案', category: 'xiaohongshu', content: '这款AI工具真的太香了！用它做营销推广效率提升10倍...', thumbnail: 'https://picsum.photos/200', url: 'https://picsum.photos/800', status: 'unused', createTime: '2024-03-25 11:45', tags: ['种草', '小红书'], isFavorite: false },
-  { id: '4', title: '产品展示图', category: 'image', content: 'https://picsum.photos/400', thumbnail: 'https://picsum.photos/400', url: 'https://picsum.photos/1600', status: 'used', createTime: '2024-03-24 16:20', tags: ['产品图'], isFavorite: true },
-  { id: '5', title: '电商详情页文案', category: 'ecommerce', content: '【智枢AI SaaS系统】\n一站式智能营销解决方案\n1. AI内容创作\n2. 矩阵账号管理\n3. 数据分析报表...', status: 'unused', createTime: '2024-03-24 10:30', tags: ['电商', '详情'], isFavorite: false },
-  { id: '6', title: '品牌宣传视频', category: 'video', content: 'https://example.com/video/demo.mp4', thumbnail: 'https://picsum.photos/300', url: 'https://example.com/video/demo.mp4', status: 'used', createTime: '2024-03-23 15:00', tags: ['品牌', '宣传'], isFavorite: false },
-  { id: '7', title: '竞品分析报告', category: 'copywriting', content: '通过对市场上主流AI营销工具的分析，智枢AI在功能完整性和性价比方面具有明显优势...', status: 'unused', createTime: '2024-03-23 09:15', tags: ['分析', '竞品'], isFavorite: false },
-  { id: '8', title: '数字人代言视频', category: 'digital-human', content: 'https://example.com/video/avatar.mp4', thumbnail: 'https://picsum.photos/350', url: 'https://example.com/video/avatar.mp4', status: 'used', createTime: '2024-03-22 14:00', tags: ['数字人', '代言'], isFavorite: true },
-];
-
 export default function MaterialsScreen() {
-  const [materials, setMaterials] = useState<Material[]>(mockMaterials);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]); // 批量选择
-  const [isSelectMode, setIsSelectMode] = useState(false); // 选择模式
-  const [filterFavorites, setFilterFavorites] = useState(false); // 收藏筛选
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [filterFavorites, setFilterFavorites] = useState(false);
 
-  // 筛选素材
+  const loadMaterials = useCallback(async (pageNum: number = 1, append: boolean = false) => {
+    try {
+      if (pageNum === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const result = await materialsService.getMaterials({
+        type: filterCategory !== 'all' ? filterCategory as any : undefined,
+        status: filterStatus !== 'all' ? filterStatus as any : undefined,
+        keyword: searchText || undefined,
+        page: pageNum,
+        pageSize: 20,
+      });
+
+      const items = (result.items || []).map((m: any) => ({
+        id: m.id,
+        title: m.title || '未命名',
+        category: m.type || m.category || 'copywriting',
+        content: m.content || '',
+        thumbnail: m.thumbnail || m.url,
+        url: m.url,
+        status: m.status || 'unused',
+        createTime: m.createdAt || new Date().toISOString(),
+        tags: m.tags || [],
+        isFavorite: m.isFavorite || false,
+      }));
+
+      if (append) {
+        setMaterials(prev => [...prev, ...items]);
+      } else {
+        setMaterials(items);
+      }
+      setTotal(result.total || 0);
+      setPage(pageNum);
+    } catch (error) {
+      console.error('加载素材失败:', error);
+      if (!append) setMaterials([]);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+      setRefreshing(false);
+    }
+  }, [filterCategory, filterStatus, searchText]);
+
+  useEffect(() => {
+    loadMaterials(1);
+  }, [loadMaterials]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadMaterials(1);
+  };
+
+  const onLoadMore = () => {
+    if (!loadingMore && materials.length < total) {
+      loadMaterials(page + 1, true);
+    }
+  };
+
   const filteredMaterials = materials.filter(m => {
-    const matchSearch = m.title.toLowerCase().includes(searchText.toLowerCase()) || 
-                        m.content.toLowerCase().includes(searchText.toLowerCase());
-    const matchCategory = filterCategory === 'all' || m.category === filterCategory;
-    const matchStatus = filterStatus === 'all' || m.status === filterStatus;
     const matchFavorite = !filterFavorites || m.isFavorite;
-    return matchSearch && matchCategory && matchStatus && matchFavorite;
+    return matchFavorite;
   });
 
-  // 统计各分类数量
   const categoryCounts = Object.keys(categoryConfig).reduce((acc, key) => {
     acc[key] = materials.filter(m => m.category === key).length;
     return acc;
   }, {} as Record<string, number>);
 
-  // 获取分类配置
   const getCategoryInfo = (category: string) => categoryConfig[category] || { label: category, icon: 'document', color: '#64748b', type: 'text' };
 
-  // 预览素材
   const handlePreview = (material: Material) => {
     setSelectedMaterial(material);
     setShowPreviewModal(true);
   };
 
-  // 复制内容
   const handleCopy = (content: string) => {
     Alert.alert('成功', '内容已复制到剪贴板');
   };
 
-  // 删除素材
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     Alert.alert('确认删除', '确定要删除这条素材吗？', [
       { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: () => {
-        setMaterials(materials.filter(m => m.id !== id));
-        Alert.alert('成功', '素材已删除');
+      { text: '删除', style: 'destructive', onPress: async () => {
+        try {
+          await materialsService.deleteMaterial(id);
+          setMaterials(materials.filter(m => m.id !== id));
+          Alert.alert('成功', '素材已删除');
+        } catch (error) {
+          Alert.alert('失败', '删除失败，请重试');
+        }
       }},
     ]);
   };
 
-  // 切换收藏状态
-  const toggleFavorite = (id: string) => {
-    setMaterials(materials.map(m => 
-      m.id === id ? { ...m, isFavorite: !m.isFavorite } : m
-    ));
+  const toggleFavorite = async (id: string) => {
+    try {
+      const material = materials.find(m => m.id === id);
+      if (material) {
+        await materialsService.updateMaterial(id, { isFavorite: !material.isFavorite } as any);
+        setMaterials(materials.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m));
+      }
+    } catch (error) {
+      // 本地更新
+      setMaterials(materials.map(m => m.id === id ? { ...m, isFavorite: !m.isFavorite } : m));
+    }
   };
 
-  // 下载素材到手机
   const handleDownload = async (material: Material) => {
     try {
       const url = material.url || material.thumbnail;
@@ -114,95 +171,59 @@ export default function MaterialsScreen() {
         Alert.alert('提示', '该素材不支持下载');
         return;
       }
-
-      Alert.alert('正在下载', '请稍候...');
-
-      // 检查权限
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert('提示', '需要相册权限才能保存到手机');
         return;
       }
-
-      // 下载文件
       const filename = `${material.title}_${Date.now()}.${material.category === 'image' || material.category === 'xiaohongshu' ? 'jpg' : 'mp4'}`;
       const fileUri = FileSystem.documentDirectory + filename;
-
       const downloadResult = await FileSystem.downloadAsync(url, fileUri);
-
-      // 保存到相册
       const asset = await MediaLibrary.createAssetAsync(downloadResult.uri);
       await MediaLibrary.createAlbumAsync('智枢AI', asset, false);
-
       Alert.alert('成功', '素材已保存到相册');
     } catch (error) {
-      console.error('下载失败:', error);
       Alert.alert('失败', '下载失败，请重试');
     }
   };
 
-  // 批量选择切换
   const toggleSelect = (id: string) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
-  // 全选
   const selectAll = () => {
-    if (selectedIds.length === filteredMaterials.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(filteredMaterials.map(m => m.id));
-    }
+    if (selectedIds.length === filteredMaterials.length) setSelectedIds([]);
+    else setSelectedIds(filteredMaterials.map(m => m.id));
   };
 
-  // 批量删除
-  const batchDelete = () => {
+  const batchDelete = async () => {
     if (selectedIds.length === 0) return;
     Alert.alert('确认删除', `确定要删除选中的 ${selectedIds.length} 条素材吗？`, [
       { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: () => {
-        setMaterials(materials.filter(m => !selectedIds.includes(m.id)));
-        setSelectedIds([]);
-        setIsSelectMode(false);
-        Alert.alert('成功', '素材已删除');
+      { text: '删除', style: 'destructive', onPress: async () => {
+        try {
+          await Promise.all(selectedIds.map(id => materialsService.deleteMaterial(id)));
+          setMaterials(materials.filter(m => !selectedIds.includes(m.id)));
+          setSelectedIds([]);
+          setIsSelectMode(false);
+          Alert.alert('成功', '素材已删除');
+        } catch (error) {
+          Alert.alert('失败', '部分素材删除失败');
+        }
       }},
     ]);
   };
 
-  // 分享素材
   const handleShare = async (material: Material) => {
     try {
-      const url = material.url || material.thumbnail;
-      if (url) {
-        const isImage = material.category === 'image' || material.category === 'xiaohongshu';
-        if (isImage) {
-          await Sharing.shareAsync(url);
-        } else {
-          await Share.share({
-            message: `${material.title}\n\n${material.content}`,
-            title: material.title,
-          });
-        }
-      } else {
-        await Share.share({
-          message: `${material.title}\n\n${material.content}`,
-          title: material.title,
-        });
-      }
+      await Share.share({ message: `${material.title}\n\n${material.content}`, title: material.title });
     } catch (error) {
-      console.error('分享失败:', error);
+      console.warn('[Materials] 分享失败:', error);
     }
   };
 
-  // 退出选择模式
-  const exitSelectMode = () => {
-    setIsSelectMode(false);
-    setSelectedIds([]);
-  };
+  const exitSelectMode = () => { setIsSelectMode(false); setSelectedIds([]); };
 
-  // 渲染素材卡片
   const renderMaterial = ({ item }: { item: Material }) => {
     const category = getCategoryInfo(item.category);
     const isSelected = selectedIds.includes(item.id);
@@ -212,26 +233,17 @@ export default function MaterialsScreen() {
         onPress={() => isSelectMode ? toggleSelect(item.id) : handlePreview(item)}
         onLongPress={() => !isSelectMode && setIsSelectMode(true)}
       >
-        {/* 选择模式下的复选框 */}
         {isSelectMode && (
           <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
             {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
           </View>
         )}
-
-        {/* 收藏图标 */}
         {!isSelectMode && (
           <TouchableOpacity style={styles.favoriteBtn} onPress={() => toggleFavorite(item.id)}>
-            <Ionicons 
-              name={item.isFavorite ? "star" : "star-outline"} 
-              size={20} 
-              color={item.isFavorite ? '#f59e0b' : '#94a3b8'} 
-            />
+            <Ionicons name={item.isFavorite ? "star" : "star-outline"} size={20} color={item.isFavorite ? '#f59e0b' : '#94a3b8'} />
           </TouchableOpacity>
         )}
-
-        {/* 缩略图 */}
-        {category.type === 'image' || category.type === 'video' ? (
+        {(category.type === 'image' || category.type === 'video') && (
           <View style={styles.thumbnailContainer}>
             {item.thumbnail ? (
               <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />
@@ -246,8 +258,7 @@ export default function MaterialsScreen() {
               </View>
             )}
           </View>
-        ) : null}
-
+        )}
         <View style={styles.cardContent}>
           <View style={styles.cardHeader}>
             <View style={[styles.categoryBadge, { backgroundColor: category.color + '20' }]}>
@@ -260,10 +271,8 @@ export default function MaterialsScreen() {
               </Text>
             </View>
           </View>
-
           <Text style={styles.materialTitle} numberOfLines={1}>{item.title}</Text>
           <Text style={styles.materialContent} numberOfLines={2}>{item.content}</Text>
-
           {item.tags.length > 0 && (
             <View style={styles.tagsRow}>
               {item.tags.slice(0, 3).map((tag, i) => (
@@ -271,9 +280,8 @@ export default function MaterialsScreen() {
               ))}
             </View>
           )}
-
           <View style={styles.cardFooter}>
-            <Text style={styles.createTime}>{item.createTime}</Text>
+            <Text style={styles.createTime}>{new Date(item.createTime).toLocaleDateString('zh-CN')}</Text>
             {!isSelectMode && (
               <View style={styles.cardActions}>
                 {(item.url || item.thumbnail) && (
@@ -295,9 +303,16 @@ export default function MaterialsScreen() {
     );
   };
 
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#4F46E5" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {/* 选择模式顶部栏 */}
       {isSelectMode ? (
         <View style={styles.selectModeHeader}>
           <TouchableOpacity onPress={exitSelectMode}>
@@ -312,7 +327,6 @@ export default function MaterialsScreen() {
         <PageHeader title="素材库" />
       )}
 
-      {/* 搜索栏 */}
       <View style={styles.searchBar}>
         <View style={styles.searchInput}>
           <Ionicons name="search-outline" size={18} color="#94a3b8" />
@@ -322,9 +336,10 @@ export default function MaterialsScreen() {
             placeholderTextColor="#94a3b8"
             value={searchText}
             onChangeText={setSearchText}
+            onSubmitEditing={() => loadMaterials(1)}
           />
           {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchText('')}>
+            <TouchableOpacity onPress={() => { setSearchText(''); }}>
               <Ionicons name="close-circle" size={18} color="#94a3b8" />
             </TouchableOpacity>
           )}
@@ -345,7 +360,6 @@ export default function MaterialsScreen() {
         )}
       </View>
 
-      {/* 当前筛选条件 */}
       {(filterCategory !== 'all' || filterStatus !== 'all') && (
         <View style={styles.filterChips}>
           {filterCategory !== 'all' && (
@@ -363,13 +377,15 @@ export default function MaterialsScreen() {
         </View>
       )}
 
-      {/* 素材列表 */}
       <FlatList
         data={filteredMaterials}
         renderItem={renderMaterial}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#4F46E5']} />}
+        onEndReached={onLoadMore}
+        onEndReachedThreshold={0.5}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Ionicons name="folder-open-outline" size={60} color="#cbd5e1" />
@@ -377,16 +393,7 @@ export default function MaterialsScreen() {
             <Text style={styles.emptySubtext}>在AI创作中心生成的内容将保存在这里</Text>
           </View>
         }
-        ListFooterComponent={
-          isSelectMode && selectedIds.length > 0 ? (
-            <View style={styles.batchActions}>
-              <TouchableOpacity style={styles.batchActionBtn} onPress={batchDelete}>
-                <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                <Text style={styles.batchActionText}>删除 ({selectedIds.length})</Text>
-              </TouchableOpacity>
-            </View>
-          ) : null
-        }
+        ListFooterComponent={loadingMore ? <ActivityIndicator size="small" color="#4F46E5" style={{ marginVertical: 16 }} /> : null}
       />
 
       {/* 筛选弹窗 */}
@@ -399,7 +406,6 @@ export default function MaterialsScreen() {
                 <Ionicons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
-
             <Text style={styles.filterTitle}>内容分类</Text>
             <View style={styles.filterGrid}>
               <TouchableOpacity 
@@ -415,34 +421,24 @@ export default function MaterialsScreen() {
                   onPress={() => setFilterCategory(key)}
                 >
                   <Text style={[styles.filterOptionText, filterCategory === key && styles.filterOptionTextActive]}>{config.label}</Text>
-                  {categoryCounts[key] > 0 && <Text style={styles.filterCount}>{categoryCounts[key]}</Text>}
                 </TouchableOpacity>
               ))}
             </View>
-
             <Text style={styles.filterTitle}>使用状态</Text>
             <View style={styles.filterGrid}>
-              <TouchableOpacity 
-                style={[styles.filterOption, filterStatus === 'all' && styles.filterOptionActive]} 
-                onPress={() => setFilterStatus('all')}
-              >
-                <Text style={[styles.filterOptionText, filterStatus === 'all' && styles.filterOptionTextActive]}>全部</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.filterOption, filterStatus === 'unused' && styles.filterOptionActive]} 
-                onPress={() => setFilterStatus('unused')}
-              >
-                <Text style={[styles.filterOptionText, filterStatus === 'unused' && styles.filterOptionTextActive]}>未使用</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.filterOption, filterStatus === 'used' && styles.filterOptionActive]} 
-                onPress={() => setFilterStatus('used')}
-              >
-                <Text style={[styles.filterOptionText, filterStatus === 'used' && styles.filterOptionTextActive]}>已使用</Text>
-              </TouchableOpacity>
+              {['all', 'unused', 'used'].map(s => (
+                <TouchableOpacity 
+                  key={s}
+                  style={[styles.filterOption, filterStatus === s && styles.filterOptionActive]} 
+                  onPress={() => setFilterStatus(s)}
+                >
+                  <Text style={[styles.filterOptionText, filterStatus === s && styles.filterOptionTextActive]}>
+                    {s === 'all' ? '全部' : s === 'used' ? '已使用' : '未使用'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-
-            <TouchableOpacity style={styles.applyBtn} onPress={() => setShowFilterModal(false)}>
+            <TouchableOpacity style={styles.applyBtn} onPress={() => { setShowFilterModal(false); loadMaterials(1); }}>
               <Text style={styles.applyBtnText}>应用筛选</Text>
             </TouchableOpacity>
           </View>
@@ -459,9 +455,8 @@ export default function MaterialsScreen() {
                 <Ionicons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
-
             {selectedMaterial && (
-              <View style={styles.previewContent}>
+              <ScrollView style={styles.previewContent}>
                 <View style={styles.previewHeader}>
                   {(() => {
                     const category = getCategoryInfo(selectedMaterial.category);
@@ -478,15 +473,11 @@ export default function MaterialsScreen() {
                     </Text>
                   </View>
                 </View>
-
                 <Text style={styles.previewTitle}>{selectedMaterial.title}</Text>
-
                 {selectedMaterial.thumbnail && (
                   <Image source={{ uri: selectedMaterial.thumbnail }} style={styles.previewImage} />
                 )}
-
                 <Text style={styles.previewText}>{selectedMaterial.content}</Text>
-
                 {selectedMaterial.tags.length > 0 && (
                   <View style={styles.previewTags}>
                     {selectedMaterial.tags.map((tag, i) => (
@@ -494,9 +485,7 @@ export default function MaterialsScreen() {
                     ))}
                   </View>
                 )}
-
-                <Text style={styles.previewTime}>创建时间: {selectedMaterial.createTime}</Text>
-
+                <Text style={styles.previewTime}>创建时间: {new Date(selectedMaterial.createTime).toLocaleString('zh-CN')}</Text>
                 <View style={styles.previewActions}>
                   {(selectedMaterial.url || selectedMaterial.thumbnail) && (
                     <TouchableOpacity style={styles.previewActionBtn} onPress={() => handleDownload(selectedMaterial)}>
@@ -517,7 +506,7 @@ export default function MaterialsScreen() {
                     <Text style={[styles.previewActionText, { color: '#ef4444' }]}>删除</Text>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </ScrollView>
             )}
           </View>
         </View>
@@ -528,6 +517,7 @@ export default function MaterialsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
+  loadingContainer: { justifyContent: 'center', alignItems: 'center' },
   searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', gap: 10 },
   searchInput: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 10, paddingHorizontal: 12, height: 40, gap: 8 },
   searchTextInput: { flex: 1, fontSize: 14, color: '#1e293b' },
@@ -537,8 +527,9 @@ const styles = StyleSheet.create({
   filterChipText: { fontSize: 12, color: '#4F46E5' },
   listContent: { padding: 16 },
   materialCard: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 12, overflow: 'hidden' },
+  materialCardSelected: { borderWidth: 2, borderColor: '#4F46E5' },
   thumbnailContainer: { position: 'relative' },
-  thumbnail: { width: '100%', height: 150, resizeMode: 'cover' },
+  thumbnail: { width: '100%', height: 150, contentFit: 'cover' as const },
   thumbnailPlaceholder: { alignItems: 'center', justifyContent: 'center' },
   playIcon: { position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: -16 }, { translateY: -16 }] },
   cardContent: { padding: 14 },
@@ -569,7 +560,6 @@ const styles = StyleSheet.create({
   filterOptionActive: { backgroundColor: '#4F46E5' },
   filterOptionText: { fontSize: 13, color: '#64748b' },
   filterOptionTextActive: { color: '#fff' },
-  filterCount: { fontSize: 11, color: '#94a3b8' },
   applyBtn: { backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, alignItems: 'center', marginHorizontal: 16, marginTop: 20 },
   applyBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   previewContent: { padding: 16 },
@@ -583,12 +573,10 @@ const styles = StyleSheet.create({
   previewActions: { flexDirection: 'row', gap: 12 },
   previewActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingVertical: 12, borderRadius: 10, gap: 8 },
   previewActionText: { fontSize: 14, fontWeight: '500', color: '#4F46E5' },
-  // 新增样式
   selectModeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   selectModeTitle: { fontSize: 16, fontWeight: '600', color: '#1e293b', flex: 1, textAlign: 'center' },
   selectAllText: { fontSize: 14, color: '#4F46E5', fontWeight: '500' },
   filterBtnActive: { backgroundColor: '#fef3c7' },
-  materialCardSelected: { borderWidth: 2, borderColor: '#4F46E5' },
   checkbox: { position: 'absolute', top: 10, left: 10, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#cbd5e1', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', zIndex: 1 },
   checkboxSelected: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
   favoriteBtn: { position: 'absolute', top: 8, right: 8, zIndex: 1, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 20, padding: 4 },

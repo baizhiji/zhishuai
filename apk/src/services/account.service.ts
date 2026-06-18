@@ -67,148 +67,55 @@ export interface StaffInfo {
 class AccountService {
   // 获取账户信息
   async getAccountInfo(): Promise<AccountInfo> {
-    try {
-      return await apiClient.get('/api/account/info');
-    } catch (error) {
-      // 返回Mock数据
-      return {
-        userId: 'USR001',
-        phone: '138****8000',
-        email: 'user@example.com',
-        role: '终端客户',
-        memberType: '年度会员',
-        expireDate: '2025-12-31',
-      };
-    }
+    const data = await apiClient.get<AccountInfo>('/account/');
+    return data;
   }
 
   // 获取使用统计
   async getUsageStats(): Promise<UsageStat[]> {
-    try {
-      return await apiClient.get('/api/account/usage-stats');
-    } catch (error) {
-      return [
-        { name: '自媒体运营', value: '1250次', color: '#1890ff' },
-        { name: '招聘助手', value: '89次', color: '#722ed1' },
-        { name: '智能获客', value: '320次', color: '#13c2c2' },
-        { name: '推荐分享', value: '156次', color: '#fa8c16' },
-      ];
-    }
+    const data = await apiClient.get<UsageStat[]>('/account/usage-stats');
+    return data;
   }
 
   // 获取使用记录
   async getUsageRecords(): Promise<UsageRecord[]> {
-    try {
-      return await apiClient.get('/api/account/usage-records');
-    } catch (error) {
-      return [
-        { id: 1, type: '内容生成', count: 5, time: '2024-04-30 14:30' },
-        { id: 2, type: '简历筛选', count: 12, time: '2024-04-28 10:15' },
-        { id: 3, type: '数字人视频', count: 3, time: '2024-04-25 16:45' },
-        { id: 4, type: '智能获客', count: 8, time: '2024-04-20 09:00' },
-        { id: 5, type: '推荐分享', count: 5, time: '2024-04-15 11:20' },
-      ];
-    }
+    const data = await apiClient.get<UsageRecord[]>('/account/usage-records');
+    return data;
   }
 
   // 获取订阅信息
   async getSubscriptionInfo(): Promise<SubscriptionInfo> {
-    try {
-      return await apiClient.get('/api/account/subscription');
-    } catch (error) {
-      const expireDate = '2025-12-31';
-      const days = Math.ceil((new Date(expireDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-      return {
-        plan: '年度会员',
-        status: 'active',
-        startDate: '2024-01-01',
-        expireDate: expireDate,
-        autoRenew: true,
-        remainingDays: days,
-        features: [
-          { name: '自媒体运营', used: 1250, limit: '无限' },
-          { name: '招聘助手', used: 89, limit: '无限' },
-          { name: '智能获客', used: 320, limit: '无限' },
-          { name: '推荐分享', used: 156, limit: '无限' },
-        ],
-      };
-    }
+    const data = await apiClient.get<SubscriptionInfo>('/account/subscription');
+    return data;
   }
 
   // 获取套餐列表
   async getPlans(): Promise<PlanInfo[]> {
-    try {
-      return await apiClient.get('/api/account/plans');
-    } catch (error) {
-      return [
-        {
-          id: 'monthly',
-          name: '月度会员',
-          price: 99,
-          period: '30天',
-          features: ['自媒体运营', '招聘助手', '智能获客', '推荐分享'],
-        },
-        {
-          id: 'quarterly',
-          name: '季度会员',
-          price: 259,
-          period: '90天',
-          features: ['自媒体运营', '招聘助手', '智能获客', '推荐分享', '优先客服'],
-        },
-        {
-          id: 'yearly',
-          name: '年度会员',
-          price: 899,
-          period: '365天',
-          features: ['全部功能', '优先客服', '专属客服', '定期培训'],
-        },
-      ];
-    }
+    const data = await apiClient.get<PlanInfo[]>('/account/plans');
+    return data;
   }
 
   // 获取员工列表
   async getStaffList(): Promise<StaffInfo[]> {
-    try {
-      return await apiClient.get('/api/account/staff');
-    } catch (error) {
-      return [
-        { id: '1', name: '王五', phone: '138****9012', email: 'wangwu@example.com', role: '运营专员', department: '运营部', status: 'active', createdAt: '2024-03-25', lastLogin: '2024-04-30 14:30' },
-        { id: '2', name: '李明', phone: '139****5678', email: 'liming@example.com', role: '客服专员', department: '客服部', status: 'active', createdAt: '2024-02-15', lastLogin: '2024-04-30 09:15' },
-        { id: '3', name: '张伟', phone: '137****9876', email: 'zhangwei@example.com', role: '管理员', department: '技术部', status: 'active', createdAt: '2024-01-10', lastLogin: '2024-04-29 18:45' },
-      ];
-    }
+    const data = await apiClient.get<StaffInfo[]>('/account/staff');
+    return data;
   }
 
   // 添加员工
   async addStaff(staff: Omit<StaffInfo, 'id' | 'createdAt'>): Promise<StaffInfo> {
-    try {
-      return await apiClient.post('/api/account/staff', staff);
-    } catch (error) {
-      const newStaff: StaffInfo = {
-        id: Date.now().toString(),
-        ...staff,
-        createdAt: new Date().toISOString().split('T')[0],
-      };
-      return newStaff;
-    }
+    const data = await apiClient.post<StaffInfo>('/account/staff', staff);
+    return data;
   }
 
   // 更新员工
   async updateStaff(id: string, staff: Partial<StaffInfo>): Promise<StaffInfo> {
-    try {
-      return await apiClient.put(`/api/account/staff/${id}`, staff);
-    } catch (error) {
-      return { id, ...staff } as StaffInfo;
-    }
+    const data = await apiClient.put<StaffInfo>(`/account/staff/${id}`, staff);
+    return data;
   }
 
   // 删除员工
   async deleteStaff(id: string): Promise<void> {
-    try {
-      await apiClient.delete(`/api/account/staff/${id}`);
-    } catch (error) {
-      console.log('删除员工失败');
-    }
+    await apiClient.delete(`/account/staff/${id}`);
   }
 }
 

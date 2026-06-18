@@ -5,19 +5,23 @@
     "version": "1.0.0",
     "description": "智枢AI SaaS多租户超级应用",
     "owner": "baizhiji",
-<<<<<<< HEAD
     "privacy": "public",
     "platforms": [
       "android"
     ],
+    "scheme": "zhishuai",
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#3B82F6"
+        }
+      ]
+    ],
     "cli": {
       "appVersionSource": "remote"
     },
-=======
-    "platforms": [
-      "android"
-    ],
->>>>>>> 962968886be726cd434c792933b5515366d34518
     "android": {
       "package": "com.baizhiji.zhishuai",
       "versionCode": 1,
@@ -31,32 +35,56 @@
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE",
         "CAMERA",
-        "READ_PHONE_STATE"
+        "READ_PHONE_STATE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "WAKE_LOCK",
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "baizhiji",
+              "host": "*",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.baizhiji.net",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "updates": {
       "enabled": true,
-<<<<<<< HEAD
       "checkAutomatically": "ON_APP_START",
       "fallbackToCacheTimeout": 0,
       "requestHeaders": {
         "expo-channel-name": "production"
       }
-=======
-      "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 0
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     "extra": {
       "eas": {
         "projectId": "5a4eb93d-bd7e-4aec-93e4-637539f77742"
-      }
-<<<<<<< HEAD
-    },
-    "newArchEnabled": false,
-    "jsEngine": "hermes"
-=======
+      },
+      "apiBaseUrl": "https://baizhiji.net/api"
     }
->>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 }

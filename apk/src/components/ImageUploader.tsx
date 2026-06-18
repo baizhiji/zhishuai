@@ -9,12 +9,12 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
   Modal,
   ScrollView,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 
@@ -285,7 +285,7 @@ export default function ImageUploader({
                     <Image
                       source={{ uri: file.uri }}
                       style={styles.previewMedia}
-                      resizeMode="contain"
+                      contentFit="contain"
                     />
                   )}
                 </View>

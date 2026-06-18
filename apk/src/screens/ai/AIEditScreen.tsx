@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   View,
@@ -12,6 +11,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { apiClient } from '../../services/api.client';
+import * as ImagePicker from 'expo-image-picker';
 
 interface AIEditScreenProps {
   navigation: any;
@@ -21,33 +22,92 @@ export default function AIEditScreen({ navigation }: AIEditScreenProps) {
   const { theme } = useTheme();
   const [uploading, setUploading] = useState(false);
   const [videoUri, setVideoUri] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
-  const handleSelectVideo = () => {
-    // 模拟选择视频
-    Alert.alert('提示', '请从相册选择视频或使用摄像头录制');
+  const handleSelectVideo = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert('提示', '需要访问相册权限');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setVideoUri(result.assets[0].uri);
+        Alert.alert('成功', '视频已选择');
+      }
+    } catch (error) {
+      Alert.alert('提示', '选择视频失败，请重试');
+    }
   };
 
-  const handleStartEdit = () => {
+  const toggleOption = (id: string) => {
+    setSelectedOptions(prev =>
+      prev.includes(id) ? prev.filter(o => o !== id) : [...prev, id]
+    );
+  };
+
+  const handleStartEdit = async () => {
     if (!videoUri) {
       Alert.alert('提示', '请先选择视频素材');
       return;
     }
-    Alert.alert('提示', 'AI剪辑功能开发中...');
+    if (selectedOptions.length === 0) {
+      Alert.alert('提示', '请至少选择一个剪辑功能');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      // 尝试调用后端AI剪辑API
+      const response = await apiClient.post<any>('/ai/enhancement', {
+        videoUri,
+        operations: selectedOptions,
+      });
+
+      Alert.alert('处理完成', 'AI剪辑已完成！', [
+        { text: '查看结果', onPress: () => navigation.goBack() },
+      ]);
+    } catch (error: any) {
+      // API不可用时使用模拟处理
+      console.log('AI剪辑API不可用，使用模拟:', error.message);
+
+      // 模拟处理进度
+      setTimeout(() => {
+        setProcessing(false);
+        const operations = selectedOptions
+          .map(id => editOptions.find(o => o.id === id)?.title)
+          .filter(Boolean)
+          .join('、');
+
+        Alert.alert(
+          'AI剪辑完成（模拟）',
+          `已处理操作：${operations}\n\n视频处理结果将保存在素材库中。\n\n提示：完整AI剪辑功能需要部署后端视频处理服务。`,
+          [{ text: '确定', onPress: () => navigation.goBack() }]
+        );
+      }, 2000);
+    }
   };
 
   const editOptions = [
-    { id: 'auto', title: '自动剪辑', icon: 'sparkles-outline', desc: 'AI自动识别精彩片段' },
-    { id: 'subtitle', title: '添加字幕', icon: 'text-outline', desc: '智能识别语音生成字幕' },
-    { id: 'bgm', title: '替换背景音乐', icon: 'musical-notes-outline', desc: '替换或添加背景音乐' },
-    { id: 'speed', title: '变速剪辑', icon: 'speedometer-outline', desc: '调整视频播放速度' },
-    { id: 'filter', title: '滤镜调色', icon: 'color-filter-outline', desc: '一键美化视频色调' },
-    { id: 'caption', title: '片头片尾', icon: 'film-outline', desc: '添加片头片尾动画' },
+    { id: 'auto', title: '自动剪辑', icon: 'sparkles-outline', desc: 'AI自动识别精彩片段', color: '#3B82F6' },
+    { id: 'subtitle', title: '添加字幕', icon: 'text-outline', desc: '智能识别语音生成字幕', color: '#8B5CF6' },
+    { id: 'bgm', title: '替换背景音乐', icon: 'musical-notes-outline', desc: '替换或添加背景音乐', color: '#EC4899' },
+    { id: 'speed', title: '变速剪辑', icon: 'speedometer-outline', desc: '调整视频播放速度', color: '#F97316' },
+    { id: 'filter', title: '滤镜调色', icon: 'color-filter-outline', desc: '一键美化视频色调', color: '#10B981' },
+    { id: 'caption', title: '片头片尾', icon: 'film-outline', desc: '添加片头片尾动画', color: '#6366F1' },
   ];
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle="light-content" backgroundColor="#059669" />
-      
+
       {/* 头部 */}
       <View style={[styles.header, { backgroundColor: '#059669' }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -65,14 +125,17 @@ export default function AIEditScreen({ navigation }: AIEditScreenProps) {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* 视频选择区域 */}
         <View style={styles.videoSection}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.videoBox, { backgroundColor: theme.card, borderColor: theme.border }]}
             onPress={handleSelectVideo}
           >
             {videoUri ? (
               <View style={styles.videoPreview}>
-                <Ionicons name="videocam" size={48} color="#059669" />
+                <Ionicons name="checkmark-circle" size={48} color="#059669" />
                 <Text style={[styles.videoText, { color: theme.text }]}>视频已选择</Text>
+                <Text style={[styles.videoHint, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {videoUri.split('/').pop()}
+                </Text>
               </View>
             ) : (
               <View style={styles.videoPlaceholder}>
@@ -82,35 +145,60 @@ export default function AIEditScreen({ navigation }: AIEditScreenProps) {
               </View>
             )}
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={[styles.startButton, { backgroundColor: videoUri ? '#059669' : theme.border }]}
+            style={[
+              styles.startButton,
+              { backgroundColor: videoUri && selectedOptions.length > 0 ? '#059669' : theme.border },
+            ]}
             onPress={handleStartEdit}
-            disabled={!videoUri}
+            disabled={!videoUri || selectedOptions.length === 0 || processing}
           >
-            <Ionicons name="sparkles" size={20} color="#FFFFFF" />
+            {processing ? (
+              <ActivityIndicator color="#FFFFFF" style={{ marginRight: 8 }} />
+            ) : (
+              <Ionicons name="sparkles" size={20} color="#FFFFFF" />
+            )}
             <Text style={styles.startButtonText}>
-              {uploading ? '处理中...' : '开始AI剪辑'}
+              {processing ? 'AI处理中...' : '开始AI剪辑'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* 剪辑选项 */}
+        {/* 剪辑选项 - 可多选 */}
         <View style={styles.optionsSection}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>剪辑功能</Text>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
+            剪辑功能（可多选，已选 {selectedOptions.length} 项）
+          </Text>
           <View style={styles.optionsGrid}>
-            {editOptions.map((option) => (
-              <TouchableOpacity 
-                key={option.id}
-                style={[styles.optionCard, { backgroundColor: theme.card, borderColor: theme.border }]}
-                onPress={() => Alert.alert(option.title, option.desc)}
-              >
-                <View style={[styles.optionIcon, { backgroundColor: '#05966915' }]}>
-                  <Ionicons name={option.icon as any} size={24} color="#059669" />
-                </View>
-                <Text style={[styles.optionTitle, { color: theme.text }]}>{option.title}</Text>
-                <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>{option.desc}</Text>
-              </TouchableOpacity>
-            ))}
+            {editOptions.map((option) => {
+              const isSelected = selectedOptions.includes(option.id);
+              return (
+                <TouchableOpacity
+                  key={option.id}
+                  style={[
+                    styles.optionCard,
+                    {
+                      backgroundColor: theme.card,
+                      borderColor: isSelected ? option.color : theme.border,
+                      borderWidth: isSelected ? 2 : 1,
+                    },
+                  ]}
+                  onPress={() => toggleOption(option.id)}
+                >
+                  <View style={[styles.optionIcon, { backgroundColor: `${option.color}15` }]}>
+                    <Ionicons name={option.icon as any} size={24} color={option.color} />
+                  </View>
+                  <Text style={[styles.optionTitle, { color: theme.text }]}>{option.title}</Text>
+                  <Text style={[styles.optionDesc, { color: theme.textSecondary }]}>{option.desc}</Text>
+                  {isSelected && (
+                    <View style={[styles.checkBadge, { backgroundColor: option.color }]}>
+                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -124,7 +212,7 @@ export default function AIEditScreen({ navigation }: AIEditScreenProps) {
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="checkmark-circle" size={18} color="#059669" />
-              <Text style={[styles.tipText, { color: theme.textSecondary }]}>选择需要的剪辑功能</Text>
+              <Text style={[styles.tipText, { color: theme.textSecondary }]}>选择需要的剪辑功能（支持多选）</Text>
             </View>
             <View style={styles.tipItem}>
               <Ionicons name="checkmark-circle" size={18} color="#059669" />
@@ -174,7 +262,7 @@ const styles = StyleSheet.create({
   videoPlaceholder: { alignItems: 'center' },
   videoPreview: { alignItems: 'center' },
   videoText: { fontSize: 15, fontWeight: '500', marginTop: 8 },
-  videoHint: { fontSize: 12, marginTop: 4 },
+  videoHint: { fontSize: 12, marginTop: 4, maxWidth: '80%' },
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -195,7 +283,6 @@ const styles = StyleSheet.create({
     width: '47%',
     padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
   },
   optionIcon: {
     width: 44,
@@ -207,6 +294,16 @@ const styles = StyleSheet.create({
   },
   optionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
   optionDesc: { fontSize: 12 },
+  checkBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   tipsSection: { marginTop: 24, marginBottom: 40 },
   tipsBox: { padding: 16, borderRadius: 12, borderWidth: 1 },
   tipItem: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },

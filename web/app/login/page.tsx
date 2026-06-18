@@ -1,15 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, Input, Button, Card, message } from 'antd';
-<<<<<<< HEAD
-import {
-  LockOutlined,
-  MobileOutlined,
-} from '@ant-design/icons';
-=======
+import { Form, Input, Button, Card, message, Image } from 'antd';
 import { LockOutlined, MobileOutlined } from '@ant-design/icons';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import request from '@/lib/request';
@@ -18,17 +11,6 @@ export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
-<<<<<<< HEAD
-  const [selectedRole, setSelectedRole] = useState<'customer' | 'agent' | 'admin'>('customer');
-
-  // 根据角色返回首页路径
-  const getHomePath = (role: string) => {
-    switch (role) {
-      case 'admin': return '/admin/tenants';
-      case 'agent': return '/agent/tenants';
-      case 'customer': return '/customer/dashboard';
-      default: return '/customer/dashboard';
-=======
   const [selectedRole, setSelectedRole] = useState<'user' | 'agent' | 'admin'>('user');
 
   // 根据角色返回首页路径
@@ -43,7 +25,6 @@ export default function LoginPage() {
         return '/customer/dashboard';
       default:
         return '/customer/dashboard';
->>>>>>> 962968886be726cd434c792933b5515366d34518
     }
   };
 
@@ -55,24 +36,13 @@ export default function LoginPage() {
       const res = await request.post('/auth/login', {
         phone: values.phone,
         password: values.password,
-<<<<<<< HEAD
-=======
         loginType: selectedRole,
->>>>>>> 962968886be726cd434c792933b5515366d34518
       });
 
       if (res.data?.token && res.data?.user) {
         // 使用真实token和用户信息登录
         login(res.data.token, {
           ...res.data.user,
-<<<<<<< HEAD
-          status: 'active' as const
-        });
-        message.success('登录成功！');
-
-        setTimeout(() => {
-          router.push(getHomePath(res.data.user.role));
-=======
           status: 'active' as const,
         });
 
@@ -86,7 +56,6 @@ export default function LoginPage() {
 
         setTimeout(() => {
           router.push(getHomePath(targetRole));
->>>>>>> 962968886be726cd434c792933b5515366d34518
         }, 500);
       } else {
         throw new Error('登录响应格式错误');
@@ -100,53 +69,6 @@ export default function LoginPage() {
   };
 
   return (
-<<<<<<< HEAD
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: 20,
-    }}>
-      {/* 装饰圆形 */}
-      <div style={{
-        position: 'fixed',
-        top: '-10%',
-        left: '-5%',
-        width: '40%',
-        height: '60%',
-        background: 'rgba(255,255,255,0.1)',
-        borderRadius: '50%',
-      }} />
-      <div style={{
-        position: 'fixed',
-        bottom: '-10%',
-        right: '-5%',
-        width: '50%',
-        height: '70%',
-        background: 'rgba(255,255,255,0.05)',
-        borderRadius: '50%',
-      }} />
-      <div style={{
-        position: 'fixed',
-        top: '20%',
-        right: '10%',
-        width: 200,
-        height: 200,
-        background: 'rgba(255,255,255,0.08)',
-        borderRadius: '50%',
-      }} />
-      <div style={{
-        position: 'fixed',
-        bottom: '30%',
-        left: '15%',
-        width: 150,
-        height: 150,
-        background: 'rgba(255,255,255,0.06)',
-        borderRadius: '50%',
-      }} />
-=======
     <div
       style={{
         minHeight: '100vh',
@@ -202,7 +124,6 @@ export default function LoginPage() {
           borderRadius: '50%',
         }}
       />
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
       {/* 登录卡片 */}
       <Card
@@ -217,61 +138,22 @@ export default function LoginPage() {
       >
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-<<<<<<< HEAD
-          <div style={{
-            width: 72,
-            height: 72,
-            borderRadius: 20,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 16px',
-            boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)',
-          }}>
-            <svg viewBox="0 0 24 24" width="36" height="36" fill="#fff">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-            </svg>
-          </div>
-          <h1 style={{ fontSize: 28, fontWeight: 600, marginBottom: 4, color: '#1a1a2e' }}>智枢AI</h1>
-=======
-          <div
-            style={{
-              width: 72,
-              height: 72,
-              borderRadius: 20,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 16px',
-              boxShadow: '0 8px 32px rgba(102, 126, 234, 0.4)',
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="36" height="36" fill="#fff">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-            </svg>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="智枢AI"
+            width={72}
+            height={72}
+            preview={false}
+            style={{ borderRadius: 20, margin: '0 auto 16px', display: 'block' }}
+          />
           <h1 style={{ fontSize: 28, fontWeight: 600, marginBottom: 4, color: '#1a1a2e' }}>
             智枢AI
           </h1>
->>>>>>> 962968886be726cd434c792933b5515366d34518
-          <p style={{ color: '#8c8c8c', fontSize: 14, margin: 0 }}>智能内容创作与营销平台</p>
+          <p style={{ color: '#8c8c8c', fontSize: 14, margin: 0 }}>智能中枢 · AI驱动的一站式SaaS平台</p>
         </div>
 
         {/* 账号类型选择 */}
         <div style={{ marginBottom: 24 }}>
-<<<<<<< HEAD
-          <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#666' }}>账号类型</label>
-          <div style={{
-            display: 'flex',
-            background: '#f5f5f5',
-            borderRadius: 10,
-            padding: 4,
-          }}>
-            {[
-              { value: 'customer', label: '终端客户' },
-=======
           <label style={{ display: 'block', marginBottom: 8, fontSize: 13, color: '#666' }}>
             账号类型
           </label>
@@ -285,7 +167,6 @@ export default function LoginPage() {
           >
             {[
               { value: 'user', label: '终端客户' },
->>>>>>> 962968886be726cd434c792933b5515366d34518
               { value: 'agent', label: '区域代理' },
               { value: 'admin', label: '管理员' },
             ].map(item => (
@@ -313,24 +194,12 @@ export default function LoginPage() {
         </div>
 
         {/* 登录表单 */}
-<<<<<<< HEAD
-        <Form
-          name="password-login"
-          onFinish={handlePasswordLogin}
-          layout="vertical"
-        >
-=======
         <Form name="password-login" onFinish={handlePasswordLogin} layout="vertical">
->>>>>>> 962968886be726cd434c792933b5515366d34518
           <Form.Item
             name="phone"
             rules={[
               { required: true, message: '请输入手机号' },
-<<<<<<< HEAD
-              { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
-=======
               { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' },
->>>>>>> 962968886be726cd434c792933b5515366d34518
             ]}
           >
             <Input
@@ -373,17 +242,6 @@ export default function LoginPage() {
         </Form>
 
         {/* 底部提示 */}
-<<<<<<< HEAD
-        <div style={{
-          textAlign: 'center',
-          marginTop: 20,
-          paddingTop: 16,
-          borderTop: '1px solid #f0f0f0',
-        }}>
-          <p style={{ color: '#999', fontSize: 12, margin: 0 }}>
-            账号由管理员统一开通管理
-          </p>
-=======
         <div
           style={{
             textAlign: 'center',
@@ -393,7 +251,6 @@ export default function LoginPage() {
           }}
         >
           <p style={{ color: '#999', fontSize: 12, margin: 0 }}>账号由管理员统一开通管理</p>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         </div>
       </Card>
     </div>

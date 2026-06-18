@@ -1,83 +1,31 @@
 /**
- * Playwright 浏览器自动化服务
+ * Playwright 浏览器自动化服务 V2
+ * 整合 stealth.service 反检测能力
  * 用于模拟登录、自动填表、文件上传、消息发送等操作
  */
 
 import { chromium, Browser, BrowserContext, Page, chromium as playwright } from 'playwright';
 import * as qrcode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  getStealthLaunchArgs,
+  createStealthContext,
+  humanClick,
+  humanType as stealthHumanType,
+  humanScroll,
+  humanBrowse,
+  humanMouseMove,
+  adaptiveDelay,
+  adjustRateLimit,
+  saveCookies,
+  restoreCookies,
+  getRandomUserAgent,
+} from './stealth.service';
 
 // 浏览器实例缓存
 const browserInstances: Map<string, Browser> = new Map();
 const contextCache: Map<string, BrowserContext> = new Map();
 
-<<<<<<< HEAD
-// 平台配置
-export const PLATFORM_CONFIGS: Record<string, {
-  name: string;
-  loginUrl: string;
-  selectors: {
-    username?: string;
-    password?: string;
-    loginButton?: string;
-    qrContainer?: string;
-  };
-  oauth?: {
-    authorizeUrl: string;
-    tokenUrl: string;
-  };
-}> = {
-  douyin: {
-    name: '抖音',
-    loginUrl: 'https://creator.douyin.com/creator-micro/home',
-    selectors: {
-      qrContainer: '.qrcode-img-container'
-    }
-  },
-  kuaishou: {
-    name: '快手',
-    loginUrl: 'https://creator.kuaishou.com/profile',
-    selectors: {
-      qrContainer: '.qrcode-img'
-    }
-  },
-  xiaohongshu: {
-    name: '小红书',
-    loginUrl: 'https://creator.xiaohongshu.com/creator/post',
-    selectors: {
-      qrContainer: '.login-qrcode'
-    }
-  },
-  weibo: {
-    name: '微博',
-    loginUrl: 'https://weibo.com/',
-    selectors: {
-      username: 'input[name="username"]',
-      password: 'input[name="password"]',
-      loginButton: 'a[action-type="btnSubmit"]'
-    }
-  },
-  boss: {
-    name: 'BOSS直聘',
-    loginUrl: 'https://www.zhipin.com/web/geek/index',
-    selectors: {
-      qrContainer: '.qrcode-img'
-    }
-  },
-  lagou: {
-    name: '拉勾网',
-    loginUrl: 'https://www.lagou.com/',
-    selectors: {
-      qrContainer: '.qrcode'
-    }
-  },
-  zhipin: {
-    name: '智联招聘',
-    loginUrl: 'https://www.zhaopin.com/',
-    selectors: {
-      qrContainer: '.qrcode'
-    }
-=======
 // 浏览器会话缓存
 const browserSessions: Map<string, {
   browserId: string;
@@ -90,97 +38,131 @@ const browserSessions: Map<string, {
 // 平台配置 - 各平台OAuth扫码授权页面
 export const PLATFORM_CONFIGS: Record<string, {
   name: string;
-  // OAuth扫码授权页面URL（生成真实二维码）
+  loginUrl: string;
   oauthUrl: string;
-  // 回调地址
   redirectUri: string;
-  // OAuth参数
   oauthParams?: Record<string, string>;
-  // 二维码图片选择器
+  selectors: {
+    username?: string;
+    password?: string;
+    loginButton?: string;
+    qrContainer?: string;
+  };
   qrSelector: string;
-  // 页面加载后需要点击的按钮（如果二维码需要点击才显示）
   clickToShowQr?: string;
-  // 登录成功后检查的URL
   successUrlPattern?: string;
 }> = {
   douyin: {
     name: '抖音',
+    loginUrl: 'https://creator.douyin.com/creator-micro/home',
     oauthUrl: 'https://www.douyin.com/aweme/home',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/douyin',
+    selectors: {
+      qrContainer: '.qrcode-img-container'
+    },
     qrSelector: 'img[src*="qr"]',
     successUrlPattern: '/creator-micro/'
   },
   kuaishou: {
     name: '快手',
+    loginUrl: 'https://creator.kuaishou.com/profile',
     oauthUrl: 'https://open.kuaishou.com/platform/oauth/authorize',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/kuaishou',
+    selectors: {
+      qrContainer: '.qrcode-img'
+    },
     qrSelector: 'img.qrcode, .qrcode-img, canvas',
     successUrlPattern: '/profile'
   },
   xiaohongshu: {
     name: '小红书',
+    loginUrl: 'https://creator.xiaohongshu.com/creator/post',
     oauthUrl: 'https://creator.xiaohongshu.com/creator/post',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/xiaohongshu',
+    selectors: {
+      qrContainer: '.login-qrcode'
+    },
     qrSelector: '.login-qrcode, .qrcode, canvas',
     clickToShowQr: 'button:has-text("扫码登录")',
     successUrlPattern: '/creator/'
   },
   weibo: {
     name: '微博',
+    loginUrl: 'https://weibo.com/',
     oauthUrl: 'https://api.weibo.com/oauth2/authorize',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/weibo',
+    selectors: {
+      username: 'input[name="username"]',
+      password: 'input[name="password"]',
+      loginButton: 'a[action-type="btnSubmit"]'
+    },
     qrSelector: '.qrcode, img.qrcode-img, canvas',
     successUrlPattern: '/account/'
   },
   boss: {
     name: 'BOSS直聘',
+    loginUrl: 'https://www.zhipin.com/web/geek/index',
     oauthUrl: 'https://www.zhipin.com/web/geek/login',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/boss',
+    selectors: {
+      qrContainer: '.qrcode-img'
+    },
     qrSelector: '.qrcode, img.qrcode-img, canvas',
     successUrlPattern: '/web/geek/home'
   },
   channels: {
     name: '视频号',
+    loginUrl: 'https://channels.weixin.qq.com/login',
     oauthUrl: 'https://channels.weixin.qq.com/login',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/channels',
+    selectors: {},
     qrSelector: '.qrcode, img.qrcode-img, canvas',
     successUrlPattern: '/login'
   },
   zhihu: {
     name: '知乎',
+    loginUrl: 'https://www.zhihu.com/signin',
     oauthUrl: 'https://www.zhihu.com/signin',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/zhihu',
+    selectors: {},
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/people/'
   },
   baijiahao: {
     name: '百家号',
+    loginUrl: 'https://baijiahao.baidu.com/login',
     oauthUrl: 'https://baijiahao.baidu.com/login',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/baijiahao',
+    selectors: {},
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/'
   },
   toutiao: {
     name: '今日头条',
+    loginUrl: 'https://mp.toutiao.com/auth/page/login',
     oauthUrl: 'https://mp.toutiao.com/auth/page/login',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/toutiao',
+    selectors: {},
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/profile'
   },
   liepin: {
     name: '前程无忧',
+    loginUrl: 'https://www.liepin.com/login/',
     oauthUrl: 'https://www.liepin.com/login/',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/liepin',
+    selectors: {},
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/myaccount/'
   },
   zhilian: {
     name: '智联招聘',
+    loginUrl: 'https://www.zhaopin.com/login/',
     oauthUrl: 'https://www.zhaopin.com/login/',
     redirectUri: 'https://baizhiji.net/api/oauth/callback/zhilian',
+    selectors: {},
     qrSelector: '.qrcode, img.qrcode, canvas',
     successUrlPattern: '/jobs/'
->>>>>>> 962968886be726cd434c792933b5515366d34518
   }
 };
 
@@ -216,78 +198,36 @@ export interface TaskResult {
  */
 export async function createBrowser(userId: string): Promise<Browser> {
   const browserId = `browser-${userId}-${Date.now()}`;
-  
-<<<<<<< HEAD
-  const browser = await playwright.launch({
-    headless: true, // 生产环境设为 true
-    args: [
-      '--disable-blink-features=AutomationControlled',
-      '--disable-dev-shm-usage',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process'
-    ]
-  });
-  
-  browserInstances.set(browserId, browser);
-  return browser;
-=======
+
   // 设置 LD_LIBRARY_PATH 确保能找到 libgbm.so.1
   const libPath = '/usr/lib/x86_64-linux-gnu';
   const currentLibPath = process.env.LD_LIBRARY_PATH || '';
   if (!currentLibPath.includes(libPath)) {
     process.env.LD_LIBRARY_PATH = currentLibPath ? `${currentLibPath}:${libPath}` : libPath;
   }
-  
-  // 尝试修复 libgbm.so.1 缺失问题
+
   try {
     const browser = await playwright.launch({
       headless: true,
-      args: [
-        '--disable-blink-features=AutomationControlled',
-        '--disable-dev-shm-usage',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-        `--ld-path=${libPath}`
-      ]
+      args: getStealthLaunchArgs(),
     });
-    
+
     browserInstances.set(browserId, browser);
     return browser;
   } catch (error) {
-    // 如果启动失败，尝试使用 playwright-core 的 executablePath 指定 Chrome
     console.error('Playwright 启动失败:', error);
     throw error;
   }
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
 
 /**
- * 创建浏览器上下文（隔离环境）
+ * 创建浏览器上下文（隔离环境，使用 stealth 配置）
  */
 export async function createContext(browser: Browser, userId: string): Promise<BrowserContext> {
-  const context = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    ignoreHTTPSErrors: true,
-    javaScriptEnabled: true,
-    storageState: undefined
-  });
-  
-  const contextId = `context-${userId}-${Date.now()}`;
-  contextCache.set(contextId, context);
-  return context;
+  return createStealthContext(browser, { userId });
 }
 
 /**
-<<<<<<< HEAD
- * 生成登录二维码
- */
-export async function generateLoginQRCode(platform: string, sessionId: string): Promise<{
-=======
  * 启动扫码登录流程，获取真实二维码
  */
 export async function startQRCodeLogin(platform: string, sessionId: string): Promise<{
@@ -303,10 +243,7 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
   try {
     // 创建浏览器实例
     const browser = await createBrowser(`oauth-${sessionId}`);
-    const context = await browser.newContext({
-      viewport: { width: 1280, height: 720 },
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    });
+    const context = await createStealthContext(browser, { userId: `oauth-${sessionId}` });
     const page = await context.newPage();
 
     const browserId = `browser-${sessionId}`;
@@ -323,7 +260,7 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
 
     // 访问OAuth授权页面
     await page.goto(config.oauthUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    
+
     // 如果需要点击才显示二维码
     if (config.clickToShowQr) {
       try {
@@ -333,7 +270,7 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
         console.log('点击显示二维码失败，继续');
       }
     }
-    
+
     // 等待二维码容器出现
     const qrSelector = config.qrSelector;
     if (qrSelector) {
@@ -350,7 +287,7 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
 
     // 截取二维码区域
     let qrcodeUrl = '';
-    
+
     if (qrSelector) {
       try {
         // 尝试截取二维码元素
@@ -358,7 +295,7 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
         if (qrElement) {
           const screenshot = await qrElement.screenshot({ type: 'png' });
           // 正确处理 Buffer 类型转换为 base64
-          const base64Data = Buffer.isBuffer(screenshot) 
+          const base64Data = Buffer.isBuffer(screenshot)
             ? screenshot.toString('base64')
             : Buffer.from(screenshot).toString('base64');
           qrcodeUrl = `data:image/png;base64,${base64Data}`;
@@ -372,7 +309,7 @@ export async function startQRCodeLogin(platform: string, sessionId: string): Pro
     if (!qrcodeUrl) {
       const screenshot = await page.screenshot({ type: 'png', fullPage: false });
       // 正确处理 Buffer 类型转换为 base64
-      const base64Data = Buffer.isBuffer(screenshot) 
+      const base64Data = Buffer.isBuffer(screenshot)
         ? screenshot.toString('base64')
         : Buffer.from(screenshot).toString('base64');
       qrcodeUrl = `data:image/png;base64,${base64Data}`;
@@ -401,17 +338,17 @@ export async function checkLoginStatus(sessionId: string, platform: string): Pro
     }
 
     const page = await context.newPage();
-    
+
     // 获取登录成功选择器
     const loginSelectors = getLoginSuccessSelectors(platform);
-    
+
     for (const selector of loginSelectors) {
       try {
         await page.waitForSelector(selector, { timeout: 2000 });
         // 登录成功
         const cookies = await context.cookies();
         const accountInfo = await extractAccountInfo(page, platform);
-        
+
         return {
           success: true,
           cookies,
@@ -467,15 +404,14 @@ export function getLoginSuccessSelectors(platform: string): string[] {
     liepin: ['.login-qrcode', '.user-info'],
     zhilian: ['.login-qrcode', '.user-info']
   };
-  
+
   return selectors[platform] || ['body'];
 }
 
 /**
- * 生成登录二维码（旧的假二维码，用于兼容）
+ * 生成登录二维码（兼容旧版API）
  */
-export async function generateLoginQRCode_old(platform: string, sessionId: string): Promise<{
->>>>>>> 962968886be726cd434c792933b5515366d34518
+export async function generateLoginQRCode(platform: string, sessionId: string): Promise<{
   qrcodeUrl: string;
   qrcodeData: string;
 }> {
@@ -483,25 +419,17 @@ export async function generateLoginQRCode_old(platform: string, sessionId: strin
   if (!config) {
     throw new Error(`不支持的平台: ${platform}`);
   }
-  
-<<<<<<< HEAD
-  // 生成会话ID
+
   const state = uuidv4();
-  
-  // 生成二维码内容（包含授权URL或本地服务URL）
-  // 实际项目中，二维码应该链接到前端页面，前端页面再调用API进行扫码授权
-=======
-  const state = uuidv4();
-  
+
   // 生成二维码内容
->>>>>>> 962968886be726cd434c792933b5515366d34518
   const qrcodeData = JSON.stringify({
     sessionId,
     platform,
     state,
     timestamp: Date.now()
   });
-  
+
   // 生成二维码图片
   const qrcodeUrl = await qrcode.toDataURL(qrcodeData, {
     width: 200,
@@ -511,7 +439,7 @@ export async function generateLoginQRCode_old(platform: string, sessionId: strin
       light: '#ffffff'
     }
   });
-  
+
   return { qrcodeUrl, qrcodeData };
 }
 
@@ -523,25 +451,22 @@ export async function waitForLogin(page: Page, platform: string, timeout: number
   if (!config) {
     return { success: false, error: `不支持的平台: ${platform}` };
   }
-  
+
   try {
-    // 访问登录页面
-<<<<<<< HEAD
-    await page.goto(config.loginUrl, { waitUntil: 'networkidle', timeout: 30000 });
-=======
-    await page.goto(config.oauthUrl, { waitUntil: 'networkidle', timeout: 30000 });
->>>>>>> 962968886be726cd434c792933b5515366d34518
-    
+    // 访问登录页面（优先使用 oauthUrl，回退到 loginUrl）
+    const loginUrl = config.oauthUrl || config.loginUrl;
+    await page.goto(loginUrl, { waitUntil: 'networkidle', timeout: 30000 });
+
     // 等待登录成功（通过检测用户信息元素）
     const loginSelectors = getLoginSuccessSelectors(platform);
-    
+
     for (const selector of loginSelectors) {
       try {
         await page.waitForSelector(selector, { timeout: timeout / 2 });
         // 登录成功，获取cookies
         const cookies = await page.context().cookies();
         const accountInfo = await extractAccountInfo(page, platform);
-        
+
         return {
           success: true,
           cookies,
@@ -551,40 +476,20 @@ export async function waitForLogin(page: Page, platform: string, timeout: number
         // 继续尝试下一个选择器
       }
     }
-    
+
     return { success: false, error: '登录超时' };
-    
+
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
 /**
-<<<<<<< HEAD
- * 获取登录成功的检测选择器
- */
-function getLoginSuccessSelectors(platform: string): string[] {
-  const selectors: Record<string, string[]> = {
-    douyin: ['.creator-left-menu', '[data-e2e="creator-nav"]', '.user-info'],
-    kuaishou: ['.profile-header', '.user-name'],
-    xiaohongshu: ['.user-info', '.creator-header'],
-    weibo: ['.WB_frame .WB_main_login'],
-    boss: ['.boss-header', '.user-info'],
-    lagou: ['.user-logo', '.header-user-info'],
-    zhipin: ['.user-info', '.header-user']
-  };
-  
-  return selectors[platform] || ['body'];
-}
-
-/**
-=======
->>>>>>> 962968886be726cd434c792933b5515366d34518
  * 提取账号信息
  */
 async function extractAccountInfo(page: Page, platform: string): Promise<any> {
   const info: any = {};
-  
+
   try {
     // 尝试获取用户名
     const nameSelectors = [
@@ -593,7 +498,7 @@ async function extractAccountInfo(page: Page, platform: string): Promise<any> {
       '[class*="name"]',
       '[class*="user"]'
     ];
-    
+
     for (const selector of nameSelectors) {
       const element = await page.$(selector);
       if (element) {
@@ -601,14 +506,14 @@ async function extractAccountInfo(page: Page, platform: string): Promise<any> {
         break;
       }
     }
-    
+
     // 尝试获取头像
     const avatarSelectors = [
       'img.avatar',
       'img[class*="avatar"]',
       '[class*="avatar"] img'
     ];
-    
+
     for (const selector of avatarSelectors) {
       const element = await page.$(selector);
       if (element) {
@@ -616,11 +521,11 @@ async function extractAccountInfo(page: Page, platform: string): Promise<any> {
         break;
       }
     }
-    
+
   } catch (e) {
     // 忽略错误
   }
-  
+
   return info;
 }
 
@@ -782,7 +687,7 @@ export async function cleanupAll(): Promise<void> {
     await context.close();
   }
   contextCache.clear();
-  
+
   for (const browser of browserInstances.values()) {
     await browser.close();
   }
@@ -803,15 +708,12 @@ export async function randomDelay(min: number = 1000, max: number = 3000): Promi
 export async function humanType(page: Page, selector: string, text: string): Promise<void> {
   await page.click(selector);
   await page.fill(selector, '');
-  
+
   for (const char of text) {
     await page.keyboard.type(char, { delay: Math.random() * 100 + 50 });
     await randomDelay(30, 80);
   }
 }
-<<<<<<< HEAD
-=======
 
 // 从 platform-adapter 重新导出 getAdapter
 export { getAdapter } from './platform-adapter';
->>>>>>> 962968886be726cd434c792933b5515366d34518

@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-'use client'
-
-import React, { useState } from 'react'
-=======
 'use client';
 
-import React, { useState } from 'react';
->>>>>>> 962968886be726cd434c792933b5515366d34518
+import React, { useState, useEffect } from 'react';
 import {
   Card,
   Row,
@@ -22,187 +16,48 @@ import {
   message,
   Tabs,
   Table,
-<<<<<<< HEAD
-  Tag
-} from 'antd'
-=======
   Tag,
 } from 'antd';
->>>>>>> 962968886be726cd434c792933b5515366d34518
 import {
   SaveOutlined,
   BellOutlined,
   GlobalOutlined,
   LockOutlined,
-<<<<<<< HEAD
-  SettingOutlined
-} from '@ant-design/icons'
-import type { ColumnsType } from 'antd/es/table'
-
-const { Title, Text } = Typography
-
-// Mock 日志数据
-const mockLogs = [
-  { key: '1', time: '2024-04-30 14:30:25', user: 'admin', action: '贴牌配置', detail: '修改APP名称为"智枢AI"', ip: '192.168.1.100' },
-  { key: '2', time: '2024-04-30 13:45:10', user: 'agent_华东', action: '客户管理', detail: '新增客户"张三"', ip: '192.168.1.101' },
-  { key: '3', time: '2024-04-30 12:20:33', user: 'agent_华南', action: '功能开关', detail: '开启自媒体运营功能', ip: '192.168.1.102' },
-  { key: '4', time: '2024-04-30 11:15:08', user: 'admin', action: '租户管理', detail: '冻结客户"李四"', ip: '192.168.1.100' },
-  { key: '5', time: '2024-04-30 10:30:45', user: 'agent_西南', action: '客户管理', detail: '重置客户密码', ip: '192.168.1.103' },
-  { key: '6', time: '2024-04-29 16:45:22', user: 'admin', action: '代理商管理', detail: '创建区域代理"西北代理"', ip: '192.168.1.100' },
-  { key: '7', time: '2024-04-29 15:20:11', user: 'agent_华北', action: '功能开关', detail: '批量开启招聘助手功能', ip: '192.168.1.104' },
-  { key: '8', time: '2024-04-29 14:05:38', user: 'admin', action: '系统配置', detail: '更新热更新版本v2.1.0', ip: '192.168.1.100' },
-  { key: '9', time: '2024-04-29 11:30:55', user: 'agent_华东', action: '客户管理', detail: '设置套餐到期时间', ip: '192.168.1.101' },
-  { key: '10', time: '2024-04-29 10:15:42', user: 'admin', action: '公告管理', detail: '发布系统公告v3.2', ip: '192.168.1.100' }
-]
-
-const logColumns: ColumnsType<typeof mockLogs[0]> = [
-=======
   SettingOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
 const { Title, Text } = Typography;
 
-// Mock 日志数据
-const mockLogs = [
-  {
-    key: '1',
-    time: '2024-04-30 14:30:25',
-    user: 'admin',
-    action: '贴牌配置',
-    detail: '修改APP名称为"智枢AI"',
-    ip: '192.168.1.100',
-  },
-  {
-    key: '2',
-    time: '2024-04-30 13:45:10',
-    user: 'agent_华东',
-    action: '客户管理',
-    detail: '新增客户"张三"',
-    ip: '192.168.1.101',
-  },
-  {
-    key: '3',
-    time: '2024-04-30 12:20:33',
-    user: 'agent_华南',
-    action: '功能开关',
-    detail: '开启自媒体运营功能',
-    ip: '192.168.1.102',
-  },
-  {
-    key: '4',
-    time: '2024-04-30 11:15:08',
-    user: 'admin',
-    action: '租户管理',
-    detail: '冻结客户"李四"',
-    ip: '192.168.1.100',
-  },
-  {
-    key: '5',
-    time: '2024-04-30 10:30:45',
-    user: 'agent_西南',
-    action: '客户管理',
-    detail: '重置客户密码',
-    ip: '192.168.1.103',
-  },
-  {
-    key: '6',
-    time: '2024-04-29 16:45:22',
-    user: 'admin',
-    action: '代理商管理',
-    detail: '创建区域代理"西北代理"',
-    ip: '192.168.1.100',
-  },
-  {
-    key: '7',
-    time: '2024-04-29 15:20:11',
-    user: 'agent_华北',
-    action: '功能开关',
-    detail: '批量开启招聘助手功能',
-    ip: '192.168.1.104',
-  },
-  {
-    key: '8',
-    time: '2024-04-29 14:05:38',
-    user: 'admin',
-    action: '系统配置',
-    detail: '更新热更新版本v2.1.0',
-    ip: '192.168.1.100',
-  },
-  {
-    key: '9',
-    time: '2024-04-29 11:30:55',
-    user: 'agent_华东',
-    action: '客户管理',
-    detail: '设置套餐到期时间',
-    ip: '192.168.1.101',
-  },
-  {
-    key: '10',
-    time: '2024-04-29 10:15:42',
-    user: 'admin',
-    action: '公告管理',
-    detail: '发布系统公告v3.2',
-    ip: '192.168.1.100',
-  },
-];
-
-const logColumns: ColumnsType<(typeof mockLogs)[0]> = [
->>>>>>> 962968886be726cd434c792933b5515366d34518
+const logColumns: ColumnsType<any> = [
   {
     title: '时间',
     dataIndex: 'time',
     key: 'time',
-<<<<<<< HEAD
-    width: 180
-=======
     width: 180,
->>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     title: '操作用户',
     dataIndex: 'user',
     key: 'user',
     width: 120,
-<<<<<<< HEAD
-    render: (text) => <Tag color={text === 'admin' ? 'red' : 'blue'}>{text}</Tag>
-=======
     render: text => <Tag color={text === 'admin' ? 'red' : 'blue'}>{text}</Tag>,
->>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     title: '操作类型',
     dataIndex: 'action',
     key: 'action',
-<<<<<<< HEAD
-    width: 120
-=======
     width: 120,
->>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     title: '操作详情',
     dataIndex: 'detail',
-<<<<<<< HEAD
-    key: 'detail'
-=======
     key: 'detail',
->>>>>>> 962968886be726cd434c792933b5515366d34518
   },
   {
     title: 'IP地址',
     dataIndex: 'ip',
     key: 'ip',
-<<<<<<< HEAD
-    width: 140
-  }
-]
-
-export default function SystemConfig() {
-  const [systemForm] = Form.useForm()
-  const [securityForm] = Form.useForm()
-  const [announcementForm] = Form.useForm()
-=======
     width: 140,
   },
 ];
@@ -211,46 +66,82 @@ export default function SystemConfig() {
   const [systemForm] = Form.useForm();
   const [securityForm] = Form.useForm();
   const [announcementForm] = Form.useForm();
->>>>>>> 962968886be726cd434c792933b5515366d34518
+  const [logs, setLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [configLoading, setConfigLoading] = useState(true);
 
-  // 保存系统配置
-  const handleSaveSystem = () => {
-    systemForm.validateFields().then(() => {
-<<<<<<< HEAD
-      message.success('系统配置已保存')
-    })
-  }
-=======
+  // 加载系统配置
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const { default: request } = await import('@/utils/request');
+        const res = await request.get('/api/admin/config');
+        if (res) {
+          systemForm.setFieldsValue(res.system || {});
+          securityForm.setFieldsValue(res.security || {});
+        }
+      } catch {
+        // 使用默认值
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    loadConfig();
+  }, []);
+
+  // 加载操作日志
+  const fetchLogs = async () => {
+    setLogsLoading(true);
+    try {
+      const { default: request } = await import('@/utils/request');
+      const res = await request.get('/api/admin/logs');
+      setLogs(Array.isArray(res) ? res : (res?.data || res?.logs || []));
+    } catch {
+      setLogs([]);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  // 保存系统配置 - 调用 API
+  const handleSaveSystem = async () => {
+    try {
+      const values = await systemForm.validateFields();
+      const { default: request } = await import('@/utils/request');
+      await request.put('/api/admin/config/system', values);
       message.success('系统配置已保存');
-    });
+    } catch {
+      message.error('保存失败');
+    }
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
-  // 保存安全设置
-  const handleSaveSecurity = () => {
-    securityForm.validateFields().then(() => {
-<<<<<<< HEAD
-      message.success('安全设置已保存')
-    })
-  }
-=======
+  // 保存安全设置 - 调用 API
+  const handleSaveSecurity = async () => {
+    try {
+      const values = await securityForm.validateFields();
+      const { default: request } = await import('@/utils/request');
+      await request.put('/api/admin/config/security', values);
       message.success('安全设置已保存');
-    });
+    } catch {
+      message.error('保存失败');
+    }
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
-  // 保存公告
-  const handleSaveAnnouncement = () => {
-    announcementForm.validateFields().then(() => {
-<<<<<<< HEAD
-      message.success('公告已发布')
-    })
-  }
-=======
+  // 保存公告 - 调用 API
+  const handleSaveAnnouncement = async () => {
+    try {
+      const values = await announcementForm.validateFields();
+      const { default: request } = await import('@/utils/request');
+      await request.post('/api/admin/config/announcement', values);
       message.success('公告已发布');
-    });
+    } catch {
+      message.error('发布失败');
+    }
   };
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   const tabItems = [
     {
@@ -271,11 +162,7 @@ export default function SystemConfig() {
               updateUrl: 'https://update.baizhiji.com',
               maintenanceMode: false,
               maxUploadSize: 50,
-<<<<<<< HEAD
-              allowedFileTypes: 'jpg,png,pdf,doc,docx'
-=======
               allowedFileTypes: 'jpg,png,pdf,doc,docx',
->>>>>>> 962968886be726cd434c792933b5515366d34518
             }}
           >
             <Row gutter={24}>
@@ -321,11 +208,7 @@ export default function SystemConfig() {
             </Form.Item>
           </Form>
         </Card>
-<<<<<<< HEAD
-      )
-=======
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       key: 'security',
@@ -345,11 +228,7 @@ export default function SystemConfig() {
               passwordRequireSpecial: true,
               sessionTimeout: 30,
               loginWhiteList: '',
-<<<<<<< HEAD
-              ipLockThreshold: 10
-=======
               ipLockThreshold: 10,
->>>>>>> 962968886be726cd434c792933b5515366d34518
             }}
           >
             <Divider>密码策略</Divider>
@@ -361,15 +240,11 @@ export default function SystemConfig() {
                 </Form.Item>
               </Col>
               <Col span={12}>
-<<<<<<< HEAD
-                <Form.Item label="必须包含特殊字符" name="passwordRequireSpecial" valuePropName="checked">
-=======
                 <Form.Item
                   label="必须包含特殊字符"
                   name="passwordRequireSpecial"
                   valuePropName="checked"
                 >
->>>>>>> 962968886be726cd434c792933b5515366d34518
                   <Switch />
                 </Form.Item>
               </Col>
@@ -401,11 +276,7 @@ export default function SystemConfig() {
             </Form.Item>
           </Form>
         </Card>
-<<<<<<< HEAD
-      )
-=======
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       key: 'announcement',
@@ -417,14 +288,7 @@ export default function SystemConfig() {
       ),
       children: (
         <Card>
-<<<<<<< HEAD
-          <Form
-            form={announcementForm}
-            layout="vertical"
-          >
-=======
           <Form form={announcementForm} layout="vertical">
->>>>>>> 962968886be726cd434c792933b5515366d34518
             <Form.Item label="公告标题" name="title" rules={[{ required: true }]}>
               <Input placeholder="如：系统升级通知" />
             </Form.Item>
@@ -435,11 +299,7 @@ export default function SystemConfig() {
                   { value: 'info', label: '通知' },
                   { value: 'warning', label: '警告' },
                   { value: 'success', label: '成功' },
-<<<<<<< HEAD
-                  { value: 'error', label: '错误' }
-=======
                   { value: 'error', label: '错误' },
->>>>>>> 962968886be726cd434c792933b5515366d34518
                 ]}
               />
             </Form.Item>
@@ -466,11 +326,7 @@ export default function SystemConfig() {
             </Form.Item>
           </Form>
         </Card>
-<<<<<<< HEAD
-      )
-=======
       ),
->>>>>>> 962968886be726cd434c792933b5515366d34518
     },
     {
       key: 'logs',
@@ -485,38 +341,25 @@ export default function SystemConfig() {
           <Table
             rowKey="key"
             columns={logColumns}
-            dataSource={mockLogs}
+            dataSource={logs}
+            loading={logsLoading}
             pagination={{ pageSize: 10 }}
           />
         </Card>
-<<<<<<< HEAD
-      )
-    }
-  ]
-=======
       ),
     },
   ];
->>>>>>> 962968886be726cd434c792933b5515366d34518
 
   return (
     <div className="p-6">
       <div className="mb-6">
-<<<<<<< HEAD
-        <Title level={2} className="mb-2">系统配置</Title>
-=======
         <Title level={2} className="mb-2">
           系统配置
         </Title>
->>>>>>> 962968886be726cd434c792933b5515366d34518
         <Text type="secondary">热更新版本管理、全局公告、安全设置、操作日志</Text>
       </div>
 
       <Tabs items={tabItems} />
     </div>
-<<<<<<< HEAD
-  )
-=======
   );
->>>>>>> 962968886be726cd434c792933b5515366d34518
 }
