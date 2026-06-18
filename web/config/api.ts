@@ -18,8 +18,8 @@ const getBaseURL = () => {
     return 'http://localhost:3001/api';
   }
   
-  // 生产环境默认
-  return 'http://43.129.16.148:3001/api';
+  // 生产环境默认（通过 Nginx 反向代理）
+  return '/api';
 };
 
 export const API_CONFIG = {
