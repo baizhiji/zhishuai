@@ -12,6 +12,18 @@ const loginFailMap = new Map<string, { count: number; lockedUntil: number }>();
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION = 15 * 60 * 1000; // 15分钟
 
+// 从 User-Agent 解析设备名称
+function parseDeviceFromUA(ua: string): string {
+  if (!ua) return '未知设备';
+  if (ua.includes('iPhone')) return 'iPhone';
+  if (ua.includes('iPad')) return 'iPad';
+  if (ua.includes('Android')) return 'Android 手机';
+  if (ua.includes('Windows NT')) return 'Windows 电脑';
+  if (ua.includes('Mac OS')) return 'Mac 电脑';
+  if (ua.includes('Linux')) return 'Linux 设备';
+  return '未知设备';
+}
+
 // Cookie配置
 const isProduction = process.env.NODE_ENV === 'production';
 const COOKIE_OPTIONS = {
@@ -406,6 +418,27 @@ router.post('/login', validate(loginSchema), async (req: Request, res: Response)
 
     // 登录成功，清除失败计数
     loginFailMap.delete(phone);
+
+    // 记录登录日志
+    const deviceId = req.headers['x-device-id'] as string || `web_${req.ip}_${Date.now()}`;
+    const deviceName = req.headers['x-device-name'] as string || parseDeviceFromUA(req.headers['user-agent'] || '');
+    try {
+      await prisma.loginLog.create({
+        data: {
+          userId: user.id,
+          ip: req.ip || '',
+          device: req.headers['user-agent'] || '',
+          deviceId,
+          deviceName,
+          status: 'success',
+          token,
+          isActive: true,
+        },
+      });
+    } catch (e) {
+      // 日志记录失败不影响登录流程
+      console.warn('记录登录日志失败:', e);
+    }
 
     setTokenResponse(res, token, {
       user: {

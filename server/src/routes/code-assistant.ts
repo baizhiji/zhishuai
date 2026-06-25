@@ -26,16 +26,20 @@ import { prisma } from '../utils/db';
 
 const router = Router();
 
-// 获取用户API Key（优先使用用户自己配置的Key，fallback到环境变量）
-async function getUserApiKey(userId: string, provider: 'aliyun' | 'tencent'): Promise<string | null> {
+// 获取用户API Key（优先使用用户自己配置的Key，仅管理员可fallback到环境变量）
+async function getUserApiKey(userId: string, provider: 'aliyun' | 'tencent', userRole?: string): Promise<string | null> {
   const providerKey = provider === 'aliyun' ? 'dashscope' : 'tokenhub';
   const userKey = await getPrimaryApiKey(userId, providerKey);
   if (userKey?.apiKey) {
     return userKey.apiKey;
   }
+  // 仅管理员可使用平台全局Key（环境变量），普通用户必须自己配置API Key
+  if (userRole !== 'admin') {
+    return null;
+  }
   return provider === 'aliyun' 
-    ? process.env.DASHSCOPE_API_KEY 
-    : process.env.TENCENT_TOKENHUB_API_KEY;
+    ? process.env.DASHSCOPE_API_KEY || null
+    : process.env.TENCENT_TOKENHUB_API_KEY || null;
 }
 
 // ============ 流式响应超时配置 ============
@@ -207,6 +211,7 @@ async function saveConversation(
 
 async function callAIProviderWithRetry(
   userId: string,
+  userRole: string,
   provider: 'aliyun' | 'tencent',
   modelId: string,
   messages: ChatMessage[],
@@ -223,8 +228,8 @@ async function callAIProviderWithRetry(
         if (fallback) {
           modelId = aiModelRouter.getModelInfo(fallback.modelKey)?.id || modelId;
           provider = fallback.provider as 'aliyun' | 'tencent';
-          // 使用 getUserApiKey 获取 API Key（此处需要userId）
-          apiKey = await getUserApiKey(userId || 'system', provider) || apiKey;
+          // 使用 getUserApiKey 获取 API Key（仅admin可fallback到平台Key）
+          apiKey = await getUserApiKey(userId || 'system', provider, userRole) || apiKey;
           console.log(`[编程助手] 重试降级到模型: ${modelId} (${provider})`);
         }
         await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS * attempt));
@@ -493,6 +498,7 @@ async function handleCodeRequest(req: Request, res: Response, taskType: string) 
 
   try {
     const userId = (req as AuthRequest).userId!;
+    const userRole = (req as AuthRequest).userRole!;
     const {
       messages,
       language = 'javascript',
@@ -536,8 +542,8 @@ async function handleCodeRequest(req: Request, res: Response, taskType: string) 
       modelId = modelInfo?.id || 'glm-5';
     }
 
-    // 获取 API Key（优先使用用户自己配置的Key）
-    const apiKey = await getUserApiKey(userId, provider);
+    // 获取 API Key（优先使用用户自己配置的Key，仅admin可fallback到平台Key）
+    const apiKey = await getUserApiKey(userId, provider, userRole);
 
 
     if (!apiKey) {
@@ -564,7 +570,7 @@ async function handleCodeRequest(req: Request, res: Response, taskType: string) 
       const userMessage = messages[messages.length - 1]?.content || '';
 
       try {
-        const streamResponse = await callAIProviderWithRetry(userId, provider, modelId, processedMessages, apiKey, true) as AsyncIterable<string>;
+        const streamResponse = await callAIProviderWithRetry(userId, userRole, provider, modelId, processedMessages, apiKey, true) as AsyncIterable<string>;
 
         // 设置流式超时
         const streamTimeout = setTimeout(() => {
@@ -619,7 +625,7 @@ async function handleCodeRequest(req: Request, res: Response, taskType: string) 
     } else {
       // 非流式响应
       try {
-        const content = await callAIProviderWithRetry(userId, provider, modelId, processedMessages, apiKey, false) as string;
+        const content = await callAIProviderWithRetry(userId, userRole, provider, modelId, processedMessages, apiKey, false) as string;
         const duration = Date.now() - startTime;
         const userMessage = messages[messages.length - 1]?.content || '';
 

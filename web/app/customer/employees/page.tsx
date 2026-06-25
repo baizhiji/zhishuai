@@ -33,6 +33,7 @@ import {
   deleteEmployee,
   type Employee,
 } from '@/services/employee';
+import { useAuth } from '@/contexts/AuthContext';
 
 const { Option } = Select;
 
@@ -59,8 +60,9 @@ export default function EmployeeManagementPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [form] = Form.useForm();
 
-  // 获取当前用户ID（从 localStorage 或 context）
-  const currentUserId = 'demo-user'; // TODO: 从登录状态获取
+  // 获取当前用户ID（从 Auth Context 获取登录状态）
+  const { user } = useAuth();
+  const currentUserId = user?.id || '';
 
   useEffect(() => {
     loadEmployees();

@@ -1,0 +1,48 @@
+{
+  "version": "5",
+  "dialect": "mysql",
+  "tables": [
+    {
+      "tableName": "LoginLog",
+      "columns": [
+        {"name": "id", "type": "varchar(191)", "nullable": false, "isPrimaryKey": true},
+        {"name": "userId", "type": "varchar(191)", "nullable": false},
+        {"name": "ip", "type": "varchar(191)", "nullable": true},
+        {"name": "device", "type": "varchar(191)", "nullable": true},
+        {"name": "deviceId", "type": "varchar(191)", "nullable": true},
+        {"name": "deviceName", "type": "varchar(191)", "nullable": true},
+        {"name": "location", "type": "varchar(191)", "nullable": true},
+        {"name": "loginAt", "type": "datetime(3)", "nullable": false},
+        {"name": "status", "type": "varchar(191)", "nullable": false},
+        {"name": "token", "type": "varchar(191)", "nullable": true},
+        {"name": "isActive", "type": "boolean", "nullable": false}
+      ],
+      "foreignKeys": [
+        {"name": "LoginLog_userId_fkey", "columns": ["userId"], "referencedTable": "User", "referencedColumns": ["id"], "onDelete": "Cascade", "onUpdate": "Cascade"}
+      ],
+      "indices": [
+        {"name": "LoginLog_userId_idx", "columns": ["userId"]},
+        {"name": "LoginLog_deviceId_idx", "columns": ["deviceId"]},
+        {"name": "LoginLog_isActive_idx", "columns": ["isActive"]},
+        {"name": "LoginLog_loginAt_idx", "columns": ["loginAt"]}
+      ]
+    }
+  ],
+  "schema": "prisma/schema.prisma",
+  "steps": [
+    {
+      "tag": "CreateTable",
+      "object": "LoginLog"
+    },
+    {
+      "tag": "AlterTable",
+      "object": "ScheduledTask",
+      "column": "materialId"
+    },
+    {
+      "tag": "AlterTable",
+      "object": "ScheduledTask",
+      "column": "publishRecordId"
+    }
+  ]
+}

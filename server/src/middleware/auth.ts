@@ -16,6 +16,7 @@ export interface AuthRequest extends Request {
   userId?: string;
   userRole?: string;
   userStatus?: string;
+  deviceId?: string;
 }
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -39,6 +40,7 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     req.userId = decoded.userId;
     req.userRole = decoded.role;
     req.userStatus = decoded.status || 'active';
+    req.deviceId = req.headers['x-device-id'] as string || '';
     
     if (req.userStatus !== 'active') {
       return res.status(403).json({ error: '账号已被冻结，请联系管理员' });

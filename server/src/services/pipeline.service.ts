@@ -164,11 +164,11 @@ async function callModel(
     const autoSelect = aiModelRouter.selectModel('chat');
     const modelInfo = aiModelRouter.getModelInfo(autoSelect.modelKey);
     if (modelInfo) {
-      const result = await callProvider(modelInfo.provider as 'tencent' | 'aliyun', modelInfo.id, messages, options);
+      const result = await callProvider(modelInfo.provider as 'tencent' | 'aliyun', modelInfo.id, messages, { ...options, userId: options.userId });
       return { ...result, modelKey: autoSelect.modelKey, isFallback: false };
     }
     // 兜底
-    return callProvider('tencent', 'hunyuan-2.0-instruct-20251111', messages, options).then(r => ({ ...r, modelKey: 'hunyuan_instruct', isFallback: false }));
+    return callProvider('tencent', 'hunyuan-2.0-instruct-20251111', messages, { ...options, userId: options.userId }).then(r => ({ ...r, modelKey: 'hunyuan_instruct', isFallback: false }));
   }
 
   // 获取主模型信息
@@ -189,7 +189,7 @@ async function callModel(
         primaryModelInfo.provider as 'tencent' | 'aliyun',
         primaryModelInfo.id,
         messages,
-        options,
+        { maxTokens: options.maxTokens, temperature: options.temperature, stream: options.stream, userId: options.userId },
       );
       aiModelRouter.decrementConcurrent(assignment.primary.modelKey);
       return { ...result, modelKey: assignment.primary.modelKey, isFallback: false };
@@ -210,7 +210,7 @@ async function callModel(
         fallbackModelInfo.provider as 'tencent' | 'aliyun',
         fallbackModelInfo.id,
         messages,
-        options,
+        { maxTokens: options.maxTokens, temperature: options.temperature, stream: options.stream, userId: options.userId },
       );
       aiModelRouter.decrementConcurrent(assignment.fallback.modelKey);
       return { ...result, modelKey: assignment.fallback.modelKey, isFallback: true };
@@ -231,7 +231,7 @@ async function callModel(
           fallbackInfo.provider as 'tencent' | 'aliyun',
           fallbackInfo.id,
           messages,
-          options,
+          { maxTokens: options.maxTokens, temperature: options.temperature, stream: options.stream, userId: options.userId },
         );
         return { ...result, modelKey: fallback.modelKey, isFallback: true };
       } catch (e) {
@@ -254,10 +254,26 @@ async function callProvider(
     maxTokens?: number;
     temperature?: number;
     stream?: boolean;
+    userId?: string;
   } = {},
 ): Promise<{ content: string; model: string; provider: string }> {
   const config = API_CONFIGS[provider];
-  const apiKey = process.env[config.apiKeyEnv as keyof typeof process.env];
+  
+  // 获取API Key：优先用户自己配置的，仅admin可fallback到环境变量
+  let apiKey: string | undefined;
+  if (options.userId && options.userId !== 'system') {
+    // 真实用户：优先使用用户自己的Key
+    const { getPrimaryApiKey } = await import('./user-api-key.service');
+    const providerKey = provider === 'aliyun' ? 'dashscope' : 'tokenhub';
+    const userKey = await getPrimaryApiKey(options.userId, providerKey);
+    if (userKey?.apiKey) {
+      apiKey = userKey.apiKey;
+    }
+  }
+  // Fallback到环境变量（仅系统调用或admin用户）
+  if (!apiKey) {
+    apiKey = process.env[config.apiKeyEnv as keyof typeof process.env] as string | undefined;
+  }
 
   if (!apiKey) {
     throw new Error(`${provider === 'tencent' ? '腾讯云TokenHub' : '阿里云百炼'} API Key 未配置`);

@@ -501,11 +501,24 @@ const server = app.listen(PORT, () => {
   }).catch(err => {
     logger.error({ err }, 'Failed to start scheduler');
   });
+
+  // 启动 Cookie 自动监控服务（定时检测 + 自动刷新）
+  import('./services/cookie-monitor.service' as any).then(({ startCookieMonitor }: any) => {
+    startCookieMonitor();
+  }).catch(err => {
+    logger.warn({ err: (err as Error).message }, 'Cookie monitor not started (Playwright may not be installed)');
+  });
 });
 
 // Graceful Shutdown
 const shutdown = async (signal: string) => {
   logger.info({ signal }, 'Shutting down gracefully...');
+
+  // 停止 Cookie 监控
+  import('./services/cookie-monitor.service' as any).then(({ stopCookieMonitor }: any) => {
+    stopCookieMonitor();
+  }).catch(() => {});
+
   server.close(() => {
     logger.info('HTTP server closed');
   });

@@ -1,16 +1,16 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
-import { sendPushToUser, sendPushToUsers } from '../services/push-service';
+import { sendPushToUser, sendPushToUsers, getUnreadCount } from '../services/push-service';
 
 const router = Router();
 
 // ============ 推送Token注册 ============
 
-// 注册/更新推送Token
+// 注册/更新推送Token（支持多设备）
 router.post('/push-token', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
   const userId = (req as any).userId;
-  const { token, platform } = req.body;
+  const { token, platform, deviceId } = req.body;
 
   if (!token) {
     res.status(400).json({ code: 400, message: 'token不能为空' });
@@ -23,6 +23,7 @@ router.post('/push-token', authMiddleware, async (req: Request, res: Response) =
   }
 
   try {
+    // 更新用户的推送Token
     await prisma.user.update({
       where: { id: userId },
       data: {
@@ -32,6 +33,7 @@ router.post('/push-token', authMiddleware, async (req: Request, res: Response) =
       },
     });
 
+    console.info(`推送Token已注册: userId=${userId}, platform=${platform}`);
     res.json({ code: 0, message: '推送Token注册成功' });
   } catch (error) {
     console.error('注册推送Token失败:', error);
@@ -39,7 +41,7 @@ router.post('/push-token', authMiddleware, async (req: Request, res: Response) =
   }
 });
 
-// 注销推送Token
+// 注销推送Token（登出或卸载时调用）
 router.delete('/push-token', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
   const userId = (req as any).userId;
@@ -54,6 +56,7 @@ router.delete('/push-token', authMiddleware, async (req: Request, res: Response)
       },
     });
 
+    console.info(`推送Token已注销: userId=${userId}`);
     res.json({ code: 0, message: '推送Token已注销' });
   } catch (error) {
     console.error('注销推送Token失败:', error);
@@ -61,7 +64,7 @@ router.delete('/push-token', authMiddleware, async (req: Request, res: Response)
   }
 });
 
-// ============ 管理员发送推送 ============
+// ============ 管理员/系统发送推送 ============
 
 // 管理员向指定用户发送推送通知
 router.post('/send', authMiddleware, async (req: Request, res: Response) => {
@@ -74,7 +77,7 @@ router.post('/send', authMiddleware, async (req: Request, res: Response) => {
     return;
   }
 
-  const { targetUserId, targetUserIds, title, body, data } = req.body;
+  const { targetUserId, targetUserIds, title, body, data, type } = req.body;
 
   if (!title || !body) {
     res.status(400).json({ code: 400, message: '标题和内容不能为空' });
@@ -82,7 +85,7 @@ router.post('/send', authMiddleware, async (req: Request, res: Response) => {
   }
 
   try {
-    const message = { title, body, data };
+    const message = { title, body, data: { ...data, notificationType: type || 'system' } };
 
     if (targetUserIds && Array.isArray(targetUserIds)) {
       await sendPushToUsers(targetUserIds, message);
@@ -100,7 +103,9 @@ router.post('/send', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 获取通知列表
+// ============ 通知列表 ============
+
+// 获取通知列表（分页+筛选）
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   const prisma = (req as any).prisma;
   const userId = (req as any).userId;
@@ -126,9 +131,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       prisma.notification.count({ where }),
     ]);
 
-    const unreadCount = await prisma.notification.count({
-      where: { userId, isRead: false },
-    });
+    const unreadCount = await getUnreadCount(userId);
 
     res.json({
       code: 0,
@@ -147,17 +150,13 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 获取未读数量
+// 获取未读数量（高频轮询，轻量接口）
 router.get('/unread-count', authMiddleware, async (req: Request, res: Response) => {
-  const prisma = (req as any).prisma;
   const userId = (req as any).userId;
 
   try {
-    const count = await prisma.notification.count({
-      where: { userId, isRead: false },
-    });
-
-    res.json({ code: 0, message: '获取成功', data: count });
+    const count = await getUnreadCount(userId);
+    res.json({ code: 0, message: '获取成功', data: { count } });
   } catch (error) {
     console.error('获取未读数量失败:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });

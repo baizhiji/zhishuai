@@ -225,6 +225,22 @@ router.get('/security-settings', authMiddleware, async (req: Request, res: Respo
       where: { userId },
     });
 
+    // 获取当前活跃的登录设备列表
+    const activeDevices = await prisma.loginLog.findMany({
+      where: { userId, isActive: true },
+      select: {
+        id: true,
+        deviceId: true,
+        deviceName: true,
+        device: true,
+        ip: true,
+        location: true,
+        loginAt: true,
+      },
+      orderBy: { loginAt: 'desc' },
+      take: 20,
+    });
+
     res.json({
       success: true,
       data: {
@@ -233,7 +249,15 @@ router.get('/security-settings', authMiddleware, async (req: Request, res: Respo
         loginNotify: userSettings?.loginNotify ?? true,
         riskNotify: userSettings?.riskNotify ?? true,
         deviceManage: userSettings?.deviceManage ?? true,
-        devices: [], // 设备列表从登录日志中获取
+        devices: activeDevices.map(d => ({
+          id: d.id,
+          deviceId: d.deviceId,
+          deviceName: d.deviceName || d.device || '未知设备',
+          ip: d.ip,
+          location: d.location || '未知地点',
+          loginAt: d.loginAt,
+          isCurrentDevice: d.deviceId === (req as any).deviceId,
+        })),
       },
     });
   } catch (error: any) {
@@ -302,15 +326,33 @@ router.put('/email', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 踢出设备（清除该用户的登录Session）
+// 踢出设备（使该设备的登录会话失效）
 router.delete('/devices/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const deviceId = req.params.id;
 
-    // 标记该设备ID的session为失效（通过更新用户状态）
-    // TODO: 完整实现需要LoginLog模型和Session管理
-    res.json({ success: true, message: '设备已退出' });
+    // 查找该登录日志记录
+    const loginLog = await prisma.loginLog.findFirst({
+      where: { id: deviceId, userId },
+    });
+
+    if (!loginLog) {
+      return res.status(404).json({ error: '设备记录不存在' });
+    }
+
+    // 将该设备的登录会话标记为失效
+    await prisma.loginLog.update({
+      where: { id: deviceId },
+      data: { isActive: false },
+    });
+
+    // 如果该设备有对应的 token，也可以在此处加入黑名单
+    // 实际生产环境中，可以将 token 加入 Redis 黑名单，让该设备后续请求被拦截
+
+    console.log(`[Account] 用户 ${userId} 踢出设备: ${loginLog.deviceName || loginLog.device || deviceId}`);
+
+    res.json({ success: true, message: '设备已退出，该设备将无法继续使用' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

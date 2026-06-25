@@ -175,7 +175,9 @@ export default function HelpCenter() {
     return matchCategory && matchSearch;
   });
 
-  const handleSendMessage = () => {
+  const [chatLoading, setChatLoading] = useState(false);
+
+  const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
     const userMessage: ChatMessage = {
@@ -185,19 +187,46 @@ export default function HelpCenter() {
       time: new Date().toLocaleTimeString(),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setChatInput('');
+    setChatLoading(true);
 
-    // 模拟机器人回复（后续接入AI对话API）
-    setTimeout(() => {
+    try {
+      // 调用AI对话API获取智能回复
+      const res = await request.post('/api/ai-chat/chat', {
+        messages: [
+          { role: 'system', content: '你是智枢AI助手，专门帮助用户解答智枢AI SaaS系统的问题。请用友好、专业的语气回答。如果不知道答案，请建议用户联系人工客服。' },
+          ...messages.filter(m => m.type === 'user' || m.type === 'bot').map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
+          { role: 'user', content: chatInput },
+        ],
+        modelKey: 'qwen-turbo',
+        stream: false,
+      });
+
+      const botContent = res?.data?.content || res?.data?.output?.text || '抱歉，我暂时无法回答这个问题。请尝试联系人工客服获取帮助。';
+      
       const botResponse: ChatMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: '感谢您的咨询！我们的工作人员将尽快为您解答。您也可以通过下方的联系方式联系我们。',
+        content: botContent,
         time: new Date().toLocaleTimeString(),
       };
       setMessages(prev => [...prev, botResponse]);
-    }, 1000);
+    } catch {
+      // AI不可用时给出友好提示
+      const botResponse: ChatMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: '抱歉，AI客服暂时不可用。您可以通过下方的联系方式联系我们的人工客服团队，我们将尽快为您解答。',
+        time: new Date().toLocaleTimeString(),
+      };
+      setMessages(prev => [...prev, botResponse]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   const handleContactSubmit = async (values: any) => {
@@ -408,7 +437,7 @@ export default function HelpCenter() {
             onChange={e => setChatInput(e.target.value)}
             onPressEnter={handleSendMessage}
           />
-          <Button type="primary" icon={<SendOutlined />} onClick={handleSendMessage}>
+          <Button type="primary" icon={<SendOutlined />} onClick={handleSendMessage} loading={chatLoading}>
             发送
           </Button>
         </Space.Compact>

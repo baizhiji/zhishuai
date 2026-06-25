@@ -187,7 +187,7 @@ export default function SubscribePage() {
       {subscription.features.length > 0 && (
         <Card title="功能使用情况" className="mb-6">
           <Row gutter={16}>
-            {subscription.features.map((feature, index) => (
+            {subscription.features.map((feature: any, index: number) => (
               <Col span={6} key={index}>
                 <Card size="small">
                   <div className="flex items-center mb-2">

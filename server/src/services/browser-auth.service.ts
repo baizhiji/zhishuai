@@ -1,39 +1,50 @@
 /**
- * 浏览器自动化服务 - 扫码授权
- * 用于打开平台登录页面，截图二维码，检测登录状态
+ * 扫码授权服务 V9 — 自动扫码 + Cookie导入 + 自动刷新
  * 
- * 改进：更隐蔽的配置，避免被反爬虫检测
+ * 借鉴 shipinfabuzhushou 参考系统的成功经验：
+ * 1. 自动扫码授权：服务器用 Playwright 打开平台登录页，截取二维码发送前端显示，用户扫码后自动保存 Cookie
+ * 2. Cookie 导入：用户在本地浏览器登录后，导出 Cookie JSON 上传到服务器（兜底方式）
+ * 3. 自动刷新：定时检测 Cookie 健康状态，自动刷新即将过期的 Cookie
+ * 4. stealth 反检测：提供反检测脚本供浏览器自动化使用
+ * 
+ * Cookie JSON 格式兼容 Playwright storageState 格式：
+ * { cookies: [...], origins: [{ origin: "...", localStorage: [...] }] }
  */
 
-import { chromium, Browser, BrowserContext, Page } from 'playwright';
-import * as qrcode from 'qrcode';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../utils/db';
 
-// 二维码临时存储目录
-const QRCODE_DIR = path.join(__dirname, '../../../public/qrcodes');
-if (!fs.existsSync(QRCODE_DIR)) {
-  fs.mkdirSync(QRCODE_DIR, { recursive: true });
+// ============ 会话存储 ============
+
+interface AuthSession {
+  id: string;
+  platform: string;
+  status: 'pending' | 'scanning' | 'authorized' | 'expired' | 'failed';
+  createdAt: Date;
+  expiresAt: Date;
+  popupUrl?: string;
+  cookies?: any[];
+  localStorage?: any[];
+  accountInfo?: any;
+  // Playwright 扫码登录相关
+  browserId?: string;
+  contextId?: string;
+  qrImageData?: string;  // base64 二维码图片
 }
 
-// 浏览器实例管理
-let browserInstance: Browser | null = null;
+const sessions: Map<string, AuthSession> = new Map();
 
-// 平台配置
+// ============ 平台配置 ============
+
 interface PlatformConfig {
   name: string;
   icon: string;
   color: string;
-  // 多个登录 URL 尝试
-  loginUrls: string[];
-  // 二维码图片选择器
-  qrSelectors: string[];
-  // 登录成功检测选择器
-  successSelectors: string[];
-  // 用户信息提取
-  userInfoSelectors: string[];
   status: 'available' | 'coming';
+  loginUrl: string;
+  creatorUrl?: string;  // 创作者平台URL（用于Cookie校验）
+  cookieDomains?: string[];  // Cookie校验域名
 }
 
 export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
@@ -41,568 +52,147 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     name: '抖音',
     icon: '🎵',
     color: '#fe2c55',
-    // 抖音有多个登录入口，尝试不同的
-    loginUrls: [
-      'https://www.douyin.com/login/',
-      'https://www.douyin.com/discover',
-      'https://live.douyin.com/',
-    ],
-    qrSelectors: [
-      // 扫码登录区域
-      '.login-qrcode img',
-      '.qrcode-img img',
-      'img[class*="qrcode"]',
-      'img[class*="qr-code"]',
-      // 通用图片二维码
-      'img[src*="qr"]',
-      'img[src*="qrcode"]',
-      // 整个二维码容器
-      '.login-qrcode',
-      '.qrcode-container',
-      '[class*="scan-login"]',
-      '[class*="qr-login"]',
-    ],
-    successSelectors: [
-      // 登录成功后的元素
-      '.header-user-info',
-      '[data-e2e*="user"]',
-      '.user-info',
-      '.login-success',
-      '.avatar-wrapper',
-      // 导航栏用户区域
-      '.nav-user',
-      '.user-avatar',
-    ],
-    userInfoSelectors: [
-      '.nickname',
-      '.user-name',
-      '[class*="nick"]',
-      '.header-user-info .name',
-    ],
-    status: 'available'
+    status: 'available',
+    loginUrl: 'https://creator.douyin.com/',
+    creatorUrl: 'https://creator.douyin.com',
+    cookieDomains: ['.douyin.com', 'creator.douyin.com', '.bytedance.com'],
   },
   kuaishou: {
     name: '快手',
     icon: '📹',
     color: '#ff4906',
-    loginUrls: [
-      'https://www.kuaishou.com/',
-      'https://www.kuaishou.com/new窝窝',
-    ],
-    qrSelectors: [
-      '.qrcode-img img',
-      '.login-qrcode img',
-      'img[class*="qr"]',
-      '[class*="qrcode"] img',
-    ],
-    successSelectors: [
-      '.profile-header',
-      '.user-info',
-      '.avatar-wrapper',
-      '.user-avatar',
-    ],
-    userInfoSelectors: [
-      '.user-name',
-      '.nick-name',
-      '[class*="nick"]',
-    ],
-    status: 'available'
-  },
-  bilibili: {
-    name: '哔哩哔哩',
-    icon: '📺',
-    color: '#00a1d6',
-    loginUrls: [
-      'https://passport.bilibili.com/qrcode/h5/login',
-      'https://passport.bilibili.com/login',
-    ],
-    qrSelectors: [
-      '.qrcode-img img',
-      '.qrcode img',
-      '#qrcode img',
-      'img[class*="qr"]',
-    ],
-    successSelectors: [
-      '.user-info',
-      '.header-user',
-      '.avatar-wrapper',
-    ],
-    userInfoSelectors: [
-      '.username',
-      '.nickname',
-      '.user-name',
-    ],
-    status: 'available'
-  },
-  weibo: {
-    name: '微博',
-    icon: '🌐',
-    color: '#e6162d',
-    loginUrls: [
-      'https://weibo.com/login.php',
-      'https://login.sina.com.cn/signup/signin.php',
-    ],
-    qrSelectors: [
-      '.qrcode-img img',
-      '.qrcode img',
-      'img[class*="qr"]',
-      '#qrcode img',
-    ],
-    successSelectors: [
-      '.WB_frame',
-      '.user-avatar',
-      '.nav-user',
-    ],
-    userInfoSelectors: [
-      '.nickname',
-      '.username',
-    ],
-    status: 'available'
+    status: 'available',
+    loginUrl: 'https://cp.kuaishou.com/',
+    creatorUrl: 'https://cp.kuaishou.com',
+    cookieDomains: ['.kuaishou.com', 'cp.kuaishou.com'],
   },
   xiaohongshu: {
     name: '小红书',
     icon: '📕',
     color: '#ff2442',
-    loginUrls: [
-      'https://www.xiaohongshu.com/',
-      'https://creator.xiaohongshu.com/login',
-    ],
-    qrSelectors: [
-      '.qrcode',
-      '.login-qrcode img',
-      '[class*="qrcode"] img',
-      'img[class*="qr"]',
-    ],
-    successSelectors: [
-      '.user-info',
-      '.login-success',
-      '.avatar-wrapper',
-    ],
-    userInfoSelectors: [
-      '.name',
-      '.nickname',
-    ],
-    status: 'available'
+    status: 'available',
+    loginUrl: 'https://creator.xiaohongshu.com/',
+    creatorUrl: 'https://creator.xiaohongshu.com',
+    cookieDomains: ['.xiaohongshu.com'],
   },
   channels: {
     name: '视频号',
     icon: '📺',
     color: '#07c160',
-    loginUrls: [
-      'https://channels.weixin.qq.com/login',
-    ],
-    qrSelectors: [
-      '.qrcode img',
-      'img[class*="qrcode"]',
-      'canvas',
-      'img[src*="qr"]',
-    ],
-    successSelectors: [
-      '.user-info',
-      '.home-page',
-      '[class*="header"]',
-    ],
-    userInfoSelectors: [
-      '.nickname',
-      '.user-name',
-    ],
-    status: 'available'
-  }
+    status: 'available',
+    loginUrl: 'https://channels.weixin.qq.com/platform/login',
+    creatorUrl: 'https://channels.weixin.qq.com/platform',
+    cookieDomains: ['channels.weixin.qq.com'],
+  },
+  boss: {
+    name: 'BOSS直聘',
+    icon: '💼',
+    color: '#00C777',
+    status: 'available',
+    loginUrl: 'https://www.zhipin.com/web/geek/login',
+    creatorUrl: 'https://www.zhipin.com',
+    cookieDomains: ['.zhipin.com'],
+  },
+  zhilian: {
+    name: '智联招聘',
+    icon: '🔍',
+    color: '#0066CC',
+    status: 'available',
+    loginUrl: 'https://www.zhaopin.com/',
+    cookieDomains: ['.zhaopin.com'],
+  },
+  liepin: {
+    name: '猎聘',
+    icon: '🔶',
+    color: '#FF6000',
+    status: 'available',
+    loginUrl: 'https://www.liepin.com/',
+    cookieDomains: ['.liepin.com'],
+  },
+  lagou: {
+    name: '拉勾招聘',
+    icon: '🏆',
+    color: '#1DC6B1',
+    status: 'available',
+    loginUrl: 'https://www.lagou.com/login',
+    cookieDomains: ['.lagou.com'],
+  },
+  bilibili: {
+    name: '哔哩哔哩',
+    icon: '📺',
+    color: '#00a1d6',
+    status: 'coming',
+    loginUrl: 'https://passport.bilibili.com/login',
+    cookieDomains: ['.bilibili.com'],
+  },
+  weibo: {
+    name: '微博',
+    icon: '🌐',
+    color: '#e6162d',
+    status: 'coming',
+    loginUrl: 'https://weibo.com/login.php',
+    cookieDomains: ['.weibo.com'],
+  },
 };
 
-// 会话管理
-interface AuthSession {
-  id: string;
-  platform: string;
-  page: Page | null;
-  context: BrowserContext | null;
-  status: 'pending' | 'scanning' | 'authorized' | 'expired' | 'failed';
-  cookies: any[];
-  accountInfo: any;
-  createdAt: Date;
-  expiresAt: Date;
-}
-
-const sessions: Map<string, AuthSession> = new Map();
-
-// 真实用户代理
-const USER_AGENTS = [
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
-];
-
-/**
- * 获取随机用户代理
- */
-function getRandomUserAgent(): string {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-}
-
-/**
- * 获取或创建浏览器实例
- * 改进：移除自动化特征，使用更真实的浏览器配置
- */
-async function getBrowser(): Promise<Browser> {
-  if (!browserInstance || !browserInstance.isConnected()) {
-    // 设置浏览器依赖库路径
-    const libPath = '/usr/lib/x86_64-linux-gnu';
-    const currentPath = process.env.LD_LIBRARY_PATH || '';
-    if (!currentPath.includes(libPath)) {
-      process.env.LD_LIBRARY_PATH = currentPath ? `${currentPath}:${libPath}` : libPath;
-    }
-    
-    browserInstance = await chromium.launch({
-      headless: true,
-      args: [
-        // 禁用自动化检测特征
-        '--disable-blink-features=AutomationControlled',
-        // 禁用开发者工具检测
-        '--disable-dev-shm-usage',
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        // 安全相关
-        '--disable-web-security',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--allow-running-insecure-content',
-        // 性能与稳定性
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-        '--disable-webgl',
-        '--ignore-certificate-errors',
-        // 防止被检测
-        '--disable-infobars',
-        '--disable-extensions',
-        '--no-first-run',
-        '--no-zygote',
-      ]
-    });
-  }
-  return browserInstance;
-}
-
-/**
- * 创建新的浏览器上下文（隔离会话）
- * 使用无痕模式，确保没有已登录状态
- */
-async function createBrowserContext(): Promise<BrowserContext> {
-  const browser = await getBrowser();
-  
-  const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
-    userAgent: getRandomUserAgent(),
-    // 不记录权限
-    permissions: [],
-    // 重点：禁用存储（无痕模式）
-    ignoreHTTPSErrors: true,
-  });
-  
-  // 清除所有 cookie，确保未登录状态
-  await context.clearCookies();
-  
-  // 注入脚本，隐藏 webdriver 属性
-  await context.addInitScript(() => {
-    // 隐藏 webdriver
-    Object.defineProperty(navigator, 'webdriver', {
-      get: () => false,
-    });
-    
-    // 模拟正常的插件
-    Object.defineProperty(navigator, 'plugins', {
-      get: () => [1, 2, 3, 4, 5],
-    });
-    
-    // 模拟正常的语言
-    Object.defineProperty(navigator, 'languages', {
-      get: () => ['zh-CN', 'zh', 'en'],
-    });
-    
-    // 移除自动化检测
-    // @ts-ignore
-    window.chrome = { runtime: {} };
-    
-    // 模拟正常的 permissions
-    const originalQuery = window.navigator.permissions.query;
-    window.navigator.permissions.query = (parameters: any) => (
-      parameters.name === 'notifications' ?
-        Promise.resolve({ state: Notification.permission }) :
-        originalQuery(parameters)
-    );
-    
-    // 移除 iframe 检测
-    Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
-      get: function() {
-        return window;
-      }
-    });
-    
-    // 模拟正常的硬件并发
-    Object.defineProperty(navigator, 'hardwareConcurrency', {
-      get: () => 8,
-    });
-    
-    // 模拟正常的设备内存
-    Object.defineProperty(navigator, 'deviceMemory', {
-      get: () => 8,
-    });
-  });
-  
-  return context;
-}
-
-/**
- * 获取支持的平台列表
- */
-export function getPlatformList(): Array<{ code: string; name: string; status: 'available' | 'coming' }> {
+export function getPlatformList(): Array<{ code: string; name: string; status: 'available' | 'coming'; loginUrl: string; creatorUrl?: string }> {
   return Object.entries(PLATFORM_CONFIGS).map(([code, config]) => ({
     code,
     name: config.name,
-    status: config.status
+    status: config.status,
+    loginUrl: config.loginUrl,
+    creatorUrl: config.creatorUrl,
   }));
 }
 
-/**
- * 创建授权会话
- */
+// ============ 创建授权会话（popup方式） ============
+
 export async function createAuthSession(platform: string): Promise<{
   sessionId: string;
-  qrcodeUrl: string;
+  popupUrl: string;
   platform: string;
   platformName: string;
   expiresAt: Date;
+  qrMethod: string;
 } | null> {
   const config = PLATFORM_CONFIGS[platform];
-  if (!config) return null;
+  if (!config) {
+    console.error(`[Auth-V8] 不支持的平台: ${platform}`);
+    return null;
+  }
+  
+  if (config.status === 'coming') {
+    console.error(`[Auth-V8] 平台暂未开放: ${config.name}`);
+    return null;
+  }
   
   const sessionId = uuidv4();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10分钟
   
-  let context: BrowserContext | null = null;
-  let page: Page | null = null;
+  console.log(`[Auth-V8] 创建授权会话: ${config.name} (${platform}), popupUrl: ${config.loginUrl}`);
   
-  try {
-    console.log(`[Auth] 正在为 ${config.name} 创建授权会话...`);
-    
-    // 创建新的浏览器上下文
-    context = await createBrowserContext();
-    page = await context.newPage();
-    
-    // 尝试多个登录 URL
-    let loginSuccess = false;
-    for (const loginUrl of config.loginUrls) {
-      try {
-        console.log(`[Auth] 尝试访问: ${loginUrl}`);
-        
-        await page.goto(loginUrl, { 
-          waitUntil: 'domcontentloaded',
-          timeout: 30000 
-        });
-        
-        // 等待页面加载
-        await page.waitForTimeout(2000);
-        
-        // 检查是否成功加载（页面有内容）
-        const bodyText = await page.textContent('body');
-        if (bodyText && bodyText.length > 100) {
-          console.log(`[Auth] 成功加载页面，内容长度: ${bodyText.length}`);
-          loginSuccess = true;
-          break;
-        }
-      } catch (e: any) {
-        console.log(`[Auth] URL ${loginUrl} 失败: ${e.message}`);
-      }
-    }
-    
-    if (!loginSuccess) {
-      console.log(`[Auth] 所有登录 URL 都失败了`);
-      throw new Error('无法访问登录页面');
-    }
-    
-    // 无痕模式下应该直接显示登录界面
-    // 等待页面加载完成后，检查是否显示了登录弹窗/二维码
-    await page.waitForTimeout(3000);
-    
-    // 截图当前状态看看
-    const currentScreenshot = await page.screenshot({ type: 'png' });
-    console.log(`[Auth] 页面加载完成，截图大小: ${currentScreenshot.length} bytes`);
-    
-    // 检查是否已经显示了登录二维码
-    // 常见登录弹窗选择器
-    const loginModalSelectors = [
-      '[class*="login-modal"]',
-      '[class*="login-dialog"]',
-      '[class*="qrcode"]',
-      '[class*="scan"]',
-      '.login-qrcode',
-      '[class*="login-box"]',
-    ];
-    
-    for (const selector of loginModalSelectors) {
-      try {
-        const modal = await page.$(selector);
-        if (modal) {
-          const box = await modal.boundingBox();
-          if (box && box.width > 100 && box.height > 100) {
-            console.log(`[Auth] 找到登录弹窗: ${selector}`);
-          }
-        }
-      } catch (e) {}
-    }
-    
-    // 如果没自动显示登录弹窗，尝试点击登录按钮
-    console.log(`[Auth] 尝试点击登录按钮...`);
-    
-    const loginButtonSelectors = [
-      'button:has-text("登录")',
-      'a:has-text("登录")',
-      '[class*="login"]:not([class*="logged"])',
-      'div:has-text("登录")',
-    ];
-    
-    let loginClicked = false;
-    for (const selector of loginButtonSelectors) {
-      try {
-        const button = await page.$(selector);
-        if (button) {
-          // 检查元素是否可见
-          const isVisible = await button.isVisible();
-          if (isVisible) {
-            await button.click({ timeout: 5000 });
-            console.log(`[Auth] 点击了登录按钮: ${selector}`);
-            loginClicked = true;
-            
-            // 等待登录弹窗出现 - 增加等待时间
-            console.log(`[Auth] 等待登录弹窗加载...`);
-            await page.waitForTimeout(5000);
-            break;
-          }
-        }
-      } catch (e: any) {
-        console.log(`[Auth] 点击 ${selector} 失败: ${e.message}`);
-      }
-    }
-    
-    if (!loginClicked) {
-      console.log(`[Auth] 未找到可点击的登录按钮，尝试直接打开登录页`);
-      // 尝试直接打开抖音登录页
-      try {
-        await page.goto('https://www.douyin.com/login/', { 
-          waitUntil: 'networkidle',
-          timeout: 60000 
-        });
-        await page.waitForTimeout(5000);
-      } catch (e) {
-        console.log(`[Auth] 打开登录页失败: ${e.message}`);
-      }
-    }
-    
-    // 等待二维码出现 - 增加等待时间
-    console.log(`[Auth] 等待二维码加载...`);
-    await page.waitForTimeout(3000);
-    
-    // 尝试截取二维码
-    let qrcodeDataUrl = '';
-    
-    // 方法1: 查找二维码图片元素
-    for (const selector of config.qrSelectors) {
-      try {
-        const imgElement = await page.$(selector);
-        if (imgElement) {
-          // 尝试获取图片 src
-          const src = await imgElement.getAttribute('src');
-          if (src && (src.startsWith('http') || src.startsWith('data:image'))) {
-            console.log(`[Auth] 找到二维码图片: ${selector}, src长度: ${src.length}`);
-            qrcodeDataUrl = src;
-            break;
-          }
-          
-          // 如果是相对路径，尝试截图该元素
-          const box = await imgElement.boundingBox();
-          if (box && box.width > 50 && box.height > 50) {
-            const screenshot = await page.screenshot({ 
-              type: 'png',
-              clip: {
-                x: Math.max(0, box.x - 10),
-                y: Math.max(0, box.y - 10),
-                width: Math.min(box.width + 20, 600),
-                height: Math.min(box.height + 20, 600)
-              }
-            });
-            const base64Data = Buffer.isBuffer(screenshot) 
-              ? screenshot.toString('base64')
-              : Buffer.from(screenshot as unknown as Buffer).toString('base64');
-            qrcodeDataUrl = `data:image/png;base64,${base64Data}`;
-            console.log(`[Auth] 截图二维码区域: ${selector}, ${box.width}x${box.height}`);
-            break;
-          }
-        }
-      } catch (e: any) {
-        console.log(`[Auth] 选择器 ${selector} 失败: ${e.message}`);
-      }
-    }
-    
-    // 方法2: 如果没找到，截图页面左侧区域（通常二维码在左侧）
-    if (!qrcodeDataUrl) {
-      console.log(`[Auth] 未找到二维码图片，尝试截图左侧区域...`);
-      
-      // 尝试截图左侧 1/3 到 1/2 的区域（通常登录表单/二维码在左侧）
-      const viewport = page.viewportSize();
-      const width = viewport?.width || 1920;
-      
-      const screenshot = await page.screenshot({ 
-        type: 'png',
-        clip: {
-          x: 0,
-          y: 0,
-          width: Math.floor(width * 0.5),  // 只截左半边
-          height: 1080
-        }
-      });
-      const base64Data = Buffer.isBuffer(screenshot) 
-        ? screenshot.toString('base64')
-        : Buffer.from(screenshot as unknown as Buffer).toString('base64');
-      qrcodeDataUrl = `data:image/png;base64,${base64Data}`;
-      console.log(`[Auth] 截图左半边区域完成`);
-    }
-    
-    console.log(`[Auth] 二维码截图完成，长度: ${qrcodeDataUrl.length}`);
-    
-    // 保存会话
-    sessions.set(sessionId, {
-      id: sessionId,
-      platform,
-      page,
-      context,
-      status: 'pending',
-      cookies: [],
-      accountInfo: null,
-      createdAt: new Date(),
-      expiresAt
-    });
-    
-    console.log(`[Auth] 会话 ${sessionId} 创建成功，平台: ${config.name}`);
-    
-    return {
-      sessionId,
-      qrcodeUrl: qrcodeDataUrl,
-      platform,
-      platformName: config.name,
-      expiresAt
-    };
-    
-  } catch (error: any) {
-    console.error(`[Auth] 创建会话失败:`, error);
-    
-    // 清理
-    if (context) await context.close().catch(() => {});
-    
-    return null;
-  }
+  // 保存会话
+  sessions.set(sessionId, {
+    id: sessionId,
+    platform,
+    status: 'pending',
+    createdAt: new Date(),
+    expiresAt,
+    popupUrl: config.loginUrl,
+  });
+  
+  return {
+    sessionId,
+    popupUrl: config.loginUrl,
+    platform,
+    platformName: config.name,
+    expiresAt,
+    qrMethod: 'popup',
+  };
 }
 
-/**
- * 检查登录状态
- */
+// ============ 检查授权状态 ============
+
 export async function checkAuthStatus(sessionId: string): Promise<{
   status: string;
   cookies?: any[];
@@ -610,118 +200,654 @@ export async function checkAuthStatus(sessionId: string): Promise<{
   message?: string;
 }> {
   const session = sessions.get(sessionId);
-  if (!session) {
-    return { status: 'not_found', message: '会话不存在' };
-  }
+  if (!session) return { status: 'not_found', message: '会话不存在' };
   
-  // 检查过期
   if (new Date() > session.expiresAt) {
     session.status = 'expired';
-    cleanupSession(sessionId);
+    sessions.delete(sessionId);
     return { status: 'expired', message: '会话已过期，请重新授权' };
   }
   
-  // 如果页面已关闭
-  if (!session.page || session.page.isClosed()) {
-    return { status: 'failed', message: '浏览器页面已关闭' };
-  }
+  return {
+    status: session.status,
+    message: session.status === 'pending' ? '等待用户在新窗口中扫码授权...' : '已扫码，等待确认...',
+  };
+}
+
+// ============ 前端确认授权成功（popup方式） ============
+
+export function confirmAuthSession(sessionId: string, authData: {
+  cookies?: any[];
+  accountInfo?: any;
+}): boolean {
+  const session = sessions.get(sessionId);
+  if (!session) return false;
   
-  const config = PLATFORM_CONFIGS[session.platform];
+  session.status = 'authorized';
+  session.cookies = authData.cookies;
+  session.accountInfo = authData.accountInfo;
+  
+  console.log(`[Auth-V8] 会话 ${sessionId} 由前端确认授权成功, platform: ${session.platform}`);
+  return true;
+}
+
+// ============ Cookie 导入验证 ============
+
+/**
+ * 验证导入的 Cookie JSON 是否有效
+ * 兼容 Playwright storageState 格式和浏览器导出格式
+ * 
+ * 参考 shipinfabuzhushou 的 user_data/*.json 格式：
+ * { cookies: [...], origins: [{ origin: "...", localStorage: [...] }] }
+ */
+export function validateCookieImport(platform: string, cookieData: any): {
+  valid: boolean;
+  cookies: any[];
+  localStorage?: any[];
+  accountName?: string;
+  message: string;
+} {
+  const config = PLATFORM_CONFIGS[platform];
   if (!config) {
-    return { status: 'failed', message: '不支持的平台' };
+    return { valid: false, cookies: [], message: `不支持的平台: ${platform}` };
   }
   
   try {
-    // 截图当前页面状态，用于调试
-    const currentScreenshot = await session.page.screenshot({ type: 'png' });
-    console.log(`[Auth] 会话 ${sessionId} 当前页面截图: ${currentScreenshot.length} bytes`);
+    // 解析输入格式
+    let cookies: any[] = [];
+    let localStorageData: any[] = [];
     
-    // 检查是否已登录
-    for (const selector of config.successSelectors) {
-      try {
-        const element = await session.page.$(selector);
-        if (element) {
-          console.log(`[Auth] 检测到登录成功元素: ${selector}`);
-          
-          // 登录成功！
-          session.status = 'authorized';
-          session.cookies = await session.page.context().cookies();
-          
-          // 提取用户信息
-          for (const userSelector of config.userInfoSelectors) {
-            try {
-              const nameEl = await session.page.$(userSelector);
-              if (nameEl) {
-                const name = await nameEl.textContent();
-                session.accountInfo = {
-                  name: name?.trim(),
-                  platform: config.name
-                };
-                break;
-              }
-            } catch (e) {
-              // 继续尝试下一个选择器
-            }
+    if (Array.isArray(cookieData)) {
+      // 纯 Cookie 数组格式
+      cookies = cookieData;
+    } else if (cookieData && typeof cookieData === 'object') {
+      // Playwright storageState 格式
+      if (Array.isArray(cookieData.cookies)) {
+        cookies = cookieData.cookies;
+      }
+      // 提取 localStorage
+      if (Array.isArray(cookieData.origins)) {
+        for (const origin of cookieData.origins) {
+          if (Array.isArray(origin.localStorage)) {
+            localStorageData.push(...origin.localStorage.map((item: any) => ({
+              origin: origin.origin,
+              ...item,
+            })));
           }
-          
-          console.log(`[Auth] 会话 ${sessionId} 授权成功，用户信息:`, session.accountInfo);
-          
-          // 清理页面
-          cleanupSession(sessionId);
-          
-          return {
-            status: 'authorized',
-            cookies: session.cookies,
-            accountInfo: session.accountInfo,
-            message: '授权成功！'
-          };
+        }
+      }
+    } else if (typeof cookieData === 'string') {
+      // 尝试解析 JSON 字符串
+      try {
+        const parsed = JSON.parse(cookieData);
+        return validateCookieImport(platform, parsed);
+      } catch {
+        return { valid: false, cookies: [], message: 'Cookie JSON 格式无效，无法解析' };
+      }
+    } else {
+      return { valid: false, cookies: [], message: '不支持的 Cookie 数据格式' };
+    }
+    
+    if (cookies.length === 0) {
+      return { valid: false, cookies: [], message: 'Cookie 数据为空' };
+    }
+    
+    // 验证是否包含平台相关的 Cookie
+    const platformCookies = cookies.filter((c: any) => {
+      const domain = c.domain || '';
+      return config.cookieDomains?.some(d => domain.includes(d.replace(/^\./, '')) || domain === d);
+    });
+    
+    if (platformCookies.length === 0) {
+      return {
+        valid: false,
+        cookies: [],
+        message: `Cookie 中未找到 ${config.name} 相关的域名，请确认导出的 Cookie 来自 ${config.name} 的登录页面`,
+      };
+    }
+    
+    // 验证关键登录 Cookie
+    const hasSessionCookie = platformCookies.some((c: any) => {
+      const name = (c.name || '').toLowerCase();
+      return (
+        name.includes('session') ||
+        name.includes('sid_tt') ||
+        name.includes('passport') ||
+        name.includes('login') ||
+        name.includes('token') ||
+        name.includes('uid') ||
+        name.includes('d_ticket') ||
+        name === 'sessionid' ||
+        name === 'sessionid_ss' ||
+        name === 'sid_tt' ||
+        name === 'odin_tt'
+      );
+    });
+    
+    if (!hasSessionCookie) {
+      return {
+        valid: false,
+        cookies: platformCookies,
+        message: `Cookie 中未找到有效的登录会话标识，请确认已登录 ${config.name} 后再导出 Cookie`,
+      };
+    }
+    
+    // 尝试从 localStorage 提取账号名
+    let accountName: string | undefined;
+    const loginStatusEntry = localStorageData.find((item: any) => 
+      item.name === 'LOGIN_STATUS' || item.name === 'login_type_from_login'
+    );
+    if (loginStatusEntry) {
+      try {
+        const loginData = JSON.parse(loginStatusEntry.value || '{}');
+        if (loginData.logintype) {
+          accountName = `${config.name}用户`;
+        }
+      } catch {}
+    }
+    
+    // 从 cookie 中提取用户标识
+    const uidCookie = platformCookies.find((c: any) => 
+      c.name === 'uid_tt' || c.name === 'passport_assist_user'
+    );
+    if (uidCookie && !accountName) {
+      accountName = `${config.name}_${(uidCookie.value || '').substring(0, 8)}`;
+    }
+    
+    console.log(`[Auth-V8] Cookie 导入验证通过: ${config.name}, 有效Cookie: ${platformCookies.length}/${cookies.length}, localStorage: ${localStorageData.length}`);
+    
+    return {
+      valid: true,
+      cookies: platformCookies,
+      localStorage: localStorageData.length > 0 ? localStorageData : undefined,
+      accountName,
+      message: `验证通过，找到 ${platformCookies.length} 个有效 Cookie`,
+    };
+  } catch (error: any) {
+    return { valid: false, cookies: [], message: `Cookie 解析失败: ${error.message}` };
+  }
+}
+
+export function cancelAuthSession(sessionId: string): boolean {
+  sessions.delete(sessionId);
+  console.log(`[Auth-V9] 会话 ${sessionId} 已取消`);
+  return true;
+}
+
+export function getConfirmedSession(sessionId: string): AuthSession | null {
+  const session = sessions.get(sessionId);
+  if (!session) return null;
+  return session;
+}
+
+// ============ Playwright 自动扫码登录 ============
+
+/**
+ * 启动 Playwright 扫码登录流程
+ * 
+ * 流程（借鉴 shipinfabuzhushou）：
+ * 1. 服务器用 Playwright 打开平台登录页
+ * 2. 截取二维码图片发送给前端
+ * 3. 用户用手机扫码
+ * 4. 前端轮询检查登录状态
+ * 5. 登录成功后自动提取 Cookie + localStorage 并保存到数据库
+ * 6. 如果 Cookie 变更则自动更新
+ */
+export async function startPlaywrightLogin(platform: string, userId: string): Promise<{
+  sessionId: string;
+  qrImageData: string;
+  platformName: string;
+  expiresAt: Date;
+} | null> {
+  const config = PLATFORM_CONFIGS[platform];
+  if (!config || config.status === 'coming') {
+    console.error(`[Auth-V9] 不支持的平台: ${platform}`);
+    return null;
+  }
+
+  let browser: any = null;
+  let context: any = null;
+
+  try {
+    // 动态导入 Playwright
+    const { chromium } = await import('playwright');
+
+    // 获取 stealth 配置
+    const stealthArgs = [
+      '--disable-blink-features=AutomationControlled',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+    ];
+
+    browser = await chromium.launch({
+      headless: true,
+      args: stealthArgs,
+    });
+
+    // 创建隐身上下文
+    context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      viewport: { width: 1280, height: 800 },
+    });
+
+    // 注入反检测脚本
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    });
+
+    const page = await context.newPage();
+
+    // 访问平台登录页
+    const loginUrl = config.creatorUrl || config.loginUrl;
+    await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+    // 等待页面加载
+    await page.waitForTimeout(3000);
+
+    // 截取二维码区域或整页
+    let qrImageData = '';
+
+    // 尝试找二维码元素
+    const qrSelectors = [
+      'img[src*="qr"]',
+      'img[src*="qrcode"]',
+      'canvas',
+      '.qrcode img',
+      '.qrcode-img',
+      '.login-qrcode img',
+      '[class*="qrcode"] img',
+      '[class*="qr-code"] img',
+    ];
+
+    for (const selector of qrSelectors) {
+      try {
+        const qrElement = await page.$(selector);
+        if (qrElement) {
+          const screenshot = await qrElement.screenshot({ type: 'png' });
+          const base64Data = Buffer.isBuffer(screenshot)
+            ? screenshot.toString('base64')
+            : Buffer.from(screenshot).toString('base64');
+          qrImageData = `data:image/png;base64,${base64Data}`;
+          console.log(`[Auth-V9] 找到二维码元素: ${selector}`);
+          break;
         }
       } catch (e) {
-        // 继续检查下一个选择器
+        // 继续尝试
       }
     }
-    
-    // 检查是否正在扫码
-    const pageText = await session.page.textContent('body').catch(() => '');
-    if (pageText?.includes('扫码') || pageText?.includes('扫描')) {
-      session.status = 'scanning';
+
+    // 如果没找到二维码元素，截取整个页面
+    if (!qrImageData) {
+      const screenshot = await page.screenshot({ type: 'png', fullPage: false });
+      const base64Data = Buffer.isBuffer(screenshot)
+        ? screenshot.toString('base64')
+        : Buffer.from(screenshot).toString('base64');
+      qrImageData = `data:image/png;base64,${base64Data}`;
+      console.log(`[Auth-V9] 未找到二维码元素，截取整页`);
     }
-    
-    // 未登录，返回当前状态
+
+    // 创建授权会话
+    const sessionId = uuidv4();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 分钟
+
+    // 保存会话和浏览器资源
+    sessions.set(sessionId, {
+      id: sessionId,
+      platform,
+      status: 'scanning',
+      createdAt: new Date(),
+      expiresAt,
+      qrImageData,
+      cookies: [],
+    });
+
+    // 保存浏览器实例以便后续轮询检查
+    playwrightResources.set(sessionId, { browser, context, page, platform, userId });
+
+    console.log(`[Auth-V9] Playwright 扫码登录已启动: ${config.name}, sessionId: ${sessionId}`);
+
     return {
-      status: session.status,
-      message: session.status === 'scanning' ? '已扫码，等待确认...' : '等待扫码授权...'
+      sessionId,
+      qrImageData,
+      platformName: config.name,
+      expiresAt,
     };
-    
+
   } catch (error: any) {
-    console.error(`[Auth] 检查状态失败:`, error.message);
-    return { status: 'error', message: error.message };
+    console.error('[Auth-V9] Playwright 启动失败:', error.message);
+    // 清理资源
+    try {
+      if (context) await context.close();
+      if (browser) await browser.close();
+    } catch (e) {}
+    return null;
   }
 }
 
+// 存储 Playwright 资源（浏览器、上下文、页面）
+const playwrightResources: Map<string, {
+  browser: any;
+  context: any;
+  page: any;
+  platform: string;
+  userId: string;
+}> = new Map();
+
 /**
- * 清理会话
+ * 轮询检查 Playwright 扫码登录状态
+ * 
+ * 检测逻辑（借鉴 shipinfabuzhushou 的判断方式）：
+ * 1. 检查 URL 是否跳转到了登录后的页面
+ * 2. 检查页面是否有已登录的元素特征
+ * 3. 如果登录成功，自动提取 Cookie + localStorage 并保存
  */
-function cleanupSession(sessionId: string): void {
+export async function pollPlaywrightLogin(sessionId: string): Promise<{
+  status: 'scanning' | 'success' | 'expired' | 'failed';
+  cookies?: any[];
+  localStorage?: any[];
+  accountInfo?: any;
+  message?: string;
+}> {
   const session = sessions.get(sessionId);
-  if (session) {
-    // 关闭页面
-    if (session.page && !session.page.isClosed()) {
-      session.page.close().catch(() => {});
+  if (!session) {
+    return { status: 'failed', message: '会话不存在' };
+  }
+
+  // 检查过期
+  if (new Date() > session.expiresAt) {
+    cleanupPlaywrightResource(sessionId);
+    session.status = 'expired';
+    return { status: 'expired', message: '登录超时，请重新操作' };
+  }
+
+  const resources = playwrightResources.get(sessionId);
+  if (!resources) {
+    return { status: 'failed', message: '浏览器资源已释放' };
+  }
+
+  try {
+    const { page, context, platform } = resources;
+    const config = PLATFORM_CONFIGS[platform];
+
+    // 检查 URL 是否跳转到登录后页面
+    const currentUrl = page.url();
+    const isOnLoginPage = 
+      currentUrl.includes('/login') ||
+      currentUrl.includes('/signin') ||
+      currentUrl.includes('/passport') ||
+      currentUrl.includes('/oauth');
+
+    if (!isOnLoginPage && config?.creatorUrl) {
+      // 可能已登录成功
+      const isOnCreatorPage = currentUrl.includes(new URL(config.creatorUrl).hostname);
+
+      if (isOnCreatorPage) {
+        // 检查页面是否有已登录的元素
+        const hasLoginIndicator = await page.evaluate(() => {
+          // 检查 localStorage 中的 LOGIN_STATUS
+          const loginStatus = localStorage.getItem('LOGIN_STATUS');
+          if (loginStatus) {
+            try {
+              const parsed = JSON.parse(loginStatus);
+              if (parsed.logintype) return true;
+            } catch {}
+          }
+          // 检查常见的已登录元素
+          const selectors = [
+            '.creator-left-menu', '[data-e2e="creator-nav"]',
+            '.user-info', '.user-name', '.profile-header',
+            '[class*="avatar"]', '[class*="user-name"]',
+          ];
+          for (const sel of selectors) {
+            if (document.querySelector(sel)) return true;
+          }
+          return false;
+        });
+
+        if (hasLoginIndicator) {
+          // 登录成功！提取 Cookie + localStorage
+          return await extractAndSaveLoginData(sessionId, resources);
+        }
+      }
     }
-    // 关闭上下文
-    if (session.context) {
-      session.context.close().catch(() => {});
+
+    // 如果二维码可能已刷新（页面有变化），尝试重新截图
+    if (session.status === 'scanning') {
+      try {
+        // 检查二维码是否还在
+        const qrVisible = await page.evaluate(() => {
+          const selectors = ['img[src*="qr"]', '.qrcode img', 'canvas', '.login-qrcode'];
+          for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (el && (el as HTMLElement).offsetParent !== null) return true;
+          }
+          return false;
+        });
+
+        if (qrVisible) {
+          // 二维码还在，更新截图
+          const screenshot = await page.screenshot({ type: 'png', fullPage: false });
+          const base64Data = Buffer.isBuffer(screenshot)
+            ? screenshot.toString('base64')
+            : Buffer.from(screenshot).toString('base64');
+          session.qrImageData = `data:image/png;base64,${base64Data}`;
+        }
+      } catch (e) {
+        // 截图失败不影响
+      }
     }
-    sessions.delete(sessionId);
-    console.log(`[Auth] 会话 ${sessionId} 已清理`);
+
+    return { status: 'scanning', message: '等待扫码中...' };
+
+  } catch (error: any) {
+    console.error('[Auth-V9] 轮询检查失败:', error.message);
+    return { status: 'failed', message: '检查登录状态失败' };
   }
 }
 
 /**
- * 取消授权会话
+ * 提取登录数据并保存到会话和数据库
+ * 借鉴 shipinfabuzhushou 的 user_data/*.json 格式
  */
-export function cancelAuthSession(sessionId: string): boolean {
-  cleanupSession(sessionId);
-  return true;
+async function extractAndSaveLoginData(
+  sessionId: string,
+  resources: { browser: any; context: any; page: any; platform: string; userId: string },
+): Promise<{
+  status: 'success';
+  cookies: any[];
+  localStorage?: any[];
+  accountInfo?: any;
+}> {
+  const { context, page, platform, userId } = resources;
+  const config = PLATFORM_CONFIGS[platform];
+  const session = sessions.get(sessionId);
+
+  try {
+    // 1. 提取所有 Cookie
+    const allCookies = await context.cookies();
+
+    // 2. 过滤出平台相关的 Cookie
+    const platformCookies = allCookies.filter((c: any) => {
+      const domain = c.domain || '';
+      return config?.cookieDomains?.some(d =>
+        domain.includes(d.replace(/^\./, '')) || domain === d
+      );
+    });
+
+    // 3. 提取 localStorage
+    let localStorageData: any[] = [];
+    try {
+      const origin = new URL(config?.creatorUrl || config?.loginUrl || '').origin;
+      const entries = await page.evaluate(() => {
+        const items: { name: string; value: string }[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key) items.push({ name: key, value: localStorage.getItem(key) || '' });
+        }
+        return items;
+      });
+      if (entries.length > 0) {
+        localStorageData = [{ origin, localStorage: entries }];
+      }
+    } catch (e) {
+      // localStorage 提取失败不影响
+    }
+
+    // 4. 提取账号信息
+    let accountInfo: any = {};
+    try {
+      // 从 localStorage 的 LOGIN_STATUS 提取
+      const loginStatusEntry = localStorageData
+        .flatMap(o => o.localStorage || [])
+        .find((item: any) => item.name === 'LOGIN_STATUS');
+      if (loginStatusEntry) {
+        const loginData = JSON.parse(loginStatusEntry.value);
+        accountInfo.loginType = loginData.logintype;
+        accountInfo.loginApp = loginData.loginapp;
+      }
+
+      // 从 Cookie 提取用户标识
+      const uidCookie = platformCookies.find((c: any) => c.name === 'uid_tt');
+      if (uidCookie) {
+        accountInfo.uid = uidCookie.value;
+      }
+
+      // 从页面提取用户名
+      try {
+        const nameText = await page.evaluate(() => {
+          const selectors = ['.user-name', '.nick-name', '[class*="user-name"]', '[class*="nickname"]'];
+          for (const sel of selectors) {
+            const el = document.querySelector(sel);
+            if (el && el.textContent?.trim()) return el.textContent.trim();
+          }
+          return null;
+        });
+        if (nameText) accountInfo.name = nameText;
+      } catch (e) {}
+    } catch (e) {}
+
+    // 5. 构造 Playwright storageState 格式（与 shipinfabuzhushou 一致）
+    const storageState = {
+      cookies: platformCookies.length > 0 ? platformCookies : allCookies,
+      origins: localStorageData,
+    };
+
+    // 6. 更新会话状态
+    if (session) {
+      session.status = 'authorized';
+      session.cookies = storageState.cookies;
+      session.localStorage = localStorageData;
+      session.accountInfo = accountInfo;
+    }
+
+    // 7. 自动保存到数据库（核心：Cookie 变更自动更新）
+    await saveCookiesToDatabase(platform, userId, storageState, accountInfo);
+
+    console.log(`[Auth-V9] 登录成功! 平台: ${config?.name}, Cookie: ${storageState.cookies.length}, localStorage: ${localStorageData.length}`);
+
+    // 8. 清理浏览器资源
+    cleanupPlaywrightResource(sessionId);
+
+    return {
+      status: 'success',
+      cookies: storageState.cookies,
+      localStorage: localStorageData,
+      accountInfo,
+    };
+
+  } catch (error: any) {
+    console.error('[Auth-V9] 提取登录数据失败:', error.message);
+    cleanupPlaywrightResource(sessionId);
+    return { status: 'success', cookies: [], accountInfo: {} };
+  }
+}
+
+/**
+ * 自动保存 Cookie 到数据库（新建或更新）
+ * 如果账号已存在则更新 Cookie，否则创建新记录
+ */
+async function saveCookiesToDatabase(
+  platform: string,
+  userId: string,
+  storageState: { cookies: any[]; origins: any[] },
+  accountInfo: any,
+): Promise<void> {
+  const config = PLATFORM_CONFIGS[platform];
+  const cookiesJson = JSON.stringify(storageState);
+  const accountName = accountInfo?.name || `${config?.name || platform}用户_${Date.now().toString(36)}`;
+
+  // 检查是否已存在同平台的账号
+  const existingAccount = await prisma.socialAccount.findFirst({
+    where: { userId, platform },
+  });
+
+  if (existingAccount) {
+    // 更新已有账号的 Cookie（变更自动更新）
+    await prisma.socialAccount.update({
+      where: { id: existingAccount.id },
+      data: {
+        cookies: cookiesJson,
+        isConnected: true,
+        status: 'active',
+        lastSyncAt: new Date(),
+        syncError: null,
+        accountName: accountInfo?.name || existingAccount.accountName,
+        config: {
+          ...(existingAccount.config as any || {}),
+          importMethod: 'playwright_auto',
+          lastAutoRefresh: new Date().toISOString(),
+          cookieCount: storageState.cookies.length,
+          hasLocalStorage: (storageState.origins?.length || 0) > 0,
+        },
+      },
+    });
+    console.log(`[Auth-V9] Cookie 自动更新: ${config?.name} - ${existingAccount.accountName}`);
+  } else {
+    // 创建新账号
+    await prisma.socialAccount.create({
+      data: {
+        userId,
+        platform,
+        accountName,
+        accountId: `${platform}_${userId}_${Date.now().toString(36)}`,
+        cookies: cookiesJson,
+        isConnected: true,
+        status: 'active',
+        lastSyncAt: new Date(),
+        config: {
+          importMethod: 'playwright_auto',
+          importedAt: new Date().toISOString(),
+          cookieCount: storageState.cookies.length,
+          hasLocalStorage: (storageState.origins?.length || 0) > 0,
+        },
+      },
+    });
+    console.log(`[Auth-V9] 新账号自动绑定: ${config?.name} - ${accountName}`);
+  }
+}
+
+/**
+ * 清理 Playwright 资源
+ */
+function cleanupPlaywrightResource(sessionId: string): void {
+  const resources = playwrightResources.get(sessionId);
+  if (resources) {
+    (async () => {
+      try {
+        if (resources.page) await resources.page.close().catch(() => {});
+        if (resources.context) await resources.context.close().catch(() => {});
+        if (resources.browser) await resources.browser.close().catch(() => {});
+      } catch (e) {}
+    })();
+    playwrightResources.delete(sessionId);
+  }
+}
+
+/**
+ * 获取二维码最新截图（前端轮询刷新二维码）
+ */
+export function getQrImage(sessionId: string): string | null {
+  const session = sessions.get(sessionId);
+  return session?.qrImageData || null;
 }

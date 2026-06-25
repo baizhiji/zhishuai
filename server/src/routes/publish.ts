@@ -100,7 +100,7 @@ router.post('/tasks', authMiddleware, async (req: Request, res: Response) => {
     if (platforms && Object.keys(platforms).length > 0) {
       for (const [platform, accountIds] of Object.entries(platforms)) {
         for (const accountId of (accountIds as string[])) {
-          await prisma.publishRecord.create({
+          const publishRecord = await prisma.publishRecord.create({
             data: {
               materialId: material.id,
               userId,
@@ -110,6 +110,22 @@ router.post('/tasks', authMiddleware, async (req: Request, res: Response) => {
               scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
             }
           });
+
+          // 如果是定时发布，同时创建 ScheduledTask 记录供调度引擎执行
+          if (scheduledAt) {
+            await prisma.scheduledTask.create({
+              data: {
+                userId,
+                platform,
+                materialId: material.id,
+                publishRecordId: publishRecord.id,
+                title: material.title,
+                content: material.content,
+                status: 'pending',
+                scheduledTime: new Date(scheduledAt),
+              }
+            });
+          }
         }
       }
     }

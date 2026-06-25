@@ -83,41 +83,6 @@ export default function AgentPerformancePage() {
       setLoading(false);
     }
   };
-      customers: 85,
-      newCustomers: 8,
-      revenue: 255000,
-      commission: 51000,
-      commissionRate: 20,
-      status: 'active',
-      joinDate: '2023-08-10',
-    },
-    {
-      id: '4',
-      agentName: '赵六',
-      agentPhone: '13800138004',
-      region: '西南区域',
-      customers: 76,
-      newCustomers: 10,
-      revenue: 228000,
-      commission: 45600,
-      commissionRate: 20,
-      status: 'active',
-      joinDate: '2023-09-05',
-    },
-    {
-      id: '5',
-      agentName: '钱七',
-      agentPhone: '13800138005',
-      region: '西北区域',
-      customers: 52,
-      newCustomers: 5,
-      revenue: 156000,
-      commission: 31200,
-      commissionRate: 20,
-      status: 'frozen',
-      joinDate: '2023-10-18',
-    },
-  ];
 
   const showDetail = (agent: AgentPerformance) => {
     setSelectedAgent(agent);

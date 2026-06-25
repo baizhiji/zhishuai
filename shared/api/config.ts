@@ -168,6 +168,9 @@ export const API_ENDPOINTS = {
     list: '/notifications',
     read: '/notifications/:id/read',
     readAll: '/notifications/read-all',
+    unreadCount: '/notifications/unread-count',
+    pushToken: '/notifications/push-token',
+    send: '/notifications/send',
   },
 
   // AI 对话

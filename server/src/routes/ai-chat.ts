@@ -19,14 +19,18 @@ import { getPrimaryApiKey } from '../services/user-api-key.service';
 
 const router = Router();
 
-// 获取用户API Key（优先使用用户自己配置的Key，fallback到环境变量）
-async function getUserApiKey(userId: string, provider: 'aliyun' | 'tencent'): Promise<string | null> {
+// 获取用户API Key（优先使用用户自己配置的Key，仅管理员可fallback到环境变量）
+async function getUserApiKey(userId: string, provider: 'aliyun' | 'tencent', userRole?: string): Promise<string | null> {
   const providerKey = provider === 'aliyun' ? 'dashscope' : 'tokenhub';
   const userKey = await getPrimaryApiKey(userId, providerKey);
   if (userKey?.apiKey) {
     return userKey.apiKey;
   }
-  // Fallback 到环境变量（管理员全局Key）
+  // 仅管理员可使用平台全局Key（环境变量），普通用户必须自己配置API Key
+  if (userRole !== 'admin') {
+    return null;
+  }
+  // Fallback 到环境变量（仅管理员）
   const envKey = provider === 'aliyun' 
     ? process.env.DASHSCOPE_API_KEY || null
     : process.env.TENCENT_TOKENHUB_API_KEY || null;
@@ -143,6 +147,7 @@ interface ChatMessage {
 router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
+    const userRole = (req as any).userRole;
     const { messages, modelKey, stream = false, preferProvider } = req.body;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -184,13 +189,13 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
-    // 获取API Key（优先使用用户自己的Key）
-    const apiKey = await getUserApiKey(userId, provider as 'aliyun' | 'tencent');
+    // 获取API Key（优先使用用户自己的Key，仅admin可fallback到平台Key）
+    const apiKey = await getUserApiKey(userId, provider as 'aliyun' | 'tencent', userRole);
 
     if (!apiKey) {
       res.status(400).json({ 
         error: 'API Key未配置',
-        message: '请在「API服务商配置」页面配置API Key',
+        message: '请在「API服务商配置」页面配置您的API Key，或在「个人设置」中绑定您的API Key',
         provider: provider === 'aliyun' ? '阿里云百炼' : '腾讯云TokenHub'
       });
       return;
@@ -239,7 +244,7 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
       if (fallback) {
         console.log(`降级到备用模型: ${fallback.modelKey}`);
         
-        const fallbackApiKey = await getUserApiKey(userId, fallback.provider as 'aliyun' | 'tencent');
+        const fallbackApiKey = await getUserApiKey(userId, fallback.provider as 'aliyun' | 'tencent', userRole);
         
         if (fallbackApiKey) {
           aiModelRouter.incrementConcurrent(fallback.modelKey);
@@ -544,6 +549,7 @@ async function callAIProvider(
 router.post('/diagnosis', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
+    const userRole = (req as any).userRole;
     const { 
       request,           // 诊断请求描述
       industry,          // 行业类型（可选，自动识别）
@@ -557,8 +563,8 @@ router.post('/diagnosis', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    // 获取API Key（优先使用用户自己的Key）
-    const apiKey = await getUserApiKey(userId, 'aliyun');
+    // 获取API Key（优先使用用户自己的Key，仅admin可fallback到平台Key）
+    const apiKey = await getUserApiKey(userId, 'aliyun', userRole);
     if (!apiKey) {
       res.status(400).json({ 
         error: 'API Key未配置',
@@ -683,6 +689,7 @@ router.get('/diagnosis/capabilities', authMiddleware, (req: Request, res: Respon
 router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
+    const userRole = (req as any).userRole;
     const { imageUrl, question } = req.body;
 
     if (!imageUrl) {
@@ -690,7 +697,7 @@ router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const apiKey = await getUserApiKey(userId, 'tencent');
+    const apiKey = await getUserApiKey(userId, 'tencent', userRole);
     if (!apiKey) {
       res.status(400).json({ error: 'API Key未配置，请在「个人设置」中绑定您的API Key' });
       return;
@@ -735,6 +742,7 @@ router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
 router.post('/image', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
+    const userRole = (req as any).userRole;
     const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
 
     if (!prompt) {
@@ -742,7 +750,7 @@ router.post('/image', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const apiKey = await getUserApiKey(userId, 'tencent');
+    const apiKey = await getUserApiKey(userId, 'tencent', userRole);
     if (!apiKey) {
       res.status(400).json({ error: 'API Key未配置，请在「个人设置」中绑定您的API Key' });
       return;
@@ -785,6 +793,7 @@ router.post('/image', authMiddleware, async (req: Request, res: Response) => {
 router.post('/video', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
+    const userRole = (req as any).userRole;
     const { videoUrl, question } = req.body;
 
     if (!videoUrl) {
@@ -792,7 +801,7 @@ router.post('/video', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    const apiKey = await getUserApiKey(userId, 'tencent');
+    const apiKey = await getUserApiKey(userId, 'tencent', userRole);
     if (!apiKey) {
       res.status(400).json({ error: 'API Key未配置，请在「个人设置」中绑定您的API Key' });
       return;

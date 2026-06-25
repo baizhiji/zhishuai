@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Select, DatePicker, message, Tag, Statistic, Row, Col, Modal, Form, Input } from 'antd';
 import { DownloadOutlined, FileExcelOutlined, FileTextOutlined, DatabaseOutlined, ShoppingOutlined, TeamOutlined, VideoCameraOutlined } from '@ant-design/icons';
 import { exportCustomers, exportAcquisitionData, exportPublishRecords, exportStatistics } from '@/services/export';
+import request from '@/utils/request';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
@@ -85,12 +86,54 @@ export default function ReportPage() {
     { key: 'statistics', label: '综合统计', count: 0, color: 'orange' }
   ];
 
-  // 最近导出的模拟记录
-  const recentExports = [
-    { id: 1, type: 'customers', format: 'CSV', date: '2024-01-15 10:30', size: '2.3MB', records: 1250 },
-    { id: 2, type: 'acquisition', format: 'CSV', date: '2024-01-14 15:20', size: '1.8MB', records: 856 },
-    { id: 3, type: 'publish', format: 'CSV', date: '2024-01-13 09:15', size: '856KB', records: 324 }
-  ];
+  const [recentExports, setRecentExports] = useState<any[]>([]);
+  const [exportsLoading, setExportsLoading] = useState(false);
+  const [stats, setStats] = useState({ totalCount: 0, totalRecords: 0, totalSize: '0', weeklyCount: 0 });
+
+  // 从后端获取真实导出记录
+  useEffect(() => {
+    fetchExportHistory();
+    fetchExportStats();
+  }, []);
+
+  const fetchExportHistory = async () => {
+    setExportsLoading(true);
+    try {
+      const res = await request.get('/api/export/history', { params: { limit: 20 } });
+      const data = res?.data?.list || res?.data || [];
+      if (Array.isArray(data)) {
+        setRecentExports(data.map((item: any) => ({
+          id: item.id,
+          type: item.type,
+          format: (item.format || 'csv').toUpperCase(),
+          date: item.createdAt ? new Date(item.createdAt).toLocaleString('zh-CN') : '-',
+          size: item.fileSize || '-',
+          records: item.recordCount || 0,
+        })));
+      }
+    } catch {
+      // 后端暂不支持时显示空列表
+      setRecentExports([]);
+    } finally {
+      setExportsLoading(false);
+    }
+  };
+
+  const fetchExportStats = async () => {
+    try {
+      const res = await request.get('/api/export/stats');
+      if (res?.data) {
+        setStats({
+          totalCount: res.data.totalCount || 0,
+          totalRecords: res.data.totalRecords || 0,
+          totalSize: res.data.totalSize || '0',
+          weeklyCount: res.data.weeklyCount || 0,
+        });
+      }
+    } catch {
+      // 静默失败，使用默认值
+    }
+  };
 
   return (
     <div className="p-6">
@@ -128,22 +171,22 @@ export default function ReportPage() {
       <Row gutter={[16, 16]} className="mb-6">
         <Col xs={12} sm={6}>
           <Card>
-            <Statistic title="累计导出次数" value={156} prefix={<DownloadOutlined />} />
+            <Statistic title="累计导出次数" value={stats.totalCount} prefix={<DownloadOutlined />} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>
           <Card>
-            <Statistic title="累计导出记录" value="12.5万" />
+            <Statistic title="累计导出记录" value={stats.totalRecords.toLocaleString()} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>
           <Card>
-            <Statistic title="累计导出大小" value="3.2GB" />
+            <Statistic title="累计导出大小" value={stats.totalSize} />
           </Card>
         </Col>
         <Col xs={12} sm={6}>
           <Card>
-            <Statistic title="本周导出" value={12} />
+            <Statistic title="本周导出" value={stats.weeklyCount} />
           </Card>
         </Col>
       </Row>
@@ -160,6 +203,7 @@ export default function ReportPage() {
         <Table
           dataSource={recentExports}
           rowKey="id"
+          loading={exportsLoading}
           pagination={false}
           columns={[
             {

@@ -21,7 +21,8 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   UserOutlined,
-  WeiboSquareFilled,
+  QrcodeOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -32,7 +33,6 @@ interface Platform {
   name: string;
   icon: React.ReactNode;
   color: string;
-  authUrl: string;
 }
 
 interface BoundAccount {
@@ -48,36 +48,33 @@ const platforms: Platform[] = [
     name: 'Boss直聘',
     icon: <span style={{ fontSize: 32, color: '#00C777' }}>B</span>,
     color: '#00C777',
-    authUrl: '/api/oauth/boss/initiate',
   },
   {
     id: 'zhilian',
     name: '智联招聘',
     icon: <span style={{ fontSize: 32, color: '#0066CC' }}>Z</span>,
     color: '#0066CC',
-    authUrl: '/api/oauth/zhilian/initiate',
   },
   {
-    id: '51job',
-    name: '前程无忧',
-    icon: <span style={{ fontSize: 32, color: '#FF6000' }}>5</span>,
+    id: 'liepin',
+    name: '猎聘',
+    icon: <span style={{ fontSize: 32, color: '#FF6000' }}>L</span>,
     color: '#FF6000',
-    authUrl: '/api/oauth/51job/initiate',
   },
   {
     id: 'lagou',
     name: '拉勾招聘',
     icon: <span style={{ fontSize: 32, color: '#1DC6B1' }}>L</span>,
     color: '#1DC6B1',
-    authUrl: '/api/oauth/lagou/initiate',
   },
 ];
 
 // 已绑定账号从 API 获取
 const fetchBoundAccounts = async (): Promise<BoundAccount[]> => {
   try {
-    const { default: api } = await import('@/services/api');
-    const res = await api.get('/social/accounts', { type: 'recruitment' });
+    // V5修复：使用正确的 request 模块
+    const request = (await import('@/utils/request')).default;
+    const res = await request.get('/social/accounts', { params: { type: 'recruitment' } });
     const data = Array.isArray(res) ? res : (res?.data || []);
     return data.map((a: any) => ({
       platform: a.platform,
@@ -95,6 +92,8 @@ export default function RecruitmentPlatforms() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [loading, setLoading] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [qrMethod, setQrMethod] = useState<string>('popup');
+  const [popupUrl, setPopupUrl] = useState('');
   const [boundAccounts, setBoundAccounts] = useState<BoundAccount[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
 
@@ -110,28 +109,40 @@ export default function RecruitmentPlatforms() {
     setSelectedPlatform(platform);
     setLoading(true);
     setQrCodeUrl('');
+    setPopupUrl('');
 
     try {
-      // 调用后端获取二维码
-      const { default: api } = await import('@/services/api');
-      const res = await api.post('/oauth/initiate', { platform: platform.id, type: 'recruitment' });
-      const qrData = res?.data || res;
-      if (qrData?.qrCodeUrl || qrData?.qrCode) {
-        setQrCodeUrl(qrData.qrCodeUrl || qrData.qrCode);
-      } else if (qrData?.loginUrl) {
-        setQrCodeUrl(qrData.loginUrl);
+      const request = (await import('@/utils/request')).default;
+      const res = await request.post('/oauth/sessions', { platform: platform.id });
+      
+      console.log('[Recruitment] 授权响应:', JSON.stringify(res).substring(0, 500));
+      
+      if (res.success && res.data) {
+        const method = res.data.qrMethod || 'popup';
+        setQrMethod(method);
+        
+        if (method === 'popup') {
+          // V7 popup方式：打开新窗口
+          const url = res.data.popupUrl || res.data.qrcodeUrl || '';
+          setPopupUrl(url);
+          setQrCodeUrl('');
+          window.open(url, '_blank', 'width=800,height=600');
+        } else {
+          // V7 API方式：直接显示二维码图片
+          setQrCodeUrl(res.data.qrcodeUrl);
+          setPopupUrl('');
+        }
+        setModalVisible(true);
       } else {
-        // 后端未返回二维码URL时显示登录页面URL
-        setQrCodeUrl(platform.authUrl);
+        message.error(res.error || res.message || '获取授权二维码失败');
+        setModalVisible(false);
       }
-      setQrCodeUrl(
-        `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`recruitment_auth_${platform.id}_${Date.now()}`)}`
-      );
-    } catch (error) {
-      message.error('获取授权二维码失败');
+    } catch (error: any) {
+      console.error('[Recruitment] 授权请求失败:', error);
+      message.error(error?.response?.data?.error || error?.message || '获取授权二维码失败');
+      setModalVisible(false);
     } finally {
       setLoading(false);
-      setModalVisible(true);
     }
   };
 
@@ -287,24 +298,107 @@ export default function RecruitmentPlatforms() {
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={null}
-        width={400}
+        width={450}
+        destroyOnClose
       >
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           <Spin spinning={loading}>
-            {qrCodeUrl ? (
+            {(qrMethod === 'popup' && popupUrl) || qrCodeUrl ? (
               <>
-                <QRCode value={qrCodeUrl} size={200} />
-                <div style={{ marginTop: 16 }}>
-                  <Text>请使用 {selectedPlatform?.name} App 扫码授权</Text>
+                {/* 平台图标和名称 */}
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>{selectedPlatform?.icon}</div>
+                  <Title level={4} style={{ margin: 0, color: selectedPlatform?.color }}>
+                    授权 {selectedPlatform?.name}
+                  </Title>
                 </div>
-                <div style={{ marginTop: 8 }}>
+                
+                {/* V7: popup方式或二维码图片 */}
+                <div style={{
+                  display: 'inline-block',
+                  padding: 12,
+                  borderRadius: 12,
+                  border: `2px solid ${selectedPlatform?.color || '#f0f0f0'}`,
+                  background: '#fff',
+                  position: 'relative',
+                }}>
+                  {qrMethod === 'popup' && popupUrl ? (
+                    <div style={{ width: 240, height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
+                      <div style={{ fontSize: 36, marginBottom: 8 }}>{selectedPlatform?.icon}</div>
+                      <Text strong style={{ marginBottom: 4 }}>请在新窗口中扫码</Text>
+                      <Text type="secondary" style={{ marginBottom: 8, fontSize: 11 }}>
+                        已打开 {selectedPlatform?.name} 登录页面
+                      </Text>
+                      <Button 
+                        size="small"
+                        style={{ marginBottom: 6 }}
+                        onClick={() => window.open(popupUrl, '_blank', 'width=800,height=600')}
+                      >
+                        重新打开登录页
+                      </Button>
+                      <Button 
+                        type="primary" 
+                        size="small"
+                        onClick={async () => {
+                          message.success('授权成功！');
+                          setModalVisible(false);
+                          fetchBoundAccounts();
+                        }}
+                      >
+                        我已完成授权
+                      </Button>
+                    </div>
+                  ) : qrCodeUrl ? (
+                    <img 
+                      src={qrCodeUrl} 
+                      alt="授权二维码" 
+                      style={{ 
+                        width: 240, 
+                        height: 240,
+                        display: 'block',
+                        borderRadius: 8,
+                        objectFit: 'contain',
+                        border: '1px solid #e8e8e8'
+                      }}
+                    />
+                  ) : null}
+                </div>
+                
+                {/* 操作提示 */}
+                <div style={{ 
+                  background: '#f8f8f8', 
+                  padding: 16, 
+                  borderRadius: 8,
+                  marginTop: 16,
+                  textAlign: 'left'
+                }}>
+                  <Space>
+                    <QrcodeOutlined style={{ fontSize: 20, color: selectedPlatform?.color }} />
+                    <div>
+                      <Text strong>打开 {selectedPlatform?.name} App</Text><br />
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        1. 打开{selectedPlatform?.name} App<br />
+                        2. 点击右上角扫一扫<br />
+                        3. 扫描上方二维码完成授权
+                      </Text>
+                    </div>
+                  </Space>
+                </div>
+
+                <div style={{ marginTop: 12 }}>
                   <Text type="secondary" style={{ fontSize: 12 }}>
-                    二维码有效期为5分钟，请尽快扫码
+                    二维码有效期为 10 分钟，请尽快扫码
                   </Text>
                 </div>
               </>
             ) : (
-              <div style={{ width: 200, height: 200, margin: '0 auto', background: '#f5f5f5' }} />
+              <div style={{ width: 240, height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999', background: '#f5f5f5', borderRadius: 8 }}>
+                <CloseCircleOutlined style={{ fontSize: 32, color: '#ff4d4f', marginBottom: 8 }} />
+                <Text type="secondary">获取二维码失败</Text>
+                <Button size="small" style={{ marginTop: 8 }} onClick={() => selectedPlatform && handleBindAccount(selectedPlatform)}>
+                  重试
+                </Button>
+              </div>
             )}
           </Spin>
         </div>

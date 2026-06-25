@@ -7,7 +7,16 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3001,
-        LD_LIBRARY_PATH: '/usr/lib/x86_64-linux-gnu:/usr/lib'
+        LD_LIBRARY_PATH: '/usr/lib/x86_64-linux-gnu:/usr/lib',
+        // FCM推送配置（通过环境变量传入，不硬编码）
+        GOOGLE_APPLICATION_CREDENTIALS: process.env.GOOGLE_APPLICATION_CREDENTIALS || '',
+        GOOGLE_SERVICE_ACCOUNT_JSON: process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '',
+        APNS_KEY_ID: process.env.APNS_KEY_ID || '',
+        APNS_TEAM_ID: process.env.APNS_TEAM_ID || '',
+        APNS_PRIVATE_KEY: process.env.APNS_PRIVATE_KEY || '',
+        VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || '',
+        VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || '',
+        VAPID_SUBJECT: process.env.VAPID_SUBJECT || '',
       },
       instances: 1,
       autorestart: true,

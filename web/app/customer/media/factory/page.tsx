@@ -47,6 +47,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { generateText, generateImage } from '@/lib/ai/aliyun';
+import request from '@/utils/request';
 import {
   ContentCategory,
   contentCategoryConfig,
@@ -144,14 +145,31 @@ export default function ContentFactoryPage() {
           // 提取图片 URL
           result = result.output.results[0].url;
         } else if (categoryConfig.type === 'video') {
-          // 视频生成（暂时使用模拟）
-          const extras = `（字幕:${values.subtitle || '无'}，配音:${values.voiceover || '无'}，背景音乐:${values.bgm || '无'}）`;
-          if (activeCategory === ContentCategory.VIDEO_ANALYSIS) {
-            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=爆款视频${i + 1}${extras}`;
-          } else if (activeCategory === ContentCategory.DIGITAL_HUMAN) {
-            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=数字人视频${i + 1}-${values.digitalHumanId}${extras}`;
-          } else {
-            result = `https://via.placeholder.com/${values.size?.replace('x', '/')}?text=视频${i + 1}${extras}`;
+          // 视频生成 — 调用后端视频生成API
+          const videoPrompt = activeCategory === ContentCategory.VIDEO_ANALYSIS
+            ? `分析视频并生成爆款视频。分析维度：${values.analysisDimensions?.join('、')}。保留爆款元素：${values.viralElements?.join('、')}。描述：${values.description}`
+            : activeCategory === ContentCategory.DIGITAL_HUMAN
+              ? `数字人视频：数字人ID ${values.digitalHumanId}，内容：${values.description}`
+              : `生成短视频：${values.description}`;
+          
+          try {
+            const videoRes = await request.post('/api/ai-chat/video', {
+              prompt: videoPrompt,
+              size: values.size || '1920x1080',
+              duration: values.duration || 30,
+              subtitle: values.subtitle || 'chinese',
+              voiceover: values.voiceover || 'female-mandarin',
+              bgm: values.bgm || 'dynamic',
+            });
+            result = videoRes?.data?.url || videoRes?.url || null;
+          } catch {
+            // 视频生成失败时给出明确提示
+            result = null;
+            message.warning('视频生成需要配置API Key，请在「个人设置」中绑定您的API Key');
+          }
+          if (!result) {
+            results.push(null);
+            continue;
           }
         } else {
           // 文本生成

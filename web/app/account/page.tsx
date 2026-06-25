@@ -38,7 +38,7 @@ export default function AccountPage() {
       });
       setUsageStats(
         (data?.stats || []).map((s: any) => ({
-          icon: <s.iconType === 'media' ? SafetyCertificateOutlined : s.iconType === 'recruit' ? CrownOutlined : s.iconType === 'acquisition' ? SafetyCertificateOutlined : TrophyOutlined />,
+          icon: s.iconType === 'media' ? <SafetyCertificateOutlined /> : s.iconType === 'recruit' ? <CrownOutlined /> : s.iconType === 'acquisition' ? <SafetyCertificateOutlined /> : <TrophyOutlined />,
           name: s.name || s.feature || '-',
           value: `${s.used ?? s.count ?? 0}次`,
           color: s.color || '#1890ff',

@@ -109,6 +109,9 @@ export default function MatrixManagementPage() {
   const [sessionStatus, setSessionStatus] = useState<string>('pending');
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  // V7: 二维码显示方式相关状态
+  const [qrMethod, setQrMethod] = useState<string>('api'); // 'api' 显示图片, 'popup' 打开新窗口
+  const [popupUrl, setPopupUrl] = useState<string>('');
 
   // 监听 qrcodeImage 变化
   useEffect(() => {
@@ -169,10 +172,29 @@ export default function MatrixManagementPage() {
       console.log('[Matrix] 创建会话响应:', JSON.stringify(res).substring(0, 500));
       
       if (res.success && res.data) {
-        console.log('[Matrix] 设置二维码，长度:', res.data.qrcodeUrl?.length);
+        const method = res.data.qrMethod || 'popup';
+        console.log('[Matrix] 二维码获取方式:', method);
+        
         setSessionId(res.data.sessionId);
-        setQrcodeImage(res.data.qrcodeUrl);
-        setQrcodeLoading(false);
+        setQrMethod(method);
+        
+        if (method === 'popup') {
+          // V7 popup方式：打开新窗口让用户在平台页面直接扫码
+          // 客户端浏览器不是机房IP，不会被平台拦截
+          const url = res.data.popupUrl || res.data.qrcodeUrl || '';
+          setPopupUrl(url);
+          setQrcodeImage(null);
+          setQrcodeLoading(false);
+          // 自动打开新窗口
+          window.open(url, '_blank', 'width=800,height=600');
+        } else {
+          // V7 API方式：后端通过passport API直接获取了二维码图片
+          console.log('[Matrix] 设置二维码，长度:', res.data.qrcodeUrl?.length);
+          setQrcodeImage(res.data.qrcodeUrl);
+          setPopupUrl('');
+          setQrcodeLoading(false);
+        }
+        
         setSessionStatus('pending');
         
         // 开始轮询授权状态
@@ -235,6 +257,8 @@ export default function MatrixManagementPage() {
     setQrcodeImage(null);
     setQrcodeLoading(false);
     setSessionStatus('pending');
+    setQrMethod('api');
+    setPopupUrl('');
   };
 
   const handleRefreshAccount = async (accountId: string) => {
@@ -507,44 +531,99 @@ export default function MatrixManagementPage() {
                 </Title>
               </div>
 
-              {/* 二维码区域 */}
+              {/* 二维码区域 V6 */}
               <div style={{ 
                 background: '#fff', 
                 padding: 16, 
                 borderRadius: 12,
                 border: `2px solid ${selectedPlatform?.color || '#f0f0f0'}`,
-                position: 'relative'
+                position: 'relative',
+                display: 'inline-block'
               }}>
                 {qrcodeLoading ? (
-                  <div style={{ width: 350, height: 350, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 240, height: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Spin size="large" tip="正在生成二维码..." />
                   </div>
+                ) : qrMethod === 'popup' && popupUrl ? (
+                  /* V7 popup方式：提示用户在新窗口中扫码，并提供手动确认按钮 */
+                  <div style={{ width: 240, height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5', borderRadius: 8, padding: 16 }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>{selectedPlatform?.icon}</div>
+                    <Text strong style={{ marginBottom: 4 }}>请在新窗口中扫码</Text>
+                    <Text type="secondary" style={{ marginBottom: 8, fontSize: 11 }}>
+                      已打开 {selectedPlatform?.name} 登录页面
+                    </Text>
+                    <Button 
+                      size="small"
+                      style={{ marginBottom: 6 }}
+                      onClick={() => window.open(popupUrl, '_blank', 'width=800,height=600')}
+                    >
+                      重新打开登录页
+                    </Button>
+                    <Button 
+                      type="primary" 
+                      size="small"
+                      onClick={async () => {
+                        if (sessionId) {
+                          try {
+                            const res = await request.post(`/oauth/sessions/${sessionId}/confirm`, {
+                              accountInfo: { name: `${selectedPlatform?.name}用户`, platform: selectedPlatform?.id }
+                            });
+                            if (res.success) {
+                              message.success('授权成功！');
+                              setBindStep('select');
+                              setBindModalVisible(false);
+                              fetchData();
+                            } else {
+                              message.error(res.error || '确认授权失败');
+                            }
+                          } catch (e) {
+                            message.error('确认授权失败');
+                          }
+                        }
+                      }}
+                    >
+                      我已完成授权
+                    </Button>
+                    {/* 扫码确认中 */}
+                    {sessionStatus === 'scanning' && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: 'rgba(255,255,255,0.95)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        borderRadius: 12,
+                      }}>
+                        <Space direction="vertical" size="middle">
+                          <LoadingOutlined style={{ fontSize: 32 }} />
+                          <Text strong>正在确认授权...</Text>
+                        </Space>
+                      </div>
+                    )}
+                  </div>
                 ) : qrcodeImage ? (
+                  /* V7 API方式：直接显示passport API获取的二维码图片 */
                   <div style={{ position: 'relative' }}>
-                    {/* 放大图片显示 */}
                     <img 
                       src={qrcodeImage} 
                       alt="授权二维码" 
                       style={{ 
-                        width: 350, 
-                        height: 'auto', 
-                        maxHeight: 400,
+                        width: 240, 
+                        height: 240,
                         display: 'block',
-                        borderRadius: 4
+                        borderRadius: 8,
+                        objectFit: 'contain',
+                        border: '1px solid #e8e8e8'
                       }}
                     />
-                    
                     {/* 扫码提示遮罩 */}
                     {sessionStatus === 'pending' && (
                       <div style={{
                         position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
+                        bottom: 0, left: 0, right: 0,
                         background: 'rgba(0,0,0,0.7)',
                         color: '#fff',
                         padding: '8px 0',
-                        borderRadius: '0 0 10px 10px',
+                        borderRadius: '0 0 8px 8px',
                         fontSize: 12
                       }}>
                         请打开{selectedPlatform?.name} App 扫码
@@ -552,23 +631,22 @@ export default function MatrixManagementPage() {
                     )}
                   </div>
                 ) : (
-                  <div style={{ width: 280, height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+                  <div style={{ width: 240, height: 240, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#999', background: '#f5f5f5', borderRadius: 8 }}>
+                    <CloseCircleOutlined style={{ fontSize: 32, color: '#ff4d4f', marginBottom: 8 }} />
                     <Text type="secondary">二维码加载失败</Text>
+                    <Button size="small" style={{ marginTop: 8 }} onClick={() => selectedPlatform && handleSelectPlatform(selectedPlatform)}>
+                      重新加载
+                    </Button>
                   </div>
                 )}
                 
-                {/* 扫码确认中遮罩 */}
-                {sessionStatus === 'scanning' && (
+                {/* 扫码确认中遮罩（API方式） */}
+                {sessionStatus === 'scanning' && qrMethod === 'api' && qrcodeImage && (
                   <div style={{
                     position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
+                    top: 0, left: 0, right: 0, bottom: 0,
                     background: 'rgba(255,255,255,0.95)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 12,
                   }}>
                     <Space direction="vertical" size="middle">

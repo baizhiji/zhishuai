@@ -83,6 +83,31 @@ model User {
   candidateSearchConfigs CandidateSearchConfig[]
   userSettings          UserSettings?
   socialAccounts        SocialAccount[]
+  loginLogs             LoginLog[]
+}
+
+// ============================================
+// 登录日志
+// ============================================
+
+model LoginLog {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ip          String?
+  device      String?   // 设备信息（User-Agent）
+  deviceId    String?   // 设备唯一标识
+  deviceName  String?   // 设备友好名称
+  location    String?   // 登录地点
+  loginAt     DateTime  @default(now())
+  status      String    @default("success") // success, failed
+  token       String?   // 当前会话 token（用于踢出设备）
+  isActive    Boolean   @default(true)  // 会话是否有效
+  
+  @@index([userId])
+  @@index([deviceId])
+  @@index([isActive])
+  @@index([loginAt])
 }
 
 // ============================================
@@ -561,20 +586,22 @@ model PublishedContent {
 }
 
 model ScheduledTask {
-  id            String    @id @default(uuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title         String
-  content       String
-  images        String?   // JSON格式
-  platform      String
-  accountId     String
-  scheduledTime DateTime
-  status        String    @default("pending")
-  result        String?
-  publishedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  content         String
+  images          String?   // JSON格式
+  platform        String
+  accountId       String
+  materialId      String?
+  publishRecordId String?
+  scheduledTime   DateTime
+  status          String    @default("pending")
+  result          String?
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
   @@index([userId])
   @@index([status])
@@ -668,11 +695,15 @@ model Notification {
   id          String    @id @default(uuid())
   userId      String
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type        String
+  type        String    // system, order, recruitment, content, chat, payment, activity, message
   title       String
   content     String
+  data        String?   // JSON string for extra data (screen route, params, etc.)
   isRead      Boolean   @default(false)
   createdAt   DateTime  @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }
 
 model CompanyInfo {

@@ -12,6 +12,99 @@ import { prisma } from '../utils/db';
 const router = Router();
 router.use(authMiddleware);
 
+// ==================== 导出历史记录 ====================
+
+router.get('/history', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { limit = '20' } = req.query;
+
+    const records = await prisma.apiUsageLog.findMany({
+      where: {
+        userId,
+        endpoint: { startsWith: '/api/export/' },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(Number(limit), 100),
+      select: {
+        id: true,
+        endpoint: true,
+        createdAt: true,
+        status: true,
+      },
+    });
+
+    // 从endpoint提取类型和格式
+    const list = records.map(r => {
+      const pathParts = r.endpoint.replace('/api/export/', '').split('?');
+      const type = pathParts[0] || 'unknown';
+      const params = new URLSearchParams(pathParts[1] || '');
+      return {
+        id: r.id,
+        type,
+        format: (params.get('format') || 'csv').toUpperCase(),
+        date: r.createdAt?.toISOString(),
+        size: '-',
+        records: 0,
+        fileSize: '-',
+        recordCount: 0,
+        createdAt: r.createdAt?.toISOString(),
+        status: r.status,
+      };
+    });
+
+    res.json({ success: true, data: { list, total: list.length } });
+  } catch (error: any) {
+    console.error('[导出历史]', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== 导出统计 ====================
+
+router.get('/stats', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    // 本周起始
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const [totalCount, weeklyCount] = await Promise.all([
+      prisma.apiUsageLog.count({
+        where: {
+          userId,
+          endpoint: { startsWith: '/api/export/' },
+          status: 'success',
+        },
+      }),
+      prisma.apiUsageLog.count({
+        where: {
+          userId,
+          endpoint: { startsWith: '/api/export/' },
+          status: 'success',
+          createdAt: { gte: weekStart },
+        },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        totalCount,
+        totalRecords: 0,
+        totalSize: '-',
+        weeklyCount,
+      },
+    });
+  } catch (error: any) {
+    console.error('[导出统计]', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== 客户数据导出 ====================
 
 router.get('/customers', async (req: Request, res: Response) => {

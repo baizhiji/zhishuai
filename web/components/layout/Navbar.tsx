@@ -245,42 +245,10 @@ function getNavigationItems(role: Role): NavigationItem[] {
             },
           ],
         },
-        // 预留扩展
-        {
-          key: 'ecommerce',
-          label: '电商运营',
-          icon: <ShopOutlined />,
-          children: [
-            {
-              key: 'ecommerce-placeholder',
-              label: '即将上线',
-              icon: <ShopOutlined />,
-              path: '/ecommerce',
-            },
-          ],
-        },
-        {
-          key: 'crm',
-          label: '客户管理',
-          icon: <TeamOutlined />,
-          children: [
-            { key: 'crm-placeholder', label: '即将上线', icon: <TeamOutlined />, path: '/crm' },
-          ],
-        },
-
-        {
-          key: 'marketing',
-          label: '营销功能',
-          icon: <ShareAltOutlined />,
-          children: [
-            {
-              key: 'marketing-placeholder',
-              label: '即将上线',
-              icon: <ShareAltOutlined />,
-              path: '/marketing',
-            },
-          ],
-        },
+        // 预留扩展（暂不显示在导航中，功能完善后再启用）
+        // { key: 'ecommerce', label: '电商运营', icon: <ShopOutlined />, ... },
+        // { key: 'crm', label: '客户管理', icon: <TeamOutlined />, ... },
+        // { key: 'marketing', label: '营销功能', icon: <ShareAltOutlined />, ... },
       ];
     case 'agent':
       return [

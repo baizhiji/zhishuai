@@ -103,7 +103,7 @@ export default function TianyanchaPage() {
 
     setLoading(true);
     try {
-      // 模拟API调用
+      // 调用天眼查API（需在获客数据源中配置API Key）
       const res = await request.post('/tools/tianyancha/search', {
         keyword: keyword.trim(),
         type: searchType,

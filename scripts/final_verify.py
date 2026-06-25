@@ -1,33 +1,46 @@
-import paramiko
-import sys
-
+# -*- coding: utf-8 -*-
+import paramiko, sys, time
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-ssh.connect('150.109.60.130', username='ubuntu', password='Hao20061218', timeout=15)
+c = paramiko.SSHClient()
+c.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+c.connect('150.109.60.130', 22, 'ubuntu', 'Hao20061218', timeout=15)
 
-commands = [
-    ('curl -s -o /dev/null -w "%{http_code}" https://baizhiji.net/ -k 2>/dev/null', '1. baizhiji.net (Main Site)'),
-    ('curl -s https://baizhiji.net/api/health -k 2>/dev/null', '2. baizhiji.net/api/health'),
-    ('curl -s -o /dev/null -w "%{http_code}" https://api.baizhiji.net/api/health -k 2>/dev/null', '3. api.baizhiji.net/api/health'),
-    ('curl -s https://api.baizhiji.net/api/health -k 2>/dev/null', '4. api.baizhiji.net health body'),
-    ('curl -s -X POST https://baizhiji.net/api/auth/login -H "Content-Type: application/json" -d "{\"phone\":\"18601655222\",\"password\":\"20061218\",\"loginType\":\"user\"}" -k 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(f\\\"Login: {d.get(\\\"success\\\", d.get(\\\"error\\\", d))} | User: {d.get(\\\"data\\\",{}).get(\\\"user\\\",{{}}).get(\\\"name\\\",\\\"N/A\\\")} Role: {d.get(\\\"data\\\",{}).get(\\\"user\\\",{{}}).get(\\\"role\\\",\\\"N/A\\\")}\\")" 2>/dev/null || curl -s -X POST https://baizhiji.net/api/auth/login -H "Content-Type: application/json" -d "{\"phone\":\"18601655222\",\"password\":\"20061218\",\"loginType\":\"user\"}" -k 2>/dev/null', '5. Login Test (Terminal)'),
-    ('cd /www/zhishuai && npx pm2 list 2>/dev/null', '6. PM2 Processes'),
-    ('sudo nginx -t 2>&1', '7. Nginx Config'),
-]
+def r(cmd, t=15):
+    _, out, err = c.exec_command(cmd, timeout=t)
+    return out.read().decode('utf-8', 'replace').strip()
 
-print('='*60)
-print('FINAL VERIFICATION REPORT')
-print('='*60)
+# 1. Site status
+print("1. Site: https://baizhiji.net =", r('curl -s -o /dev/null -w "%{http_code}" https://baizhiji.net'))
 
-for cmd, label in commands:
-    print(f'\n>>> {label}')
-    stdin, stdout, stderr = ssh.exec_command(cmd, timeout=15)
-    out = stdout.read().decode('utf-8', errors='replace').strip()
-    if out:
-        print(f'    {out[:300]}')
-    else:
-        print('    (no output)')
+# 2. PM2 status
+print("\n2. PM2:")
+out = r('pm2 list --no-color')
+for line in out.split('\n'):
+    if 'zhishuai' in line.lower() or 'name' in line.lower() or 'status' in line.lower():
+        print("   ", line.strip())
 
-ssh.close()
+# 3. Code-assistant removed?
+content = r('cat /var/www/zhishuai/web/app/customer/layout/Navbar.tsx')
+print(f"\n3. code-assistant in Navbar.tsx: {'YES (still there!)' if 'code-assistant' in content else 'NO (removed)'}")
+
+# 4. Playwright browsers
+print("\n4. Playwright browsers installed:")
+print("   ", r('ls /home/ubuntu/.cache/ms-playwright/ 2>/dev/null'))
+
+# 5. Test OAuth API now that Chromium is installed
+print("\n5. Testing OAuth endpoint with Playwright browser...")
+cmd = "curl -s -X POST http://localhost:4000/api/oauth/sessions -H 'Content-Type: application/json' -H 'Authorization: Bearer test' -d '{\"platform\":\"douyin\"}' > /dev/null 2>&1"
+r(cmd)
+time.sleep(10)  # Wait for playwright to launch browser
+
+log = r('pm2 logs zhishuai-api --lines 20 --nostream 2>&1 | grep -iE "auth|error|fail|browser|qrcode|session|chromium|launch|success|创建|二维码" | tail -8')
+if log:
+    for l in log.split('\n'):
+        print("   ", l)
+else:
+    print("   (checking recent logs)")
+    print("   ", r('pm2 logs zhishuai-api --lines 5 --nostream 2>&1 | tail -3'))
+
+c.close()
+print("\n=== DONE ===")

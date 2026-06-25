@@ -103,10 +103,26 @@ export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
+  // 初始加载 + 定时轮询（30秒刷新未读数）
   useEffect(() => {
     fetchNotifications();
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
   }, [activeTab]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const res = await request.get('/api/notifications/unread-count');
+      if (res?.data?.count !== undefined) {
+        setUnreadCount(res.data.count);
+      }
+    } catch {
+      // 静默
+    }
+  };
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -129,7 +145,8 @@ export default function NotificationsPage() {
     setLoading(false);
   };
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const localUnreadCount = notifications.filter(n => !n.isRead).length;
+  const displayUnreadCount = Math.max(unreadCount, localUnreadCount);
 
   const filteredNotifications =
     activeTab === 'all'
@@ -178,7 +195,7 @@ export default function NotificationsPage() {
     {
       key: 'unread',
       label: (
-        <Badge count={unreadCount} offset={[10, 0]}>
+        <Badge count={displayUnreadCount} offset={[10, 0]}>
           未读
         </Badge>
       ),
@@ -196,7 +213,7 @@ export default function NotificationsPage() {
           <Space>
             <BellOutlined />
             <span>通知中心</span>
-            {unreadCount > 0 && <Tag color="red">{unreadCount} 未读</Tag>}
+            {displayUnreadCount > 0 && <Tag color="red">{displayUnreadCount} 未读</Tag>}
           </Space>
         }
         extra={
@@ -204,7 +221,7 @@ export default function NotificationsPage() {
             type="link"
             icon={<CheckOutlined />}
             onClick={handleMarkAllAsRead}
-            disabled={unreadCount === 0}
+            disabled={displayUnreadCount === 0}
           >
             全部标为已读
           </Button>

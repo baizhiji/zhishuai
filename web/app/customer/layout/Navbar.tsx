@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   Layout,
@@ -38,6 +38,7 @@ import {
   EnvironmentOutlined,
   SafetyCertificateOutlined,
   CodeOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -146,12 +147,6 @@ function getNavigationItems(role: Role): NavigationItem[] {
               path: '/customer/recruitment-dashboard',
             },
           ],
-        },
-        {
-          key: 'code-assistant',
-          label: '编程助手',
-          icon: <CodeOutlined />,
-          path: '/customer/code-assistant',
         },
         {
           key: 'acquisition',
@@ -324,6 +319,47 @@ function getOpenKeysForPath(items: NavigationItem[], path: string): string[] {
     }
   }
   return [];
+}
+
+// 通知铃铛组件（实时显示未读数）
+function NotificationBell() {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    fetchUnreadCount();
+    // 每30秒轮询未读数
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => {
+      mounted.current = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const fetchUnreadCount = async () => {
+    if (!mounted.current) return;
+    try {
+      const request = (await import('@/utils/request')).default;
+      const res = await request.get('/api/notifications/unread-count');
+      if (res?.data?.count !== undefined) {
+        setUnreadCount(res.data.count);
+      }
+    } catch {
+      // 静默处理
+    }
+  };
+
+  return (
+    <Badge count={unreadCount} size="small" offset={[0, 0]}>
+      <Button
+        type="text"
+        icon={<BellOutlined style={{ fontSize: 18 }} />}
+        onClick={() => window.location.href = '/notifications'}
+        style={{ padding: '4px 8px' }}
+      />
+    </Badge>
+  );
 }
 
 export default function Navbar({ children }: { children?: React.ReactNode }) {
@@ -558,6 +594,9 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
 
           {/* 用户信息 */}
           <Space size="middle">
+            {/* 通知铃铛 */}
+            <NotificationBell />
+            
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space
                 style={{

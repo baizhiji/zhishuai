@@ -116,14 +116,14 @@ export default function SubscribePage() {
       }) as any;
 
       if (res?.data?.paymentUrl) {
+        // 真实支付：跳转到支付页面
         window.location.href = res.data.paymentUrl;
       } else if (res?.data?.orderId) {
-        message.success('订单已创建，请完成支付');
+        // 订单已创建，提示用户完成支付
+        message.success('订单已创建，请在支付页面完成支付');
         setPayModalVisible(false);
-        // 模拟跳转支付页
-        setTimeout(() => {
-          window.location.href = `/payment/callback?order_id=${res.data.orderId}&status=success`;
-        }, 1000);
+        // 刷新订单状态
+        setTimeout(() => fetchData(), 2000);
       } else {
         throw new Error('创建订单失败');
       }
