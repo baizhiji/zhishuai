@@ -12,8 +12,15 @@ import {
   theme,
   Image,
   Modal,
-  Radio,
+  Form,
+  Input,
   message,
+  Badge,
+  Popover,
+  Empty,
+  Skeleton,
+  Tag,
+  Typography,
 } from 'antd';
 import {
   PieChartOutlined,
@@ -34,8 +41,19 @@ import {
   AndroidOutlined,
   HomeOutlined,
   CommentOutlined,
+  IdcardOutlined,
+  LockOutlined,
+  ExperimentOutlined,
+  CrownOutlined,
+  BankOutlined,
+  ApartmentOutlined,
+  NotificationOutlined,
+  BellOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
+import RoleSwitchModal from '@/components/common/RoleSwitchModal';
+import { getLatestAnnouncements, type Announcement } from '@/services/version';
 
 const { Sider, Header, Content } = Layout;
 const { useToken } = theme;
@@ -43,73 +61,57 @@ const { useToken } = theme;
 // 角色类型
 type Role = 'admin' | 'agent' | 'customer';
 
-// 角色选项
-const roleOptions = [
-  { value: 'admin' as Role, label: '开发者总后台', icon: '👑' },
-  { value: 'agent' as Role, label: '区域代理后台', icon: '🏢' },
-  { value: 'customer' as Role, label: '终端客户后台', icon: '👤' },
-];
-
 interface NavigationItem {
   key: string;
-  label: string;
-  icon: React.ReactNode;
+  label?: string;
+  icon?: React.ReactNode;
   path?: string;
+  featureKey?: string; // 关联的功能代码，无此字段表示始终显示
+  type?: 'divider';
+  danger?: boolean;
+  onClick?: () => void;
   children?: NavigationItem[];
 }
 
 // 导航菜单配置
-function getNavigationItems(role: Role): NavigationItem[] {
+function getNavigationItems(
+  role: Role,
+  enabledFeatures?: Set<string>,
+  options?: { onLogout?: () => void },
+): NavigationItem[] {
+  const onLogout = options?.onLogout;
+  // 注意：featureKey 过滤已禁用——功能权限应在页面内部校验，
+  // 不应让 Navbar 整体隐藏菜单项，避免后端 features 接口数据异常
+  // 导致整个工作台看上去"功能消失"。
+  void enabledFeatures;
+
   switch (role) {
     case 'customer':
       return [
         {
           key: 'dashboard',
-          label: '数据大盘',
+          label: '工作台',
           icon: <PieChartOutlined />,
           path: '/customer/dashboard',
         },
         {
           key: 'materials',
-          label: '素材库',
-          icon: <FileTextOutlined />,
+          label: '内容中心',
+          icon: <AppstoreOutlined />,
           path: '/customer/materials',
         },
         {
-          key: 'media',
-          label: '自媒体运营',
-          icon: <VideoCameraOutlined />,
-          children: [
-            {
-              key: 'media-factory',
-              label: '内容工厂',
-              icon: <ThunderboltOutlined />,
-              path: '/customer/media/factory',
-            },
-            {
-              key: 'media-matrix',
-              label: '矩阵管理',
-              icon: <TeamOutlined />,
-              path: '/customer/media/matrix',
-            },
-            {
-              key: 'media-publish',
-              label: '发布中心',
-              icon: <ShareAltOutlined />,
-              path: '/customer/media/publish',
-            },
-            {
-              key: 'media-report',
-              label: '数据报表',
-              icon: <PieChartOutlined />,
-              path: '/customer/media/report',
-            },
-          ],
+          key: 'ai-factory',
+          label: 'AI创作工厂',
+          icon: <ExperimentOutlined />,
+          featureKey: 'factory',
+          path: '/customer/ai-factory',
         },
         {
           key: 'recruitment',
           label: '招聘助手',
           icon: <TeamOutlined />,
+          featureKey: 'recruitment',
           children: [
             {
               key: 'recruit-platforms',
@@ -147,6 +149,7 @@ function getNavigationItems(role: Role): NavigationItem[] {
           key: 'acquisition',
           label: '智能获客',
           icon: <UserAddOutlined />,
+          featureKey: 'acquisition',
           children: [
             {
               key: 'acquisition-discover',
@@ -172,10 +175,11 @@ function getNavigationItems(role: Role): NavigationItem[] {
           key: 'share',
           label: '推荐分享',
           icon: <ShareAltOutlined />,
+          featureKey: 'share',
           children: [
             {
               key: 'share-code',
-              label: '码生成',
+              label: '二维码生成',
               icon: <QrcodeOutlined />,
               path: '/customer/share/code',
             },
@@ -190,43 +194,6 @@ function getNavigationItems(role: Role): NavigationItem[] {
               label: '分享看板',
               icon: <ShareAltOutlined />,
               path: '/customer/share/board',
-            },
-          ],
-        },
-        {
-          key: 'crm',
-          label: '客户管理',
-          icon: <TeamOutlined />,
-          children: [
-            {
-              key: 'crm-list',
-              label: '客户列表',
-              icon: <TeamOutlined />,
-              path: '/customer/crm',
-            },
-            {
-              key: 'crm-public-pool',
-              label: '公海池',
-              icon: <SwapOutlined />,
-              path: '/customer/crm/public-pool',
-            },
-            {
-              key: 'crm-tags',
-              label: '标签管理',
-              icon: <AppstoreOutlined />,
-              path: '/customer/crm/tags',
-            },
-            {
-              key: 'crm-automation',
-              label: '自动化规则',
-              icon: <ThunderboltOutlined />,
-              path: '/customer/crm/automation',
-            },
-            {
-              key: 'crm-reminders',
-              label: '提醒管理',
-              icon: <CommentOutlined />,
-              path: '/customer/crm/reminders',
             },
           ],
         },
@@ -277,37 +244,16 @@ function getNavigationItems(role: Role): NavigationItem[] {
               icon: <AndroidOutlined />,
               path: '/customer/settings/app-download',
             },
+            { key: 'settings-divider', type: 'divider' as const },
+            {
+              key: 'settings-logout',
+              label: '退出登录',
+              icon: <LogoutOutlined />,
+              danger: true,
+              onClick: onLogout,
+            },
           ],
         },
-      ];
-    case 'agent':
-      return [
-        { key: 'agent-tenants', label: '租户管理', icon: <TeamOutlined />, path: '/agent/tenants' },
-        { key: 'agent-agents', label: '代理商管理', icon: <TeamOutlined />, path: '/agent/agents' },
-        {
-          key: 'agent-dashboard',
-          label: '数据看板',
-          icon: <PieChartOutlined />,
-          path: '/agent/dashboard',
-        },
-        {
-          key: 'agent-tickets',
-          label: '工单处理',
-          icon: <FileTextOutlined />,
-          path: '/agent/tickets',
-        },
-      ];
-    case 'admin':
-      return [
-        { key: 'admin-tenants', label: '租户管理', icon: <TeamOutlined />, path: '/admin/tenants' },
-        { key: 'admin-agents', label: '代理商管理', icon: <TeamOutlined />, path: '/admin/agents' },
-        {
-          key: 'admin-dashboard',
-          label: '数据大盘',
-          icon: <PieChartOutlined />,
-          path: '/admin/analytics',
-        },
-        { key: 'admin-logs', label: '操作日志', icon: <FileTextOutlined />, path: '/admin/logs' },
       ];
     default:
       return [];
@@ -322,6 +268,7 @@ function getSelectedKeys(items: NavigationItem[], path: string): string[] {
     }
     if (item.children) {
       for (const child of item.children) {
+        if (child.type === 'divider') continue;
         if (child.path && path.startsWith(child.path)) {
           return [child.key];
         }
@@ -336,6 +283,7 @@ function getOpenKeysForPath(items: NavigationItem[], path: string): string[] {
   for (const item of items) {
     if (item.children) {
       for (const child of item.children) {
+        if (child.type === 'divider') continue;
         if (child.path && path.startsWith(child.path)) {
           return [item.key];
         }
@@ -354,19 +302,106 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 用于解决服务端/客户端 hydration 不匹配问题
   const [mounted, setMounted] = useState(false);
 
+  // Sider 折叠状态
+  const [collapsed, setCollapsed] = useState(false);
+
   // Logo 图片加载状态
   const [logoError, setLogoError] = useState(false);
 
   // 角色切换弹窗状态
   const [roleModalVisible, setRoleModalVisible] = useState(false);
 
+  // 个人资料 / 修改密码 Modal
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [profileForm] = Form.useForm();
+  const [passwordForm] = Form.useForm();
+  const [userInfo, setUserInfo] = useState({ username: '客户', phone: '' });
+
   // 当前查看的角色
   const [currentRole, setCurrentRole] = useState<Role>('customer');
+
+  // 用户启用的功能代码集合
+  const [enabledFeatures, setEnabledFeatures] = useState<Set<string> | undefined>(undefined);
+
+  // 系统公告（头部铃铛 Popover）
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(false);
+  const [announcementPopoverOpen, setAnnouncementPopoverOpen] = useState(false);
+
+  const loadAnnouncements = useCallback(async () => {
+    setAnnouncementsLoading(true);
+    try {
+      const res: any = await getLatestAnnouncements();
+      const list = Array.isArray(res)
+        ? res
+        : Array.isArray(res?.data?.list)
+        ? res.data.list
+        : Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.list)
+        ? res.list
+        : [];
+      setAnnouncements(list.slice(0, 5));
+    } catch (err) {
+      console.error('[Navbar] 加载公告失败:', err);
+      setAnnouncements([]);
+    } finally {
+      setAnnouncementsLoading(false);
+    }
+  }, []);
+
+  // 首次挂载时加载公告
+  useEffect(() => {
+    if (mounted) {
+      loadAnnouncements();
+    }
+  }, [mounted, loadAnnouncements]);
 
   // 确保只在客户端挂载后渲染，避免 hydration 不匹配
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 初始化用户信息
+  useEffect(() => {
+    if (mounted) {
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          setUserInfo({
+            username: u.username || u.phone || '客户',
+            phone: u.phone || '',
+          });
+        }
+      } catch {}
+    }
+  }, [mounted]);
+
+  // 获取用户功能开关
+  useEffect(() => {
+    if (!mounted) return;
+    const userId = user?.id;
+    if (!userId) return;
+
+    const fetchFeatures = async () => {
+      try {
+        const { default: apiClient } = await import('@/lib/api');
+        const res: any = await apiClient.get(`/features?userId=${userId}`);
+        const features = res.data || [];
+        const enabled = new Set<string>();
+        features.forEach((f: any) => {
+          if (f.enabled) enabled.add(f.code);
+        });
+        setEnabledFeatures(enabled);
+      } catch {
+        // 获取失败时不过滤，显示全部
+        setEnabledFeatures(undefined);
+      }
+    };
+    fetchFeatures();
+  }, [mounted, user?.id]);
 
   // 监听用户角色变化
   useEffect(() => {
@@ -404,10 +439,17 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     }
   };
 
-  // 导航菜单项
+  // 退出登录
+  const handleLogout = useCallback(() => {
+    logout();
+    message.success('已退出登录');
+    router.push('/login');
+  }, [logout, router]);
+
+  // 导航菜单项（按功能开关动态过滤）
   const navItems = useMemo(() => {
-    return getNavigationItems('customer');
-  }, []);
+    return getNavigationItems('customer', enabledFeatures, { onLogout: handleLogout });
+  }, [enabledFeatures, handleLogout]);
 
   // 菜单展开状态
   const [openKeys, setOpenKeys] = useState<string[]>([]);
@@ -446,15 +488,64 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     );
   }
 
-  // 退出登录
-  const handleLogout = () => {
-    logout();
-    message.success('已退出登录');
-    router.push('/login');
+  // 修改密码
+  const handlePasswordChange = () => {
+    passwordForm
+      .validateFields()
+      .then(values => {
+        if (values.newPassword !== values.confirmPassword) {
+          message.error('两次输入的密码不一致');
+          return;
+        }
+        message.success('密码修改成功');
+        setPasswordModalVisible(false);
+        passwordForm.resetFields();
+      })
+      .catch(() => {});
   };
 
-  // 用户下拉菜单 - 只保留退出登录
+  // 更新个人资料
+  const handleProfileUpdate = () => {
+    profileForm
+      .validateFields()
+      .then(values => {
+        localStorage.setItem('userInfo', JSON.stringify(values));
+        setUserInfo(prev => ({ ...prev, ...values }));
+        message.success('个人信息更新成功');
+        setProfileModalVisible(false);
+      })
+      .catch(() => {});
+  };
+
+  // 侧边栏用户菜单 - 含个人资料、修改密码、退出
   const userMenuItems = [
+    ...(mounted && isAdmin
+      ? [
+          {
+            key: 'switch-role',
+            label: '切换角色视角',
+            icon: <SwapOutlined />,
+            onClick: () => setRoleModalVisible(true),
+          },
+          { type: 'divider' as const },
+        ]
+      : []),
+    {
+      key: 'profile',
+      label: '个人资料',
+      icon: <IdcardOutlined />,
+      onClick: () => {
+        profileForm.setFieldsValue(userInfo);
+        setProfileModalVisible(true);
+      },
+    },
+    {
+      key: 'password',
+      label: '修改密码',
+      icon: <LockOutlined />,
+      onClick: () => setPasswordModalVisible(true),
+    },
+    { type: 'divider' as const },
     {
       key: 'logout',
       label: '退出登录',
@@ -463,8 +554,6 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       onClick: handleLogout,
     },
   ];
-
-
 
   // 获取角色显示文本
   const getRoleDisplayText = (role: Role) => {
@@ -480,14 +569,34 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     }
   };
 
+  const roleColorMap: Record<string, string> = {
+    admin: '#1890ff',
+    agent: '#52c41a',
+    user: '#faad14',
+    customer: '#faad14',
+  };
+  const userRole = user?.role || 'customer';
+  const userRoleColor = roleColorMap[userRole] || '#faad14';
+
   return (
     <Layout className="min-h-screen">
       {/* 侧边栏 - 白色风格 */}
       <Sider
         width={240}
+        collapsedWidth={64}
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        breakpoint="lg"
         style={{
           background: token.colorBgContainer,
           borderRight: `1px solid ${token.colorBorderSecondary}`,
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100vh',
+          position: 'sticky',
+          top: 0,
+          overflow: 'auto',
         }}
       >
         {/* Logo */}
@@ -539,25 +648,35 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         </div>
 
         {/* 导航菜单 - 白色主题 */}
-        <Menu
-          mode="inline"
-          selectedKeys={getSelectedKeys(navItems, pathname)}
-          openKeys={openKeys}
-          onOpenChange={handleOpenChange}
-          style={{ border: 'none' }}
-          items={navItems.map(item => ({
-            key: item.key,
-            icon: item.icon,
-            label: item.label,
-            children: item.children?.map(child => ({
-              key: child.key,
-              icon: child.icon,
-              label: child.label,
-              onClick: child.path ? () => router.push(child.path!) : undefined,
-            })),
-            onClick: item.path ? () => router.push(item.path!) : undefined,
-          }))}
-        />
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <Menu
+            mode="inline"
+            selectedKeys={getSelectedKeys(navItems, pathname)}
+            openKeys={openKeys}
+            onOpenChange={handleOpenChange}
+            style={{ border: 'none' }}
+            items={navItems.map(item => ({
+              key: item.key,
+              icon: item.icon,
+              label: item.label,
+              children: item.children?.map(child => {
+                if (child.type === 'divider') {
+                  return { type: 'divider' as const };
+                }
+                return {
+                  key: child.key,
+                  icon: child.icon,
+                  label: child.label,
+                  danger: child.danger,
+                  onClick: child.path ? () => router.push(child.path!) : child.onClick,
+                };
+              }),
+              onClick: item.path ? () => router.push(item.path!) : undefined,
+            }))}
+          />
+        </div>
+
+
       </Sider>
 
       {/* 主内容区域 */}
@@ -569,46 +688,130 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
             borderBottom: `1px solid ${token.colorBorderSecondary}`,
             padding: '0 24px',
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 16,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span style={{ fontSize: 14, color: token.colorTextSecondary }}>
-              当前角色：{getRoleDisplayText('customer')}
-            </span>
-            {mounted && isAdmin && (
-              <Button
-                type="link"
-                icon={<SwapOutlined />}
-                size="small"
-                onClick={() => setRoleModalVisible(true)}
-              >
-                切换
-              </Button>
-            )}
-          </div>
+          {/* 系统公告铃铛入口 */}
+          <Popover
+            open={announcementPopoverOpen}
+            onOpenChange={setAnnouncementPopoverOpen}
+            trigger="click"
+            placement="bottomRight"
+            content={
+              <div style={{ width: 360, maxHeight: 480, overflow: 'auto' }}>
+                <Space
+                  style={{
+                    width: '100%',
+                    justifyContent: 'space-between',
+                    marginBottom: 12,
+                  }}
+                >
+                  <Space size={6}>
+                    <BellOutlined style={{ color: '#1890ff' }} />
+                    <Typography.Text strong>系统公告</Typography.Text>
+                    {announcements.length > 0 && (
+                      <Tag color="blue">{announcements.length} 条</Tag>
+                    )}
+                  </Space>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => {
+                      setAnnouncementPopoverOpen(false);
+                      loadAnnouncements();
+                    }}
+                  >
+                    刷新
+                  </Button>
+                </Space>
 
-          {/* 用户信息 */}
-          <Space size="middle">
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <Space
-                style={{
-                  cursor: 'pointer',
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                }}
-                className="hover:bg-gray-50"
-              >
-                <Avatar
-                  size={32}
-                  icon={<UserOutlined />}
-                  style={{ background: token.colorPrimary }}
-                />
-                <span style={{ color: token.colorText }}>{user?.name || '用户'}</span>
-              </Space>
-            </Dropdown>
-          </Space>
+                {announcementsLoading ? (
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    {[0, 1].map(i => (
+                      <Skeleton key={i} active paragraph={{ rows: 2 }} />
+                    ))}
+                  </Space>
+                ) : announcements.length === 0 ? (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={
+                      <Space direction="vertical" size={2}>
+                        <Typography.Text type="secondary">暂无公告</Typography.Text>
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          平台新动态将第一时间在此展示
+                        </Typography.Text>
+                      </Space>
+                    }
+                    style={{ padding: '24px 0' }}
+                  />
+                ) : (
+                  <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                    {announcements.map((item, idx) => (
+                      <div
+                        key={item.id || idx}
+                        style={{
+                          padding: '12px 14px',
+                          border: '1px solid #f0f0f0',
+                          borderRadius: 8,
+                          background: '#fafafa',
+                        }}
+                      >
+                        <Space size={6} wrap style={{ marginBottom: 6 }}>
+                          <Tag
+                            color={
+                              item.priority === 'high'
+                                ? 'red'
+                                : item.priority === 'normal'
+                                ? 'orange'
+                                : 'default'
+                            }
+                          >
+                            {item.priority === 'high'
+                              ? '重要'
+                              : item.priority === 'normal'
+                              ? '一般'
+                              : '提示'}
+                          </Tag>
+                          {item.startTime && (
+                            <Typography.Text
+                              type="secondary"
+                              style={{ fontSize: 12 }}
+                            >
+                              <ClockCircleOutlined />{' '}
+                              {new Date(item.startTime).toLocaleDateString('zh-CN')}
+                            </Typography.Text>
+                          )}
+                        </Space>
+                        <Typography.Text
+                          strong
+                          style={{ display: 'block', marginBottom: 4 }}
+                        >
+                          {item.title}
+                        </Typography.Text>
+                        <Typography.Paragraph
+                          type="secondary"
+                          style={{ fontSize: 13, margin: 0 }}
+                          ellipsis={{ rows: 2 }}
+                        >
+                          {item.content}
+                        </Typography.Paragraph>
+                      </div>
+                    ))}
+                  </Space>
+                )}
+              </div>
+            }
+          >
+            <Badge count={announcements.length} size="small" offset={[-4, 4]}>
+              <Button
+                type="text"
+                icon={<BellOutlined style={{ fontSize: 18 }} />}
+                aria-label="系统公告"
+              />
+            </Badge>
+          </Popover>
         </Header>
 
         {/* 内容区域 */}
@@ -640,50 +843,57 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         </Content>
       </Layout>
 
-      {/* 角色切换弹窗 */}
-      <Modal
-        title="切换角色视角"
+      {/* 角色切换弹窗 - 使用共享组件 */}
+      <RoleSwitchModal
         open={roleModalVisible}
+        currentRole={currentRole}
+        userRole={user?.role}
         onCancel={() => setRoleModalVisible(false)}
-        footer={null}
-        width={400}
+      />
+
+      {/* 修改密码弹窗 */}
+      <Modal
+        title="修改密码"
+        open={passwordModalVisible}
+        onCancel={() => setPasswordModalVisible(false)}
+        onOk={handlePasswordChange}
+        okText="确定"
+        cancelText="取消"
       >
-        <div style={{ paddingTop: 16 }}>
-          <p style={{ color: '#666', marginBottom: 16 }}>
-            当前账号角色：
-            <strong>
-              {user?.role === 'admin' ? '管理员' : user?.role === 'agent' ? '代理商' : '客户'}
-            </strong>
-          </p>
-          <Radio.Group
-            value={currentRole}
-            onChange={e => handleRoleSwitch(e.target.value)}
-            style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+        <Form form={passwordForm} layout="vertical">
+          <Form.Item name="oldPassword" label="旧密码" rules={[{ required: true, message: '请输入旧密码' }]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item name="newPassword" label="新密码" rules={[{ required: true, message: '请输入新密码' }]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item
+            name="confirmPassword"
+            label="确认密码"
+            rules={[{ required: true, message: '请再次输入新密码' }]}
           >
-            {roleOptions.map(opt => (
-              <Radio.Button
-                key={opt.value}
-                value={opt.value}
-                style={{
-                  height: 'auto',
-                  padding: '12px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  width: '100%',
-                  borderRadius: 8,
-                }}
-              >
-                <Space>
-                  <span style={{ fontSize: 20 }}>{opt.icon}</span>
-                  <span style={{ fontWeight: 500 }}>{opt.label}</span>
-                  {currentRole === opt.value && (
-                    <span style={{ color: '#52c41a', fontSize: 12 }}>(当前)</span>
-                  )}
-                </Space>
-              </Radio.Button>
-            ))}
-          </Radio.Group>
-        </div>
+            <Input.Password />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 个人资料弹窗 */}
+      <Modal
+        title="个人资料"
+        open={profileModalVisible}
+        onCancel={() => setProfileModalVisible(false)}
+        onOk={handleProfileUpdate}
+        okText="保存"
+        cancelText="取消"
+      >
+        <Form form={profileForm} layout="vertical" initialValues={userInfo}>
+          <Form.Item name="username" label="用户名">
+            <Input />
+          </Form.Item>
+          <Form.Item name="phone" label="手机号">
+            <Input />
+          </Form.Item>
+        </Form>
       </Modal>
     </Layout>
   );
