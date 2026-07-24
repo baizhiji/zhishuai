@@ -6,6 +6,7 @@ import axios, {
 } from 'axios';
 import { message } from 'antd';
 import type { ApiResponse } from '@/types/api';
+import { dispatchAuthExpired } from '@/lib/auth-events';
 
 // 创建axios实例
 const request: AxiosInstance = axios.create({
@@ -54,10 +55,7 @@ request.interceptors.response.use(
       switch (response.status) {
         case 401:
           message.error('登录已过期，请重新登录');
-          removeAuthToken();
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-          }
+          dispatchAuthExpired();
           break;
         case 403:
           message.error('没有权限访问');
@@ -122,6 +120,43 @@ export function getUserInfo(): any | null {
 export function setUserInfo(user: any): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('user', JSON.stringify(user));
+  }
+}
+
+// 文件上传方法
+request.upload = async <T = any>(
+  url: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<T> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const token = getAuthToken();
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      dispatchAuthExpired();
+    }
+    throw new Error(`上传失败: ${response.status}`);
+  }
+
+  const result = await response.json();
+  if (result.success !== true && result.code !== 200) {
+    throw new Error(result.message || '上传失败');
+  }
+  return result.data as T;
+};
+
+// 类型扩展
+declare module 'axios' {
+  interface AxiosInstance {
+    upload<T = any>(url: string, file: File, onProgress?: (progress: number) => void): Promise<T>;
   }
 }
 

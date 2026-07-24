@@ -1,12 +1,13 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse } from '@/types';
+import { dispatchAuthExpired } from '@/lib/auth-events';
 
 class ApiClient {
   private client: AxiosInstance;
   private baseURL: string;
 
   constructor() {
-    this.baseURL = process.env.API_BASE_URL || 'http://localhost:3000/api';
+    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: 30000,
@@ -39,15 +40,15 @@ class ApiClient {
         return response.data as any;
       },
       error => {
-        const message = error.response?.data?.message || error.message || '请求失败';
-        console.error('API Error:', message);
+        const msg = error.response?.data?.message || error.message || '请求失败';
+        console.error('API Error:', msg);
 
         if (error.response?.status === 401) {
           this.removeToken();
-          window.location.href = '/login';
+          dispatchAuthExpired();
         }
 
-        return Promise.reject(new Error(message));
+        return Promise.reject(new Error(msg));
       }
     );
   }

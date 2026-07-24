@@ -3,8 +3,11 @@
  * 使用环境变量配置 baseURL
  */
 
-// API 基础地址 - 统一使用环境变量
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://43.129.16.148:3001/api';
+import { dispatchAuthExpired } from '@/lib/auth-events';
+
+// API 基础地址 - 保持为空，让服务层负责完整路径（/api/xxx）
+// 服务层（web/services/*.ts）已写完整路径 /api/xxx
+const API_BASE_URL = '';
 
 export interface ApiResponse<T = any> {
   code: number;
@@ -47,21 +50,45 @@ class Request {
       if (response.status === 401) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
-          window.location.href = '/login';
+          dispatchAuthExpired();
         }
       }
-      throw {
-        code: response.status,
-        message: `请求失败: ${response.status}`,
-        data: null,
-      };
+      return response.json().then((errBody: any) => {
+        throw {
+          code: response.status,
+          message: errBody?.message || errBody?.error || `请求失败: ${response.status}`,
+          data: null,
+        };
+      }).catch((e: any) => {
+        if (e?.code) throw e;
+        throw {
+          code: response.status,
+          message: `请求失败: ${response.status}`,
+          data: null,
+        };
+      });
     }
 
-    return response.json().then((result: ApiResponse<T>) => {
-      if (result.code !== 200) {
-        throw result;
+    return response.json().then((result: any) => {
+      // 兼容多种响应格式（按优先级）：
+      // 1. {success: true, data: ...}  ← 标准格式
+      // 2. {code: 0, data: ...}       ← 内容发布等旧格式
+      // 3. {code: 200, data: ...}     ← 旧格式
+      // 4. {data: ..., pagination: ...} ← 半标准格式（有 data 字段但无 success）
+      // 5. 直接返回数据对象            ← 无包装（兜底）
+      if (result?.success === true) {
+        return result.data as T;
       }
-      return result.data;
+      if (result?.code === 0 || result?.code === 200) {
+        return result.data as T;
+      }
+      if (result?.data !== undefined && result?.success === undefined && result?.code === undefined) {
+        // 半标准格式: {data: ..., pagination: ..., total: ...}
+        const { data, pagination, ...rest } = result;
+        return { ...data, ...rest, pagination } as T;
+      }
+      // 兜底：可能直接返回数据
+      return result as T;
     });
   }
 
@@ -107,6 +134,16 @@ class Request {
     const response = await fetch(`${this.baseURL}${url}`, {
       method: 'DELETE',
       headers: this.getHeaders(),
+    });
+
+    return this.handleResponse<T>(response);
+  }
+
+  async patch<T = any>(url: string, data?: any): Promise<T> {
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: data ? JSON.stringify(data) : undefined,
     });
 
     return this.handleResponse<T>(response);
