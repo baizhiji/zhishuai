@@ -24,6 +24,13 @@ export enum Permission {
   FACTORY_CARTOON_VIDEO = 'factory.cartoon-video',
   FACTORY_DIGITAL_HUMAN = 'factory.digital-human',
 
+  // 媒体矩阵
+  MEDIA_FACTORY = 'media.factory',
+  MEDIA_MATRIX = 'media.matrix',
+  MEDIA_PUBLISH = 'media.publish',
+  MEDIA_REPORT = 'media.report',
+  MEDIA_DIGITAL_HUMAN = 'media.digital-human',
+
   // 招聘助手
   RECRUITMENT_PUBLISH = 'recruitment.publish',
   RECRUITMENT_SCREEN = 'recruitment.screen',
