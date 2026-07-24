@@ -12,6 +12,7 @@ export enum ContentCategory {
   PRODUCT_VIDEO = 'product-video',        // 产品宣传短视频
   STORE_TOUR_VIDEO = 'store-tour-video',  // 实体店探店视频
   PERSON_MV_VIDEO = 'person-mv-video',    // 真人MV短视频
+  CARTOON_VIDEO = 'cartoon-video',        // 萌宠卡通短视频
   DIGITAL_HUMAN = 'digital-human',        // 真人/数字人短视频
   // 预留功能
   AI_SKETCH = 'ai-sketch',               // AI短剧（开发中）
@@ -120,6 +121,17 @@ export const contentCategoryConfig: Record<
     description: '上传真人照片，AI自动生成MV风格的音乐短视频',
     type: 'video',
     needWordCount: false,
+    needSize: true,
+    needDuration: true,
+    needUpload: true,
+  },
+  [ContentCategory.CARTOON_VIDEO]: {
+    label: '萌宠卡通短视频',
+    color: '#EB2F96',
+    icon: 'StarOutlined',
+    description: '上传卡通形象或动物照片，AI自动生成萌宠/卡通风格创意短视频，支持配音字幕',
+    type: 'video',
+    needWordCount: true,
     needSize: true,
     needDuration: true,
     needUpload: true,

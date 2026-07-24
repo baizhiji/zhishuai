@@ -12,13 +12,17 @@ export enum UserRole {
 
 // 权限枚举
 export enum Permission {
-  // 自媒体运营
-  MEDIA_FACTORY = 'media.factory',
-  MEDIA_MATRIX = 'media.matrix',
-  MEDIA_PUBLISH = 'media.publish',
-  MEDIA_REPORT = 'media.report',
-  MEDIA_DIGITAL_HUMAN = 'media.digital_human',
-  MATERIALS = 'materials',
+  // AI创作工厂
+  FACTORY_XIAOHONGSHU = 'factory.xiaohongshu',
+  FACTORY_IMAGE = 'factory.image',
+  FACTORY_ECOMMERCE = 'factory.ecommerce',
+  FACTORY_SHORT_VIDEO = 'factory.short-video',
+  FACTORY_ENTERPRISE_VIDEO = 'factory.enterprise-video',
+  FACTORY_PRODUCT_VIDEO = 'factory.product-video',
+  FACTORY_STORE_TOUR_VIDEO = 'factory.store-tour-video',
+  FACTORY_PERSON_MV = 'factory.person-mv',
+  FACTORY_CARTOON_VIDEO = 'factory.cartoon-video',
+  FACTORY_DIGITAL_HUMAN = 'factory.digital-human',
 
   // 招聘助手
   RECRUITMENT_PUBLISH = 'recruitment.publish',
@@ -91,13 +95,17 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permission.SETTINGS_SECURITY,
   ],
   [UserRole.CUSTOMER]: [
-    // 客户可见功能
-    Permission.MEDIA_FACTORY,
-    Permission.MEDIA_MATRIX,
-    Permission.MEDIA_PUBLISH,
-    Permission.MEDIA_REPORT,
-    Permission.MEDIA_DIGITAL_HUMAN,
-    Permission.MATERIALS,
+    // AI创作工厂
+    Permission.FACTORY_XIAOHONGSHU,
+    Permission.FACTORY_IMAGE,
+    Permission.FACTORY_ECOMMERCE,
+    Permission.FACTORY_SHORT_VIDEO,
+    Permission.FACTORY_ENTERPRISE_VIDEO,
+    Permission.FACTORY_PRODUCT_VIDEO,
+    Permission.FACTORY_STORE_TOUR_VIDEO,
+    Permission.FACTORY_PERSON_MV,
+    Permission.FACTORY_CARTOON_VIDEO,
+    Permission.FACTORY_DIGITAL_HUMAN,
     Permission.RECRUITMENT_PUBLISH,
     Permission.RECRUITMENT_SCREEN,
     Permission.RECRUITMENT_REPLY,
@@ -145,10 +153,10 @@ export interface SubFeature {
 
 export const featureToggles: FeatureToggle[] = [
   {
-    key: 'media',
-    name: '自媒体版块',
-    description: 'AI批量生成内容、多平台发布管理',
-    icon: 'icon-media',
+    key: 'factory',
+    name: 'AI创作工厂',
+    description: 'AI图文、图片、视频等多种内容创作',
+    icon: 'icon-factory',
     defaultEnabled: true,
   },
   {
@@ -169,7 +177,7 @@ export const featureToggles: FeatureToggle[] = [
 
 // 功能代码映射（与后端对应）
 export const FEATURE_CODES = {
-  MEDIA: 'media',
+  FACTORY: 'factory',
   RECRUITMENT: 'recruitment',
   ACQUISITION: 'acquisition',
   SHARE: 'share',

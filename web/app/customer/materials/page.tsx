@@ -39,6 +39,7 @@ import {
   CustomerServiceOutlined,
   PlaySquareOutlined,
   SmileOutlined,
+  StarOutlined,
   BulbOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig } from '@/lib/content/types';
@@ -178,6 +179,7 @@ export default function MaterialLibraryPage() {
       [ContentCategory.PRODUCT_VIDEO]: <ThunderboltOutlined />,
       [ContentCategory.STORE_TOUR_VIDEO]: <EnvironmentOutlined />,
       [ContentCategory.PERSON_MV_VIDEO]: <CustomerServiceOutlined />,
+      [ContentCategory.CARTOON_VIDEO]: <StarOutlined />,
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
       [ContentCategory.AI_SKETCH]: <PlaySquareOutlined />,
       [ContentCategory.AI_COMIC]: <SmileOutlined />,

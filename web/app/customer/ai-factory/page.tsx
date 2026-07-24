@@ -13,7 +13,7 @@ import {
   SendOutlined, SaveOutlined, HistoryOutlined, DownloadOutlined,
   CopyOutlined, DeleteOutlined, PlusOutlined, FileOutlined,
   ExperimentOutlined, LoadingOutlined, CheckCircleOutlined,
-  ApiOutlined, SettingOutlined, BulbOutlined,
+  ApiOutlined, SettingOutlined, BulbOutlined, StarOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions } from '@/lib/content/types';
 import { generateText, generateImage, generateVideo, generateViralContent, analyzeViralTopic, type ViralContentResult } from '@/lib/ai/factory-service';
@@ -60,6 +60,7 @@ const factoryCards: FactoryCard[] = [
   { category: ContentCategory.PRODUCT_VIDEO, label: '产品宣传视频', desc: '产品图片生成产品展示宣传视频', icon: <ThunderboltOutlined />, color: '#FADB14', gradient: 'linear-gradient(135deg, #D4B106, #FADB14)' },
   { category: ContentCategory.STORE_TOUR_VIDEO, label: '探店视频', desc: '门店照片生成实体店探店短视频', icon: <EnvironmentOutlined />, color: '#52C41A', gradient: 'linear-gradient(135deg, #389E0D, #52C41A)' },
   { category: ContentCategory.PERSON_MV_VIDEO, label: '真人MV视频', desc: '真人照片生成MV风格音乐短视频', icon: <CustomerServiceOutlined />, color: '#722ED1', gradient: 'linear-gradient(135deg, #531DAB, #722ED1)' },
+  { category: ContentCategory.CARTOON_VIDEO, label: '萌宠卡通短视频', desc: '卡通/动物照片生成萌宠创意短视频', icon: <StarOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #C41D7F, #EB2F96)' },
   { category: ContentCategory.DIGITAL_HUMAN, label: '数字人短视频', desc: '真人照片/数字人口播视频', icon: <RobotOutlined />, color: '#13C2C2', gradient: 'linear-gradient(135deg, #08979C, #13C2C2)' },
   { category: ContentCategory.AI_SKETCH, label: 'AI短剧', desc: 'DeepSeek+可灵，AI自动生成完整短剧', icon: <PlaySquareOutlined />, color: '#CF1322', gradient: 'linear-gradient(135deg, #CF1322, #FF4D4F)' },
   { category: ContentCategory.AI_COMIC, label: 'AI漫剧', desc: 'Qwen+WAN，AI自动生成漫画剧集', icon: <SmileOutlined />, color: '#A8071A', gradient: 'linear-gradient(135deg, #A8071A, #CF1322)' },
@@ -406,6 +407,10 @@ ${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}`
         return `产品展示视频，${values.description}，突出产品卖点，动态展示，${values.style || '科技感'}风格${viralHint}`;
       case ContentCategory.PERSON_MV_VIDEO:
         return `MV风格音乐短视频，${values.description}，动感节奏，${values.style || '流行时尚'}风格${viralHint}`;
+      case ContentCategory.CARTOON_VIDEO:
+        return `萌宠卡通创意短视频，${values.description}，可爱卡通风格，萌趣生动，画面活泼，${
+          values.style || '卡通可爱'
+        }风格，适合社交媒体传播，配${values.voiceover || 'female-mandarin'}配音${viralHint}`;
       default:
         return `${values.description || '短视频'}${viralHint}`;
     }
@@ -421,6 +426,7 @@ ${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}`
       [ContentCategory.PRODUCT_VIDEO]: 'productVideo',
       [ContentCategory.STORE_TOUR_VIDEO]: 'storeTour',
       [ContentCategory.PERSON_MV_VIDEO]: 'personMv',
+      [ContentCategory.CARTOON_VIDEO]: 'cartoonVideo',
       [ContentCategory.DIGITAL_HUMAN]: 'digitalHuman',
       [ContentCategory.CONTENT_CREATIVITY]: 'viralContent',
     };
@@ -1140,6 +1146,7 @@ function getCategoryIcon(cat: ContentCategory): React.ReactNode {
     [ContentCategory.PRODUCT_VIDEO]: <ThunderboltOutlined style={{ color: '#FADB14' }} />,
     [ContentCategory.STORE_TOUR_VIDEO]: <EnvironmentOutlined style={{ color: '#52C41A' }} />,
     [ContentCategory.PERSON_MV_VIDEO]: <CustomerServiceOutlined style={{ color: '#722ED1' }} />,
+    [ContentCategory.CARTOON_VIDEO]: <StarOutlined style={{ color: '#EB2F96' }} />,
     [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined style={{ color: '#13C2C2' }} />,
     [ContentCategory.AI_SKETCH]: <PlaySquareOutlined style={{ color: '#8C8C8C' }} />,
     [ContentCategory.AI_COMIC]: <SmileOutlined style={{ color: '#8C8C8C' }} />,
