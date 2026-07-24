@@ -33,6 +33,13 @@ import {
   RobotOutlined,
   FontSizeOutlined,
   FileOutlined,
+  ShopOutlined,
+  ThunderboltOutlined,
+  EnvironmentOutlined,
+  CustomerServiceOutlined,
+  PlaySquareOutlined,
+  SmileOutlined,
+  BulbOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig } from '@/lib/content/types';
 
@@ -44,6 +51,7 @@ interface Material {
   category: ContentCategory;
   title: string;
   content: string;
+  images?: string[];
   status: 'unused' | 'used';
   timestamp: number;
 }
@@ -56,21 +64,36 @@ export default function MaterialLibraryPage() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
 
-  // 从 localStorage 加载素材
+  // 从后端 API 加载素材
   useEffect(() => {
     loadMaterials();
   }, []);
 
-  const loadMaterials = () => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('materials');
-      if (saved) {
-        try {
-          setMaterials(JSON.parse(saved));
-        } catch (error) {
-          console.error('加载素材失败:', error);
-        }
+  const loadMaterials = async () => {
+    try {
+      const params = new URLSearchParams({ page: '1', pageSize: '1000' });
+      if (searchText) params.set('keyword', searchText);
+      if (filterCategoryState !== 'all') params.set('type', filterCategoryState);
+      if (filterStatus !== 'all') params.set('status', filterStatus);
+      
+      const res = await fetch('/api/materials?' + params.toString(), {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        const list = (json.data.list || []).map((m: any) => ({
+          id: m.id,
+          category: m.type as ContentCategory,
+          title: m.title,
+          content: m.content || '',
+          images: m.images || [],
+          status: m.used ? 'used' : 'unused',
+          timestamp: new Date(m.createdAt).getTime(),
+        }));
+        setMaterials(list);
       }
+    } catch (error) {
+      console.error('加载素材失败:', error);
     }
   };
 
@@ -93,13 +116,22 @@ export default function MaterialLibraryPage() {
   });
 
   // 删除素材
-  const handleDelete = (id: string) => {
-    const newMaterials = materials.filter(m => m.id !== id);
-    setMaterials(newMaterials);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('materials', JSON.stringify(newMaterials));
+  const handleDelete = async (id: string) => {
+    try {
+      const res = await fetch(`/api/materials/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMaterials(prev => prev.filter(m => m.id !== id));
+        message.success('已删除');
+      } else {
+        message.error(json.message || '删除失败');
+      }
+    } catch (error) {
+      message.error('删除失败');
     }
-    message.success('已删除');
   };
 
   // 复制内容
@@ -110,11 +142,33 @@ export default function MaterialLibraryPage() {
 
   // 下载内容
   const handleDownload = (material: Material) => {
+    // 如果有图片，下载所有图片
+    if (material.images && material.images.length > 0) {
+      material.images.forEach((imgUrl, idx) => {
+        // 尝试直接下载图片
+        fetch(imgUrl)
+          .then(res => res.blob())
+          .then(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${material.title}_${idx + 1}.png`;
+            a.click();
+            URL.revokeObjectURL(url);
+          })
+          .catch(() => {
+            // fetch 失败时降级为打开链接
+            window.open(imgUrl, '_blank');
+          });
+      });
+      message.success(`正在下载 ${material.images.length} 张图片`);
+      return;
+    }
     const categoryConfig = contentCategoryConfig[material.category];
     if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
       window.open(material.content, '_blank');
     } else {
-      const blob = new Blob([material.content], { type: 'text/plain' });
+      const blob = new Blob([material.content], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -134,17 +188,19 @@ export default function MaterialLibraryPage() {
   // 获取分类图标
   const getCategoryIcon = (category: ContentCategory) => {
     const iconMap: Record<ContentCategory, React.ReactNode> = {
-      [ContentCategory.TITLE]: <FontSizeOutlined />,
-      [ContentCategory.TAGS]: <TagsOutlined />,
-      [ContentCategory.COPYWRITING]: <FileTextOutlined />,
-      [ContentCategory.IMAGE_TO_TEXT]: <FileImageOutlined />,
       [ContentCategory.XIAOHONGSHU]: <HeartOutlined />,
-      [ContentCategory.IMAGE]: <PictureOutlined />,
-      [ContentCategory.ECOMMERCE]: <ShoppingOutlined />,
-      [ContentCategory.VIDEO]: <VideoCameraOutlined />,
+      [ContentCategory.IMAGE_GENERATION]: <PictureOutlined />,
+      [ContentCategory.ECOMMERCE_DETAIL]: <ShoppingOutlined />,
+      [ContentCategory.SHORT_VIDEO]: <VideoCameraOutlined />,
+      [ContentCategory.ENTERPRISE_VIDEO]: <ShopOutlined />,
+      [ContentCategory.PRODUCT_VIDEO]: <ThunderboltOutlined />,
+      [ContentCategory.STORE_TOUR_VIDEO]: <EnvironmentOutlined />,
+      [ContentCategory.PERSON_MV_VIDEO]: <CustomerServiceOutlined />,
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
-      [ContentCategory.VIDEO_ANALYSIS]: <FileOutlined />,
-    };
+      [ContentCategory.AI_SKETCH]: <PlaySquareOutlined />,
+      [ContentCategory.AI_COMIC]: <SmileOutlined />,
+      [ContentCategory.CONTENT_CREATIVITY]: <BulbOutlined />,
+    };    
     return iconMap[category];
   };
 
@@ -179,19 +235,45 @@ export default function MaterialLibraryPage() {
       title: '内容预览',
       dataIndex: 'content',
       key: 'content',
-      ellipsis: true,
+      width: 250,
       render: (content: string, record: Material) => {
         const categoryConfig = contentCategoryConfig[record.category];
+        // 优先展示 images 数组中的图片
+        if (record.images && record.images.length > 0) {
+          return (
+            <Space size={4} wrap>
+              <Image.PreviewGroup>
+                {record.images.slice(0, 3).map((img, idx) => (
+                  <Image
+                    key={idx}
+                    src={img}
+                    alt={`${record.title}-${idx + 1}`}
+                    width={60}
+                    height={60}
+                    style={{ objectFit: 'cover', borderRadius: 4 }}
+                    fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iMzAiIHk9IjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSIxMiI+5Zu+54mHPC90ZXh0Pjwvc3ZnPg=="
+                  />
+                ))}
+              </Image.PreviewGroup>
+              {record.images.length > 3 && (
+                <Tag style={{ marginTop: 16 }}>+{record.images.length - 3}</Tag>
+              )}
+            </Space>
+          );
+        }
         if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
           return (
             <Image
               src={content}
               alt={record.title}
-              style={{ width: 60, height: 60, objectFit: 'cover' }}
+              width={60}
+              height={60}
+              style={{ objectFit: 'cover', borderRadius: 4 }}
+              fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iMzAiIHk9IjMwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSIxMiI+5Zu+54mHPC90ZXh0Pjwvc3ZnPg=="
             />
           );
         }
-        return <Paragraph ellipsis={{ rows: 1 }}>{content}</Paragraph>;
+        return <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>{content}</Paragraph>;
       },
     },
     {
@@ -215,9 +297,9 @@ export default function MaterialLibraryPage() {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 260,
       render: (_: any, record: Material) => (
-        <Space size="small">
+        <Space size="small" wrap>
           <Button
             type="link"
             size="small"
@@ -225,6 +307,14 @@ export default function MaterialLibraryPage() {
             onClick={() => handlePreview(record)}
           >
             预览
+          </Button>
+          <Button
+            type="link"
+            size="small"
+            icon={<DownloadOutlined />}
+            onClick={() => handleDownload(record)}
+          >
+            下载
           </Button>
           <Button
             type="link"
@@ -253,8 +343,8 @@ export default function MaterialLibraryPage() {
     <div className="p-6">
       {/* 页面头部 */}
       <div className="mb-6">
-        <Title level={2}>素材库</Title>
-        <Text type="secondary">管理和使用您的AI生成内容</Text>
+        <Title level={2}>内容中心</Title>
+        <Text type="secondary">管理和使用您的AI生成内容，支持预览、下载，与AI创作工厂无缝对接</Text>
       </div>
 
       {/* 筛选栏 */}
@@ -350,22 +440,57 @@ export default function MaterialLibraryPage() {
               <Tag color={previewMaterial.status === 'used' ? 'green' : 'blue'}>
                 {previewMaterial.status === 'used' ? '已使用' : '未使用'}
               </Tag>
+              {previewMaterial.images && previewMaterial.images.length > 0 && (
+                <Tag color="orange">{previewMaterial.images.length} 张图片</Tag>
+              )}
             </Space>
             <div className="mt-4">
-              {contentCategoryConfig[previewMaterial.category]?.type === 'image' ? (
-                <Image
-                  src={previewMaterial.content}
-                  alt={previewMaterial.title}
-                  style={{ maxWidth: '100%' }}
-                />
-              ) : contentCategoryConfig[previewMaterial.category]?.type === 'video' ? (
+              {/* 图片展示 */}
+              {previewMaterial.images && previewMaterial.images.length > 0 && (
+                <div className="mb-4">
+                  <Image.PreviewGroup>
+                    <Row gutter={[8, 8]}>
+                      {previewMaterial.images.map((img, idx) => (
+                        <Col key={idx} span={8}>
+                          <Image
+                            src={img}
+                            alt={`${previewMaterial.title}-${idx + 1}`}
+                            style={{ width: '100%', borderRadius: 8 }}
+                            fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjEwMCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSIxNCI+5Zu+54mH5Yqg6L295aSx6LSlPC90ZXh0Pjwvc3ZnPg=="
+                          />
+                        </Col>
+                      ))}
+                    </Row>
+                  </Image.PreviewGroup>
+                </div>
+              )}
+              {/* 视频展示 */}
+              {(!previewMaterial.images || previewMaterial.images.length === 0) && contentCategoryConfig[previewMaterial.category]?.type === 'video' && (
                 <video
                   src={previewMaterial.content}
                   controls
                   style={{ maxWidth: '100%', maxHeight: 400 }}
                 />
-              ) : (
-                <Paragraph className="whitespace-pre-wrap">{previewMaterial.content}</Paragraph>
+              )}
+              {/* 图片内容（无 images 数组时） */}
+              {(!previewMaterial.images || previewMaterial.images.length === 0) && contentCategoryConfig[previewMaterial.category]?.type === 'image' && (
+                <Image
+                  src={previewMaterial.content}
+                  alt={previewMaterial.title}
+                  style={{ maxWidth: '100%', borderRadius: 8 }}
+                  fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSIgZmlsbD0iIzk5OSIgZm9udC1zaXplPSIxNiI+5Zu+54mH5Yqg6L295aSx6LSlPC90ZXh0Pjwvc3ZnPg=="
+                />
+              )}
+              {/* 文字内容 */}
+              {previewMaterial.content && contentCategoryConfig[previewMaterial.category]?.type !== 'image' && contentCategoryConfig[previewMaterial.category]?.type !== 'video' && (
+                <Paragraph className="whitespace-pre-wrap" style={{ maxHeight: 400, overflow: 'auto' }}>{previewMaterial.content}</Paragraph>
+              )}
+              {/* 文字辅助说明（图片场景下也展示文案） */}
+              {previewMaterial.images && previewMaterial.images.length > 0 && previewMaterial.content && (
+                <div className="mt-4">
+                  <Text strong>文案内容：</Text>
+                  <Paragraph className="whitespace-pre-wrap mt-2" style={{ maxHeight: 200, overflow: 'auto', background: '#fafafa', padding: 12, borderRadius: 8 }}>{previewMaterial.content}</Paragraph>
+                </div>
               )}
             </div>
           </div>
