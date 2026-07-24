@@ -30,6 +30,7 @@ export enum Permission {
   MEDIA_PUBLISH = 'media.publish',
   MEDIA_REPORT = 'media.report',
   MEDIA_DIGITAL_HUMAN = 'media.digital-human',
+  MATERIALS = 'materials',
 
   // 招聘助手
   RECRUITMENT_PUBLISH = 'recruitment.publish',
