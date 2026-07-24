@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Layout,
   Result,
@@ -15,11 +15,11 @@ import GlobalSearch from '@/components/common/GlobalSearch';
 
 const { Header, Content } = Layout;
 
+const SIDER_WIDTH = 220;
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
-  const siderWidth = collapsed ? 64 : 220;
 
   // 认证加载中
   if (loading) {
@@ -56,19 +56,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <AdminNavbar collapsed={collapsed} onCollapse={setCollapsed} />
-      <Layout>
+      <AdminNavbar />
+      <Layout style={{ marginLeft: SIDER_WIDTH }}>
         <Header
           style={{
             padding: '0 24px',
-            marginLeft: siderWidth,
             background: '#fff',
             borderBottom: '1px solid #f0f0f0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'flex-end',
             gap: 16,
-            transition: 'margin-left 0.2s',
           }}
         >
           <Tag
@@ -89,10 +87,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Content
           style={{
             padding: '0 24px 24px',
-            marginLeft: siderWidth,
             background: '#f0f2f5',
             minHeight: 'calc(100vh - 64px)',
-            transition: 'margin-left 0.2s',
           }}
         >
           {children}
