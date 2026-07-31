@@ -52,7 +52,6 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
-import RoleSwitchModal from '@/components/common/RoleSwitchModal';
 import { getLatestAnnouncements, type Announcement } from '@/services/version';
 
 const { Sider, Header, Content } = Layout;
@@ -842,14 +841,6 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
           </div>
         </Content>
       </Layout>
-
-      {/* 角色切换弹窗 - 使用共享组件 */}
-      <RoleSwitchModal
-        open={roleModalVisible}
-        currentRole={currentRole}
-        userRole={user?.role}
-        onCancel={() => setRoleModalVisible(false)}
-      />
 
       {/* 修改密码弹窗 */}
       <Modal

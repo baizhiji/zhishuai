@@ -17,7 +17,6 @@ import {
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions } from '@/lib/content/types';
 import { generateText, generateImage, generateVideo, generateViralContent, analyzeViralTopic, type ViralContentResult } from '@/lib/ai/factory-service';
-import ContentSafetyPanel from '@/components/content-safety/ContentSafetyPanel';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -933,24 +932,6 @@ ${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}`
               }}>下载</Button>
             </Space>
           </Card>
-        )}
-
-        {/* 内容安全与拟人化检测 */}
-        {!generating && (generatedContent || generatedImages.length > 0) && (
-          <ContentSafetyPanel
-            content={generatedContent || form.getFieldValue('description') || ''}
-            contentType={
-              activeCategory === ContentCategory.IMAGE_GENERATION ? 'image_prompt' :
-              activeCategory === ContentCategory.SHORT_VIDEO ? 'video_prompt' :
-              'text'
-            }
-            platform={
-              activeCategory === ContentCategory.XIAOHONGSHU ? 'xiaohongshu' :
-              activeCategory === ContentCategory.ECOMMERCE_DETAIL ? 'ecommerce' :
-              'ad_law'
-            }
-            humanizeLevel="natural"
-          />
         )}
 
         {/* 爆款内容创意结果 */}

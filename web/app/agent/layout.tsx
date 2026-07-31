@@ -11,7 +11,6 @@ import { SearchOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import AgentNavbar from './layout/Navbar';
-import GlobalSearch from '@/components/common/GlobalSearch';
 
 const { Header, Content } = Layout;
 
@@ -92,7 +91,6 @@ export default function AgentLayout({ children }: { children: React.ReactNode })
           }}
         >
           {children}
-          <GlobalSearch />
         </Content>
       </Layout>
     </Layout>
