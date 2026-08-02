@@ -13,6 +13,10 @@ import {
   SwapOutlined,
   LogoutOutlined,
   UserOutlined,
+  RobotOutlined,
+  AppstoreOutlined,
+  BarChartOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,9 +50,13 @@ const AgentNavbar: React.FC = () => {
   const menuItems: MenuItemDef[] = [
     { key: 'dashboard', label: '数据总览', path: '/agent/dashboard' },
     { key: 'customers', label: '客户管理', path: '/agent/customers' },
+    { key: 'ai-factory', label: 'AI创作工厂', path: '/agent/ai-factory' },
+    { key: 'materials', label: '内容中心', path: '/agent/materials' },
+    { key: 'usage', label: '用量统计', path: '/agent/usage' },
     { key: 'settlement', label: '分成结算', path: '/agent/settlement' },
     { key: 'tickets', label: '工单处理', path: '/agent/tickets' },
     { key: 'support', label: '客服中心', path: '/agent/support' },
+    { key: 'api-keys', label: 'API管理', path: '/agent/api-keys' },
   ];
 
   useEffect(() => {
@@ -189,6 +197,21 @@ const AgentNavbar: React.FC = () => {
               label: '客户管理',
             },
             {
+              key: 'ai-factory',
+              icon: <RobotOutlined />,
+              label: 'AI创作工厂',
+            },
+            {
+              key: 'materials',
+              icon: <AppstoreOutlined />,
+              label: '内容中心',
+            },
+            {
+              key: 'usage',
+              icon: <BarChartOutlined />,
+              label: '用量统计',
+            },
+            {
               key: 'settlement',
               icon: <DollarOutlined />,
               label: '分成结算',
@@ -202,6 +225,11 @@ const AgentNavbar: React.FC = () => {
               key: 'support',
               icon: <CustomerServiceOutlined />,
               label: '客服中心',
+            },
+            {
+              key: 'api-keys',
+              icon: <KeyOutlined />,
+              label: 'API管理',
             },
             {
               key: 'settings',
