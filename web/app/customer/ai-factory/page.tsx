@@ -16,7 +16,7 @@ import {
   ApiOutlined, SettingOutlined, BulbOutlined, StarOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions } from '@/lib/content/types';
-import { generateText, generateImage, generateVideo, generateViralContent, analyzeViralTopic, type ViralContentResult } from '@/lib/ai/factory-service';
+import { generateText, generateImage, generateVideo, analyzeViralTopic } from '@/lib/ai/factory-service';
 
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -51,18 +51,18 @@ interface FactoryCard {
 }
 
 const factoryCards: FactoryCard[] = [
-  { category: ContentCategory.XIAOHONGSHU, label: '小红书图文', desc: '输入文字，AI生成精美小红书图文', icon: <HeartOutlined />, color: '#FF2442', gradient: 'linear-gradient(135deg, #FF2442, #FF6B81)' },
-  { category: ContentCategory.IMAGE_GENERATION, label: '图片生成', desc: '文字描述或参考图生成高品质图片', icon: <PictureOutlined />, color: '#FF8C00', gradient: 'linear-gradient(135deg, #FF8C00, #FFB347)' },
-  { category: ContentCategory.ECOMMERCE_DETAIL, label: '电商详情页', desc: '产品信息一键生成电商详情页', icon: <ShoppingOutlined />, color: '#FA541C', gradient: 'linear-gradient(135deg, #FA541C, #FF7A45)' },
-  { category: ContentCategory.SHORT_VIDEO, label: '短视频', desc: '文字脚本生成短视频，支持方言配音', icon: <VideoCameraOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #EB2F96, #FF85C0)' },
-  { category: ContentCategory.ENTERPRISE_VIDEO, label: '企业宣传视频', desc: '上传照片/Logo生成企业宣传片', icon: <ShopOutlined />, color: '#2F54EB', gradient: 'linear-gradient(135deg, #2F54EB, #597EF7)' },
-  { category: ContentCategory.PRODUCT_VIDEO, label: '产品宣传视频', desc: '产品图片生成产品展示宣传视频', icon: <ThunderboltOutlined />, color: '#FADB14', gradient: 'linear-gradient(135deg, #D4B106, #FADB14)' },
-  { category: ContentCategory.STORE_TOUR_VIDEO, label: '探店视频', desc: '门店照片生成实体店探店短视频', icon: <EnvironmentOutlined />, color: '#52C41A', gradient: 'linear-gradient(135deg, #389E0D, #52C41A)' },
-  { category: ContentCategory.PERSON_MV_VIDEO, label: '真人MV视频', desc: '真人照片生成MV风格音乐短视频', icon: <CustomerServiceOutlined />, color: '#722ED1', gradient: 'linear-gradient(135deg, #531DAB, #722ED1)' },
-  { category: ContentCategory.CARTOON_VIDEO, label: '萌宠卡通短视频', desc: '卡通/动物照片生成萌宠创意短视频', icon: <StarOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #C41D7F, #EB2F96)' },
-  { category: ContentCategory.DIGITAL_HUMAN, label: '数字人短视频', desc: '真人照片/数字人口播视频', icon: <RobotOutlined />, color: '#13C2C2', gradient: 'linear-gradient(135deg, #08979C, #13C2C2)' },
-  { category: ContentCategory.AI_SKETCH, label: 'AI短剧', desc: 'DeepSeek+可灵，AI自动生成完整短剧', icon: <PlaySquareOutlined />, color: '#CF1322', gradient: 'linear-gradient(135deg, #CF1322, #FF4D4F)' },
-  { category: ContentCategory.AI_COMIC, label: 'AI漫剧', desc: 'Qwen+WAN，AI自动生成漫画剧集', icon: <SmileOutlined />, color: '#A8071A', gradient: 'linear-gradient(135deg, #A8071A, #CF1322)' },
+  { category: ContentCategory.XIAOHONGSHU, label: '小红书图文', desc: '真人博主级写作，像闺蜜分享而非营销文案', icon: <HeartOutlined />, color: '#FF2442', gradient: 'linear-gradient(135deg, #FF2442, #FF6B81)' },
+  { category: ContentCategory.IMAGE_GENERATION, label: '图片生成', desc: '照片级真实感，真实材质纹理、自然光照', icon: <PictureOutlined />, color: '#FF8C00', gradient: 'linear-gradient(135deg, #FF8C00, #FFB347)' },
+  { category: ContentCategory.ECOMMERCE_DETAIL, label: '电商详情页', desc: '真人运营级，不堆砌模板化的套话', icon: <ShoppingOutlined />, color: '#FA541C', gradient: 'linear-gradient(135deg, #FA541C, #FF7A45)' },
+  { category: ContentCategory.SHORT_VIDEO, label: '短视频', desc: '真人拍摄级脚本，断句随机、有情绪起伏', icon: <VideoCameraOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #EB2F96, #FF85C0)' },
+  { category: ContentCategory.ENTERPRISE_VIDEO, label: '企业宣传视频', desc: '电影级宣传片，真实场景非摆拍', icon: <ShopOutlined />, color: '#2F54EB', gradient: 'linear-gradient(135deg, #2F54EB, #597EF7)' },
+  { category: ContentCategory.PRODUCT_VIDEO, label: '产品宣传视频', desc: '真人实拍级，像真人开箱而非3D渲染', icon: <ThunderboltOutlined />, color: '#FADB14', gradient: 'linear-gradient(135deg, #D4B106, #FADB14)' },
+  { category: ContentCategory.STORE_TOUR_VIDEO, label: '探店视频', desc: '真人Vlog级，真实评价有好有坏', icon: <EnvironmentOutlined />, color: '#52C41A', gradient: 'linear-gradient(135deg, #389E0D, #52C41A)' },
+  { category: ContentCategory.PERSON_MV_VIDEO, label: '真人MV视频', desc: '真人演唱级，无美颜滤镜自然光拍摄', icon: <CustomerServiceOutlined />, color: '#722ED1', gradient: 'linear-gradient(135deg, #531DAB, #722ED1)' },
+  { category: ContentCategory.CARTOON_VIDEO, label: '萌宠卡通短视频', desc: '照片级卡通渲染，配音用真人声', icon: <StarOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #C41D7F, #EB2F96)' },
+  { category: ContentCategory.DIGITAL_HUMAN, label: '数字人短视频', desc: '拟真级口播，肉眼无法分辨AI', icon: <RobotOutlined />, color: '#13C2C2', gradient: 'linear-gradient(135deg, #08979C, #13C2C2)' },
+  { category: ContentCategory.AI_SKETCH, label: 'AI短剧', desc: '功能预留，敬请期待', icon: <PlaySquareOutlined />, color: '#CF1322', gradient: 'linear-gradient(135deg, #CF1322, #FF4D4F)' },
+  { category: ContentCategory.AI_COMIC, label: 'AI漫剧', desc: '功能预留，敬请期待', icon: <SmileOutlined />, color: '#A8071A', gradient: 'linear-gradient(135deg, #A8071A, #CF1322)' },
 ];
 
 export default function AIFactoryPage() {
@@ -77,13 +77,11 @@ export default function AIFactoryPage() {
   const [model, setModel] = useState('');
   const [historyVisible, setHistoryVisible] = useState(false);
   const [generationHistory, setGenerationHistory] = useState<GenerationRecord[]>([]);
-  const [viralResult, setViralResult] = useState<ViralContentResult | null>(null);
   const [viralScoreForTask, setViralScoreForTask] = useState<{
     score: number;
     rating: string;
     tips: string[];
   } | null>(null);
-  const [viralRating, setViralRating] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('ai-factory-history');
@@ -106,8 +104,6 @@ export default function AIFactoryPage() {
     setActiveCategory(category);
     setGeneratedContent(null);
     setGeneratedImages([]);
-    setViralResult(null);
-    setViralRating('');
     setViralScoreForTask(null);
     form.resetFields();
     setShowCreator(true);
@@ -121,8 +117,6 @@ export default function AIFactoryPage() {
     setProgress(0);
     setGeneratedContent(null);
     setGeneratedImages([]);
-    setViralResult(null);
-    setViralRating('');
     setViralScoreForTask(null);
 
     const progressInterval = setInterval(() => {
@@ -140,11 +134,7 @@ export default function AIFactoryPage() {
         values.productName ||
         (typeof values.theme === 'string' ? values.theme : '');
       let viralAnalysis: { score: number; rating: string; tips: string[]; keywords: string[] } | null = null;
-      if (
-        activeCategory !== ContentCategory.CONTENT_CREATIVITY &&
-        topicForAnalysis &&
-        topicForAnalysis.length >= 4
-      ) {
+      if (topicForAnalysis && topicForAnalysis.length >= 4) {
         try {
           const analysisRes = await analyzeViralTopic(
             topicForAnalysis,
@@ -177,53 +167,7 @@ export default function AIFactoryPage() {
         }
       }
 
-      // ─── 爆款内容创意专用流程 ───
-      if (activeCategory === ContentCategory.CONTENT_CREATIVITY) {
-        const topic = values.topic || values.description;
-        const platform = values.platform || 'douyin';
-        const contentType = values.viralContentType || 'video';
-        const creativity = values.creativity ?? 0.7;
-        const targetAudience = values.targetAudience;
-        const productName = values.productName;
-        const keywords = values.keywords;
-
-        const result = await generateViralContent({
-          topic,
-          platform,
-          contentType,
-          creativity,
-          targetAudience,
-          productName,
-          keywords: keywords ? keywords.split(/[,，\s]+/).filter(Boolean) : undefined,
-        });
-
-        clearInterval(progressInterval);
-        setProgress(100);
-
-        if (result.success && result.data) {
-          setViralResult(result.data);
-          setViralRating(result.rating);
-          setGeneratedContent(result.data.body || JSON.stringify(result.data, null, 2));
-          setProvider(result.data._source === 'ai' ? 'AI模型' : '智能模板');
-          setModel(result.data._source === 'ai' ? '大模型' : '降级模板');
-          message.success(`爆款内容创意生成完成！评分: ${result.rating}`);
-          saveHistory({
-            id: `gen_${Date.now()}`,
-            category: activeCategory,
-            content: JSON.stringify(result.data),
-            config: values,
-            timestamp: Date.now(),
-            status: 'success',
-            provider: result.data._source === 'ai' ? 'AI模型' : '智能模板',
-            model: result.data._source,
-          });
-        } else {
-          message.warning('生成失败，请稍后重试');
-        }
-        setGenerating(false);
-        return;
-      }
-
+      // ─── 通用AI创作流程（所有功能走同一路径） ───
       const cfg = contentCategoryConfig[activeCategory];
       const count = values.count || 1;
       const results: string[] = [];
@@ -427,279 +371,9 @@ ${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}`
       [ContentCategory.PERSON_MV_VIDEO]: 'personMv',
       [ContentCategory.CARTOON_VIDEO]: 'cartoonVideo',
       [ContentCategory.DIGITAL_HUMAN]: 'digitalHuman',
-      [ContentCategory.CONTENT_CREATIVITY]: 'viralContent',
     };
     return map[cat] || 'shortVideo';
   }
-
-  // ─── 爆款内容创意表单 ────────────────────
-  const renderViralForm = () => (
-    <Form form={form} layout="vertical" initialValues={{
-      platform: 'douyin', viralContentType: 'video', creativity: 0.7,
-    }}>
-      <Form.Item
-        label="内容主题"
-        name="topic"
-        rules={[{ required: true, message: '请输入内容主题' }]}
-      >
-        <TextArea rows={2} placeholder="输入你要创作的主题，如：宝妈带娃日常、AI工具推荐、小红书标题怎么写..." />
-      </Form.Item>
-
-      <Row gutter={16}>
-        <Col span={8}>
-          <Form.Item label="目标平台" name="platform" rules={[{ required: true }]}>
-            <Select options={[
-              { label: '抖音', value: 'douyin' },
-              { label: '快手', value: 'kuaishou' },
-              { label: '小红书', value: 'xiaohongshu' },
-              { label: 'B站', value: 'bilibili' },
-              { label: '微博', value: 'weibo' },
-            ]} />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item label="内容类型" name="viralContentType">
-            <Select options={[
-              { label: '短视频', value: 'video' },
-              { label: '图文文章', value: 'article' },
-              { label: '图文笔记', value: 'image_text' },
-              { label: '直播脚本', value: 'live_script' },
-              { label: '广告文案', value: 'ad_copy' },
-            ]} />
-          </Form.Item>
-        </Col>
-        <Col span={8}>
-          <Form.Item label="创意等级" name="creativity">
-            <Select options={[
-              { label: '保守 (0.3)', value: 0.3 },
-              { label: '标准 (0.5)', value: 0.5 },
-              { label: '创意 (0.7)', value: 0.7 },
-              { label: '激进 (0.9)', value: 0.9 },
-            ]} />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Form.Item label="目标受众（可选）" name="targetAudience">
-        <Input placeholder="如：宝妈群体、职场新人、大学生..." />
-      </Form.Item>
-
-      <Row gutter={16}>
-        <Col span={12}>
-          <Form.Item label="产品/服务名称（可选）" name="productName">
-            <Input placeholder="产品或服务名称" />
-          </Form.Item>
-        </Col>
-        <Col span={12}>
-          <Form.Item label="关键词（可选，逗号分隔）" name="keywords">
-            <Input placeholder="如：创意,教程,生活" />
-          </Form.Item>
-        </Col>
-      </Row>
-
-      <Button
-        type="primary"
-        icon={generating ? <LoadingOutlined /> : <SendOutlined />}
-        onClick={handleGenerate}
-        loading={generating}
-        size="large"
-        block
-      >
-        {generating ? 'AI正在分析爆款基因...' : '开始生成爆款内容创意'}
-      </Button>
-    </Form>
-  );
-
-  // ─── 爆款内容创意结果展示 ────────────────────
-  const renderViralResults = () => {
-    if (!viralResult) return null;
-    const vs = viralResult.viralScore;
-    const ga = viralResult.geneAnalysis;
-
-    return (
-      <Card title="爆款内容创意方案" style={{ marginTop: 16 }}
-        extra={provider && <Tag color="purple">{provider} · {model}</Tag>}
-      >
-        {/* 爆款评分 */}
-        <div style={{
-          background: 'linear-gradient(135deg, #531DAB, #722ED1)',
-          borderRadius: 12, padding: '20px 24px', color: '#fff', marginBottom: 20,
-        }}>
-          <Row align="middle" justify="space-between">
-            <Col>
-              <div style={{ fontSize: 14, opacity: 0.9 }}>爆款潜力评分</div>
-              <div style={{ fontSize: 36, fontWeight: 700 }}>{vs?.total || 0}<span style={{ fontSize: 18, opacity: 0.7 }}>/40</span></div>
-              <div style={{ fontSize: 16, marginTop: 4 }}>{viralRating}</div>
-            </Col>
-            <Col>
-              <div style={{ textAlign: 'right' }}>
-                <Tag color={viralResult._source === 'ai' ? 'green' : 'orange'} style={{ fontSize: 12 }}>
-                  {viralResult._source === 'ai' ? 'AI模型生成' : '智能模板降级'}
-                </Tag>
-                <div style={{ marginTop: 8, fontSize: 13, opacity: 0.9 }}>
-                  命中 {ga?.hitCount || 0}/4 爆款基因
-                </div>
-              </div>
-            </Col>
-          </Row>
-
-          {/* 8维雷达 */}
-          <Row gutter={8} style={{ marginTop: 16 }}>
-            {[
-              { label: '情绪', v: vs?.emotion || 0 },
-              { label: '传播', v: vs?.spread || 0 },
-              { label: '独家', v: vs?.uniqueness || 0 },
-              { label: '身份', v: vs?.identity || 0 },
-              { label: '时效', v: vs?.timeliness || 0 },
-              { label: '锚点', v: vs?.anchor || 0 },
-              { label: '视觉', v: vs?.visual || 0 },
-              { label: '门槛', v: vs?.barrier || 0 },
-            ].map(({ label, v }) => (
-              <Col span={3} key={label} style={{ textAlign: 'center' }}>
-                <Progress type="circle" percent={v * 20} size={48} strokeColor="#fff" trailColor="rgba(255,255,255,0.3)" format={() => v} />
-                <div style={{ fontSize: 11, marginTop: 4, opacity: 0.8 }}>{label}</div>
-              </Col>
-            ))}
-          </Row>
-        </div>
-
-        {/* 基因分析 */}
-        <div style={{ marginBottom: 16 }}>
-          <Text strong>爆款基因分析</Text>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 8 }}>
-            <div style={{ background: '#f6ffed', padding: 10, borderRadius: 8 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>情绪钩子</Text><br />
-              <Text>{ga?.emotionDesc || '-'}</Text>
-            </div>
-            <div style={{ background: '#e6f7ff', padding: 10, borderRadius: 8 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>信息差</Text><br />
-              <Text>{ga?.infoGap || '-'}</Text>
-            </div>
-            <div style={{ background: '#fff7e6', padding: 10, borderRadius: 8 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>身份标签</Text><br />
-              <Text>{ga?.identityTag || '-'}</Text>
-            </div>
-            <div style={{ background: '#f9f0ff', padding: 10, borderRadius: 8 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>行动触发</Text><br />
-              <Text>{ga?.actionTrigger || '-'}</Text>
-            </div>
-          </div>
-        </div>
-
-        <Divider />
-
-        {/* 最佳标题 */}
-        <div style={{ marginBottom: 16 }}>
-          <Text strong>最佳标题：</Text>
-          <Tag color="purple" style={{ fontSize: 15, padding: '4px 12px', marginLeft: 8, borderRadius: 6 }}>
-            {viralResult.bestTitle || '-'}
-          </Tag>
-        </div>
-
-        {/* 标题方案 */}
-        {viralResult.titles?.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <Text strong>标题方案（{viralResult.titles.length}个）：</Text>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-              {viralResult.titles.map((t, i) => (
-                <Tag key={i} color="blue" style={{ borderRadius: 6, padding: '2px 10px', margin: 0 }}>{t}</Tag>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 钩子 */}
-        <div style={{ marginBottom: 16, background: '#fffbe6', padding: 12, borderRadius: 8, borderLeft: '3px solid #FADB14' }}>
-          <Text strong>前3秒钩子：</Text>
-          <Paragraph style={{ marginBottom: 0, marginTop: 4 }}>{viralResult.hook || '-'}</Paragraph>
-        </div>
-
-        {/* 大纲 */}
-        {viralResult.outline?.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <Text strong>内容大纲：</Text>
-            <ol style={{ marginTop: 8, paddingLeft: 20 }}>
-              {viralResult.outline.map((o, i) => (
-                <li key={i} style={{ marginBottom: 4 }}>{o}</li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        {/* 正文 */}
-        {viralResult.body && (
-          <div style={{ marginBottom: 16 }}>
-            <Text strong>正文内容：</Text>
-            <div style={{
-              background: '#fafafa', padding: 16, borderRadius: 8, marginTop: 8,
-              whiteSpace: 'pre-wrap', maxHeight: 300, overflow: 'auto',
-              fontSize: 14, lineHeight: 1.8,
-            }}>
-              {viralResult.body}
-            </div>
-          </div>
-        )}
-
-        {/* CTA */}
-        <div style={{ marginBottom: 16, background: '#f0f5ff', padding: 12, borderRadius: 8, borderLeft: '3px solid #2F54EB' }}>
-          <Text strong>行动号召 (CTA)：</Text>
-          <Paragraph style={{ marginBottom: 0, marginTop: 4 }}>{viralResult.cta || '-'}</Paragraph>
-        </div>
-
-        {/* 标签 */}
-        {viralResult.hashtags?.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <Text strong>推荐标签：</Text>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {viralResult.hashtags.map((h, i) => (
-                <Tag key={i} color="cyan" style={{ borderRadius: 6 }}>#{h}</Tag>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 平台优化建议 */}
-        {viralResult.platformTips?.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <Text strong>平台优化建议：</Text>
-            <ul style={{ marginTop: 8, paddingLeft: 20 }}>
-              {viralResult.platformTips.map((tip, i) => (
-                <li key={i} style={{ marginBottom: 4, color: '#666' }}>{tip}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <Divider />
-        <Space wrap>
-          <Button icon={<CopyOutlined />} onClick={() => {
-            const text = [
-              `最佳标题: ${viralResult.bestTitle}`,
-              `钩子: ${viralResult.hook}`,
-              '', '正文:', viralResult.body,
-              '', `CTA: ${viralResult.cta}`,
-              '', `标签: ${viralResult.hashtags?.map(h => '#' + h).join(' ')}`,
-            ].join('\n');
-            navigator.clipboard.writeText(text);
-            message.success('已复制完整内容');
-          }}>复制完整内容</Button>
-          <Button icon={<SaveOutlined />} onClick={() => {
-            const materials = JSON.parse(localStorage.getItem('materials') || '[]');
-            materials.push({
-              id: `mat_${Date.now()}`,
-              category: activeCategory,
-              title: viralResult.bestTitle || '爆款内容创意',
-              content: JSON.stringify(viralResult, null, 2),
-              timestamp: Date.now(),
-              status: 'unused',
-            });
-            localStorage.setItem('materials', JSON.stringify(materials));
-            message.success('已保存到内容中心');
-          }}>保存到内容中心</Button>
-        </Space>
-      </Card>
-    );
-  };
 
   // 渲染创作者表单
   const renderCreatorForm = () => {
@@ -720,9 +394,6 @@ ${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}`
             <Text type="secondary">{cfg.description}</Text>
           </div>
 
-          {/* ─── 爆款内容创意专用表单 ─── */}
-          {activeCategory === ContentCategory.CONTENT_CREATIVITY && renderViralForm()}
-          {activeCategory !== ContentCategory.CONTENT_CREATIVITY && (
           <Form form={form} layout="vertical" initialValues={{
             count: 1, wordCount: 300, size: cfg.type === 'video' ? '1920x1080' : '1024x1024',
             duration: 30, style: '专业', voiceover: 'female-mandarin', subtitle: 'chinese', bgm: 'dynamic',
@@ -839,7 +510,6 @@ ${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}`
               {generating ? 'AI正在生成...' : `开始生成${cfg.label}`}
             </Button>
           </Form>
-          )}
         </Card>
 
         {/* 生成进度 */}
@@ -934,11 +604,8 @@ ${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}`
           </Card>
         )}
 
-        {/* 爆款内容创意结果 */}
-        {!generating && activeCategory === ContentCategory.CONTENT_CREATIVITY && renderViralResults()}
-
         {/* 爆款基因分析（所有AI创作任务通用） */}
-        {!generating && viralScoreForTask && activeCategory !== ContentCategory.CONTENT_CREATIVITY && (
+        {!generating && viralScoreForTask && (
           <Card
             style={{ marginTop: 16, borderRadius: 12 }}
             title={
@@ -1131,7 +798,6 @@ function getCategoryIcon(cat: ContentCategory): React.ReactNode {
     [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined style={{ color: '#13C2C2' }} />,
     [ContentCategory.AI_SKETCH]: <PlaySquareOutlined style={{ color: '#8C8C8C' }} />,
     [ContentCategory.AI_COMIC]: <SmileOutlined style={{ color: '#8C8C8C' }} />,
-    [ContentCategory.CONTENT_CREATIVITY]: <BulbOutlined style={{ color: '#722ED1' }} />,
   };
   return map[cat] || <ExperimentOutlined />;
 }

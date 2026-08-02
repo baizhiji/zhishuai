@@ -1,287 +1,315 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Table, Progress, DatePicker, Select, Spin } from 'antd';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  UserOutlined,
-  ShoppingOutlined,
-  DollarOutlined,
-  RiseOutlined,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Table,
+  Tag,
+  Spin,
+  Empty,
+  Typography,
+  Button,
+  Space,
+} from 'antd';
+import {
   TeamOutlined,
-  FileTextOutlined,
-  MessageOutlined,
-  CustomerServiceOutlined,
+  UserOutlined,
+  ContactsOutlined,
+  ApiOutlined,
+  WarningOutlined,
+  PictureOutlined,
+  SendOutlined,
+  RiseOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
-import { Line, Column, Pie } from '@ant-design/charts';
+import { useRouter } from 'next/navigation';
 import type { ColumnsType } from 'antd/es/table';
-import {
-  getOverview,
-  getTrend,
-  getPlatformStats,
-  getAgentStats,
-  type OverviewStats,
-  type TrendData,
-  type PlatformStats,
-} from '@/services/statistics';
 
-const { RangePicker } = DatePicker;
-const { Option } = Select;
+interface AdminStatistics {
+  totalAgents: number;
+  activeAgents: number;
+  newAgentsThisMonth: number;
+  newAgentsLastMonth: number;
+  totalCustomers: number;
+  activeCustomers: number;
+  disabledCustomers: number;
+  newCustomersThisMonth: number;
+  newCustomersLastMonth: number;
+  pendingTickets: number;
+  totalMaterials: number;
+  totalPublished: number;
+  totalApiProviders: number;
+  enabledApiProviders: number;
+  topAgents: Array<{ id: string; name: string; totalCustomers: number; totalCommission: number }>;
+}
+
+const EMPTY_STATISTICS: AdminStatistics = {
+  totalAgents: 0,
+  activeAgents: 0,
+  newAgentsThisMonth: 0,
+  newAgentsLastMonth: 0,
+  totalCustomers: 0,
+  activeCustomers: 0,
+  disabledCustomers: 0,
+  newCustomersThisMonth: 0,
+  newCustomersLastMonth: 0,
+  pendingTickets: 0,
+  totalMaterials: 0,
+  totalPublished: 0,
+  totalApiProviders: 0,
+  enabledApiProviders: 0,
+  topAgents: [],
+};
+
+function calcGrowth(thisMonth: number, lastMonth: number): { text: string; color: string } {
+  if (lastMonth === 0) {
+    if (thisMonth > 0) return { text: '新增', color: '#52c41a' };
+    return { text: '持平', color: '#8c8c8c' };
+  }
+  const pct = ((thisMonth - lastMonth) / lastMonth) * 100;
+  if (pct > 0) return { text: `+${pct.toFixed(1)}%`, color: '#52c41a' };
+  if (pct < 0) return { text: `${pct.toFixed(1)}%`, color: '#ff4d4f' };
+  return { text: '持平', color: '#8c8c8c' };
+}
 
 export default function AdminDashboardPage() {
-  const [loading, setLoading] = useState(true);
-  const [overview, setOverview] = useState<OverviewStats | null>(null);
-  const [trendData, setTrendData] = useState<TrendData[]>([]);
-  const [platformData, setPlatformData] = useState<PlatformStats[]>([]);
-  const [agentStats, setAgentStats] = useState<any[]>([]);
+  const router = useRouter();
+  const [statistics, setStatistics] = useState<AdminStatistics>(EMPTY_STATISTICS);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const fetchStatistics = useCallback(async () => {
     setLoading(true);
     try {
-      const [overviewRes, trendRes, platformRes, agentRes] = await Promise.all([
-        getOverview().catch(() => null),
-        getTrend(7).catch(() => []),
-        getPlatformStats().catch(() => []),
-        getAgentStats().catch(() => []),
-      ]);
-
-      if (overviewRes) setOverview(overviewRes);
-      if (trendRes) setTrendData(trendRes);
-      if (platformRes) setPlatformData(platformRes);
-      if (agentRes) setAgentStats(agentRes);
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      const request = (await import('@/lib/request')).default;
+      const res = (await request.get<{ success: boolean; data: AdminStatistics }>(
+        '/api/admin/dashboard'
+      )) as unknown as { success: boolean; data: AdminStatistics };
+      if (res.success && res.data) {
+        setStatistics(res.data);
+      } else {
+        setStatistics(EMPTY_STATISTICS);
+      }
+    } catch (err) {
+      console.error('获取统计数据失败', err);
+      setStatistics(EMPTY_STATISTICS);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // 趋势图配置
-  const trendConfig = {
-    data: trendData,
-    xField: 'date',
-    yField: 'value',
-    seriesField: 'type',
-    smooth: true,
-    color: ['#1890ff', '#52c41a', '#faad14'],
-    height: 300,
-  };
+  useEffect(() => {
+    fetchStatistics();
+  }, [fetchStatistics]);
 
-  // 平台分布饼图配置
-  const pieConfig = {
-    data: platformData,
-    angleField: 'count',
-    colorField: 'name',
-    radius: 0.8,
-    label: { type: 'inner', offset: '-30%', content: '{percentage}' },
-    legend: { position: 'right' as const },
-    height: 280,
-  };
+  const customerGrowth = calcGrowth(statistics.newCustomersThisMonth, statistics.newCustomersLastMonth);
+  const agentGrowth = calcGrowth(statistics.newAgentsThisMonth, statistics.newAgentsLastMonth);
 
-  const columns: ColumnsType<any> = [
-    { title: '代理商', dataIndex: 'agentName', key: 'agentName' },
+  const topAgentColumns: ColumnsType<AdminStatistics['topAgents'][number]> = [
     {
-      title: '客户数',
-      dataIndex: 'customerCount',
-      key: 'customerCount',
-      sorter: (a, b) => a.customerCount - b.customerCount,
+      title: '排名',
+      key: 'rank',
+      width: 70,
+      render: (_v, _r, idx) => (
+        <Tag color={idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'orange' : 'default'}>
+          #{idx + 1}
+        </Tag>
+      ),
+    },
+    { title: '代理商', dataIndex: 'name', key: 'name' },
+    {
+      title: '名下客户数',
+      dataIndex: 'totalCustomers',
+      key: 'totalCustomers',
+      sorter: (a, b) => a.totalCustomers - b.totalCustomers,
+      render: v => <span style={{ fontWeight: 500 }}>{v}</span>,
     },
     {
-      title: '本月收入',
-      dataIndex: 'monthlyRevenue',
-      key: 'monthlyRevenue',
-      render: (v: number) => `¥${v?.toLocaleString() || 0}`,
+      title: '累计佣金',
+      dataIndex: 'totalCommission',
+      key: 'totalCommission',
+      sorter: (a, b) => a.totalCommission - b.totalCommission,
+      render: v => `¥ ${Number(v || 0).toFixed(2)}`,
     },
     {
-      title: '活跃度',
-      dataIndex: 'activityRate',
-      key: 'activityRate',
-      render: (v: number) => <Progress percent={v} size="small" />,
-    },
-    {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      render: (s: string) => (
-        <span style={{ color: s === 'active' ? '#52c41a' : '#999' }}>
-          {s === 'active' ? '正常' : '冻结'}
-        </span>
+      title: '操作',
+      key: 'action',
+      width: 100,
+      render: (_v, r) => (
+        <Button type="link" size="small" onClick={() => router.push(`/admin/agents`)}>
+          查看
+        </Button>
       ),
     },
   ];
 
   return (
     <div style={{ padding: 24 }}>
-      <div
-        style={{
-          marginBottom: 24,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>数据大盘</h1>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <RangePicker />
-          <Select defaultValue="7d" style={{ width: 120 }}>
-            <Option value="7d">近7天</Option>
-            <Option value="30d">近30天</Option>
-            <Option value="90d">近90天</Option>
-          </Select>
+      <Spin spinning={loading}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Typography.Title level={3} style={{ margin: 0 }}>
+            数据总览
+          </Typography.Title>
+          <Button icon={<ReloadOutlined />} onClick={fetchStatistics}>
+            刷新
+          </Button>
         </div>
-      </div>
 
-      {loading ? (
-        <div style={{ textAlign: 'center', padding: 100 }}>
-          <Spin size="large" />
-        </div>
-      ) : (
-        <>
-          {/* 核心指标卡片 */}
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="总用户数"
-                  value={overview?.totalUsers || 0}
-                  prefix={<UserOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="代理商数"
-                  value={overview?.totalAgents || 0}
-                  prefix={<TeamOutlined />}
-                  valueStyle={{ color: '#722ed1' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="终端客户"
-                  value={overview?.totalCustomers || 0}
-                  prefix={<CustomerServiceOutlined />}
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="总收入"
-                  value={overview?.totalRevenue || 0}
-                  prefix={<DollarOutlined />}
-                  suffix="元"
-                  valueStyle={{ color: '#faad14' }}
-                />
-              </Card>
-            </Col>
-          </Row>
+        {/* 核心指标：代理商 */}
+        <Typography.Title level={5} style={{ marginTop: 8 }}>
+          <ContactsOutlined /> 代理商
+        </Typography.Title>
+        <Row gutter={16}>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="代理商总数"
+                value={statistics.totalAgents}
+                prefix={<ContactsOutlined />}
+                valueStyle={{ color: '#1677ff' }}
+              />
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                活跃 {statistics.activeAgents} 家
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="本月新增代理商"
+                value={statistics.newAgentsThisMonth}
+                prefix={<RiseOutlined />}
+                valueStyle={{ color: agentGrowth.color }}
+              />
+              <div style={{ fontSize: 12, color: agentGrowth.color, marginTop: 4 }}>
+                较上月 {agentGrowth.text}
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="名下客户总数"
+                value={statistics.totalCustomers}
+                prefix={<TeamOutlined />}
+                valueStyle={{ color: '#722ed1' }}
+              />
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                活跃 {statistics.activeCustomers} / 冻结 {statistics.disabledCustomers}
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="本月新增客户"
+                value={statistics.newCustomersThisMonth}
+                prefix={<UserOutlined />}
+                valueStyle={{ color: customerGrowth.color }}
+              />
+              <div style={{ fontSize: 12, color: customerGrowth.color, marginTop: 4 }}>
+                较上月 {customerGrowth.text}
+              </div>
+            </Card>
+          </Col>
+        </Row>
 
-          {/* 运营数据 */}
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="今日活跃"
-                  value={overview?.todayActiveUsers || 0}
-                  prefix={<RiseOutlined />}
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="素材总数"
-                  value={overview?.totalMaterials || 0}
-                  prefix={<FileTextOutlined />}
-                  valueStyle={{ color: '#13c2c2' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="发布内容"
-                  value={overview?.totalPosts || 0}
-                  prefix={<MessageOutlined />}
-                  valueStyle={{ color: '#eb2f96' }}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card bordered={false}>
-                <Statistic
-                  title="获客线索"
-                  value={overview?.totalLeads || 0}
-                  prefix={<ShoppingOutlined />}
-                  valueStyle={{ color: '#fa8c16' }}
-                />
-              </Card>
-            </Col>
-          </Row>
+        {/* 内容/工单 */}
+        <Typography.Title level={5} style={{ marginTop: 24 }}>
+          内容与工单
+        </Typography.Title>
+        <Row gutter={16}>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="素材总量"
+                value={statistics.totalMaterials}
+                prefix={<PictureOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="已发布内容"
+                value={statistics.totalPublished}
+                prefix={<SendOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="待处理工单"
+                value={statistics.pendingTickets}
+                prefix={<WarningOutlined />}
+                valueStyle={{ color: statistics.pendingTickets > 0 ? '#fa8c16' : undefined }}
+              />
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                <Button
+                  type="link"
+                  size="small"
+                  style={{ padding: 0, height: 'auto' }}
+                  onClick={() => router.push('/agent/tickets')}
+                >
+                  前往处理 →
+                </Button>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
+            <Card>
+              <Statistic
+                title="API 服务商"
+                value={statistics.totalApiProviders}
+                prefix={<ApiOutlined />}
+                valueStyle={{ color: '#13c2c2' }}
+              />
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                已启用 {statistics.enabledApiProviders} 个
+              </div>
+            </Card>
+          </Col>
+        </Row>
 
-          {/* 图表区域 */}
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={16}>
-              <Card title="用户增长趋势" bordered={false}>
-                {trendData.length > 0 ? (
-                  <Line {...trendConfig} />
-                ) : (
-                  <div
-                    style={{
-                      height: 300,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#999',
-                    }}
-                  >
-                    暂无数据
-                  </div>
-                )}
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card title="平台分布" bordered={false}>
-                {platformData.length > 0 ? (
-                  <Pie {...pieConfig} />
-                ) : (
-                  <div
-                    style={{
-                      height: 280,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#999',
-                    }}
-                  >
-                    暂无数据
-                  </div>
-                )}
-              </Card>
-            </Col>
-          </Row>
-
-          {/* 代理商业绩排行榜 */}
-          <Card title="代理商业绩排行" bordered={false}>
+        {/* 代理商排行榜 */}
+        <Typography.Title level={5} style={{ marginTop: 24 }}>
+          代理商 Top 5（按名下客户数）
+        </Typography.Title>
+        <Card>
+          {statistics.topAgents.length > 0 ? (
             <Table
-              columns={columns}
-              dataSource={agentStats}
               rowKey="id"
-              pagination={{ pageSize: 10 }}
+              columns={topAgentColumns}
+              dataSource={statistics.topAgents}
+              pagination={false}
+              size="middle"
             />
-          </Card>
-        </>
-      )}
+          ) : (
+            <Empty description="暂无代理商数据" />
+          )}
+        </Card>
+
+        {/* 快捷入口 */}
+        <Card style={{ marginTop: 16 }} title="快捷入口">
+          <Space wrap>
+            <Button type="primary" icon={<UserOutlined />} onClick={() => router.push('/admin/tenants')}>
+              客户管理
+            </Button>
+            <Button icon={<ContactsOutlined />} onClick={() => router.push('/admin/agents')}>
+              代理商管理
+            </Button>
+            <Button icon={<ApiOutlined />} onClick={() => router.push('/admin/api-providers')}>
+              API 服务商
+            </Button>
+            <Button icon={<WarningOutlined />} onClick={() => router.push('/agent/tickets')}>
+              工单处理
+            </Button>
+          </Space>
+        </Card>
+      </Spin>
     </div>
   );
 }

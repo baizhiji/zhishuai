@@ -84,6 +84,11 @@ class Request {
       }
       if (result?.data !== undefined && result?.success === undefined && result?.code === undefined) {
         // 半标准格式: {data: ..., pagination: ..., total: ...}
+        const keys = Object.keys(result);
+        // 如果响应只有 data 一个字段，直接返回 data（避免数组被展开为对象）
+        if (keys.length === 1 && keys[0] === 'data') {
+          return result.data as T;
+        }
         const { data, pagination, ...rest } = result;
         return { ...data, ...rest, pagination } as T;
       }

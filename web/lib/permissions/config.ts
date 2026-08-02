@@ -27,7 +27,6 @@ export enum Permission {
   // 媒体矩阵
   MEDIA_FACTORY = 'media.factory',
   MEDIA_MATRIX = 'media.matrix',
-  MEDIA_PUBLISH = 'media.publish',
   MEDIA_REPORT = 'media.report',
   MEDIA_DIGITAL_HUMAN = 'media.digital-human',
   MATERIALS = 'materials',

@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
 import recruitmentRoutes from './routes/recruitment';
@@ -7,30 +9,30 @@ import acquisitionRoutes from './routes/acquisition';
 import dataAcquisitionRoutes from './routes/data-acquisition';
 import shareRoutes from './routes/share';
 import materialsRoutes from './routes/materials';
-import matrixRoutes from './routes/matrix';
-import publishRoutes from './routes/publish';
+// 以下路由已废弃 — 矩阵账号、发布、CRM、内容发布、自动回复功能已删除
+// import matrixRoutes from './routes/matrix';
+// import publishRoutes from './routes/publish';
 import notificationsRoutes from './routes/notifications';
-import crmRoutes from './routes/crm';
-import crmAdvancedRoutes from './routes/crm-advanced';
+// import crmRoutes from './routes/crm';
+// import crmAdvancedRoutes from './routes/crm-advanced';
 import statisticsRoutes from './routes/statistics';
 import aiChatRoutes from './routes/ai-chat';
-import adminFeaturesRoutes from './routes/admin-features';
 import adminAgentsRoutes from './routes/admin-agents';
-import adminBrandingRoutes from './routes/admin-branding';
 import userFeaturesRoutes from './routes/user-features';
-import adminApiProvidersRoutes from './routes/admin-api-providers';
+import adminApiProvidersRoutes, { adminApiProvidersAdminRouter } from './routes/admin-api-providers';
 // import smsRoutes from './routes/sms';
 import oauthRoutes from './routes/oauth';
 import socialAccountRoutes from './routes/social-account';
-import contentPublishRoutes from './routes/content-publish';
-import autoReplyRoutes from './routes/auto-reply';
+// import contentPublishRoutes from './routes/content-publish';
+// import autoReplyRoutes from './routes/auto-reply';
 import agentRoutes from './routes/agent';
 import hotTopicsRoutes from './routes/hot-topics';
 // import versionRoutes from './routes/version';
 import versionRoutes from './routes/version';
 import adminLogsRoutes from './routes/admin-logs';
 import employeeRoutes from './routes/employee';
-// import reportRoutes from './routes/report';
+import announcementsRoutes, { adminAnnouncementRouter } from './routes/announcements';
+import adminDashboardRouter from './routes/admin-dashboard';
 import ticketRoutes from './routes/ticket';
 import scriptRoutes from './routes/script';
 import digitalHumanRoutes from './routes/digital-human';
@@ -51,8 +53,40 @@ const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3001;
 
 // 中间件
-app.use(cors());
-app.use(express.json());
+app.use(helmet());
+
+// CORS - 仅允许白名单域名
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://baizhiji.net',
+      'https://www.baizhiji.net',
+    ];
+app.use(cors({
+  origin: (origin, callback) => {
+    // 允许没有 origin 的请求（如 curl 或移动端）
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS not allowed'));
+    }
+  },
+  credentials: true,
+}));
+
+// 全局速率限制
+const globalLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1分钟
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: '请求过于频繁，请稍后再试' },
+});
+app.use(globalLimiter);
+
+app.use(express.json({ limit: '10mb' }));
 
 // 将prisma添加到请求中
 app.use((req, res, next) => {
@@ -67,11 +101,12 @@ app.use('/api/acquisition', acquisitionRoutes);
 app.use('/api/data-acquisition', dataAcquisitionRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/materials', materialsRoutes);
-app.use('/api/matrix', matrixRoutes);
-app.use('/api/publish', publishRoutes);
+// 矩阵账号 / 发布 / CRM 路由已废弃
+// app.use('/api/matrix', matrixRoutes);
+// app.use('/api/publish', publishRoutes);
 app.use('/api/notifications', notificationsRoutes);
-app.use('/api/crm', crmRoutes);
-app.use('/api/crm-advanced', crmAdvancedRoutes);
+// app.use('/api/crm', crmRoutes);
+// app.use('/api/crm-advanced', crmAdvancedRoutes);
 // app.use('/api/statistics', statisticsRoutes); // temporarily disabled
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/referral', referralRoutes);
@@ -84,11 +119,21 @@ app.use('/api/digital-human', digitalHumanRoutes);
 app.use('/api/voice-clone', voiceCloneRoutes);
 app.use('/api/dashboard-stats', dashboardStatsRoutes);
 
-// Admin 功能开关管理
-app.use('/api/admin', adminFeaturesRoutes);
+// Admin 功能开关管理（功能开关已并入客户管理）
+// app.use('/api/admin', adminFeaturesRoutes); // 暂时停用
 app.use('/api/admin', adminAgentsRoutes);
-app.use('/api/admin', adminBrandingRoutes);
-app.use('/api/admin/api-providers', adminApiProvidersRoutes);
+// 贴牌配置已删除
+// app.use('/api/admin', adminBrandingRoutes);
+// API 服务商：客户端可用列表 + Admin 管理
+app.use('/api/api-providers', adminApiProvidersRoutes);
+app.use('/api/admin/api-providers', adminApiProvidersAdminRouter);
+
+// 系统公告（公共 + 管理员）
+app.use('/api/announcements', announcementsRoutes);
+app.use('/api/admin/announcements', adminAnnouncementRouter);
+
+// Admin 数据总览统计
+app.use('/api/admin/dashboard', adminDashboardRouter);
 
 // 用户功能开关（Customer / APK 使用）
 app.use('/api/features', userFeaturesRoutes);
@@ -105,6 +150,10 @@ app.use('/api/hot-topics', hotTopicsRoutes);
 // 操作日志
 app.use('/api/admin', adminLogsRoutes);
 
+// 账号管理（修改密码、个人信息等）
+import accountRoutes from './routes/account';
+app.use('/api/account', accountRoutes);
+
 // 员工管理
 app.use('/api/employee', employeeRoutes);
 
@@ -117,11 +166,9 @@ app.use('/api/oauth', oauthRoutes);
 // 社交账号授权
 app.use('/api/social', socialAccountRoutes);
 
-// 内容发布
-app.use('/api/content', contentPublishRoutes);
-
-// 自动回复
-app.use('/api/auto-reply', autoReplyRoutes);
+// 内容发布 / 自动回复路由已废弃
+// app.use('/api/content', contentPublishRoutes);
+// app.use('/api/auto-reply', autoReplyRoutes);
 
 // 数据报表导出
 // app.use('/api/report', reportRoutes); // temporarily disabled
@@ -155,6 +202,10 @@ app.use('/api/multimodal', multimodalRoutes);
 // 视频增强路由
 import enhancementRoutes from './routes/enhancement';
 app.use('/api/enhancement', enhancementRoutes);
+
+// 在线客服路由
+import supportRoutes from './routes/support';
+app.use('/api/support', supportRoutes);
 
 // 代理分成结算
 // app.use('/api/settlement', settlementRoutes); // temporarily disabled

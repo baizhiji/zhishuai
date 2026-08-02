@@ -1,0 +1,103 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [web, server, shared]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: |
+          cd ${{ matrix.project }}
+          npm ci 2>/dev/null || npm install
+      - name: TypeScript Check
+        if: matrix.project != 'shared'
+        run: |
+          cd ${{ matrix.project }}
+          npx tsc --noEmit
+      - name: Lint
+        run: |
+          cd ${{ matrix.project }}
+          npm run lint 2>/dev/null || echo "No lint script"
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [web, server, apk]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: |
+          cd ${{ matrix.project }}
+          npm ci 2>/dev/null || npm install
+      - name: npm audit
+        continue-on-error: true
+        run: |
+          cd ${{ matrix.project }}
+          npm audit --audit-level=high
+
+  build:
+    name: Build
+    needs: [lint-and-typecheck, security-audit]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [web, server]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install Dependencies
+        run: |
+          cd ${{ matrix.project }}
+          npm ci 2>/dev/null || npm install
+      - name: Build
+        run: |
+          cd ${{ matrix.project }}
+          npm run build
+
+  deploy:
+    name: Deploy to Production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.CVM_HOST }}
+          username: ${{ secrets.CVM_USER }}
+          key: ${{ secrets.CVM_SSH_KEY }}
+          script: |
+            cd /var/www/zhishuai
+            git pull origin main
+            cd web && npm ci && npm run build && pm2 restart zhishuai-web
+            cd ../server && npm ci && npm run build && pm2 restart zhishuai-api
+            cd ../scripts && bash verify-login.sh

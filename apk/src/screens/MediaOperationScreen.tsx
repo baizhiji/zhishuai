@@ -26,6 +26,7 @@ export default function MediaOperationScreen() {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
 
+  // 矩阵账号、发布中心已删除 — 仅保留 AI 创作与数据查看
   const operations: OperationItem[] = [
     {
       id: 'ai-create',
@@ -33,20 +34,6 @@ export default function MediaOperationScreen() {
       icon: 'sparkles',
       color: '#4F46E5',
       route: 'AICreateCenter',
-    },
-    {
-      id: 'account-matrix',
-      title: '矩阵账号',
-      icon: 'people',
-      color: '#7C3AED',
-      route: 'AccountManagement',
-    },
-    {
-      id: 'publish',
-      title: '发布中心',
-      icon: 'rocket',
-      color: '#059669',
-      route: 'PublishCenter',
     },
     {
       id: 'data-list',
@@ -59,12 +46,7 @@ export default function MediaOperationScreen() {
 
   const handlePress = (item: OperationItem) => {
     if (item.route === 'AICreateCenter') {
-      // 跳转到AI创作中心
       navigation.navigate('AICreateCenter');
-    } else if (item.route === 'AccountManagement') {
-      navigation.navigate('MatrixAccount');
-    } else if (item.route === 'PublishCenter') {
-      navigation.navigate('PublishCenter');
     } else if (item.route === 'DataList') {
       navigation.navigate('DataList');
     }

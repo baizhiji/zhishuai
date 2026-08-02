@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'zhishuai-secret-key-2024';
+// JWT 密钥：优先使用环境变量，否则使用固定密钥以保持重启后 Token 有效
+const JWT_SECRET = process.env.JWT_SECRET || 'zhishuai-jwt-secret-prod-2025';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -35,16 +38,31 @@ export const adminMiddleware = (req: AuthRequest, res: Response, next: NextFunct
   next();
 };
 
+export const agentMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.userRole !== 'admin' && req.userRole !== 'agent') {
+    return res.status(403).json({ error: '需要代理商或管理员权限' });
+  }
+  next();
+};
+
 export const generateToken = (userId: string, role: string): string => {
   return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
 };
 
 export const hashPassword = (password: string): string => {
-  // 简单哈希，生产环境应使用bcrypt
-  const crypto = require('crypto');
-  return crypto.createHash('sha256').update(password + JWT_SECRET).digest('hex');
+  return bcrypt.hashSync(password, 12);
 };
 
 export const verifyPassword = (password: string, hash: string): boolean => {
-  return hashPassword(password) === hash;
+  // Try bcrypt first
+  if (hash.startsWith('$2a$') || hash.startsWith('$2b$') || hash.startsWith('$2y$')) {
+    return bcrypt.compareSync(password, hash);
+  }
+  // Legacy SHA256 fallback (for passwords hashed before upgrade)
+  // Try old secret first, then current secret
+  const oldJwtSecret = 'zhishuai-secret-key-2024';
+  const legacyHash = crypto.createHash('sha256').update(password + oldJwtSecret).digest('hex');
+  if (legacyHash === hash) return true;
+  const currentHash = crypto.createHash('sha256').update(password + JWT_SECRET).digest('hex');
+  return currentHash === hash;
 };

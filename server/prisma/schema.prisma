@@ -15,7 +15,7 @@ model User {
   password      String
   name          String?
   avatar        String?
-  role          String    @default("user") // admin, agent, user
+  role          String    @default("customer") // admin, agent, customer
   status        String    @default("active") // active, inactive
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -1402,6 +1402,54 @@ model AIUsageStats {
   @@index([userId, periodStart])
 }
 
+// ============================================
+// 自动回复管理
+// ============================================
+
+// 自动回复规则表
+model ReplyRule {
+  id            String    @id @default(uuid())
+  userId        String                      // 所属用户
+  keyword       String                      // 关键词（支持正则）
+  matchType     String    @default("exact")  // 匹配方式: exact, fuzzy, regex
+  replyContent  String                      // 回复内容
+  platform      String    @default("all")   // 平台: all, wechat, weibo, xiaohongshu, douyin
+  replyType     String    @default("text")  // 回复类型: text, image, link
+  status        Boolean   @default(true)    // 启用状态
+  sortOrder     Int       @default(0)       // 排序
+  weeklyCount   Int       @default(0)       // 本周使用次数
+  monthlyCount  Int       @default(0)       // 本月使用次数
+  totalCount    Int       @default(0)       // 总使用次数
+  lastMatched   DateTime?                   // 最后匹配时间
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  logs          ReplyLog[]
+
+  @@index([userId, status])
+  @@index([userId, platform])
+  @@index([keyword])
+}
+
+// 自动回复日志表
+model ReplyLog {
+  id            String    @id @default(uuid())
+  userId        String                      // 所属用户
+  ruleId        String?                     // 匹配的规则ID
+  rule          ReplyRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  keyword       String                      // 匹配关键词
+  matchType     String                      // 匹配方式
+  replyContent  String                      // 回复内容
+  platform      String                      // 平台
+  sourceMessage String?                     // 原始消息（来源）
+  senderName    String?                     // 发送者名称
+  success       Boolean   @default(true)    // 是否回复成功
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, createdAt])
+  @@index([ruleId])
+}
+
 // AI 内容反馈表
 model ContentFeedback {
   id                 String   @id @default(uuid())
@@ -1470,6 +1518,43 @@ model HotspotCache {
   @@unique([platform, keyword, cachedAt])
   @@index([platform, cachedAt])
   @@index([heat])
+}
+
+// ============================================
+// 客服系统
+// ============================================
+
+// 客服会话表
+model SupportConversation {
+  id            String    @id @default(uuid())
+  userId        String                      // 客户用户ID
+  title         String    @default("在线咨询") // 会话标题
+  status        String    @default("open")   // open, closed
+  autoReply     Boolean   @default(true)     // 是否启用AI自动回复
+  lastMessageAt DateTime  @default(now())    // 最后消息时间
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  messages      SupportMessage[]
+
+  @@index([userId, createdAt])
+  @@index([status, lastMessageAt])
+}
+
+// 客服消息表
+model SupportMessage {
+  id              String    @id @default(uuid())
+  conversationId  String                      // 会话ID
+  senderId        String                      // 发送者ID
+  senderName      String                      // 发送者名称
+  senderRole      String                      // customer, agent, admin
+  content         String    @db.Text          // 消息内容
+  isAutoReply     Boolean   @default(false)   // 是否AI自动回复
+  createdAt       DateTime  @default(now())
+
+  conversation    SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
 }
 
 // 添加到 User 模型的反向关系（在最后的 } 之前）

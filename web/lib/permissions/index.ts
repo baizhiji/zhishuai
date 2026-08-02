@@ -124,13 +124,14 @@ export function getAllMenus(): MenuItem[] {
           permission: Permission.MEDIA_MATRIX,
           featureKey: 'media_matrix',
         },
-        {
-          key: 'media-publish',
-          label: '发布中心',
-          path: '/media/publish',
-          permission: Permission.MEDIA_PUBLISH,
-          featureKey: 'media_publish',
-        },
+        // 发布中心已删除 — 内容发布功能不再使用
+        // {
+        //   key: 'media-publish',
+        //   label: '发布中心',
+        //   path: '/media/publish',
+        //   permission: Permission.MEDIA_PUBLISH,
+        //   featureKey: 'media_publish',
+        // },
         {
           key: 'media-report',
           label: '数据报表',
@@ -338,131 +339,78 @@ export function getAllMenus(): MenuItem[] {
 
 /**
  * Admin后台菜单
+ * （此函数为兼容旧调用保留，实际菜单由 app/admin/layout/Navbar.tsx 定义）
  */
 export function getAdminMenus(): MenuItem[] {
   return [
     {
-      key: 'admin-analytics',
-      label: '数据大盘',
+      key: 'admin-dashboard',
+      label: '数据总览',
       icon: 'Dashboard',
-      path: '/admin/analytics',
-      permission: Permission.ADMIN_ANALYTICS,
+      path: '/admin/dashboard',
     },
     {
       key: 'admin-tenants',
-      label: '租户管理',
-      icon: 'Bank',
-      path: '/admin/tenants',
-      permission: Permission.ADMIN_TENANTS,
-    },
-    {
-      key: 'admin-crm',
       label: '客户管理',
       icon: 'Team',
-      path: '/admin/crm',
-      permission: Permission.ADMIN_CRM,
+      path: '/admin/tenants',
     },
     {
       key: 'admin-agents',
       label: '代理商管理',
       icon: 'Contacts',
       path: '/admin/agents',
-      permission: Permission.ADMIN_AGENTS,
     },
     {
-      key: 'admin-config',
-      label: '功能开关',
-      icon: 'Control',
-      path: '/admin/config',
-      permission: Permission.ADMIN_CONFIG,
+      key: 'admin-api-providers',
+      label: 'API服务商',
+      icon: 'Api',
+      path: '/admin/api-providers',
     },
     {
-      key: 'admin-branding',
-      label: '贴牌配置',
-      icon: 'Skin',
-      path: '/admin/branding',
-      permission: Permission.ADMIN_BRANDING,
-    },
-    {
-      key: 'system',
-      label: '系统配置',
-      icon: 'Setting',
-      children: [
-        {
-          key: 'system-settings',
-          label: '系统设置',
-          path: '/system/settings',
-          permission: Permission.SYSTEM_SETTINGS,
-        },
-        {
-          key: 'system-users',
-          label: '用户管理',
-          path: '/system/users',
-          permission: Permission.SYSTEM_USERS,
-        },
-      ],
+      key: 'admin-announcement',
+      label: '系统公告',
+      icon: 'Notification',
+      path: '/admin/announcement',
     },
   ];
 }
 
 /**
  * Agent后台菜单
+ * （此函数为兼容旧调用保留，实际菜单由 app/agent/layout/Navbar.tsx 定义）
  */
 export function getAgentMenus(): MenuItem[] {
   return [
     {
-      key: 'agent-analytics',
-      label: '数据大盘',
+      key: 'agent-dashboard',
+      label: '数据总览',
       icon: 'Dashboard',
-      path: '/agent/analytics',
-      permission: Permission.AGENT_ANALYTICS,
+      path: '/agent/dashboard',
     },
     {
-      key: 'agent-tenants',
+      key: 'agent-customers',
       label: '客户管理',
       icon: 'Team',
-      path: '/agent/tenants',
-      permission: Permission.AGENT_TENANTS,
+      path: '/agent/customers',
     },
     {
-      key: 'agent-referrals',
-      label: '推荐数据',
-      icon: 'ShareAlt',
-      path: '/agent/referrals',
-      permission: Permission.AGENT_REFERRALS,
-    },
-    {
-      key: 'agent-usage',
-      label: '使用报表',
-      icon: 'BarChart',
-      path: '/agent/usage',
-      permission: Permission.AGENT_USAGE,
+      key: 'agent-settlement',
+      label: '分成结算',
+      icon: 'DollarOutlined',
+      path: '/agent/settlement',
     },
     {
       key: 'agent-tickets',
       label: '工单处理',
       icon: 'FileText',
       path: '/agent/tickets',
-      permission: Permission.AGENT_TICKETS,
     },
     {
-      key: 'account',
-      label: '账号与配置',
-      icon: 'Setting',
-      children: [
-        {
-          key: 'account-info',
-          label: '账号信息',
-          path: '/account',
-          permission: Permission.ACCOUNT_INFO,
-        },
-        {
-          key: 'account-recharge',
-          label: '充值中心',
-          path: '/account/recharge',
-          permission: Permission.ACCOUNT_RECHARGE,
-        },
-      ],
+      key: 'agent-support',
+      label: '客服中心',
+      icon: 'CustomerService',
+      path: '/agent/support',
     },
   ];
 }

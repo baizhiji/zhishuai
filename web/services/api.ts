@@ -434,28 +434,8 @@ export interface BrandingConfig {
   description?: string;
 }
 
-// 功能开关 API
+// 功能开关 API（Admin 端功能开关已并入客户管理，仅保留 Client 端用户功能接口）
 export const featureApi = {
-  // 获取所有功能开关（Admin）
-  getFeatures: () => {
-    return request.get<ApiResponse<FeatureSwitch[]>>('/admin/features');
-  },
-
-  // 更新功能开关（Admin）
-  updateFeature: (code: string, data: Partial<FeatureSwitch>) => {
-    return request.put<ApiResponse<FeatureSwitch>>(`/admin/features/${code}`, data);
-  },
-
-  // 更新子功能开关（Admin）
-  updateSubFeature: (featureCode: string, subCode: string, data: Partial<SubFeatureSwitch>) => {
-    return request.put<ApiResponse<SubFeatureSwitch>>(`/admin/features/${featureCode}/sub/${subCode}`, data);
-  },
-
-  // 初始化功能开关（Admin）
-  initFeatures: () => {
-    return request.post<ApiResponse<FeatureSwitch[]>>('/admin/features/admin/init');
-  },
-
   // 获取用户功能开关状态（Customer / APK）
   getUserFeatures: (userId: string) => {
     return request.get<ApiResponse<FeatureSwitch[]>>('/features', { params: { userId } });
@@ -540,28 +520,7 @@ export const agentApi = {
   }
 };
 
-// 贴牌配置 API
-export const brandingApi = {
-  // 获取贴牌配置
-  getBranding: (userId: string) => {
-    return request.get<ApiResponse<BrandingConfig>>('/admin/branding', { params: { userId } });
-  },
-
-  // 更新贴牌配置
-  updateBranding: (userId: string, data: Partial<BrandingConfig>) => {
-    return request.put<ApiResponse<BrandingConfig>>(`/admin/branding/${userId}`, data);
-  },
-
-  // 上传LOGO
-  uploadLogo: (userId: string, logo: string) => {
-    return request.post<ApiResponse<BrandingConfig>>(`/admin/branding/${userId}/logo`, { logo });
-  },
-
-  // 获取默认贴牌配置（Admin）
-  getDefaultBranding: () => {
-    return request.get<ApiResponse<BrandingConfig>>('/admin/branding/default');
-  }
-};
+// 贴牌配置 API（已删除）
 
 // ==================== 导出所有API ====================
 
@@ -578,6 +537,5 @@ export default {
   user: userApi,
   settings: settingsApi,
   features: featureApi,
-  agents: agentApi,
-  branding: brandingApi
+  agents: agentApi
 };

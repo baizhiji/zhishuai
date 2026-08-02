@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import * as qrcode from 'qrcode';
+import { authMiddleware } from '../middleware/auth';
 import {
   createBrowser,
   createContext,
@@ -23,6 +24,9 @@ import {
 } from '../services/social-account.service';
 
 const router = Router();
+
+// OAuth 路由需要认证
+router.use(authMiddleware);
 
 // 会话存储（生产环境应使用Redis）
 const loginSessions: Map<string, {

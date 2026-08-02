@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 // ─── 常量 ───
-const DEFAULT_PASSWORD = '123456';
+const DEFAULT_PASSWORD_LENGTH = 8;
 const BCRYPT_ROUNDS = 10;
 
 const PERMISSIONS: Record<string, string[]> = {
@@ -91,7 +91,7 @@ export async function createEmployee(input: CreateEmployeeInput) {
   const existing = await prisma.employee.findUnique({ where: { phone } });
   if (existing) throw new ValidationError('该手机号已注册');
 
-  const hashedPassword = await bcrypt.hash(password || DEFAULT_PASSWORD, BCRYPT_ROUNDS);
+  const hashedPassword = await bcrypt.hash(password || Math.random().toString(36).slice(-DEFAULT_PASSWORD_LENGTH), BCRYPT_ROUNDS);
   const rolePermissions = PERMISSIONS[role] || PERMISSIONS.staff;
 
   return prisma.employee.create({
@@ -127,7 +127,7 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
 
 // ─── 重置密码 ───
 export async function resetEmployeePassword(id: string, password?: string) {
-  const hashedPassword = await bcrypt.hash(password || DEFAULT_PASSWORD, BCRYPT_ROUNDS);
+  const hashedPassword = await bcrypt.hash(password || Math.random().toString(36).slice(-DEFAULT_PASSWORD_LENGTH), BCRYPT_ROUNDS);
   await prisma.employee.update({ where: { id }, data: { password: hashedPassword } });
   return true;
 }

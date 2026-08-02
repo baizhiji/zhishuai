@@ -15,7 +15,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "prepare": "cd .. && husky install || true"
+    "prepare": "husky install 2>/dev/null || cd .. && husky install 2>/dev/null || true"
   },
   "dependencies": {
     "@ant-design/charts": "^2.6.7",
@@ -30,7 +30,7 @@
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.6",
     "framer-motion": "^12.38.0",
-    "next": "14.2.0",
+    "next": "^14.2.35",
     "qrcode.react": "^3.1.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",

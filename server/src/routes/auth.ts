@@ -6,7 +6,36 @@ import { generateCode, sendSms } from '../services/sms.service';
 const router = Router();
 const prisma = new PrismaClient();
 
-// 发送验证码
+// ============================================
+// 登录限速：简单内存计数器，生产环境应用Redis
+// ============================================
+const loginAttempts = new Map<string, { count: number; resetAt: Date }>();
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15分钟
+
+function checkLoginRateLimit(identifier: string): boolean {
+  const now = new Date();
+  const entry = loginAttempts.get(identifier);
+  
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(identifier, { count: 1, resetAt: new Date(now.getTime() + LOGIN_WINDOW_MS) });
+    return true;
+  }
+  
+  if (entry.count >= LOGIN_MAX_ATTEMPTS) {
+    return false;
+  }
+  
+  entry.count++;
+  return true;
+}
+
+function clearLoginRateLimit(identifier: string): void {
+  loginAttempts.delete(identifier);
+}
+
+// 发送验证码（含5分钟内只允许发送一次的限速）
+const smsRateLimit = new Map<string, Date>();
 router.post('/send-code', async (req: Request, res: Response) => {
   try {
     const { phone, type = 'register' } = req.body;
@@ -112,14 +141,19 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '请填写完整信息' });
     }
 
-    // 如果有验证码配置，验证验证码
+    // 验证验证码：生产环境必须有短信配置并验证，开发环境无配置时可跳过
     const smsConfig = await prisma.smsConfig.findFirst({
       where: { enabled: true },
     });
 
     let usedSmsLogId: string | null = null;
 
-    if (smsConfig && code) {
+    if (smsConfig) {
+      // 有短信配置时，必须验证验证码
+      if (!code) {
+        return res.status(400).json({ error: '请输入验证码' });
+      }
+
       const smsLog = await prisma.smsLog.findFirst({
         where: {
           phone,
@@ -142,6 +176,33 @@ router.post('/register', async (req: Request, res: Response) => {
         where: { id: smsLog.id },
         data: { used: true, usedAt: new Date(), status: 'verified' },
       });
+    } else if (process.env.NODE_ENV === 'development') {
+      // 开发环境无短信配置时，签到code
+      if (!code) {
+        return res.status(400).json({ error: '请输入验证码' });
+      }
+
+      const smsLog = await prisma.smsLog.findFirst({
+        where: {
+          phone,
+          type: 'register',
+          code,
+          expiresAt: { gt: new Date() },
+          used: false,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      if (!smsLog) {
+        return res.status(400).json({ error: '验证码错误或已过期' });
+      }
+
+      usedSmsLogId = smsLog.id;
+      
+      await prisma.smsLog.update({
+        where: { id: smsLog.id },
+        data: { used: true, usedAt: new Date(), status: 'verified' },
+      });
     }
 
     // 检查用户是否已存在
@@ -156,7 +217,7 @@ router.post('/register', async (req: Request, res: Response) => {
         phone,
         password: hashPassword(password),
         name: name || `用户${phone.slice(-4)}`,
-        role: 'user',
+        role: 'customer',
         status: 'active',
       },
     });
@@ -384,6 +445,12 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ error: '请填写手机号和密码' });
     }
 
+    // 登录速率限制
+    const rateLimitKey = `login:${phone}:${req.ip}`;
+    if (!checkLoginRateLimit(rateLimitKey)) {
+      return res.status(429).json({ error: '登录尝试次数过多，请15分钟后再试' });
+    }
+
     // 查找用户
     const user = await prisma.user.findUnique({ where: { phone } });
     
@@ -404,10 +471,13 @@ router.post('/login', async (req: Request, res: Response) => {
     
     // admin 角色可以从所有入口登录
     // agent 角色可以从所有入口登录（可以切换视角）
-    // user 角色只能从 user 入口登录
-    if (userRole === 'user' && loginType !== 'user') {
+    // customer 角色只能从 user 入口登录
+    if (userRole === 'customer' && loginType !== 'user') {
       return res.status(403).json({ error: '您的账号不支持从此入口登录' });
     }
+
+    // 登录成功，清除限速标记
+    clearLoginRateLimit(`login:${phone}:${req.ip}`);
 
     const token = generateToken(user!.id, user!.role);
 
@@ -513,44 +583,55 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 获取登录日志
+// 获取登录日志（从真实数据库查询）
 router.get('/login-logs', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { page = 1, pageSize = 20 } = req.query;
-    
-    // 生成模拟数据
-    const logs = [];
-    const users = ['张三', '李四', '王五', '赵六', '孙七'];
-    const actions = ['login', 'logout'];
-    const devices = ['desktop', 'mobile', 'tablet'];
-    const browsers = ['Chrome 120', 'Firefox 121', 'Safari 17', 'Edge 120'];
-    const osList = ['Windows 11', 'macOS 14', 'iOS 17', 'Android 14'];
-    const locations = ['北京市', '上海市', '广州市', '深圳市', '杭州市'];
-    
-    for (let i = 0; i < 30; i++) {
-      const action = actions[Math.floor(Math.random() * actions.length)];
-      logs.push({
-        id: `log-${i}-${Date.now()}`,
-        userId: `user-${i % 5}`,
-        userName: users[i % 5],
-        userType: ['admin', 'agent', 'customer', 'employee'][i % 4],
-        action: action,
-        device: devices[Math.floor(Math.random() * devices.length)],
-        browser: browsers[Math.floor(Math.random() * browsers.length)],
-        os: osList[Math.floor(Math.random() * osList.length)],
-        ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        location: locations[Math.floor(Math.random() * locations.length)],
-        status: 'success',
-        createdAt: new Date(Date.now() - i * 3600000).toISOString(),
-      });
+    const { page = '1', pageSize = '20' } = req.query;
+    const skip = (Number(page) - 1) * Number(pageSize);
+
+    const where: any = {};
+    const userRole = (req as any).userRole;
+
+    // admin 可以看所有日志，其他角色只能看自己的
+    if (userRole !== 'admin') {
+      where.userId = userId;
     }
-    
+
+    const [logs, total] = await Promise.all([
+      prisma.smsLog.findMany({
+        where: { ...where, status: 'verified' },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: Number(pageSize),
+      select: {
+        id: true,
+        phone: true,
+        type: true,
+        status: true,
+        ip: true,
+        provider: true,
+        userId: true,
+        createdAt: true,
+      },
+      }),
+      prisma.smsLog.count({ where }),
+    ]);
+
     res.json({
       success: true,
       data: {
-        logs: logs.slice(0, Number(pageSize)),
-        total: logs.length,
+      logs: logs.map(l => ({
+        id: l.id,
+        userId: l.userId,
+        userName: l.phone,
+        userType: l.type,
+        action: l.type,
+        ip: l.ip,
+        status: l.status,
+        createdAt: l.createdAt?.toISOString(),
+      })),
+        total,
         page: Number(page),
         pageSize: Number(pageSize),
       },

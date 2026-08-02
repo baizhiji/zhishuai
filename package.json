@@ -4,20 +4,20 @@
   "description": "智枢AI SaaS多租户超级应用 - 包含APK端、Web端和后端服务",
   "private": true,
   "scripts": {
-    "install:all": "npm run install:web && npm run install:apk && npm run install:backend",
+    "install:all": "npm run install:web && npm run install:apk && npm run install:server",
     "install:web": "cd web && npm install",
     "install:apk": "cd apk && npm install",
-    "install:backend": "cd backend && npm install",
+    "install:server": "cd server && npm install",
     "dev:web": "cd web && npm run dev",
     "dev:apk": "cd apk && npm run dev",
-    "dev:backend": "cd backend && npm run dev",
+    "dev:server": "cd server && npm run dev",
     "build:web": "cd web && npm run build",
     "build:apk": "cd apk && npm run build",
-    "build:backend": "cd backend && npm run build",
-    "build:all": "npm run build:web && npm run build:apk && npm run build:backend",
+    "build:server": "cd server && npm run build",
+    "build:all": "npm run build:web && npm run build:apk && npm run build:server",
     "start:web": "cd web && npm start",
     "start:apk": "cd apk && npm start",
-    "start:backend": "cd backend && npm start"
+    "start:server": "cd server && npm start"
   },
   "keywords": [
     "AI",

@@ -234,7 +234,7 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
       phone,
       password: hashPassword(password),
       name: name || `用户${phone.slice(-4)}`,
-      role: 'user',
+      role: 'customer',
       status: 'active',
     },
   });
@@ -354,7 +354,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   }
 
   // 入口权限控制
-  if (user.role === 'user' && loginType !== 'user') {
+  if (user.role === 'customer' && loginType !== 'user') {
     throw new AuthError('您的账号不支持从此入口登录', 403);
   }
 

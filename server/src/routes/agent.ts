@@ -7,9 +7,89 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { body, validationResult } from 'express-validator';
+import { authMiddleware, agentMiddleware, hashPassword } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// 代理商路由需要认证 + 角色检查
+router.use(authMiddleware);
+router.use(agentMiddleware);
+
+// 获取代理商统计数据（数据总览用）
+router.get('/statistics', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+
+    // 验证代理商
+    const agent = await prisma.user.findFirst({
+      where: { id: agentId, role: 'agent' },
+    });
+    if (!agent) {
+      return res.status(403).json({ success: false, message: '非代理商账号' });
+    }
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // 客户总数
+    const totalCustomers = await prisma.user.count({
+      where: { agentRelation: { agentId } },
+    });
+
+    // 正常客户
+    const activeCustomers = await prisma.user.count({
+      where: { agentRelation: { agentId }, status: 'active' },
+    });
+
+    // 冻结客户
+    const disabledCustomers = await prisma.user.count({
+      where: { agentRelation: { agentId }, status: 'disabled' },
+    });
+
+    // 本月新增
+    const newCustomersThisMonth = await prisma.user.count({
+      where: {
+        agentRelation: { agentId },
+        createdAt: { gte: startOfMonth },
+      },
+    });
+
+    // 待处理工单（来自客户）
+    const pendingTickets = await prisma.ticket.count({
+      where: {
+        user: { agentRelation: { agentId } },
+        status: { in: ['open', 'in_progress'] },
+      },
+    });
+
+    // 名下客户的素材总量
+    const totalMaterials = await prisma.material.count({
+      where: { user: { agentRelation: { agentId } } },
+    });
+
+    // 名下客户的发布总量
+    const totalPublished = await prisma.publishedContent.count({
+      where: { user: { agentRelation: { agentId } } },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        totalCustomers,
+        activeCustomers,
+        disabledCustomers,
+        newCustomersThisMonth,
+        pendingTickets,
+        totalMaterials,
+        totalPublished,
+      },
+    });
+  } catch (error: any) {
+    console.error('获取代理商统计失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
 
 // 获取客户列表
 router.get('/customers', async (req: Request, res: Response) => {
@@ -161,6 +241,12 @@ router.post(
         return res.status(403).json({ success: false, message: '非代理商账号' });
       }
 
+      // 验证输入
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, message: errors.array()[0].msg });
+      }
+
       // 检查手机号是否已存在
       const existing = await prisma.user.findUnique({
         where: { phone },
@@ -170,12 +256,12 @@ router.post(
         return res.status(400).json({ success: false, message: '手机号已被注册' });
       }
 
-      // 创建客户账号
+      // 创建客户账号，使用bcrypt哈希密码
       const customer = await prisma.user.create({
         data: {
           phone,
           name: name || phone,
-          password: password || '123456', // 默认密码
+          password: hashPassword(password || phone.slice(-6)), // 若未提供密码则使用手机号后6位
           role: 'customer',
           agentRelation: { create: { agentId: agentId } },
           status: 'active',
@@ -264,7 +350,9 @@ router.post('/customers/:id/reset-password', async (req: Request, res: Response)
   try {
     const agentId = (req as any).userId;
     const customerId = req.params.id;
-    const { newPassword = '123456' } = req.body;
+    const { newPassword = '' } = req.body;
+
+    const generatedPassword = newPassword || Math.random().toString(36).slice(-8);
 
     // 验证客户属于该代理商
     const existing = await prisma.user.findFirst({
@@ -277,12 +365,13 @@ router.post('/customers/:id/reset-password', async (req: Request, res: Response)
 
     await prisma.user.update({
       where: { id: customerId },
-      data: { password: newPassword },
+      data: { password: hashPassword(generatedPassword) },
     });
 
     res.json({
       success: true,
-      message: '密码已重置为: 123456',
+      message: `密码已重置为: ${generatedPassword}`,
+      password: generatedPassword, // 返回明文密码供代理商交给客户
     });
   } catch (error: any) {
     console.error('重置密码失败:', error);

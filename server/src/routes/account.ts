@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, verifyPassword, hashPassword } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -56,13 +56,16 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
 
     // 验证旧密码
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (user?.password !== oldPassword) {
+    if (!user) {
+      return res.status(400).json({ error: '用户不存在' });
+    }
+    if (!verifyPassword(oldPassword, user.password)) {
       return res.status(400).json({ error: '原密码错误' });
     }
 
     await prisma.user.update({
       where: { id: userId },
-      data: { password: newPassword },
+      data: { password: hashPassword(newPassword) },
     });
 
     res.json({ success: true, message: '密码修改成功' });
@@ -136,7 +139,7 @@ router.post('/staff', authMiddleware, async (req: Request, res: Response) => {
         phone,
         name,
         role: role || 'staff',
-        password: '888888', // 默认密码
+        password: hashPassword(Math.random().toString(36).slice(-8)),
       },
     });
 

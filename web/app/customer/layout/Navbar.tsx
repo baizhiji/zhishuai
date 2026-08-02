@@ -50,6 +50,7 @@ import {
   NotificationOutlined,
   BellOutlined,
   ClockCircleOutlined,
+  CustomerServiceOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLatestAnnouncements, type Announcement } from '@/services/version';
@@ -89,7 +90,7 @@ function getNavigationItems(
       return [
         {
           key: 'dashboard',
-          label: '工作台',
+          label: '数据总览',
           icon: <PieChartOutlined />,
           path: '/customer/dashboard',
         },
@@ -107,100 +108,16 @@ function getNavigationItems(
           path: '/customer/ai-factory',
         },
         {
-          key: 'recruitment',
-          label: '招聘助手',
-          icon: <TeamOutlined />,
-          featureKey: 'recruitment',
-          children: [
-            {
-              key: 'recruit-platforms',
-              label: '平台授权',
-              icon: <QrcodeOutlined />,
-              path: '/customer/recruitment/platforms',
-            },
-            {
-              key: 'recruit-auto',
-              label: '智能沟通',
-              icon: <MessageOutlined />,
-              path: '/customer/recruitment/auto',
-            },
-            {
-              key: 'recruit-publish',
-              label: '职位发布',
-              icon: <ShareAltOutlined />,
-              path: '/customer/recruitment/publish',
-            },
-            {
-              key: 'recruit-screen',
-              label: '简历筛选',
-              icon: <UserAddOutlined />,
-              path: '/customer/interview',
-            },
-            {
-              key: 'recruit-interview',
-              label: '面试管理',
-              icon: <TeamOutlined />,
-              path: '/customer/recruitment-dashboard',
-            },
-          ],
-        },
-        {
-          key: 'acquisition',
-          label: '智能获客',
-          icon: <UserAddOutlined />,
-          featureKey: 'acquisition',
-          children: [
-            {
-              key: 'acquisition-discover',
-              label: '潜客发现',
-              icon: <UserAddOutlined />,
-              path: '/customer/acquisition/discover',
-            },
-            {
-              key: 'acquisition-task',
-              label: '引流任务',
-              icon: <ShareAltOutlined />,
-              path: '/customer/acquisition/task',
-            },
-            {
-              key: 'acquisition-board',
-              label: '获客看板',
-              icon: <PieChartOutlined />,
-              path: '/customer/acquisition/board',
-            },
-          ],
-        },
-        {
-          key: 'share',
-          label: '推荐分享',
-          icon: <ShareAltOutlined />,
-          featureKey: 'share',
-          children: [
-            {
-              key: 'share-code',
-              label: '二维码生成',
-              icon: <QrcodeOutlined />,
-              path: '/customer/share/code',
-            },
-            {
-              key: 'share-track',
-              label: '推荐追踪',
-              icon: <PieChartOutlined />,
-              path: '/customer/share/track',
-            },
-            {
-              key: 'share-board',
-              label: '分享看板',
-              icon: <ShareAltOutlined />,
-              path: '/customer/share/board',
-            },
-          ],
-        },
-        {
           key: 'tickets',
           label: '工单管理',
           icon: <FileTextOutlined />,
           path: '/customer/tickets',
+        },
+        {
+          key: 'support',
+          label: '在线客服',
+          icon: <CustomerServiceOutlined />,
+          path: '/customer/support',
         },
         {
           key: 'login-logs',
@@ -432,17 +349,26 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
     if (role === 'admin') {
       router.push('/admin/tenants');
     } else if (role === 'agent') {
-      router.push('/agent/tenants');
+      router.push('/agent/dashboard');
     } else {
       router.push('/');
     }
   };
 
-  // 退出登录
+  // 退出登录（带二次确认）
   const handleLogout = useCallback(() => {
-    logout();
-    message.success('已退出登录');
-    router.push('/login');
+    Modal.confirm({
+      title: '确认退出登录？',
+      content: '退出后需要重新输入账号密码才能登录，确定继续吗？',
+      okText: '确认退出',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: () => {
+        logout();
+        message.success('已退出登录');
+        router.push('/login');
+      },
+    });
   }, [logout, router]);
 
   // 导航菜单项（按功能开关动态过滤）
@@ -488,19 +414,37 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   }
 
   // 修改密码
-  const handlePasswordChange = () => {
-    passwordForm
-      .validateFields()
-      .then(values => {
-        if (values.newPassword !== values.confirmPassword) {
-          message.error('两次输入的密码不一致');
-          return;
-        }
-        message.success('密码修改成功');
-        setPasswordModalVisible(false);
-        passwordForm.resetFields();
-      })
-      .catch(() => {});
+  const handlePasswordChange = async () => {
+    try {
+      const values = await passwordForm.validateFields();
+      if (values.newPassword !== values.confirmPassword) {
+        message.error('两次输入的密码不一致');
+        return;
+      }
+      
+      const token = localStorage.getItem('token');
+      await fetch('/api/account/password', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          oldPassword: values.oldPassword,
+          newPassword: values.newPassword,
+        }),
+      }).then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '修改失败');
+        return data;
+      });
+
+      message.success('密码修改成功');
+      setPasswordModalVisible(false);
+      passwordForm.resetFields();
+    } catch (error: any) {
+      message.error(error.message || '密码修改失败');
+    }
   };
 
   // 更新个人资料

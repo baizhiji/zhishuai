@@ -20,7 +20,7 @@ export default function LoginPage() {
       case 'admin':
         return '/admin/tenants';
       case 'agent':
-        return '/agent/tenants';
+        return '/agent/dashboard';
       case 'user':
         return '/customer/dashboard';
       default:

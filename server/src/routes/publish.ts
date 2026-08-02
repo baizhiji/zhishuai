@@ -6,9 +6,13 @@
 import { Router, Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// 发布路由需要认证
+router.use(authMiddleware);
 
 /**
  * 获取发布任务列表

@@ -5,17 +5,21 @@ import { authMiddleware } from '../middleware/auth';
 const router = Router();
 const prisma = new PrismaClient();
 
+// CRM 路由需要认证
+router.use(authMiddleware);
+
 // 获取客户列表
 router.get('/customers', async (req, res) => {
   try {
     const { page = '1', pageSize = '20', keyword, status, level } = req.query;
-    const userId = (req as any).user?.id;
+    const userId = (req as any).userId;
+    const userRole = (req as any).userRole;
     
     // 构建查询条件
     const where: any = {};
     
     // 如果不是管理员，只看自己的客户
-    if (userId && (req as any).user?.role !== 'admin') {
+    if (userId && userRole !== 'admin') {
       where.userId = userId;
     }
     

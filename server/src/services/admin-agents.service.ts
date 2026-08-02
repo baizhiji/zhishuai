@@ -295,7 +295,7 @@ export async function createCustomer(input: CreateCustomerInput) {
     const newUser = await tx.user.create({
       data: {
         phone,
-        password: hashPassword(password || '123456'),
+        password: hashPassword(password || Math.random().toString(36).slice(-8)),
         name: name || phone,
         role: 'customer',
       },

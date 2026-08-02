@@ -2,9 +2,13 @@
  * AI Feedback Routes
  */
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth';
 import { recordContentFeedback, getAdoptionStats, analyzeHighAdoptionPatterns } from '../services/ai-feedback';
 
 const router = Router();
+
+// 反馈路由需要认证
+router.use(authMiddleware);
 
 // Record content feedback
 router.post('/content', async (req, res) => {

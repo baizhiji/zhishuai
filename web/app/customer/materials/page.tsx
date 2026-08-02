@@ -242,7 +242,7 @@ export default function MaterialLibraryPage() {
             </Space>
           );
         }
-        if (categoryConfig.type === 'image' || categoryConfig.type === 'video') {
+        if (categoryConfig?.type === 'image' || categoryConfig?.type === 'video') {
           return <Image src={content} alt={record.title} width={60} height={60} style={{ objectFit: 'cover', borderRadius: 4 }} />;
         }
         return <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 0 }}>{content}</Paragraph>;

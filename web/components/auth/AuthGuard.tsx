@@ -11,8 +11,8 @@ const publicPaths = ['/login', '/register'];
 // 获取用户应跳转的角色页面
 function getRoleHome(role: string, viewingRole?: string | null): string {
   const effectiveRole = viewingRole || role;
-  if (effectiveRole === 'admin') return '/admin/tenants';
-  if (effectiveRole === 'agent') return '/agent/tenants';
+  if (effectiveRole === 'admin') return '/admin/dashboard';
+  if (effectiveRole === 'agent') return '/agent/dashboard';
   return '/customer/dashboard';
 }
 
@@ -90,7 +90,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (pathname.startsWith('/customer/')) {
-      const allowedRoles: string[] = ['admin', 'agent', 'user'];
+      const allowedRoles: string[] = ['admin', 'agent', 'customer'];
       if (!allowedRoles.includes(user.role)) {
         if (lastRedirectRef.current !== '/login') {
           lastRedirectRef.current = '/login';

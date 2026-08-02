@@ -2,9 +2,13 @@
  * Multimodal Routes - Simplified version
  */
 import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth';
 import { processMultimodal } from '../services/multimodal.service';
 
 const router = Router();
+
+// 多模态路由需要认证
+router.use(authMiddleware);
 
 // Process image
 router.post('/image', async (req, res) => {

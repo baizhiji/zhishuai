@@ -27,7 +27,7 @@ export default function HomePage() {
     if (effectiveRole === 'admin') {
       router.replace('/admin/tenants');
     } else if (effectiveRole === 'agent') {
-      router.replace('/agent/tenants');
+      router.replace('/agent/dashboard');
     } else {
       router.replace('/customer/dashboard');
     }

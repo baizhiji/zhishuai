@@ -7,6 +7,7 @@
 
 import React from 'react';
 import { UserRole, Permission, rolePermissions } from '@/lib/permissions/config';
+import { useAuth } from '@/contexts/AuthContext';
 
 // 重新导出
 export { UserRole, Permission } from '@/lib/permissions/config';
@@ -33,11 +34,11 @@ function getUserPermissions(role: UserRole): Permission[] {
   return rolePermissions[role] || [];
 }
 
-// 获取当前用户信息的hook（简化版，实际项目中应该从context或store获取）
+// 获取当前用户信息的hook（从 AuthContext 获取）
 function useCurrentUser() {
-  // 模拟用户信息，实际项目中应该从auth context获取
+  const { user } = useAuth();
   return {
-    role: UserRole.CUSTOMER,
+    role: (user?.role as UserRole) || UserRole.CUSTOMER,
     enabledFeatures: {},
   };
 }

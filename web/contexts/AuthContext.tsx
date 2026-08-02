@@ -19,7 +19,7 @@ interface User {
   phone: string;
   email?: string;
   avatar?: string;
-  role: 'admin' | 'agent' | 'user';
+  role: 'admin' | 'agent' | 'customer';
   status: 'active' | 'inactive' | 'banned';
 }
 

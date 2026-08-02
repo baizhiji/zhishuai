@@ -23,7 +23,7 @@ router.get('/', async (req: Request, res: Response) => {
     // 根据角色筛选
     const role = req.headers['x-user-role'] as string;
     
-    if (role === 'user') {
+    if (role === 'customer') {
       where.userId = userId;
     } else if (role === 'agent') {
       where.agentId = agentId;

@@ -59,8 +59,6 @@ export interface FeatureSwitchItem {
   subFeatures: FeatureSwitchItem[];
 }
 
-const DEFAULT_PASSWORD = '123456';
-
 // ==================== 辅助函数 ====================
 
 async function validateAgent(agentId: string): Promise<void> {
@@ -209,7 +207,7 @@ export async function createCustomer(
     data: {
       phone,
       name: name || phone,
-      password: hashPassword(password || DEFAULT_PASSWORD),
+      password: hashPassword(password || Math.random().toString(36).slice(-8)),
       role: 'customer',
       agentRelation: { create: { agentId } },
       status: 'active',
@@ -272,7 +270,7 @@ export async function resetCustomerPassword(
 
   await prisma.user.update({
     where: { id: customerId },
-    data: { password: hashPassword(newPassword || DEFAULT_PASSWORD) },
+    data: { password: hashPassword(newPassword || Math.random().toString(36).slice(-8)) },
   });
 }
 

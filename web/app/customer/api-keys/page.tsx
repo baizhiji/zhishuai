@@ -1,161 +1,227 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Card,
-  Table,
-  Button,
-  Tag,
-  Space,
-  Modal,
-  Form,
-  Input,
-  Select,
-  message,
-  Popconfirm,
-  Typography,
-  Row,
-  Col,
-  Alert,
-  Tooltip,
-  Progress,
+  Card, Button, Table, Tag, Modal, Form, Input, Select, message,
+  Popconfirm, Space, Typography, Alert, Divider,
 } from 'antd';
 import {
-  PlusOutlined,
-  DeleteOutlined,
-  KeyOutlined,
-  SafetyCertificateOutlined,
-  CheckCircleOutlined,
-  WarningOutlined,
-  CloudOutlined,
-  CloudServerOutlined,
-  BarChartOutlined,
+  PlusOutlined, KeyOutlined, DeleteOutlined,
+  CloudServerOutlined, CheckCircleOutlined, ExclamationCircleOutlined,
+  ReloadOutlined, StarFilled, StarOutlined, CopyOutlined,
 } from '@ant-design/icons';
-import request from '@/utils/request';
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
+const { Option } = Select;
 
-// 服务商定义
-const PROVIDERS = [
-  { label: '阿里云百炼', value: 'dashscope' },
-  { label: '腾讯云 TokenHub', value: 'tokenhub' },
-];
+// localStorage key映射
+const LOCAL_STORAGE_KEYS: Record<string, string> = {
+  dashscope: 'api_key_alibaba',
+  tokenhub: 'api_key_tencent',
+};
 
-interface ApiKey {
-  id: number;
-  apiKey: string;
-  secretKey: string;
+interface ApiKeyItem {
+  id: string;
   provider: string;
-  status: 'active' | 'disabled';
+  providerName: string;
+  apiKey: string;
+  secretKey?: string;
+  status: string;
+  isPrimary: boolean;
+  isSecondary: boolean;
   usage: number;
   limit: number;
-  createdAt: string;
-  lastUsedAt: string;
   failCount: number;
-  isPrimary: boolean; // 是否为主 Key
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+// API调用工具函数
+function getAuthHeaders(): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem('token')}`,
+  };
 }
 
 export default function ApiKeysPage() {
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([
-    {
-      id: 1,
-      apiKey: 'sk-****',
-      secretKey: '****',
-      provider: 'dashscope',
-      status: 'active',
-      usage: 0,
-      limit: 100000,
-      createdAt: new Date().toISOString().split('T')[0],
-      lastUsedAt: '-',
-      failCount: 0,
-      isPrimary: true,
-    },
-  ]);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [keys, setKeys] = useState<ApiKeyItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
+  const [showHelp, setShowHelp] = useState(true);
 
-  // 获取主 Key 和备用 Key
-  const getPrimaryKey = () => apiKeys.find(k => k.isPrimary && k.status === 'active');
-  const getBackupKeys = () => apiKeys.filter(k => !k.isPrimary && k.status === 'active');
-
-  const handleCreate = (values: any) => {
-    // 判断是否是第一个 Key 或同服务商已有主 Key
-    const existingPrimary = apiKeys.find(k => k.provider === values.provider && k.isPrimary);
-
-    const newKey: ApiKey = {
-      id: Date.now(),
-      apiKey: values.apiKey,
-      secretKey: values.secretKey,
-      provider: values.provider,
-      status: 'active',
-      usage: 0,
-      limit: 100000,
-      createdAt: new Date().toISOString().split('T')[0],
-      lastUsedAt: '-',
-      failCount: 0,
-      isPrimary: !existingPrimary, // 同服务商没有主 Key 时自动设为主
-    };
-
-    setApiKeys([...apiKeys, newKey]);
-    message.success(`API Key 创建成功${newKey.isPrimary ? '（主 Key）' : '（备用 Key）'}`);
-    setModalVisible(false);
-    form.resetFields();
-  };
-
-  const handleDelete = (id: number) => {
-    const key = apiKeys.find(k => k.id === id);
-    const updatedKeys = apiKeys.filter(k => k.id !== id);
-
-    // 如果删除的是主 Key，将同服务商的第一个备用 Key 升级为主 Key
-    if (key?.isPrimary) {
-      const sameProviderBackups = updatedKeys.filter(k => k.provider === key.provider);
-      if (sameProviderBackups.length > 0) {
-        sameProviderBackups[0].isPrimary = true;
+  // 从后端加载API Key列表
+  const loadKeys = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/ai-config/keys', { headers: getAuthHeaders() });
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setKeys(json.data);
       }
+    } catch (err: any) {
+      console.warn('加载API Key列表失败，从本地缓存恢复:', err.message);
+      const localKeys: ApiKeyItem[] = [];
+      const alibaba = localStorage.getItem('api_key_alibaba');
+      const tencent = localStorage.getItem('api_key_tencent');
+      if (alibaba) {
+        localKeys.push({
+          id: 'local-dashscope',
+          provider: 'dashscope',
+          providerName: '阿里云百炼 (DashScope)',
+          apiKey: alibaba.slice(0, 8) + '****' + alibaba.slice(-4),
+          status: 'active',
+          isPrimary: true,
+          isSecondary: false,
+          usage: 0,
+          limit: 0,
+          failCount: 0,
+          lastUsedAt: null,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      if (tencent) {
+        localKeys.push({
+          id: 'local-tokenhub',
+          provider: 'tokenhub',
+          providerName: '腾讯云TokenHub',
+          apiKey: tencent.slice(0, 8) + '****' + tencent.slice(-4),
+          status: 'active',
+          isPrimary: !alibaba,
+          isSecondary: !!alibaba,
+          usage: 0,
+          limit: 0,
+          failCount: 0,
+          lastUsedAt: null,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      setKeys(localKeys);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    setApiKeys(updatedKeys);
-    message.success('API Key 已删除');
+  useEffect(() => {
+    loadKeys();
+  }, [loadKeys]);
+
+  const handleAdd = async (values: any) => {
+    setSubmitting(true);
+    try {
+      // 1. 先保存到localStorage（前端AI工厂直接使用）
+      const provider = values.provider;
+      const localStorageKey = LOCAL_STORAGE_KEYS[provider];
+      if (localStorageKey) {
+        localStorage.setItem(localStorageKey, values.apiKey);
+        console.log(`[api-keys] 已保存到 localStorage: ${localStorageKey}`);
+      }
+
+      // 2. 保存到后端数据库（后端AI对话使用）
+      try {
+        const res = await fetch('/api/ai-config/keys', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            provider: values.provider,
+            apiKey: values.apiKey,
+            secretKey: values.secretKey || values.apiKey,
+            isSecondary: values.isSecondary || false,
+          }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          message.success('API Key 配置成功，AI功能已就绪');
+        } else {
+          throw new Error(json.error || json.message || '保存失败');
+        }
+      } catch (backendErr: any) {
+        // 后端保存失败但不影响localStorage
+        message.warning(`已保存到本地，但服务端同步失败: ${backendErr.message || '未知错误'}`);
+      }
+
+      setModalOpen(false);
+      form.resetFields();
+      loadKeys();
+    } catch (error: any) {
+      message.error(error.message || '添加失败');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleToggle = (id: number) => {
-    setApiKeys(
-      apiKeys.map(k =>
-        k.id === id ? { ...k, status: k.status === 'active' ? 'disabled' : 'active' } : k
-      )
-    );
-    message.success('状态已更新');
+  const handleDelete = async (id: string, provider: string) => {
+    try {
+      // 同时清除localStorage
+      const localStorageKey = LOCAL_STORAGE_KEYS[provider];
+      if (localStorageKey) {
+        localStorage.removeItem(localStorageKey);
+      }
+
+      // 调用后端删除
+      try {
+        await fetch(`/api/ai-config/keys/${id}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+      } catch (e: any) {
+        // 忽略后端删除失败
+      }
+
+      message.success('已删除');
+      loadKeys();
+    } catch (error: any) {
+      message.error(error.message || '删除失败');
+    }
   };
 
-  const handleSetPrimary = (id: number) => {
-    const key = apiKeys.find(k => k.id === id);
-    if (!key) return;
+  const handleSetPrimary = async (id: string) => {
+    try {
+      const res = await fetch(`/api/ai-config/keys/${id}/set-primary`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) message.success('已设置为主Key');
+      else throw new Error(json.error || '设置失败');
+      loadKeys();
+    } catch (error: any) {
+      message.error(error.message || '设置失败');
+    }
+  };
 
-    setApiKeys(
-      apiKeys.map(k => ({
-        ...k,
-        isPrimary: k.provider === key.provider && k.id === id,
-      }))
-    );
-    message.success('已设置为主 Key');
+  const handleSetSecondary = async (id: string) => {
+    try {
+      const res = await fetch(`/api/ai-config/keys/${id}/set-secondary`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (json.success) message.success('已设为备用Key');
+      else throw new Error(json.error || '设置失败');
+      loadKeys();
+    } catch (error: any) {
+      message.error(error.message || '设置失败');
+    }
+  };
+
+  const handleCopyKey = (key: string) => {
+    navigator.clipboard.writeText(key).then(() => message.success('已复制'));
   };
 
   const columns = [
     {
       title: '服务商',
-      dataIndex: 'provider',
-      key: 'provider',
-      width: 150,
-      render: (provider: string, record: ApiKey) => (
+      dataIndex: 'providerName',
+      key: 'providerName',
+      render: (text: string, record: ApiKeyItem) => (
         <Space>
-          <Tag color={provider === 'dashscope' ? 'blue' : 'green'}>
-            {provider === 'dashscope' ? '阿里云百炼' : '腾讯云 TokenHub'}
-          </Tag>
-          {record.isPrimary && (
-            <Tag color="gold" icon={<CheckCircleOutlined />}>
-              主
-            </Tag>
-          )}
+          <CloudServerOutlined />
+          <span>{text}</span>
+          {record.isPrimary && <Tag color="blue" icon={<StarFilled />}>主Key</Tag>}
+          {record.isSecondary && <Tag color="green" icon={<StarOutlined />}>备用Key</Tag>}
         </Space>
       ),
     },
@@ -163,22 +229,11 @@ export default function ApiKeysPage() {
       title: 'API Key',
       dataIndex: 'apiKey',
       key: 'apiKey',
-      render: (text: string) => <Text copyable={{ text }}>{text}</Text>,
-    },
-    {
-      title: 'Secret Key',
-      dataIndex: 'secretKey',
-      key: 'secretKey',
-      render: (text: string) => <Text copyable={{ text }}>{'••••••••'}</Text>,
-    },
-    {
-      title: '用量',
-      key: 'usage',
-      width: 150,
-      render: (_: any, record: ApiKey) => (
-        <Text>
-          {record.usage.toLocaleString()} / {record.limit.toLocaleString()}
-        </Text>
+      render: (text: string) => (
+        <Space>
+          <Text code>{text}</Text>
+          <Button type="text" size="small" icon={<CopyOutlined />} onClick={() => handleCopyKey(text)} />
+        </Space>
       ),
     },
     {
@@ -187,27 +242,41 @@ export default function ApiKeysPage() {
       key: 'status',
       width: 100,
       render: (status: string) => (
-        <Tag color={status === 'active' ? 'success' : 'default'}>
-          {status === 'active' ? '启用' : '禁用'}
-        </Tag>
+        status === 'active' ? (
+          <Tag icon={<CheckCircleOutlined />} color="success">启用</Tag>
+        ) : (
+          <Tag icon={<ExclamationCircleOutlined />} color="error">禁用</Tag>
+        )
       ),
+    },
+    {
+      title: '使用次数',
+      dataIndex: 'usage',
+      key: 'usage',
+      width: 100,
     },
     {
       title: '操作',
       key: 'action',
-      width: 200,
-      render: (_: any, record: ApiKey) => (
-        <Space>
+      width: 220,
+      render: (_: any, record: ApiKeyItem) => (
+        <Space size="small" wrap>
           {!record.isPrimary && (
             <Button type="link" size="small" onClick={() => handleSetPrimary(record.id)}>
-              设为主 Key
+              设为主Key
             </Button>
           )}
-          <Button type="link" size="small" onClick={() => handleToggle(record.id)}>
-            {record.status === 'active' ? '禁用' : '启用'}
-          </Button>
-          <Popconfirm title="确认删除此 API Key？" onConfirm={() => handleDelete(record.id)}>
-            <Button type="link" danger size="small">
+          {!record.isSecondary && (
+            <Button type="link" size="small" onClick={() => handleSetSecondary(record.id)}>
+              设为备用
+            </Button>
+          )}
+          <Popconfirm
+            title="确定删除该API Key？"
+            description="删除后相关AI功能将无法使用该Key"
+            onConfirm={() => handleDelete(record.id, record.provider)}
+          >
+            <Button type="link" size="small" danger icon={<DeleteOutlined />}>
               删除
             </Button>
           </Popconfirm>
@@ -216,200 +285,154 @@ export default function ApiKeysPage() {
     },
   ];
 
-  // 计算各服务商使用量
-  const dashscopeUsage = apiKeys
-    .filter(k => k.provider === 'dashscope' && k.status === 'active')
-    .reduce((sum, k) => sum + k.usage, 0);
-  const dashscopeLimit = apiKeys
-    .filter(k => k.provider === 'dashscope' && k.status === 'active')
-    .reduce((sum, k) => sum + k.limit, 0);
-  const tokenhubUsage = apiKeys
-    .filter(k => k.provider === 'tokenhub' && k.status === 'active')
-    .reduce((sum, k) => sum + k.usage, 0);
-  const tokenhubLimit = apiKeys
-    .filter(k => k.provider === 'tokenhub' && k.status === 'active')
-    .reduce((sum, k) => sum + k.limit, 0);
+  const hasKeys = keys.length > 0;
 
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={4}>API Key 管理</Title>
+    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <Title level={4} style={{ margin: 0 }}>API Key 管理</Title>
+          <Text type="secondary">配置AI模型API密钥，启用AI相关功能</Text>
+        </div>
+        <Space>
+          <Button icon={<ReloadOutlined />} onClick={loadKeys} disabled={loading}>
+            刷新
+          </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+            添加API Key
+          </Button>
+        </Space>
+      </div>
 
-      {/* 服务商使用量统计：主=腾讯云TokenHub，副=阿里云百炼 */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={12}>
-          <Card size="small">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <Text type="secondary">腾讯云 TokenHub Token 使用量（主）</Text>
-                <div style={{ marginTop: 4 }}>
-                  <Text strong>{tokenhubUsage.toLocaleString()}</Text>
-                  <Text type="secondary"> / {tokenhubLimit.toLocaleString()}</Text>
-                </div>
+      {showHelp && (
+        <Alert
+          type="info"
+          showIcon
+          closable
+          onClose={() => setShowHelp(false)}
+          style={{ marginBottom: 16 }}
+          message="配置说明"
+          description={
+            <div>
+              <Paragraph style={{ marginBottom: 8 }}>
+                配置至少一家服务商的API Key后，以下功能即可使用：
+              </Paragraph>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <Card size="small" title="阿里云百炼 (DashScope)" type="inner">
+                  <Text type="secondary">支持模型：通义千问、DeepSeek R1</Text><br />
+                  <Text type="secondary">适用功能：AI对话、诊断分析、文案生成</Text><br />
+                  <Text type="secondary">获取地址：dashscope.aliyun.com</Text>
+                </Card>
+                <Card size="small" title="腾讯云TokenHub" type="inner">
+                  <Text type="secondary">支持模型：混元、Kimi、GLM</Text><br />
+                  <Text type="secondary">适用功能：AI对话、图片理解、视频分析、语音合成</Text><br />
+                  <Text type="secondary">获取地址：console.cloud.tencent.com</Text>
+                </Card>
               </div>
-              <CloudOutlined style={{ fontSize: 32, color: '#52c41a' }} />
             </div>
-            <Progress
-              percent={tokenhubLimit > 0 ? Math.min((tokenhubUsage / tokenhubLimit) * 100, 100) : 0}
-              size="small"
-              strokeColor="#52c41a"
-              style={{ marginTop: 8 }}
-            />
-          </Card>
-        </Col>
-        <Col span={12}>
-          <Card size="small">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <Text type="secondary">阿里云百炼 Token 使用量（副）</Text>
-                <div style={{ marginTop: 4 }}>
-                  <Text strong>{dashscopeUsage.toLocaleString()}</Text>
-                  <Text type="secondary"> / {dashscopeLimit.toLocaleString()}</Text>
-                </div>
-              </div>
-              <CloudServerOutlined style={{ fontSize: 32, color: '#1890ff' }} />
-            </div>
-            <Progress
-              percent={
-                dashscopeLimit > 0 ? Math.min((dashscopeUsage / dashscopeLimit) * 100, 100) : 0
-              }
-              size="small"
-              strokeColor="#1890ff"
-              style={{ marginTop: 8 }}
-            />
-          </Card>
-        </Col>
-      </Row>
+          }
+        />
+      )}
 
-      {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <KeyOutlined style={{ fontSize: 24, color: '#1890ff' }} />
-              <div>
-                <Text type="secondary">主 Key</Text>
-                <div>
-                  <Text strong>
-                    {getPrimaryKey()?.provider === 'dashscope' ? '阿里云百炼' : '腾讯云 TokenHub'}
-                  </Text>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <SafetyCertificateOutlined style={{ fontSize: 24, color: '#fa8c16' }} />
-              <div>
-                <Text type="secondary">备用 Key</Text>
-                <div>
-                  <Text strong>{getBackupKeys().length} 个</Text>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <CheckCircleOutlined style={{ fontSize: 24, color: '#52c41a' }} />
-              <div>
-                <Text type="secondary">可用状态</Text>
-                <div>
-                  <Text strong>
-                    {apiKeys.filter(k => k.status === 'active').length} / {apiKeys.length}
-                  </Text>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </Col>
-      </Row>
-
-      {/* 说明 */}
-      <Alert
-        message="API Key 自动切换机制"
-        description={
-          <div>
-            <p>
-              <strong>自动识别：</strong>同服务商的第一个 Key 自动设为主 Key，后续添加的为备用 Key。
-            </p>
-            <p>
-              <strong>自动切换：</strong>当主 Key 调用失败时，系统自动切换到同服务商的备用 Key。
-            </p>
-            <p>
-              <strong>跨服务商备用：</strong>如需跨服务商备用，请分别添加两个服务商的主 Key。
-            </p>
-            <p>
-              <strong>自动重试：</strong>调用失败时自动重试，同服务商备用 Key 依次启用。
-            </p>
-          </div>
-        }
-        type="info"
-        showIcon
-        style={{ marginBottom: 24 }}
-        icon={<SafetyCertificateOutlined />}
+      <Table
+        columns={columns}
+        dataSource={keys}
+        rowKey="id"
+        loading={loading}
+        locale={{ emptyText: '暂无API Key，点击「添加API Key」开始配置' }}
+        pagination={false}
       />
 
-      {/* Keys Table */}
-      <Card title="API Keys">
-        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
-          <Alert
-            message="安全提示：请妥善保管您的 API Key，不要泄露给他人。"
-            type="warning"
-            showIcon
-            style={{ flex: 1, marginRight: 16 }}
-          />
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalVisible(true)}>
-            添加 API Key
-          </Button>
-        </div>
-        <Table dataSource={apiKeys} columns={columns} rowKey="id" pagination={false} />
-      </Card>
+      <Divider />
 
-      {/* Create Modal */}
+      <div style={{ textAlign: 'center' }}>
+        <Text type="secondary">
+          配置完成后，以下功能即可正常使用：
+        </Text>
+        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {[
+            { name: 'AI 对话', status: hasKeys },
+            { name: 'AI 创作工厂', status: hasKeys },
+            { name: '自媒体/文案生成', status: hasKeys },
+            { name: '话术生成', status: hasKeys },
+            { name: '数字人·声音克隆', status: hasKeys },
+            { name: '自动回复', status: true },
+            { name: '内容发布', status: true },
+          ].map(f => (
+            <Tag key={f.name} color={f.status ? 'success' : 'default'}>
+              {f.name} {f.status ? '✓' : '○'}
+            </Tag>
+          ))}
+        </div>
+      </div>
+
       <Modal
         title="添加 API Key"
-        open={modalVisible}
-        onCancel={() => {
-          setModalVisible(false);
-          form.resetFields();
-        }}
+        open={modalOpen}
+        onCancel={() => { setModalOpen(false); form.resetFields(); }}
         footer={null}
-        width={500}
+        destroyOnClose
+        width={520}
       >
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleAdd}
+          initialValues={{ provider: 'dashscope', isSecondary: false }}
+        >
           <Form.Item
-            label="服务商"
             name="provider"
+            label="服务商"
             rules={[{ required: true, message: '请选择服务商' }]}
           >
-            <Select placeholder="请选择服务商" options={PROVIDERS} />
+            <Select placeholder="请选择AI服务商">
+              <Option value="dashscope">
+                <Space>
+                  <CloudServerOutlined />
+                  阿里云百炼 (DashScope) — 通义千问/DeepSeek
+                </Space>
+              </Option>
+              <Option value="tokenhub">
+                <Space>
+                  <CloudServerOutlined />
+                  腾讯云TokenHub — 混元/Kimi/GLM
+                </Space>
+              </Option>
+            </Select>
           </Form.Item>
 
           <Form.Item
-            label="API Key"
             name="apiKey"
-            rules={[{ required: true, message: '请输入 API Key' }]}
+            label="API Key"
+            rules={[{ required: true, message: '请输入API Key' }]}
           >
-            <Input.Password placeholder="请输入 API Key" />
+            <Input.Password
+              prefix={<KeyOutlined />}
+              placeholder="请输入API Key"
+              autoComplete="off"
+            />
           </Form.Item>
 
           <Form.Item
-            label="Secret Key"
             name="secretKey"
-            rules={[{ required: true, message: '请输入 Secret Key' }]}
+            label="Secret Key"
+            tooltip="部分服务商需要Secret Key，如不需要可留空"
           >
-            <Input.Password placeholder="请输入 Secret Key" />
+            <Input.Password
+              prefix={<KeyOutlined />}
+              placeholder="请输入Secret Key（选填）"
+              autoComplete="off"
+            />
           </Form.Item>
 
-          <Form.Item>
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
-              <Button type="primary" htmlType="submit">
-                添加
+              <Button onClick={() => { setModalOpen(false); form.resetFields(); }}>
+                取消
               </Button>
-              <Button onClick={() => setModalVisible(false)}>取消</Button>
+              <Button type="primary" htmlType="submit" loading={submitting}>
+                确认添加
+              </Button>
             </Space>
           </Form.Item>
         </Form>

@@ -42,7 +42,6 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 const defaultFeatureToggles: FeatureToggles = {
   media_factory: true,
   media_matrix: true,
-  media_publish: true,
   media_digital_human: true,
   recruitment: true,
   acquisition: true,

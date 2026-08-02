@@ -2,17 +2,21 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { body, query, validationResult } from 'express-validator';
 import { z } from 'zod';
+import { authMiddleware } from '../middleware/auth';
 
 const prisma = new PrismaClient();
 
 const router = Router();
+
+// CRM高阶功能路由需要认证
+router.use(authMiddleware);
 
 // ==================== 标签管理 ====================
 
 // 获取标签列表
 router.get('/tags', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const tags = await prisma.crmTag.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' }
@@ -49,7 +53,7 @@ router.post('/tags', [
       return res.status(400).json({ code: 400, message: errors.array()[0].msg });
     }
     
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { name, color } = req.body;
     
     // 检查是否已存在同名标签
@@ -77,7 +81,7 @@ router.put('/tags/:id', [
   body('color').optional().isHexColor()
 ], async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
     const { name, color } = req.body;
     
@@ -103,7 +107,7 @@ router.put('/tags/:id', [
 // 删除标签
 router.delete('/tags/:id', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
     
     const tag = await prisma.crmTag.findFirst({
@@ -141,7 +145,7 @@ router.post('/customers/:customerId/tags', [
   body('tagIds').isArray()
 ], async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { customerId } = req.params;
     const { tagIds, action } = req.body; // action: add 或 remove
     
@@ -177,7 +181,7 @@ router.post('/customers/:customerId/tags', [
 // 获取自动化规则列表
 router.get('/rules', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const rules = await prisma.crmAutomationRule.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' }
@@ -207,7 +211,7 @@ const createRuleSchema = z.object({
 
 router.post('/rules', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const data = createRuleSchema.parse(req.body);
     
     const rule = await prisma.crmAutomationRule.create({
@@ -233,7 +237,7 @@ router.post('/rules', async (req, res) => {
 // 更新自动化规则
 router.put('/rules/:id', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
     
     const rule = await prisma.crmAutomationRule.findFirst({
@@ -266,7 +270,7 @@ router.put('/rules/:id', async (req, res) => {
 // 删除自动化规则
 router.delete('/rules/:id', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
     
     const rule = await prisma.crmAutomationRule.findFirst({
@@ -288,7 +292,7 @@ router.delete('/rules/:id', async (req, res) => {
 // 执行自动化规则检查（定时任务调用）
 router.post('/rules/execute', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string || req.body.userId;
+    const userId = (req as any).userId as string || req.body.userId;
     
     // 获取所有启用的规则
     const rules = await prisma.crmAutomationRule.findMany({
@@ -355,7 +359,7 @@ router.post('/rules/execute', async (req, res) => {
 // 获取提醒列表
 router.get('/reminders', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { upcoming, completed } = req.query;
     
     const where: any = { userId };
@@ -390,7 +394,7 @@ const createReminderSchema = z.object({
 
 router.post('/reminders', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const data = createReminderSchema.parse(req.body);
     
     const customer = await prisma.crmCustomer.findFirst({
@@ -423,7 +427,7 @@ router.post('/reminders', async (req, res) => {
 // 标记提醒完成
 router.post('/reminders/:id/complete', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
     
     const reminder = await prisma.crmReminder.findFirst({
@@ -448,7 +452,7 @@ router.post('/reminders/:id/complete', async (req, res) => {
 // 删除提醒
 router.delete('/reminders/:id', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     const { id } = req.params;
     
     const reminder = await prisma.crmReminder.findFirst({
@@ -471,7 +475,7 @@ router.delete('/reminders/:id', async (req, res) => {
 
 router.get('/stats', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string;
+    const userId = (req as any).userId as string;
     
     // 客户统计
     const [totalCustomers, activeCustomers, overdueFollowUps, todayReminders] = await Promise.all([

@@ -1,15 +1,20 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// 所有功能开关路由需要管理员权限
+router.use(authMiddleware);
+router.use(adminMiddleware);
 
 // ============================================
 // Admin: 全局功能开关管理
 // ============================================
 
 // 获取所有功能开关
-router.get('/admin', async (req, res) => {
+router.get('/features', async (req, res) => {
   try {
     const features = await prisma.featureSwitch.findMany({
       orderBy: { sortOrder: 'asc' },
@@ -26,7 +31,7 @@ router.get('/admin', async (req, res) => {
 });
 
 // 更新功能开关
-router.put('/admin/:code', async (req, res) => {
+router.put('/features/:code', async (req, res) => {
   try {
     const { code } = req.params;
     const { enabled, name, description, icon, sortOrder } = req.body;
@@ -48,7 +53,7 @@ router.put('/admin/:code', async (req, res) => {
 });
 
 // 更新子功能开关
-router.put('/admin/:featureCode/sub/:subCode', async (req, res) => {
+router.put('/features/:featureCode/sub/:subCode', async (req, res) => {
   try {
     const { featureCode, subCode } = req.params;
     const { enabled, name, description, sortOrder } = req.body;
@@ -74,7 +79,7 @@ router.put('/admin/:featureCode/sub/:subCode', async (req, res) => {
 });
 
 // 初始化默认功能开关
-router.post('/admin/init', async (req, res) => {
+router.post('/features/init', async (req, res) => {
   try {
     const defaultFeatures = [
       {

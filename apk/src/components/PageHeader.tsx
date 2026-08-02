@@ -12,7 +12,6 @@ const SCREEN_TITLES: Record<string, string> = {
   MediaOperation: '自媒体运营',
   AICreateCenter: 'AI创作中心',
   MatrixAccount: '矩阵账号',
-  PublishCenter: '发布中心',
   DataList: '数据列表',
   Materials: '素材库',
   Statistics: '数据统计',

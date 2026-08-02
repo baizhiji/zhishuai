@@ -1,9 +1,14 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { authMiddleware, agentMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// 员工管理路由需要认证 + 代理商角色
+router.use(authMiddleware);
+router.use(agentMiddleware);
 
 // 权限配置
 const PERMISSIONS = {
@@ -68,7 +73,8 @@ router.post('/employees', async (req, res) => {
     }
 
     // 加密密码
-    const hashedPassword = await bcrypt.hash(password || '123456', 10);
+    const randomPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(password || randomPassword, 10);
 
     const employee = await prisma.employee.create({
       data: {
@@ -134,9 +140,10 @@ router.put('/employees/:id', async (req, res) => {
 router.put('/employees/:id/reset-password', async (req, res) => {
   try {
     const { id } = req.params;
-    const { password = '123456' } = req.body;
+    const { password = '' } = req.body;
+    const generatedPassword = password || Math.random().toString(36).slice(-8);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
     await prisma.employee.update({
       where: { id },
       data: { password: hashedPassword },

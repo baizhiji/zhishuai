@@ -4,9 +4,14 @@
 
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware, adminMiddleware } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
+
+// 统计路由需要管理员权限
+router.use(authMiddleware);
+router.use(adminMiddleware);
 
 // Admin 管理后台统计
 const adminRouter = Router();
@@ -52,7 +57,7 @@ adminRouter.get('/overview', async (req, res) => {
         monthlyPaid: true,
       },
       where: {
-        role: 'user',
+        role: 'customer',
       },
     });
 
@@ -117,13 +122,28 @@ adminRouter.get('/trend', async (req, res) => {
         }),
       ]);
 
+      // 统计当日收益
+      const dailyRevenue = await prisma.agent.aggregate({
+        _sum: { monthlyPaid: true },
+        where: {
+          createdAt: { lte: endOfDay },
+        },
+      });
+
+      // 统计当日素材使用量作为API调用参考
+      const apiCalls = await prisma.material.count({
+        where: {
+          createdAt: { gte: startOfDay, lte: endOfDay },
+        },
+      });
+
       trendData.push({
         date: startOfDay.toISOString().split('T')[0],
         newUsers,
         newAgents,
         newCustomers,
-        apiCalls: Math.floor(Math.random() * 1000) + 100,
-        revenue: Math.floor(Math.random() * 5000) + 1000,
+        apiCalls,
+        revenue: dailyRevenue._sum.monthlyPaid || 0,
       });
     }
 
@@ -404,11 +424,20 @@ router.get('/trend', async (req, res) => {
     for (let i = numDays - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
+      const startOfDay = new Date(date.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(date.setHours(23, 59, 59, 999));
       const dateStr = date.toISOString().split('T')[0];
+
+      const count = await prisma.material.count({
+        where: {
+          userId: userId as string,
+          createdAt: { gte: startOfDay, lte: endOfDay },
+        },
+      });
 
       trendData.push({
         date: dateStr,
-        value: Math.floor(Math.random() * 1000) + 100,
+        value: count,
       });
     }
 

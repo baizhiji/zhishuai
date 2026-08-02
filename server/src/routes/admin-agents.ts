@@ -1,13 +1,15 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { hashPassword } from '../middleware/auth';
+import { authMiddleware, adminMiddleware, hashPassword } from '../middleware/auth';
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // ============================================
-// Admin: 代理商管理
+// Admin: 代理商管理（所有路由需要管理员权限）
 // ============================================
+router.use(authMiddleware);
+router.use(adminMiddleware);
 
 // 获取代理商列表
 router.get('/agents', async (req, res) => {
@@ -491,7 +493,7 @@ router.post('/customers', async (req, res) => {
       const newUser = await tx.user.create({
         data: {
           phone,
-          password: hashPassword(password || '123456'),
+          password: hashPassword(password || Math.random().toString(36).slice(-8)),
           name: name || phone,
           role: 'customer'
         }

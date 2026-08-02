@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "verify-deploy": "bash scripts/verify-deploy.sh"
+  }
+}

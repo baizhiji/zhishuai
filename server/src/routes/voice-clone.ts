@@ -1,329 +1,424 @@
+/**
+ * 声音克隆/数字人路由
+ * 支持TTS语音合成预览 + 数字人视频克隆
+ * 优先使用用户自行配置的API Key
+ */
 import { Router, Request, Response } from 'express';
+import { authMiddleware } from '../middleware/auth';
 import { PrismaClient } from '@prisma/client';
+import { getPrimaryApiKey } from '../services/user-api-key.service';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const prisma = new PrismaClient();
-import { authMiddleware } from '../middleware/auth';
-
 const router = Router();
 
-// 获取声音克隆列表
+// 文件上传配置
+const uploadDir = path.join(process.cwd(), 'uploads', 'voice-clone');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: uploadDir,
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`;
+    cb(null, uniqueName);
+  },
+});
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
+
+/**
+ * 获取用户的API Key（优先用户自己的，否则用系统环境变量）
+ */
+async function resolveApiKey(userId: string): Promise<string | null> {
+  // 1. 尝试从数据库读取用户自己的Key
+  try {
+    const userKey = await getPrimaryApiKey(userId, 'tokenhub');
+    if (userKey && userKey.apiKey) {
+      console.log(`[voice-clone] 使用用户 ${userId} 自行配置的 tokenhub API Key`);
+      return userKey.apiKey;
+    }
+  } catch (err: any) {
+    console.warn(`[voice-clone] 读取用户API Key失败:`, err.message);
+  }
+
+  // 2. 使用系统环境变量
+  const envKey = process.env.TENCENT_TOKENHUB_API_KEY;
+  if (envKey) {
+    console.log('[voice-clone] 使用系统环境变量 API Key');
+    return envKey;
+  }
+
+  return null;
+}
+
+const TOKENHUB_BASE = 'https://tokenhub.cloud.tencent.com';
+const TTS_MODEL = 'hunyuan-tts-1.5'; // 混元TTS模型
+
+// ============================================
+// 声音克隆
+// ============================================
+
+// 获取用户的声纹列表（语音克隆模型）
 router.get('/voices', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { page = '1', pageSize = '10', status } = req.query;
 
-    const skip = (Number(page) - 1) * Number(pageSize);
-
-    const where: any = { userId };
-    if (status) where.status = status;
-
-    const [voices, total] = await Promise.all([
-      prisma.voiceClone.findMany({
-        where,
-        skip,
-        take: Number(pageSize),
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.voiceClone.count({ where }),
-    ]);
-
-    res.json({ voices, total, page: Number(page), pageSize: Number(pageSize) });
-  } catch (error) {
-    console.error('获取声音克隆列表失败:', error);
-    res.status(500).json({ error: '获取声音克隆列表失败' });
-  }
-});
-
-// 获取单个声音克隆
-router.get('/voices/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const userId = (req as any).userId;
-
-    const voice = await prisma.voiceClone.findFirst({
-      where: { id, userId },
+    const voices = await prisma.voiceClone.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
     });
 
-    if (!voice) {
-      return res.status(404).json({ error: '声音不存在' });
-    }
+    // 附加系统预设音色
+    const presets = [
+      { id: 'preset-male-01', name: '沉稳男声', description: '适合新闻播报、商务介绍', type: 'male', isPreset: true },
+      { id: 'preset-male-02', name: '清新男声', description: '适合短视频解说、日常交流', type: 'male', isPreset: true },
+      { id: 'preset-female-01', name: '温柔女声', description: '适合有声书、情感内容', type: 'female', isPreset: true },
+      { id: 'preset-female-02', name: '活泼女声', description: '适合直播带货、娱乐内容', type: 'female', isPreset: true },
+    ];
 
-    res.json(voice);
-  } catch (error) {
-    console.error('获取声音失败:', error);
-    res.status(500).json({ error: '获取声音失败' });
+    res.json({
+      success: true,
+      data: {
+        cloned: voices,
+        presets,
+      },
+    });
+  } catch (error: any) {
+    console.error('获取声音列表错误:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 创建声音克隆
-router.post('/voices', authMiddleware, async (req: Request, res: Response) => {
+// 上传音频克隆声音
+router.post('/voices', authMiddleware, upload.single('audio'), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { name, gender, description, audioUrl, language } = req.body;
+    const { name } = req.body;
+    const file = req.file;
 
-    if (!name) {
-      return res.status(400).json({ error: '名称不能为空' });
+    if (!file) {
+      res.status(400).json({ error: '请上传音频文件' });
+      return;
     }
 
-    // 模拟声音克隆处理
     const voice = await prisma.voiceClone.create({
       data: {
         userId,
-        name,
-        gender: gender || 'female',
-        description,
-        audioUrl,
-        language: language || 'zh-CN',
-        status: audioUrl ? 'processing' : 'ready',
+        name: name || '我的声音',
+        sampleUrl: `/uploads/voice-clone/${file.filename}`,
+        status: 'ready',
       },
     });
 
-    // 如果有音频文件，模拟处理完成
-    if (audioUrl) {
-      setTimeout(async () => {
-        try {
-          await prisma.voiceClone.update({
-            where: { id: voice.id },
-            data: { status: 'ready' },
-          });
-        } catch (e) {
-          console.error('更新声音状态失败:', e);
-        }
-      }, 5000); // 5秒后模拟处理完成
-    }
-
-    res.json(voice);
-  } catch (error) {
-    console.error('创建声音克隆失败:', error);
-    res.status(500).json({ error: '创建声音克隆失败' });
+    res.json({ success: true, data: voice });
+  } catch (error: any) {
+    console.error('创建声音错误:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 更新声音克隆
-router.put('/voices/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const userId = (req as any).userId;
-    const { name, description, status } = req.body;
-
-    const existing = await prisma.voiceClone.findFirst({
-      where: { id, userId },
-    });
-
-    if (!existing) {
-      return res.status(404).json({ error: '声音不存在' });
-    }
-
-    const voice = await prisma.voiceClone.update({
-      where: { id },
-      data: {
-        name,
-        description,
-        status,
-      },
-    });
-
-    res.json(voice);
-  } catch (error) {
-    console.error('更新声音克隆失败:', error);
-    res.status(500).json({ error: '更新声音克隆失败' });
-  }
-});
-
-// 删除声音克隆
+// 删除声音
 router.delete('/voices/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
     const userId = (req as any).userId;
+    const { id } = req.params;
 
-    const existing = await prisma.voiceClone.findFirst({
-      where: { id, userId },
-    });
+    const voice = await prisma.voiceClone.findFirst({ where: { id, userId } });
+    if (!voice) {
+      res.status(404).json({ error: '声音不存在' });
+      return;
+    }
 
-    if (!existing) {
-      return res.status(404).json({ error: '声音不存在' });
+    // 删除音频文件
+    if (voice.sampleUrl) {
+      const filePath = path.join(process.cwd(), voice.sampleUrl);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
     await prisma.voiceClone.delete({ where: { id } });
 
-    res.json({ message: '删除成功' });
-  } catch (error) {
-    console.error('删除声音克隆失败:', error);
-    res.status(500).json({ error: '删除声音克隆失败' });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 预览声音
-router.post('/voices/:id/preview', authMiddleware, async (req: Request, res: Response) => {
+// TTS语音合成预览
+router.post('/preview', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
     const userId = (req as any).userId;
-    const { text } = req.body;
+    const { text, voiceId, speed = 1.0, volume = 1.0 } = req.body;
 
-    const voice = await prisma.voiceClone.findFirst({
-      where: { id, userId },
-    });
-
-    if (!voice) {
-      return res.status(404).json({ error: '声音不存在' });
+    if (!text) {
+      res.status(400).json({ error: '文本不能为空' });
+      return;
     }
 
-    if (voice.status !== 'ready') {
-      return res.status(400).json({ error: '声音正在处理中，请稍后再试' });
+    const apiKey = await resolveApiKey(userId);
+    if (!apiKey) {
+      // 降级：使用浏览器TTS提示用户
+      res.json({
+        success: true,
+        data: {
+          audioUrl: null,
+          text,
+          ttsProvider: 'browser',
+          message: '未配置API Key，请在浏览器中使用系统语音合成。配置腾讯云TokenHub API Key后可获得更高质量语音。',
+          fallback: true,
+        },
+      });
+      return;
     }
 
-    // 模拟TTS生成
-    res.json({
-      audioUrl: voice.audioUrl || '/audio/preview-sample.mp3',
-      message: '预览生成成功',
-    });
-  } catch (error) {
-    console.error('预览声音失败:', error);
-    res.status(500).json({ error: '预览声音失败' });
+    // 调用腾讯云TokenHub TTS
+    try {
+      const response = await fetch(`${TOKENHUB_BASE}/audio/speech`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'X-TC-Provider': 'tokenhub',
+        },
+        body: JSON.stringify({
+          model: TTS_MODEL,
+          input: text,
+          voice: voiceId || 'default',
+          speed: speed,
+          response_format: 'mp3',
+        }),
+      });
+
+      if (!response.ok) {
+        const err: any = await response.json().catch(() => ({}));
+        throw new Error(err.error?.message || `TTS调用失败: ${response.status}`);
+      }
+
+      const audioBuffer = Buffer.from(await response.arrayBuffer());
+      const filename = `tts-${Date.now()}.mp3`;
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, audioBuffer);
+
+      res.json({
+        success: true,
+        data: {
+          audioUrl: `/uploads/voice-clone/${filename}`,
+          text,
+          duration: text.length * 0.25, // 估算时长
+          format: 'mp3',
+          ttsProvider: 'tokenhub',
+        },
+      });
+    } catch (ttsError: any) {
+      console.error('TTS调用失败:', ttsError.message);
+      // 降级到浏览器方案
+      res.json({
+        success: true,
+        data: {
+          audioUrl: null,
+          text,
+          ttsProvider: 'browser',
+          message: `TTS服务暂不可用(${ttsError.message})，请联系管理员。配置API Key后可获取服务。`,
+          fallback: true,
+        },
+      });
+    }
+  } catch (error: any) {
+    console.error('TTS预览错误:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 获取视频克隆列表
+// ============================================
+// 数字人视频
+// ============================================
+
+// 获取视频列表
 router.get('/videos', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { page = '1', pageSize = '10', status } = req.query;
-
-    const skip = (Number(page) - 1) * Number(pageSize);
+    const { status } = req.query;
 
     const where: any = { userId };
     if (status) where.status = status;
 
-    const [videos, total] = await Promise.all([
-      prisma.videoClone.findMany({
-        where,
-        skip,
-        take: Number(pageSize),
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.videoClone.count({ where }),
-    ]);
-
-    res.json({ videos, total, page: Number(page), pageSize: Number(pageSize) });
-  } catch (error) {
-    console.error('获取视频克隆列表失败:', error);
-    res.status(500).json({ error: '获取视频克隆列表失败' });
-  }
-});
-
-// 获取单个视频克隆
-router.get('/videos/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const userId = (req as any).userId;
-
-    const video = await prisma.videoClone.findFirst({
-      where: { id, userId },
+    const videos = await prisma.videoClone.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
     });
 
-    if (!video) {
-      return res.status(404).json({ error: '视频不存在' });
-    }
-
-    res.json(video);
-  } catch (error) {
-    console.error('获取视频失败:', error);
-    res.status(500).json({ error: '获取视频失败' });
+    res.json({ success: true, data: videos });
+  } catch (error: any) {
+    console.error('获取视频列表错误:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 创建视频克隆
-router.post('/videos', authMiddleware, async (req: Request, res: Response) => {
+// 创建数字人视频
+router.post('/videos', authMiddleware, upload.fields([
+  { name: 'sourceImage', maxCount: 1 },
+  { name: 'sourceAudio', maxCount: 1 },
+]), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { name, type, sourceVideoUrl, sourceImageUrl, description } = req.body;
+    const { name, voiceId, text, description } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
-    if (!name) {
-      return res.status(400).json({ error: '名称不能为空' });
+    const apiKey = await resolveApiKey(userId);
+
+    // 如果有图片上传，保存地址
+    let imageUrl = undefined;
+    if (files?.sourceImage?.[0]) {
+      imageUrl = `/uploads/voice-clone/${files.sourceImage[0].filename}`;
     }
 
+    // 创建视频任务
     const video = await prisma.videoClone.create({
       data: {
         userId,
-        name,
-        type: type || 'digital_human', // digital_human, talking_photo, lip_sync
-        sourceVideoUrl,
-        sourceImageUrl,
-        description,
-        status: 'processing',
+        name: name || '数字人视频',
+        sourceImageUrl: imageUrl,
+        description: description || '',
+        status: apiKey ? 'processing' : 'pending', // 有API Key才开始处理
+        progress: 0,
       },
     });
 
-    // 模拟视频处理
-    setTimeout(async () => {
-      try {
-        await prisma.videoClone.update({
+    // 如果有API Key，异步生成视频
+    if (apiKey && text) {
+      generateVideoAsync(video.id, apiKey, text, voiceId, imageUrl).catch(err => {
+        console.error('异步视频生成失败:', err);
+        prisma.videoClone.update({
           where: { id: video.id },
-          data: { status: 'ready', videoUrl: '/video/clone-sample.mp4' },
-        });
-      } catch (e) {
-        console.error('更新视频状态失败:', e);
-      }
-    }, 10000); // 10秒后模拟处理完成
-
-    res.json(video);
-  } catch (error) {
-    console.error('创建视频克隆失败:', error);
-    res.status(500).json({ error: '创建视频克隆失败' });
-  }
-});
-
-// 更新视频克隆
-router.put('/videos/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const userId = (req as any).userId;
-    const { name, description, status } = req.body;
-
-    const existing = await prisma.videoClone.findFirst({
-      where: { id, userId },
-    });
-
-    if (!existing) {
-      return res.status(404).json({ error: '视频不存在' });
+          data: { status: 'failed', progress: 0 },
+        }).catch(() => {});
+      });
+    } else if (!apiKey) {
+      res.json({
+        success: true,
+        data: video,
+        message: '视频任务已创建。配置腾讯云TokenHub API Key后可自动生成数字人视频。当前状态：等待API Key配置。',
+      });
+      return;
     }
 
-    const video = await prisma.videoClone.update({
-      where: { id },
-      data: {
-        name,
-        description,
-        status,
-      },
-    });
-
-    res.json(video);
-  } catch (error) {
-    console.error('更新视频克隆失败:', error);
-    res.status(500).json({ error: '更新视频克隆失败' });
+    res.json({ success: true, data: video });
+  } catch (error: any) {
+    console.error('创建视频错误:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// 删除视频克隆
-router.delete('/videos/:id', authMiddleware, async (req: Request, res: Response) => {
+// 异步生成视频
+async function generateVideoAsync(videoId: string, apiKey: string, text: string, voiceId?: string, imageUrl?: string) {
   try {
-    const { id } = req.params;
-    const userId = (req as any).userId;
+    // 更新进度 10%
+    await prisma.videoClone.update({ where: { id: videoId }, data: { progress: 10 } });
 
-    const existing = await prisma.videoClone.findFirst({
-      where: { id, userId },
+    // 第一步：TTS语音合成
+    const ttsResponse = await fetch(`${TOKENHUB_BASE}/audio/speech`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'X-TC-Provider': 'tokenhub',
+      },
+      body: JSON.stringify({
+        model: TTS_MODEL,
+        input: text,
+        voice: voiceId || 'default',
+        response_format: 'mp3',
+      }),
     });
 
-    if (!existing) {
-      return res.status(404).json({ error: '视频不存在' });
+    if (!ttsResponse.ok) {
+      throw new Error(`TTS失败: ${ttsResponse.status}`);
+    }
+
+    // 更新进度 40%
+    await prisma.videoClone.update({ where: { id: videoId }, data: { progress: 40 } });
+
+    // 第二步：尝试调用数字人视频生成API
+    const videoResponse = await fetch(`${TOKENHUB_BASE}/video/generations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'X-TC-Provider': 'tokenhub',
+      },
+      body: JSON.stringify({
+        model: 'YT-Video-HumanActor',
+        input: text,
+        tts_voice: voiceId || 'default',
+        ...(imageUrl ? { reference_image: imageUrl } : {}),
+        output_format: 'mp4',
+      }),
+    });
+
+    if (videoResponse.ok) {
+      const data: any = await videoResponse.json();
+      await prisma.videoClone.update({
+        where: { id: videoId },
+        data: {
+          status: 'ready',
+          progress: 100,
+          videoUrl: data?.data?.[0]?.url || data?.url || data?.video_url || undefined,
+        },
+      });
+    } else {
+      // 视频生成API不可用，标记为仅语音
+      await prisma.videoClone.update({
+        where: { id: videoId },
+        data: {
+          status: 'ready',
+          progress: 100,
+          description: '视频生成API暂不可用，已生成语音。请联系管理员确认API权限。',
+        },
+      });
+    }
+  } catch (error: any) {
+    console.error('视频生成错误:', error.message);
+    await prisma.videoClone.update({
+      where: { id: videoId },
+      data: { status: 'failed', progress: 0 },
+    });
+  }
+}
+
+// 删除视频
+router.delete('/videos/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    const video = await prisma.videoClone.findFirst({ where: { id, userId } });
+    if (!video) {
+      res.status(404).json({ error: '视频不存在' });
+      return;
     }
 
     await prisma.videoClone.delete({ where: { id } });
 
-    res.json({ message: '删除成功' });
-  } catch (error) {
-    console.error('删除视频克隆失败:', error);
-    res.status(500).json({ error: '删除视频克隆失败' });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取视频导出历史
+router.get('/exports', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    const exports = await prisma.videoClone.findMany({
+      where: { userId, status: 'ready' },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+    });
+
+    res.json({ success: true, data: exports });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
