@@ -7,6 +7,17 @@ import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
+// Get hotspots list (default)
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const { platform, category } = req.query;
+    const hotspots = await getHotspots(platform as string, category as string);
+    res.json({ code: 200, message: 'success', data: hotspots });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
 // Get hotspots
 router.get('/aggregated', authMiddleware, async (req, res) => {
   try {

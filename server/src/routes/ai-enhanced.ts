@@ -16,6 +16,25 @@ const PLATFORM_LABELS: Record<string, string> = {
   weibo: '微博',
 };
 
+// 获取 AI 增强历史记录
+router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    // 返回空列表 — AI 历史记录模型待实现
+    res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        items: [],
+        total: 0,
+        page: parseInt((req.query.page as string) || '1'),
+        pageSize: parseInt((req.query.pageSize as string) || '20'),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
 // 获取 AI 增强工具列表
 router.get('/tools', authMiddleware, async (_req: AuthRequest, res: Response) => {
   try {
