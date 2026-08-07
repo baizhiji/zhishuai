@@ -16,6 +16,8 @@ import {
   Modal,
   message,
   Select,
+  Row,
+  Col,
 } from 'antd';
 import {
   SearchOutlined,
@@ -66,79 +68,9 @@ const faqCategories = [
   { key: 'technical', label: '技术问题' },
 ];
 
-const mockFAQs: FAQ[] = [
-  {
-    id: 1,
-    category: 'account',
-    question: '如何注册智枢 AI SaaS 账号？',
-    answer: '访问智枢 AI SaaS 官网，点击注册按钮，填写手机号和验证码即可完成注册。',
-    views: 1256,
-  },
-  {
-    id: 2,
-    category: 'account',
-    question: '忘记密码怎么办？',
-    answer: '在登录页面点击"忘记密码"，输入注册手机号，接收验证码后重置密码。',
-    views: 2341,
-  },
-  {
-    id: 3,
-    category: 'payment',
-    question: '如何购买套餐？',
-    answer: '登录后进入"套餐管理"页面，选择适合您的套餐，完成支付即可开通服务。',
-    views: 1876,
-  },
-  {
-    id: 4,
-    category: 'payment',
-    question: '支持哪些支付方式？',
-    answer: '我们支持微信支付、支付宝、银联卡等多种支付方式。',
-    views: 987,
-  },
-  {
-    id: 5,
-    category: 'feature',
-    question: '如何使用矩阵管理功能？',
-    answer: '在矩阵管理页面，点击"添加账号"，通过扫码授权绑定您的社交媒体账号，即可统一管理。',
-    views: 3456,
-  },
-  {
-    id: 6,
-    category: 'feature',
-    question: 'AI 对话引擎如何使用？',
-    answer: '进入 AI 对话页面，选择合适的 AI 模型，输入您的问题即可获得智能回答。',
-    views: 2876,
-  },
-  {
-    id: 7,
-    category: 'feature',
-    question: '招聘助手的简历筛选准吗？',
-    answer:
-      '我们的 AI 简历筛选基于多维度分析，包括技能匹配度、工作经验、教育背景等，准确率可达 85% 以上。',
-    views: 1567,
-  },
-  {
-    id: 8,
-    category: 'technical',
-    question: 'API 调用失败怎么解决？',
-    answer: '请检查：1. API Key 是否正确配置；2. 调用频率是否超限；3. 网络连接是否正常。',
-    views: 2345,
-  },
-  {
-    id: 9,
-    category: 'technical',
-    question: '数据导出支持哪些格式？',
-    answer: '支持 Excel、CSV、JSON 三种格式导出，您可以在数据报表页面选择导出格式。',
-    views: 1234,
-  },
-  {
-    id: 10,
-    category: 'technical',
-    question: '系统运行缓慢怎么办？',
-    answer: '建议：1. 清理浏览器缓存；2. 使用 Chrome 或 Firefox 最新版本；3. 检查网络速度。',
-    views: 987,
-  },
-];
+// FAQ 数据由后端 API 获取，当前为空状态
+// TODO: 对接后端 /api/help/faqs 获取 FAQ 列表
+const initialFAQs: FAQ[] = [];
 
 const helpArticles: HelpArticle[] = [
   {
@@ -195,7 +127,9 @@ export default function HelpCenter() {
   const [contactModalVisible, setContactModalVisible] = useState(false);
   const [contactForm] = Form.useForm();
 
-  const filteredFAQs = mockFAQs.filter(faq => {
+  const [faqs] = useState<FAQ[]>(initialFAQs);
+
+  const filteredFAQs = faqs.filter(faq => {
     const matchCategory = activeCategory === 'all' || faq.category === activeCategory;
     const matchSearch =
       !searchKeyword ||
@@ -362,7 +296,6 @@ export default function HelpCenter() {
             <List
               dataSource={[
                 { title: '新手指南', href: '/help/getting-started' },
-                { title: '矩阵管理教程', href: '/help/matrix-guide' },
                 { title: 'AI 对话使用技巧', href: '/help/ai-chat-guide' },
                 { title: '招聘助手操作手册', href: '/help/recruitment-guide' },
               ]}
@@ -499,5 +432,3 @@ export default function HelpCenter() {
     </div>
   );
 }
-
-import { Row, Col } from 'antd';

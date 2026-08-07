@@ -10,11 +10,9 @@
  * - 登录日志（基于真实数据库查询）
  */
 
-import { PrismaClient } from '@prisma/client';
 import { generateToken, hashPassword, verifyPassword } from '../middleware/auth';
 import { generateCode, sendSms } from './sms.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ==================== 类型定义 ====================
 
@@ -483,13 +481,13 @@ export async function getLoginLogs(
         userId: log.userId,
         userName: '',
         userType: '',
-        action: log.action || 'login',
-        device: '',
-        browser: log.userAgent || '',
+        action: log.status || 'login',
+        device: log.device || '',
+        browser: log.deviceName || '',
         os: '',
         ip: log.ip || '',
         status: log.status || 'success',
-        createdAt: log.createdAt.toISOString(),
+        createdAt: log.loginAt ? log.loginAt.toISOString() : '',
       }));
 
       return { list, total, page, pageSize };

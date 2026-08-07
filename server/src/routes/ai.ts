@@ -44,8 +44,8 @@ async function resolveApiKey(userId: string): Promise<{ key: string; provider: '
 
 const API_CONFIGS = {
   tencent: {
-    baseUrl: 'https://tokenhub.cloud.tencent.com',
-    defaultModel: 'hunyuan-2.0-instruct-20251111',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
+    defaultModel: 'hy3',
   },
   aliyun: {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',

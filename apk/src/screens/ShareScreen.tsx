@@ -15,7 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import PageHeader from '../components/PageHeader';
-import * as shareService from '../services/share.service';
+import { shareService } from '../services/share.service';
 import { useAuth } from '../context/AuthContext';
 
 // 平台类型
@@ -42,51 +42,6 @@ const platformConfig: Record<Platform, { name: string; color: string; icon: stri
   video: { name: '视频号', color: '#07C160', icon: 'videocam' },
 };
 
-// 模拟数据
-const mockReferralCodes: ReferralCode[] = [
-  {
-    id: '1',
-    title: '夏季穿搭分享',
-    videoUrl: 'https://example.com/video1.mp4',
-    videoThumbnail: 'https://picsum.photos/200',
-    platforms: ['douyin', 'xiaohongshu'],
-    code: 'ZS2024ABC001',
-    scanCount: 156,
-    publishCount: 89,
-    createdAt: '2024-03-25',
-  },
-  {
-    id: '2',
-    title: '美食制作教程',
-    videoUrl: 'https://example.com/video2.mp4',
-    videoThumbnail: 'https://picsum.photos/201',
-    platforms: ['kuaishou', 'video'],
-    code: 'ZS2024DEF002',
-    scanCount: 234,
-    publishCount: 145,
-    createdAt: '2024-03-24',
-  },
-  {
-    id: '3',
-    title: '健身打卡挑战',
-    videoUrl: 'https://example.com/video3.mp4',
-    videoThumbnail: 'https://picsum.photos/202',
-    platforms: ['douyin', 'kuaishou', 'xiaohongshu', 'video'],
-    code: 'ZS2024GHI003',
-    scanCount: 567,
-    publishCount: 423,
-    createdAt: '2024-03-23',
-  },
-];
-
-// 统计数据
-const stats = {
-  totalScans: 957,
-  totalPublish: 657,
-  activeCodes: 12,
-  conversionRate: '68.6%',
-};
-
 export default function ShareScreen() {
   const [activeTab, setActiveTab] = useState<'my' | 'codes' | 'data'>('my');
   const [referralCodes, setReferralCodes] = useState<ReferralCode[]>([]);
@@ -102,8 +57,36 @@ export default function ShareScreen() {
     platforms: [] as Platform[],
   });
 
-  // 我的推荐码
-  const myReferralCode = 'ZS2024USER001';
+  // 推荐码和统计数据
+  const [myReferralCode, setMyReferralCode] = useState('');
+  const [shareStats, setShareStats] = useState({ totalScans: 0, totalPublish: 0, activeCodes: 0, conversionRate: '0%' });
+
+  // 加载推荐码和统计数据
+  const loadData = async () => {
+    try {
+      const [statsData, profileData] = await Promise.all([
+        shareService.getStatistics().catch(() => null),
+        shareService.getMyReferralCode().catch(() => null),
+      ]);
+      if (statsData) {
+        setShareStats({
+          totalScans: statsData.totalScans || 0,
+          totalPublish: statsData.totalPublish || 0,
+          activeCodes: statsData.activeCodes || 0,
+          conversionRate: statsData.conversionRate || '0%',
+        });
+      }
+      if (profileData?.code) {
+        setMyReferralCode(profileData.code);
+      }
+    } catch {
+      // 静默处理
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   // 加载推荐码列表
   const loadReferralCodes = async () => {
@@ -207,21 +190,21 @@ export default function ShareScreen() {
             {/* 统计数据 */}
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>{stats.totalScans}</Text>
+                <Text style={styles.statValue}>{shareStats.totalScans}</Text>
                 <Text style={styles.statLabel}>扫码次数</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>{stats.totalPublish}</Text>
+                <Text style={styles.statValue}>{shareStats.totalPublish}</Text>
                 <Text style={styles.statLabel}>发布次数</Text>
               </View>
             </View>
             <View style={styles.statsGrid}>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>{stats.activeCodes}</Text>
+                <Text style={styles.statValue}>{shareStats.activeCodes}</Text>
                 <Text style={styles.statLabel}>活跃码数</Text>
               </View>
               <View style={styles.statCard}>
-                <Text style={styles.statValue}>{stats.conversionRate}</Text>
+                <Text style={styles.statValue}>{shareStats.conversionRate}</Text>
                 <Text style={styles.statLabel}>转化率</Text>
               </View>
             </View>
@@ -342,15 +325,15 @@ export default function ShareScreen() {
               <Text style={styles.trendTitle}>今日数据</Text>
               <View style={styles.trendGrid}>
                 <View style={styles.trendItem}>
-                  <Text style={styles.trendValue}>23</Text>
+                  <Text style={styles.trendValue}>{shareStats.totalScans}</Text>
                   <Text style={styles.trendLabel}>扫码</Text>
                   <View style={[styles.trendBadge, { backgroundColor: '#FEE2E2' }]}>
                     <Ionicons name="arrow-up" size={12} color="#EF4444" />
-                    <Text style={[styles.trendBadgeText, { color: '#EF4444' }]}>12%</Text>
+                    <Text style={[styles.trendBadgeText, { color: '#EF4444' }]}>--</Text>
                   </View>
                 </View>
                 <View style={styles.trendItem}>
-                  <Text style={styles.trendValue}>18</Text>
+                  <Text style={styles.trendValue}>{shareStats.totalPublish}</Text>
                   <Text style={styles.trendLabel}>发布</Text>
                   <View style={[styles.trendBadge, { backgroundColor: '#D1FAE5' }]}>
                     <Ionicons name="arrow-up" size={12} color="#10B981" />
@@ -511,7 +494,7 @@ export default function ShareScreen() {
                 <Text style={modalStyles.codeLabel}>推荐码</Text>
                 <Text style={modalStyles.codeValue}>{selectedCode.code}</Text>
 
-                <View style={styles.platformTags} style={{ flexDirection: 'row', gap: 8, marginVertical: 12 }}>
+                <View style={[styles.platformTags, { marginVertical: 12 }]}>
                   {selectedCode.platforms.map(p => (
                     <View 
                       key={p} 

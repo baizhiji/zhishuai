@@ -1,0 +1,73 @@
+﻿======================================================================
+Customer Terminal Full Test - WEB + API
+======================================================================
+
+[1] Login as customer (13800000001)...
+  OK Logged in: 测试客户 | role=customer | phone=13800000001
+
+[2] Testing 22 Customer pages...
+  [OK] 200 /customer                                     (6879B)
+  [OK] 200 /customer/dashboard                           (7491B)
+  [OK] 200 /customer/ai-factory                          (7427B)
+  [OK] 200 /customer/ai-chat                             (7731B)
+  [OK] 200 /customer/digital-human                       (7792B)
+  [OK] 200 /customer/recruitment                         (7502B)
+  [OK] 200 /customer/recruitment/publish                 (8026B)
+  [OK] 200 /customer/recruitment/platforms               (8037B)
+  [OK] 200 /customer/recruitment/auto                    (8008B)
+  [OK] 200 /customer/acquisition/board                   (8014B)
+  [OK] 200 /customer/acquisition/discover                (8031B)
+  [OK] 200 /customer/acquisition/task                    (8007B)
+  [OK] 200 /customer/share/board                         (7972B)
+  [OK] 200 /customer/share/code                          (7966B)
+  [OK] 200 /customer/share/track                         (7972B)
+  [OK] 200 /customer/materials                           (7438B)
+  [OK] 200 /customer/tickets                             (7479B)
+  [OK] 200 /customer/support                             (7424B)
+  [OK] 200 /customer/api-keys                            (7432B)
+  [OK] 200 /customer/login-logs                          (7497B)
+  [OK] 200 /customer/settings/security                   (7957B)
+  [OK] 200 /customer/settings/app-download               (7982B)
+
+[3] Testing 8 API endpoints (with JWT token)...
+  [OK] 200 GET /api/auth/me                                  (User info)
+  [OK] 200 GET /api/dashboard-stats/customer-summary         (Dashboard)
+  [OK] 200 GET /api/acquisition/stats                        (Acquisition stats)
+  [OK] 200 GET /api/referral/stats                           (Referral stats)
+  [OK] 200 GET /api/features                                 (Features)
+  [OK] 200 GET /api/tickets/my                               (Tickets)
+  [OK] 200 GET /api/materials                                (Materials)
+  [XX] 404 GET /api/version                                  (App version)
+         <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Cannot GET /api/version</pre>
+</body>
+</html>
+
+
+[4] Testing Customer CRUD operations...
+  OK [200] GET /api/materials
+  OK [200] GET /api/tickets/my
+  XX [400] POST /api/tickets
+
+======================================================================
+TEST SUMMARY
+======================================================================
+Web Pages:   22 PASS / 0 FAIL / 0 REDIR / 0 ERR  (22 total)
+API Endpoints:  7 PASS / 1 FAIL  (8 total)
+CRUD Ops:      2 PASS / 1 FAIL  (3 total)
+Overall:   31 PASS / 2 FAIL  (33 total)
+Pass Rate: 93.9%
+
+--- Failed APIs ---
+  /api/version                                       HTTP 404
+
+--- Failed CRUD ---
+  POST /api/tickets                                  HTTP 400
+
+======================================================================

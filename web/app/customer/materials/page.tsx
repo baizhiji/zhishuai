@@ -2,50 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Card,
-  Row,
-  Col,
-  Typography,
-  Input,
-  Select,
-  Button,
-  Space,
-  Table,
-  Tag,
-  Modal,
-  message,
-  Image,
-  Popconfirm,
+  Card, Row, Col, Typography, Input, Select, Button, Space, Table, Tag, Modal, message, Image, Popconfirm, Segmented,
 } from 'antd';
 import {
-  SearchOutlined,
-  DeleteOutlined,
-  DownloadOutlined,
-  CopyOutlined,
-  EyeOutlined,
-  FileTextOutlined,
-  TagsOutlined,
-  FileImageOutlined,
-  HeartOutlined,
-  PictureOutlined,
-  ShoppingOutlined,
-  VideoCameraOutlined,
-  RobotOutlined,
-  FontSizeOutlined,
-  FileOutlined,
-  ShopOutlined,
-  ThunderboltOutlined,
-  EnvironmentOutlined,
-  CustomerServiceOutlined,
-  PlaySquareOutlined,
-  SmileOutlined,
-  StarOutlined,
-  BulbOutlined,
+  SearchOutlined, DeleteOutlined, DownloadOutlined, CopyOutlined, EyeOutlined,
+  AppstoreOutlined, UnorderedListOutlined, HeartOutlined, PictureOutlined,
+  ShoppingOutlined, VideoCameraOutlined, RobotOutlined, SmileOutlined, BulbOutlined,
+  StarOutlined, ThunderboltOutlined, EnvironmentOutlined, CustomerServiceOutlined,
+  PlaySquareOutlined, ShopOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig } from '@/lib/content/types';
+import request from '@/utils/request';
+import PageContainer from '@/components/customer/PageContainer';
 
-const { Title, Text, Paragraph } = Typography;
-const { Search } = Input;
+const { Text, Paragraph } = Typography;
 
 interface Material {
   id: string;
@@ -62,37 +32,37 @@ export default function MaterialLibraryPage() {
   const [filterCategoryState, setFilterCategoryState] = useState<ContentCategory | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewMaterial, setPreviewMaterial] = useState<Material | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     loadMaterials();
   }, []);
 
   const loadMaterials = async () => {
+    setLoading(true);
     try {
-      const params = new URLSearchParams({ page: '1', pageSize: '1000' });
-      if (searchText) params.set('keyword', searchText);
-      if (filterCategoryState !== 'all') params.set('type', filterCategoryState);
-      if (filterStatus !== 'all') params.set('status', filterStatus);
-      const res = await fetch('/api/materials?' + params.toString(), {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const json = await res.json();
-      if (json.success && json.data) {
-        const list = (json.data.list || []).map((m: any) => ({
-          id: m.id,
-          category: m.type as ContentCategory,
-          title: m.title,
-          content: m.content || '',
-          images: m.images || [],
-          status: m.used ? 'used' : 'unused',
-          timestamp: new Date(m.createdAt).getTime(),
-        }));
-        setMaterials(list);
-      }
-    } catch (error) {
-      console.error('加载素材失败:', error);
+      const params: Record<string, string> = { page: '1', pageSize: '1000' };
+      if (searchText) params.keyword = searchText;
+      if (filterCategoryState !== 'all') params.type = filterCategoryState;
+      if (filterStatus !== 'all') params.status = filterStatus;
+      const res: { list?: Material[] } = await request.get('/api/materials', { params });
+      const list = (res.list || []).map((m: Record<string, unknown>) => ({
+        id: m.id as string,
+        category: m.type as ContentCategory,
+        title: m.title as string,
+        content: (m.content as string) || '',
+        images: (m.images as string[]) || [],
+        status: m.used ? 'used' : 'unused',
+        timestamp: new Date(m.createdAt as string).getTime(),
+      }));
+      setMaterials(list);
+    } catch {
+      message.error('加载素材失败，请刷新重试');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,18 +78,10 @@ export default function MaterialLibraryPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/materials/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-      });
-      const json = await res.json();
-      if (json.success) {
-        setMaterials(prev => prev.filter(m => m.id !== id));
-        message.success('已删除');
-      } else {
-        message.error(json.message || '删除失败');
-      }
-    } catch (error) {
+      await request.delete(`/api/materials/${id}`);
+      setMaterials(prev => prev.filter(m => m.id !== id));
+      message.success('已删除');
+    } catch {
       message.error('删除失败');
     }
   };
@@ -169,7 +131,7 @@ export default function MaterialLibraryPage() {
     setPreviewVisible(true);
   };
 
-  const getCategoryIcon = (category: ContentCategory) => {
+  const getCategoryIcon = (category: ContentCategory): React.ReactNode => {
     const iconMap: Record<ContentCategory, React.ReactNode> = {
       [ContentCategory.XIAOHONGSHU]: <HeartOutlined />,
       [ContentCategory.IMAGE_GENERATION]: <PictureOutlined />,
@@ -183,9 +145,8 @@ export default function MaterialLibraryPage() {
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
       [ContentCategory.AI_SKETCH]: <PlaySquareOutlined />,
       [ContentCategory.AI_COMIC]: <SmileOutlined />,
-      [ContentCategory.CONTENT_CREATIVITY]: <BulbOutlined />,
     };
-    return iconMap[category];
+    return iconMap[category] || <FileOutlined />;
   };
 
   const columns = [
@@ -199,7 +160,7 @@ export default function MaterialLibraryPage() {
           <span style={{ color: contentCategoryConfig[record.category]?.color }}>
             {getCategoryIcon(record.category)}
           </span>
-          <span>{text}</span>
+          <span style={{ fontWeight: 500 }}>{text}</span>
         </Space>
       ),
     },
@@ -226,19 +187,10 @@ export default function MaterialLibraryPage() {
             <Space size={4} wrap>
               <Image.PreviewGroup>
                 {record.images.slice(0, 3).map((img, idx) => (
-                  <Image
-                    key={idx}
-                    src={img}
-                    alt={`${record.title}-${idx + 1}`}
-                    width={60}
-                    height={60}
-                    style={{ objectFit: 'cover', borderRadius: 4 }}
-                  />
+                  <Image key={idx} src={img} alt={`${record.title}-${idx + 1}`} width={60} height={60} style={{ objectFit: 'cover', borderRadius: 4 }} />
                 ))}
               </Image.PreviewGroup>
-              {record.images.length > 3 && (
-                <Tag style={{ marginTop: 16 }}>+{record.images.length - 3}</Tag>
-              )}
+              {record.images.length > 3 && <Tag style={{ marginTop: 16 }}>+{record.images.length - 3}</Tag>}
             </Space>
           );
         }
@@ -270,7 +222,8 @@ export default function MaterialLibraryPage() {
       title: '操作',
       key: 'action',
       width: 260,
-      render: (_: any, record: Material) => (
+      fixed: 'right' as const,
+      render: (_: unknown, record: Material) => (
         <Space size="small" wrap>
           <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handlePreview(record)}>预览</Button>
           <Button type="link" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(record)}>下载</Button>
@@ -283,19 +236,107 @@ export default function MaterialLibraryPage() {
     },
   ];
 
-  return (
-    <div className="p-6">
-      <div className="mb-6">
-        <Title level={2}>内容中心</Title>
-        <Text type="secondary">管理和使用您的AI生成内容，支持预览、下载，与AI创作工厂无缝对接</Text>
+  const renderGridCard = (material: Material) => (
+    <div
+      key={material.id}
+      style={{
+        background: '#fff', borderRadius: 12, overflow: 'hidden',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        border: '1px solid #f0f0f0',
+        transition: 'box-shadow 0.2s',
+        cursor: 'pointer',
+      }}
+    >
+      {/* 缩略图区域 */}
+      <div
+        style={{
+          height: 160, background: '#fafafa',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          borderBottom: '1px solid #f0f0f0',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {material.images && material.images.length > 0 ? (
+          <Image src={material.images[0]} alt={material.title} width="100%" height="100%" style={{ objectFit: 'cover' }} preview={false} />
+        ) : (
+          <div style={{ fontSize: 40, opacity: 0.3 }}>
+            {getCategoryIcon(material.category)}
+          </div>
+        )}
+        <Tag
+          color={contentCategoryConfig[material.category]?.color}
+          style={{ position: 'absolute', top: 8, left: 8 }}
+        >
+          {contentCategoryConfig[material.category]?.label}
+        </Tag>
+        <Tag
+          color={material.status === 'used' ? 'green' : 'blue'}
+          style={{ position: 'absolute', top: 8, right: 8 }}
+        >
+          {material.status === 'used' ? '已使用' : '未使用'}
+        </Tag>
       </div>
+      {/* 信息区域 */}
+      <div style={{ padding: 12 }}>
+        <Paragraph ellipsis={{ rows: 1 }} style={{ marginBottom: 4, fontWeight: 500, fontSize: 14 }}>
+          {material.title}
+        </Paragraph>
+        <Paragraph ellipsis={{ rows: 2 }} style={{ marginBottom: 8, fontSize: 12, color: '#8c8c8c' }}>
+          {material.content}
+        </Paragraph>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text type="secondary" style={{ fontSize: 11 }}>
+            {new Date(material.timestamp).toLocaleDateString('zh-CN')}
+          </Text>
+          <Space size={0}>
+            <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handlePreview(material)} />
+            <Button type="link" size="small" icon={<CopyOutlined />} onClick={() => handleCopy(material.content)} />
+            <Popconfirm title="确定删除？" onConfirm={() => handleDelete(material.id)}>
+              <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </Space>
+        </div>
+      </div>
+    </div>
+  );
 
-      <Card className="mb-4">
+  return (
+    <PageContainer
+      title="内容中心"
+      description="管理和使用您的AI生成内容，支持预览、下载，与AI创作工厂无缝对接"
+      breadcrumb={[{ title: '内容中心' }]}
+      loading={loading}
+      skeletonType="card"
+      extra={
+        <Space>
+          <Segmented
+            options={[
+              { label: '列表', value: 'list', icon: <UnorderedListOutlined /> },
+              { label: '网格', value: 'grid', icon: <AppstoreOutlined /> },
+            ]}
+            value={viewMode}
+            onChange={v => setViewMode(v as 'list' | 'grid')}
+          />
+        </Space>
+      }
+    >
+      {/* 筛选栏 */}
+      <div style={{
+        background: '#fff', borderRadius: 12, padding: '16px 24px',
+        marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      }}>
         <Row gutter={16}>
-          <Col span={6}>
-            <Search placeholder="搜索素材标题或内容" allowClear onChange={e => setSearchText(e.target.value)} style={{ width: '100%' }} />
+          <Col span={8}>
+            <Input
+              placeholder="搜索素材标题或内容"
+              prefix={<SearchOutlined />}
+              allowClear
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+            />
           </Col>
-          <Col span={4}>
+          <Col span={6}>
             <Select placeholder="选择分类" value={filterCategoryState} onChange={setFilterCategoryState} style={{ width: '100%' }} allowClear>
               <Select.Option value="all">全部分类</Select.Option>
               {Object.values(ContentCategory).map(category => (
@@ -313,16 +354,30 @@ export default function MaterialLibraryPage() {
             </Select>
           </Col>
         </Row>
-      </Card>
+      </div>
 
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={filteredMaterials}
-          rowKey="id"
-          pagination={{ pageSize: 10, showSizeChanger: true, showQuickJumper: true, showTotal: total => `共 ${total} 条` }}
-        />
-      </Card>
+      {/* 内容区域 */}
+      {filteredMaterials.length > 0 ? (
+        viewMode === 'list' ? (
+          <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <Table
+              columns={columns}
+              dataSource={filteredMaterials}
+              rowKey="id"
+              scroll={{ x: 1100 }}
+              pagination={{ pageSize: 10, showSizeChanger: true, showQuickJumper: true, showTotal: total => `共 ${total} 条` }}
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+            {filteredMaterials.map(renderGridCard)}
+          </div>
+        )
+      ) : (
+        <div style={{ background: '#fff', borderRadius: 12, padding: '60px 24px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <Text type="secondary">暂无素材数据，前往AI创作工厂开始创作吧</Text>
+        </div>
+      )}
 
       <Modal
         title={previewMaterial?.title}
@@ -337,7 +392,7 @@ export default function MaterialLibraryPage() {
       >
         {previewMaterial && (
           <div>
-            <Space className="mb-4">
+            <Space style={{ marginBottom: 16 }}>
               <Tag color={contentCategoryConfig[previewMaterial.category]?.color}>
                 {contentCategoryConfig[previewMaterial.category]?.label}
               </Tag>
@@ -348,9 +403,9 @@ export default function MaterialLibraryPage() {
                 <Tag color="orange">{previewMaterial.images.length} 张图片</Tag>
               )}
             </Space>
-            <div className="mt-4">
+            <div style={{ marginTop: 16 }}>
               {previewMaterial.images && previewMaterial.images.length > 0 && (
-                <div className="mb-4">
+                <div style={{ marginBottom: 16 }}>
                   <Image.PreviewGroup>
                     <Row gutter={[8, 8]}>
                       {previewMaterial.images.map((img, idx) => (
@@ -369,18 +424,27 @@ export default function MaterialLibraryPage() {
                 <Image src={previewMaterial.content} alt={previewMaterial.title} style={{ maxWidth: '100%', borderRadius: 8 }} />
               )}
               {previewMaterial.content && contentCategoryConfig[previewMaterial.category]?.type !== 'image' && contentCategoryConfig[previewMaterial.category]?.type !== 'video' && (
-                <Paragraph className="whitespace-pre-wrap" style={{ maxHeight: 400, overflow: 'auto' }}>{previewMaterial.content}</Paragraph>
+                <Paragraph style={{ whiteSpace: 'pre-wrap', maxHeight: 400, overflow: 'auto' }}>{previewMaterial.content}</Paragraph>
               )}
               {previewMaterial.images && previewMaterial.images.length > 0 && previewMaterial.content && (
-                <div className="mt-4">
+                <div style={{ marginTop: 16, background: '#fafafa', borderRadius: 8, padding: 12 }}>
                   <Text strong>文案内容：</Text>
-                  <Paragraph className="whitespace-pre-wrap mt-2" style={{ maxHeight: 200, overflow: 'auto', background: '#fafafa', padding: 12, borderRadius: 8 }}>{previewMaterial.content}</Paragraph>
+                  <Paragraph style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>{previewMaterial.content}</Paragraph>
                 </div>
               )}
             </div>
           </div>
         )}
       </Modal>
-    </div>
+    </PageContainer>
+  );
+}
+
+// Need FileOutlined for fallback icon - import it inline
+function FileOutlined() {
+  return (
+    <svg viewBox="64 64 896 896" width="1em" height="1em" fill="currentColor">
+      <path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.5-3.4-16.7-9.4-22.7zM790.2 326H602V137.8L790.2 326zm1.8 562H232V136h302v216a42 42 0 0042 42h216v494z" />
+    </svg>
   );
 }

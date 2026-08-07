@@ -1,62 +1,48 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PageHeader from '../components/PageHeader';
+import { apiClient } from '../services/api.client';
 
 const { width } = Dimensions.get('window');
-
-// 统计数据
-const overviewStats = {
-  totalViews: 125680,
-  totalLikes: 8934,
-  totalComments: 2456,
-  totalShares: 1567,
-};
-
-// 内容数据
-const contentData = [
-  { id: '1', title: '产品推广标题1', platform: 'douyin', views: 12500, likes: 890, comments: 234, shares: 156, ctr: 7.1 },
-  { id: '2', title: '小红书种草文案', platform: 'xiaohongshu', views: 8900, likes: 678, comments: 189, shares: 123, ctr: 7.6 },
-  { id: '3', title: '电商详情页', platform: 'xiaohongshu', views: 15600, likes: 1234, comments: 456, shares: 234, ctr: 7.9 },
-  { id: '4', title: '品牌宣传视频', platform: 'douyin', views: 23000, likes: 1567, comments: 567, shares: 345, ctr: 6.8 },
-  { id: '5', title: '限时优惠文案', platform: 'wechat', views: 45000, likes: 2345, comments: 789, shares: 456, ctr: 5.2 },
-];
-
-// 平台分布
-const platformData = [
-  { platform: '抖音', views: 45000, percentage: 35.8, color: '#ff4757' },
-  { platform: '小红书', views: 38000, percentage: 30.2, color: '#ff6b9d' },
-  { platform: '微信', views: 32000, percentage: 25.5, color: '#07c160' },
-  { platform: '其他', views: 10680, percentage: 8.5, color: '#64748b' },
-];
-
-// 每日趋势数据（最近7天）
-const trendData = [
-  { date: '03-19', views: 15200, likes: 1020 },
-  { date: '03-20', views: 18500, likes: 1250 },
-  { date: '03-21', views: 16800, likes: 1180 },
-  { date: '03-22', views: 21000, likes: 1450 },
-  { date: '03-23', views: 19500, likes: 1380 },
-  { date: '03-24', views: 22000, likes: 1560 },
-  { date: '03-25', views: 12680, likes: 894 },
-];
 
 export default function StatisticsScreen() {
   const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'platform'>('overview');
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
+  const [loading, setLoading] = useState(true);
 
-  // 获取平台信息
-  const getPlatformInfo = (platform: string) => {
-    switch (platform) {
-      case 'douyin': return { name: '抖音', icon: 'logo-octocat' as const, color: '#ff4757' };
-      case 'xiaohongshu': return { name: '小红书', icon: 'book' as const, color: '#ff6b9d' };
-      case 'wechat': return { name: '微信', icon: 'chatbubble' as const, color: '#07c160' };
-      default: return { name: '其他', icon: 'globe' as const, color: '#64748b' };
+  // 真实API数据
+  const [overviewStats, setOverviewStats] = useState({ totalMaterials: 0, totalRecruitmentPosts: 0, totalAcquisitionTasks: 0, totalShareCodes: 0, totalShareRecords: 0 });
+  const [trendData, setTrendData] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const [overview, trend] = await Promise.all([
+        apiClient.get('/statistics/overview'),
+        apiClient.get('/statistics/trend?days=7'),
+      ]);
+      if (overview) setOverviewStats(overview);
+      if (trend && Array.isArray(trend)) {
+        setTrendData(trend.map((d: any) => ({
+          date: d.date ? d.date.slice(5) : '--',
+          views: d.value || 0,
+          likes: 0,
+        })));
+      }
+    } catch (e) {
+      console.log('获取统计数据失败');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 计算趋势图最大值
-  const maxViews = Math.max(...trendData.map(d => d.views));
+  const maxViews = trendData.length > 0 ? Math.max(...trendData.map((d: any) => d.views), 1) : 1;
+
+  const maxViews = trendData.length > 0 ? Math.max(...trendData.map((d: any) => d.views), 1) : 1;
 
   return (
     <View style={styles.container}>
@@ -94,30 +80,34 @@ export default function StatisticsScreen() {
         {activeTab === 'overview' && (
           <>
             {/* 总数据卡片 */}
+            {loading ? (
+              <View style={styles.overviewCard}><ActivityIndicator size="large" color="#4F46E5" style={{padding: 40}} /></View>
+            ) : (
             <View style={styles.overviewCard}>
               <View style={styles.overviewRow}>
                 <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalViews > 9999 ? (overviewStats.totalViews / 1000).toFixed(1) + 'w' : overviewStats.totalViews}</Text>
-                  <Text style={styles.overviewLabel}>总浏览量</Text>
+                  <Text style={styles.overviewValue}>{overviewStats.totalMaterials}</Text>
+                  <Text style={styles.overviewLabel}>素材总数</Text>
                 </View>
                 <View style={styles.overviewDivider} />
                 <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalLikes > 9999 ? (overviewStats.totalLikes / 1000).toFixed(1) + 'w' : overviewStats.totalLikes}</Text>
-                  <Text style={styles.overviewLabel}>总点赞</Text>
+                  <Text style={styles.overviewValue}>{overviewStats.totalRecruitmentPosts}</Text>
+                  <Text style={styles.overviewLabel}>招聘岗位</Text>
                 </View>
               </View>
               <View style={styles.overviewRow}>
                 <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalComments > 9999 ? (overviewStats.totalComments / 1000).toFixed(1) + 'w' : overviewStats.totalComments}</Text>
-                  <Text style={styles.overviewLabel}>总评论</Text>
+                  <Text style={styles.overviewValue}>{overviewStats.totalAcquisitionTasks}</Text>
+                  <Text style={styles.overviewLabel}>获客任务</Text>
                 </View>
                 <View style={styles.overviewDivider} />
                 <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalShares > 9999 ? (overviewStats.totalShares / 1000).toFixed(1) + 'w' : overviewStats.totalShares}</Text>
-                  <Text style={styles.overviewLabel}>总分享</Text>
+                  <Text style={styles.overviewValue}>{overviewStats.totalShareCodes}</Text>
+                  <Text style={styles.overviewLabel}>分享码</Text>
                 </View>
               </View>
             </View>
+            )}
 
             {/* 趋势图 */}
             <Text style={styles.sectionTitle}>数据趋势</Text>
@@ -147,30 +137,13 @@ export default function StatisticsScreen() {
 
             {/* 热门内容TOP5 */}
             <Text style={styles.sectionTitle}>热门内容 TOP5</Text>
-            {contentData.slice(0, 5).map((item, index) => {
-              const platformInfo = getPlatformInfo(item.platform);
-              return (
-                <View key={item.id} style={styles.topContentCard}>
-                  <View style={[styles.rankBadge, index < 3 && { backgroundColor: ['#fbbf24', '#94a3b8', '#cd7f32'][index] + '20' }]}>
-                    <Text style={[styles.rankText, index < 3 && { color: ['#d97706', '#64748b', '#b45309'][index] }]}>{index + 1}</Text>
-                  </View>
-                  <View style={styles.topContentInfo}>
-                    <Text style={styles.topContentTitle} numberOfLines={1}>{item.title}</Text>
-                    <View style={styles.topContentMeta}>
-                      <View style={[styles.platformBadge, { backgroundColor: platformInfo.color + '20' }]}>
-                        <Ionicons name={platformInfo.icon} size={10} color={platformInfo.color} />
-                        <Text style={[styles.platformText, { color: platformInfo.color }]}>{platformInfo.name}</Text>
-                      </View>
-                      <Text style={styles.ctrText}>点击率 {item.ctr}%</Text>
-                    </View>
-                  </View>
-                  <View style={styles.topContentStats}>
-                    <Text style={styles.topStatValue}>{item.views > 9999 ? (item.views / 1000).toFixed(1) + 'w' : item.views}</Text>
-                    <Text style={styles.topStatLabel}>浏览</Text>
-                  </View>
-                </View>
-              );
-            })}
+            {loading ? (
+              <View style={styles.topContentCard}><ActivityIndicator size="small" color="#4F46E5" /><Text style={{color: '#94a3b8', textAlign: 'center', padding: 20}}>加载中...</Text></View>
+            ) : (
+              <View style={styles.topContentCard}>
+                <Text style={{color: '#94a3b8', textAlign: 'center', padding: 20}}>暂无内容数据，发布内容后将在此展示</Text>
+              </View>
+            )}
           </>
         )}
 
@@ -178,45 +151,9 @@ export default function StatisticsScreen() {
         {activeTab === 'content' && (
           <>
             <Text style={styles.sectionTitle}>内容数据列表</Text>
-            {contentData.map(item => {
-              const platformInfo = getPlatformInfo(item.platform);
-              return (
-                <View key={item.id} style={styles.contentCard}>
-                  <View style={styles.contentHeader}>
-                    <View style={styles.contentTitleRow}>
-                      <View style={[styles.platformBadge, { backgroundColor: platformInfo.color + '20' }]}>
-                        <Ionicons name={platformInfo.icon} size={12} color={platformInfo.color} />
-                      </View>
-                      <Text style={styles.contentTitle} numberOfLines={1}>{item.title}</Text>
-                    </View>
-                    <Text style={styles.ctrBadge}>CTR {item.ctr}%</Text>
-                  </View>
-
-                  <View style={styles.contentStats}>
-                    <View style={styles.contentStat}>
-                      <Ionicons name="eye-outline" size={14} color="#64748b" />
-                      <Text style={styles.contentStatValue}>{item.views > 9999 ? (item.views / 1000).toFixed(1) + 'w' : item.views}</Text>
-                      <Text style={styles.contentStatLabel}>浏览</Text>
-                    </View>
-                    <View style={styles.contentStat}>
-                      <Ionicons name="heart-outline" size={14} color="#ef4444" />
-                      <Text style={styles.contentStatValue}>{item.likes > 9999 ? (item.likes / 1000).toFixed(1) + 'w' : item.likes}</Text>
-                      <Text style={styles.contentStatLabel}>点赞</Text>
-                    </View>
-                    <View style={styles.contentStat}>
-                      <Ionicons name="chatbubble-outline" size={14} color="#f59e0b" />
-                      <Text style={styles.contentStatValue}>{item.comments}</Text>
-                      <Text style={styles.contentStatLabel}>评论</Text>
-                    </View>
-                    <View style={styles.contentStat}>
-                      <Ionicons name="share-outline" size={14} color="#4F46E5" />
-                      <Text style={styles.contentStatValue}>{item.shares}</Text>
-                      <Text style={styles.contentStatLabel}>分享</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })}
+            <View style={styles.contentCard}>
+              <Text style={{color: '#94a3b8', textAlign: 'center', padding: 30, fontSize: 14}}>暂无内容数据{'\n'}发布内容后将在此展示效果数据</Text>
+            </View>
           </>
         )}
 
@@ -224,19 +161,9 @@ export default function StatisticsScreen() {
         {activeTab === 'platform' && (
           <>
             <Text style={styles.sectionTitle}>各平台数据</Text>
-            {platformData.map(item => (
-              <View key={item.platform} style={styles.platformCard}>
-                <View style={styles.platformHeader}>
-                  <View style={[styles.platformDot, { backgroundColor: item.color }]} />
-                  <Text style={styles.platformName}>{item.platform}</Text>
-                  <Text style={styles.platformViews}>{item.views.toLocaleString()}</Text>
-                </View>
-                <View style={styles.platformBar}>
-                  <View style={[styles.platformBarFill, { width: `${item.percentage}%`, backgroundColor: item.color }]} />
-                </View>
-                <Text style={styles.platformPercent}>{item.percentage}%</Text>
-              </View>
-            ))}
+            <View style={styles.platformCard}>
+              <Text style={{color: '#94a3b8', textAlign: 'center', padding: 30, fontSize: 14}}>平台数据将在发布内容后自动汇总展示</Text>
+            </View>
 
             <Text style={styles.sectionTitle}>平台对比</Text>
             <View style={styles.compareCard}>
@@ -244,15 +171,18 @@ export default function StatisticsScreen() {
                 <Text style={styles.compareTitle}>内容数量分布</Text>
               </View>
               <View style={styles.compareRow}>
-                {platformData.map(item => (
-                  <View key={item.platform} style={styles.compareItem}>
-                    <View style={[styles.compareIcon, { backgroundColor: item.color + '20' }]}>
-                      <Ionicons name={getPlatformInfo(item.platform.toLowerCase()).icon} size={20} color={item.color} />
-                    </View>
-                    <Text style={styles.comparePlatform}>{item.platform}</Text>
-                    <Text style={styles.compareValue}>{Math.round(item.percentage / 10)}</Text>
-                  </View>
-                ))}
+                <View style={styles.compareItem}>
+                  <Text style={styles.comparePlatform}>抖音</Text>
+                  <Text style={styles.compareValue}>0</Text>
+                </View>
+                <View style={styles.compareItem}>
+                  <Text style={styles.comparePlatform}>小红书</Text>
+                  <Text style={styles.compareValue}>0</Text>
+                </View>
+                <View style={styles.compareItem}>
+                  <Text style={styles.comparePlatform}>微信</Text>
+                  <Text style={styles.compareValue}>0</Text>
+                </View>
               </View>
             </View>
           </>

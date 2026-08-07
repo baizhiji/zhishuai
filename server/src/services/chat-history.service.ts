@@ -1,10 +1,8 @@
 /**
  * AI对话历史服务
  */
-import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 export interface SaveMessageParams {
   userId: string;

@@ -123,27 +123,23 @@ export function getDefaultFeatures(): FeatureSwitch[] {
     {
       id: '1',
       code: 'media',
-      name: '自媒体运营',
-      description: 'AI批量生成内容、多平台发布管理',
-      icon: 'videocam',
+      name: 'AI创作工厂',
+      description: 'AI图文、图片、视频等多种内容创作',
+      icon: 'sparkles',
       enabled: true,
       sortOrder: 1,
-      subFeatures: [
-        { id: '1-1', featureCode: 'media', code: 'content_factory', name: '内容工厂', description: 'AI批量生成内容', enabled: true, sortOrder: 1 },
-        { id: '1-2', featureCode: 'media', code: 'matrix_account', name: '矩阵账号管理', description: '多平台账号统一管理', enabled: true, sortOrder: 2 },
-        { id: '1-3', featureCode: 'media', code: 'publish_center', name: '发布中心', description: '素材选取批量发布', enabled: true, sortOrder: 3 },
-      ],
+      subFeatures: [],
     },
     {
       id: '2',
       code: 'recruitment',
-      name: '招聘助手',
-      description: 'AI生成JD、批量发布、智能筛选',
+      name: '智能招聘',
+      description: 'AI驱动的智能招聘系统',
       icon: 'people',
       enabled: true,
       sortOrder: 2,
       subFeatures: [
-        { id: '2-1', featureCode: 'recruitment', code: 'post_manage', name: '职位发布', description: '批量发布职位', enabled: true, sortOrder: 1 },
+        { id: '2-1', featureCode: 'recruitment', code: 'post_manage', name: '职位管理', description: '批量管理职位', enabled: true, sortOrder: 1 },
         { id: '2-2', featureCode: 'recruitment', code: 'ai_generate_jd', name: 'AI生成JD', description: 'AI生成职位描述', enabled: true, sortOrder: 2 },
       ],
     },
@@ -209,7 +205,7 @@ export const FEATURE_ROUTES: Record<string, string> = {
 
 // 功能图标映射
 export const FEATURE_ICONS: Record<string, keyof typeof import('@expo/vector-icons').Ionicons.glyphMap> = {
-  [FEATURE_CODES.MEDIA]: 'videocam',
+  [FEATURE_CODES.MEDIA]: 'sparkles',
   [FEATURE_CODES.RECRUITMENT]: 'people',
   [FEATURE_CODES.ACQUISITION]: 'trending-up',
   [FEATURE_CODES.SHARE]: 'share-social',

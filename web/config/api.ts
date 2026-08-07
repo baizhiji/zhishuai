@@ -63,7 +63,6 @@ export const API_ENDPOINTS = {
     VIDEO_SCRIPT: '/ai-enhanced/video-script',
     RECRUITMENT_JD: '/ai-enhanced/recruitment-jd',
     OUTREACH_MESSAGE: '/ai-enhanced/outreach-message',
-    AUTO_REPLY: '/ai-enhanced/auto-reply',
   },
   
   // 素材库
@@ -71,19 +70,6 @@ export const API_ENDPOINTS = {
     LIST: '/materials',
     UPLOAD: '/materials/upload',
     DELETE: '/materials/:id',
-  },
-  
-  // 矩阵管理
-  MATRIX: {
-    ACCOUNTS: '/matrix/accounts',
-    ACCOUNT_DETAIL: '/matrix/accounts/:id',
-  },
-  
-  // 发布中心
-  PUBLISH: {
-    LIST: '/publish',
-    CREATE: '/publish',
-    HISTORY: '/publish/history',
   },
   
   // 招聘助手

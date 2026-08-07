@@ -14,6 +14,7 @@ export enum ContentCategory {
   PERSON_MV_VIDEO = 'person-mv-video',    // 真人MV短视频（真人演唱级）
   CARTOON_VIDEO = 'cartoon-video',        // 萌宠卡通短视频（照片级卡通）
   DIGITAL_HUMAN = 'digital-human',        // 真人/数字人短视频（拟真级）
+  CINEMA_SHORT = 'cinema-short',          // 自由创意短片（AI导演模式）
   // 预留功能
   AI_SKETCH = 'ai-sketch',               // AI短剧（预留未来）
   AI_COMIC = 'ai-comic',                  // AI漫剧（预留未来）
@@ -33,6 +34,8 @@ export const contentCategoryConfig: Record<
     needWordCount: boolean;
     needSize: boolean;
     needDuration: boolean;
+    needUpload?: boolean;
+    needImageUrl?: boolean;
     needUpload: boolean;
     comingSoon?: boolean;
   }
@@ -145,6 +148,18 @@ export const contentCategoryConfig: Record<
     needWordCount: true,
     needSize: true,
     needDuration: true,
+    needUpload: false,
+    needImageUrl: true,
+  },
+  [ContentCategory.CINEMA_SHORT]: {
+    label: '自由创意短片',
+    color: '#EB2F96',
+    icon: 'ThunderboltOutlined',
+    description: 'AI导演模式：6镜头叙事短片(30-60s)，BGM配乐自动匹配，品牌配音克隆，端到端60s出片',
+    type: 'video',
+    needWordCount: true,
+    needSize: true,
+    needDuration: true,
     needUpload: true,
   },
   [ContentCategory.AI_SKETCH]: {
@@ -249,6 +264,21 @@ export const videoSizeOptions = [
   { label: '竖屏 9:16 (1080x1920)', value: '1080x1920' },
   { label: '横屏 16:9 (1920x1080)', value: '1920x1080' },
   { label: '方形 1:1 (1080x1080)', value: '1080x1080' },
+];
+
+// 横幅/贴片叠加选项
+export const bannerOverlayOptions = [
+  { label: '无横幅', value: 'none', description: '不使用任何叠加元素' },
+  { label: '片头标题', value: 'opening-title', description: '视频开头的标题展示，居中大字' },
+  { label: '人名标注条', value: 'lower-third', description: '画面下方的人名、职位、地点等信息条' },
+  { label: '片尾落款', value: 'closing-credits', description: '视频结尾的品牌Logo+口号' },
+  { label: '行动号召', value: 'call-to-action', description: '引导用户点击、关注、购买的提示条' },
+  { label: '水印', value: 'watermark', description: '半透明品牌水印，全程显示' },
+  { label: '场景分隔', value: 'scene-divider', description: '场景切换时的过渡提示文字' },
+  { label: '说话气泡', value: 'speech-bubble', description: '模拟对话的气泡框' },
+  { label: '弹幕风格', value: 'bullet-comment', description: '从右到左飘过的弹幕文字' },
+  { label: '品牌角标', value: 'brand-logo', description: '角落品牌Logo标识' },
+  { label: '进度提示', value: 'progress-hint', description: '预告接下来内容' },
 ];
 
 // 图片尺寸选项

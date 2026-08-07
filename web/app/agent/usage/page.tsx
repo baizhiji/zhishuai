@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Spin, Empty, Typography, Tag, Table, Progress, App } from 'antd';
+import { Card, Row, Col, Statistic, Spin, Empty, Typography, Tag, Table, Progress, App, Button } from 'antd';
 import {
   RocketOutlined,
   ThunderboltOutlined,
@@ -43,7 +43,7 @@ export default function AgentUsagePage() {
     setLoading(true);
     try {
       const request = (await import('@/lib/request')).default;
-      const res: any = await request.get('/agent/usage');
+      const res: any = await request.get('/api/agent/usage');
       const payload = res?.data || res;
       setData({
         totalTokens: payload?.totalTokens ?? 0,

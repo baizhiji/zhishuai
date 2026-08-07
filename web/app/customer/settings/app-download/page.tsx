@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Button, QRCode, Space, Tag, Divider, Alert } from 'antd';
 import {
   AndroidOutlined,
@@ -10,6 +10,8 @@ import {
   WarningOutlined,
   MobileOutlined,
 } from '@ant-design/icons';
+import request from '@/utils/request';
+import PageContainer from '@/components/customer/PageContainer';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -24,18 +26,46 @@ interface AppVersion {
   forceUpdate: boolean;
 }
 
+const DEFAULT_VERSION: AppVersion = {
+  version: '1.0.0',
+  buildNumber: 1,
+  minVersion: '1.0.0',
+  downloadUrl: '/app/zhishuai.apk',
+  changelog: '初始版本发布',
+  size: '45.6 MB',
+  releaseDate: new Date().toISOString().split('T')[0],
+  forceUpdate: false,
+};
+
 export default function AppDownloadPage() {
   const [loading, setLoading] = useState(false);
-  const [version] = useState<AppVersion>({
-    version: '1.0.0',
-    buildNumber: 1,
-    minVersion: '1.0.0',
-    downloadUrl: '/app/zhishuai.apk',
-    changelog: '初始版本发布',
-    size: '45.6 MB',
-    releaseDate: new Date().toISOString().split('T')[0],
-    forceUpdate: false,
-  });
+  const [pageLoading, setPageLoading] = useState(true);
+  const [version, setVersion] = useState<AppVersion>(DEFAULT_VERSION);
+
+  useEffect(() => {
+    const fetchVersion = async () => {
+      try {
+        const res = await request.get('/api/version');
+        if (res?.data) {
+          setVersion({
+            version: res.data.version || DEFAULT_VERSION.version,
+            buildNumber: res.data.buildNumber || DEFAULT_VERSION.buildNumber,
+            minVersion: res.data.minVersion || DEFAULT_VERSION.minVersion,
+            downloadUrl: res.data.downloadUrl || DEFAULT_VERSION.downloadUrl,
+            changelog: res.data.changelog || DEFAULT_VERSION.changelog,
+            size: res.data.size || DEFAULT_VERSION.size,
+            releaseDate: res.data.releaseDate || DEFAULT_VERSION.releaseDate,
+            forceUpdate: res.data.forceUpdate || DEFAULT_VERSION.forceUpdate,
+          });
+        }
+      } catch {
+        // API 不可用时使用默认值
+      } finally {
+        setPageLoading(false);
+      }
+    };
+    fetchVersion();
+  }, []);
 
   const downloadUrl =
     typeof window !== 'undefined'
@@ -57,19 +87,22 @@ export default function AppDownloadPage() {
   const appName = '智枢AI';
 
   return (
-    <div>
-      <Title level={3}>智枢AI APP下载</Title>
-      <Text type="secondary">下载并安装智枢AI移动应用，随时随地管理您的业务</Text>
-
-      <Divider />
-
+    <PageContainer
+      title="智枢AI APP 下载"
+      description="下载并安装智枢AI移动应用，随时随地管理您的业务"
+      breadcrumb={[
+        { title: '首页', href: '/customer/dashboard' },
+        { title: 'APP 下载' },
+      ]}
+      loading={pageLoading}
+      skeletonType="detail"
+    >
       {/* 下载卡片 */}
       <Card style={{ borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
         <Row gutter={[32, 24]} align="middle">
           {/* 左侧：版本信息 */}
           <Col xs={24} md={14}>
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              {/* 版本号 */}
               <div>
                 <Tag color="blue" style={{ marginBottom: 8 }}>
                   最新版本
@@ -82,7 +115,6 @@ export default function AppDownloadPage() {
 
               <Divider style={{ margin: '8px 0' }} />
 
-              {/* 更新说明 */}
               <div>
                 <Text strong style={{ display: 'block', marginBottom: 8 }}>
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: 8 }} />
@@ -91,7 +123,6 @@ export default function AppDownloadPage() {
                 <Paragraph style={{ color: '#666' }}>{version.changelog}</Paragraph>
               </div>
 
-              {/* 版本信息 */}
               <Row gutter={16}>
                 <Col span={12}>
                   <div
@@ -133,7 +164,6 @@ export default function AppDownloadPage() {
 
               <Divider style={{ margin: '8px 0' }} />
 
-              {/* 下载按钮 */}
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Button
                   type="primary"
@@ -213,8 +243,8 @@ export default function AppDownloadPage() {
 
       {/* 底部信息 */}
       <div style={{ textAlign: 'center', marginTop: 24, color: '#999' }}>
-        <Text style={{ color: '#999' }}>© 2024 {appName} · 智能商业解决方案</Text>
+        <Text style={{ color: '#999' }}>2024 {appName} · 智能商业解决方案</Text>
       </div>
-    </div>
+    </PageContainer>
   );
 }

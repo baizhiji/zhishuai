@@ -330,6 +330,95 @@ adminRouter.patch('/providers/:id/toggle', async (req: Request, res: Response) =
   }
 });
 
+adminRouter.get('/usage', async (req: Request, res: Response) => {
+  try {
+    const { range = '7d' } = req.query;
+    const days = parseInt(range as string) || 7;
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    // 按模型聚合近期用量
+    const logs = await prisma.apiUsageLog.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // 按模型分组统计
+    const modelMap = new Map<string, { total: number; success: number; fail: number; tokens: number; cost: number; latency: number; lastCall: Date }>();
+    for (const log of logs) {
+      const key = `${log.providerName}|${log.model || 'unknown'}`;
+      const entry = modelMap.get(key) || { total: 0, success: 0, fail: 0, tokens: 0, cost: 0, latency: 0, lastCall: log.createdAt };
+      entry.total++;
+      if (log.status === 'success') {
+        entry.success++;
+        entry.tokens += (log.requestTokens || 0) + (log.responseTokens || 0);
+        entry.cost += Number(log.cost || 0);
+        entry.latency += log.duration || 0;
+      } else {
+        entry.fail++;
+      }
+      if (log.createdAt > entry.lastCall) entry.lastCall = log.createdAt;
+      modelMap.set(key, entry);
+    }
+
+    const usage = Array.from(modelMap.entries()).map(([key, e]) => {
+      const [provider, modelName] = key.split('|');
+      return {
+        id: key,
+        provider,
+        modelName,
+        totalCalls: e.total,
+        successCalls: e.success,
+        failedCalls: e.fail,
+        successRate: e.total > 0 ? parseFloat((e.success / e.total * 100).toFixed(1)) : 0,
+        totalTokens: e.tokens,
+        cost: parseFloat(e.cost.toFixed(4)),
+        avgLatency: e.success > 0 ? parseFloat((e.latency / e.success).toFixed(2)) : 0,
+        lastCallAt: e.lastCall.toISOString(),
+      };
+    });
+
+    // 按日期分组趋势
+    const trendMap = new Map<string, { calls: number; tokens: number; cost: number }>();
+    for (const log of logs) {
+      const d = log.createdAt.toISOString().slice(0, 10);
+      const t = trendMap.get(d) || { calls: 0, tokens: 0, cost: 0 };
+      t.calls++;
+      t.tokens += (log.requestTokens || 0) + (log.responseTokens || 0);
+      t.cost += Number(log.cost || 0);
+      trendMap.set(d, t);
+    }
+    const trendData = Array.from(trendMap.entries()).map(([date, v]) => ({ date, calls: v.calls, tokens: v.tokens, cost: parseFloat(v.cost.toFixed(4)) }));
+
+    // 按服务商分组费用
+    const providerMap = new Map<string, { calls: number; cost: number }>();
+    for (const log of logs) {
+      const p = providerMap.get(log.providerName) || { calls: 0, cost: 0 };
+      p.calls++;
+      p.cost += Number(log.cost || 0);
+      providerMap.set(log.providerName, p);
+    }
+    const providerData = Array.from(providerMap.entries()).map(([provider, v]) => ({ provider, calls: v.calls, cost: parseFloat(v.cost.toFixed(4)) }));
+
+    const totalCalls = usage.reduce((s, u) => s + u.totalCalls, 0);
+    const totalTokens = usage.reduce((s, u) => s + u.totalTokens, 0);
+    const totalCost = usage.reduce((s, u) => s + u.cost, 0);
+    const avgSuccessRate = usage.length > 0 ? parseFloat((usage.reduce((s, u) => s + u.successRate, 0) / usage.length).toFixed(1)) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        usage,
+        trendData,
+        providerData,
+        stats: { totalCalls, totalTokens, totalCost, avgSuccessRate },
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 adminRouter.get('/categories-list', async (_req: Request, res: Response) => {
   const list = Object.entries(PROVIDER_CATEGORIES).map(([key, info]) => ({
     key,

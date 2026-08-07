@@ -69,7 +69,7 @@ export default function AboutPage() {
             智枢AI SaaS 系统
           </Title>
           <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 16 }}>
-            一站式智能商业平台，集成自媒体运营、智能招聘、获客引流等全场景功能
+            一站式智能商业平台，集成AI创作工厂、智能招聘、获客引流等全场景功能
           </Text>
           <div style={{ marginTop: 24 }}>
             <Space size="large">

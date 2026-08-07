@@ -41,7 +41,7 @@ export interface ChatMessage {
   attachments?: { type: 'image' | 'video'; uri: string }[]
 }
 
-// 素材库保存函数
+// 内容中心保存函数
 const saveToMaterialLibrary = async (
   content: string,
   category: string,
@@ -75,7 +75,7 @@ const saveToMaterialLibrary = async (
     
     return true
   } catch (error) {
-    console.error('保存到素材库失败:', error)
+    console.error('保存到内容中心失败:', error)
     return false
   }
 }
@@ -529,8 +529,8 @@ const QUICK_ACTIONS = [
 
 请详细描述您的需求，我来为您制作完整短视频方案！` },
 
-  // 6. 数字人视频
-  { id: 'digital_human', icon: 'person-outline', label: '数字人视频', prompt: `请帮我制作数字人口播视频。
+  // 6. AI数字人
+  { id: 'digital_human', icon: 'person-outline', label: 'AI数字人', prompt: `请帮我制作AI数字人口播视频。
 
 【请告诉我】
 • 视频主题/内容
@@ -577,7 +577,7 @@ const QUICK_ACTIONS = [
 • 培训课程
 • 主播带货
 
-请描述您的数字人视频需求，我来为您生成完整方案！` },
+请描述您的AI数字人视频需求，我来为您生成完整方案！` },
 ]
 
 
@@ -652,7 +652,7 @@ export default function AIChatScreen({ navigation }: Props) {
 🎨 图片生成 - 海报/产品图/品牌设计
 🎥 视频解析 - 链接解析/内容提取
 🎬 短视频制作 - 脚本/分镜/爆款方案
-🧑‍💼 数字人视频 - 口播/字幕/完整方案
+🧑‍💼 AI数字人 - 口播/字幕/完整方案
 
 💡 智能选择：我会自动根据您输入的内容选择最佳模型，无需手动切换~`,
           timestamp: Date.now(),
@@ -726,7 +726,7 @@ export default function AIChatScreen({ navigation }: Props) {
 
         setMessages(prev => [...prev, assistantMessage])
         
-        // 自动保存图片到素材库
+        // 自动保存图片到内容中心
         const imageUrls = extractImageUrls(response.message)
         if (imageUrls.length > 0) {
           for (const url of imageUrls) {
@@ -738,10 +738,10 @@ export default function AIChatScreen({ navigation }: Props) {
               url
             )
           }
-          Alert.alert('提示', `已自动保存 ${imageUrls.length} 张图片到素材库`)
+          Alert.alert('提示', `已自动保存 ${imageUrls.length} 张图片到内容中心`)
         }
         
-        // 自动保存视频到素材库
+        // 自动保存视频到内容中心
         const videoUrls = extractVideoUrls(response.message)
         if (videoUrls.length > 0) {
           for (const url of videoUrls) {
@@ -753,7 +753,7 @@ export default function AIChatScreen({ navigation }: Props) {
               undefined
             )
           }
-          Alert.alert('提示', `已自动保存 ${videoUrls.length} 个视频到素材库`)
+          Alert.alert('提示', `已自动保存 ${videoUrls.length} 个视频到内容中心`)
         }
       } catch (apiError: any) {
         // API未配置或失败时使用降级响应

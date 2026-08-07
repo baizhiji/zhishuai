@@ -13,10 +13,8 @@
  * - AI 潜客评分引擎增强（规则引擎 + AI 双轨）
  */
 
-import { PrismaClient } from '@prisma/client';
 import { chatCompletion } from './ai-client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ==================== 类型定义 ====================
 

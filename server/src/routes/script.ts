@@ -1,10 +1,37 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 import { authMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
 
 const router = Router();
+
+// 获取话术模板列表（别名 /list 兼容前端调用）
+router.get('/list', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { page = '1', pageSize = '10', scenario, category } = req.query;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
+
+    const where: any = { userId };
+    if (scenario) where.scenario = scenario;
+    if (category) where.category = category;
+
+    const [scripts, total] = await Promise.all([
+      prisma.scriptTemplate.findMany({
+        where,
+        skip,
+        take: Number(pageSize),
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.scriptTemplate.count({ where }),
+    ]);
+
+    res.json({ success: true, data: { scripts, total, page: Number(page), pageSize: Number(pageSize) } });
+  } catch (error) {
+    console.error('获取话术模板失败:', error);
+    res.status(500).json({ error: '获取话术模板失败' });
+  }
+});
 
 // 获取话术模板列表
 router.get('/scripts', authMiddleware, async (req: Request, res: Response) => {

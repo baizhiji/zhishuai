@@ -2,10 +2,8 @@
  * 员工管理服务层
  * 封装员工 CRUD、登录、权限管理的业务逻辑
  */
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ─── 常量 ───
 const DEFAULT_PASSWORD_LENGTH = 8;

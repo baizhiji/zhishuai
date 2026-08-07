@@ -118,34 +118,6 @@ export function getAllMenus(): MenuItem[] {
           featureKey: 'media_factory',
         },
         {
-          key: 'media-matrix',
-          label: '矩阵管理',
-          path: '/media/matrix',
-          permission: Permission.MEDIA_MATRIX,
-          featureKey: 'media_matrix',
-        },
-        // 发布中心已删除 — 内容发布功能不再使用
-        // {
-        //   key: 'media-publish',
-        //   label: '发布中心',
-        //   path: '/media/publish',
-        //   permission: Permission.MEDIA_PUBLISH,
-        //   featureKey: 'media_publish',
-        // },
-        {
-          key: 'media-report',
-          label: '数据报表',
-          path: '/media/report',
-          permission: Permission.MEDIA_REPORT,
-        },
-        {
-          key: 'media-digital-human',
-          label: '数字人视频',
-          path: '/media/digital-humans',
-          permission: Permission.MEDIA_DIGITAL_HUMAN,
-          featureKey: 'media_digital_human',
-        },
-        {
           key: 'materials',
           label: '素材库',
           path: '/materials',
@@ -393,12 +365,6 @@ export function getAgentMenus(): MenuItem[] {
       label: '客户管理',
       icon: 'Team',
       path: '/agent/customers',
-    },
-    {
-      key: 'agent-settlement',
-      label: '分成结算',
-      icon: 'DollarOutlined',
-      path: '/agent/settlement',
     },
     {
       key: 'agent-tickets',

@@ -1,10 +1,8 @@
 /**
  * Admin Agents Service - 管理员代理商/客户管理 Service 层
  */
-import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../middleware/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ==================== 错误类 ====================
 
@@ -266,7 +264,7 @@ export async function getCustomerList(opts: QueryOptions) {
       where,
       include: {
         agentRelation: { include: { agent: { include: { user: { select: { name: true } } } } } },
-        _count: { select: { matrixAccounts: true, publishedContents: true } },
+        _count: {},
       },
       orderBy: { createdAt: 'desc' },
       skip,

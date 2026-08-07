@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import TokenStorage from '../utils/tokenStorage';
+import { setAuthFailureHandler } from '../services/api.client';
 import type { User, UserRole } from '../types';
 
 // 扩展的用户类型（用于本地存储）
@@ -141,6 +142,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUserState(null);
     setViewingRoleState('customer');
   }, []);
+
+  // 注册 401 自动登出回调（API 返回 401 时触发）
+  useEffect(() => {
+    setAuthFailureHandler(() => {
+      logout();
+    });
+  }, [logout]);
 
   // 切换视角角色（仅管理员可用）
   const switchRole = useCallback((role: UserRole) => {

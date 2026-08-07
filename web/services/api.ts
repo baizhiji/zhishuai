@@ -7,12 +7,6 @@ import type {
   LoginResponse,
   Material,
   MaterialListParams,
-  ContentGenerateRequest,
-  BatchGenerateRequest,
-  BatchEditRequest,
-  Account,
-  Platform,
-  PublishTask,
   Job,
   Resume,
   Customer,
@@ -92,97 +86,6 @@ export const materialsApi = {
   // 批量删除
   batchDelete: (ids: string[]) => {
     return request.post<ApiResponse<void>>('/materials/batch-delete', { ids });
-  }
-};
-
-// ==================== 内容工厂相关 ====================
-
-export const contentApi = {
-  // 生成内容
-  generate: (data: ContentGenerateRequest) => {
-    return request.post<ApiResponse<{ materialId: string }>>('/content/generate', data);
-  },
-
-  // 批量生成
-  batchGenerate: (data: BatchGenerateRequest) => {
-    return request.post<ApiResponse<{ materialIds: string[] }>>('/content/batch-generate', data);
-  },
-
-  // 批量剪辑
-  batchEdit: (data: BatchEditRequest) => {
-    return request.post<ApiResponse<{ taskId: string }>>('/content/batch-edit', data);
-  },
-
-  // 获取生成任务状态
-  getTaskStatus: (taskId: string) => {
-    return request.get<ApiResponse<{ status: string; progress: number }>>(`/content/tasks/${taskId}`);
-  }
-};
-
-// ==================== 矩阵管理相关 ====================
-
-export const accountsApi = {
-  // 获取账号列表
-  list: () => {
-    return request.get<ApiResponse<Account[]>>('/accounts');
-  },
-
-  // 获取账号详情
-  get: (id: string) => {
-    return request.get<ApiResponse<Account>>(`/accounts/${id}`);
-  },
-
-  // 添加账号
-  create: (data: Partial<Account>) => {
-    return request.post<ApiResponse<Account>>('/accounts', data);
-  },
-
-  // 更新账号
-  update: (id: string, data: Partial<Account>) => {
-    return request.put<ApiResponse<Account>>(`/accounts/${id}`, data);
-  },
-
-  // 删除账号
-  delete: (id: string) => {
-    return request.delete<ApiResponse<void>>(`/accounts/${id}`);
-  },
-
-  // 同步账号数据
-  sync: (id: string) => {
-    return request.post<ApiResponse<void>>(`/accounts/${id}/sync`);
-  }
-};
-
-// ==================== 发布中心相关 ====================
-
-export const publishApi = {
-  // 获取发布任务列表
-  list: (params: { page: number; pageSize: number; status?: string }) => {
-    return request.get<ApiResponse<{ list: PublishTask[]; total: number }>>('/publish/tasks', { params });
-  },
-
-  // 创建发布任务
-  create: (data: {
-    materialId: string;
-    platforms: Platform[];
-    scheduledTime?: string;
-  }) => {
-    return request.post<ApiResponse<PublishTask>>('/publish/tasks', data);
-  },
-
-  // 获取任务详情
-  get: (id: string) => {
-    return request.get<ApiResponse<PublishTask>>(`/publish/tasks/${id}`);
-  },
-
-  // 批量发布
-  batchPublish: (data: { materialIds: string[]; platforms: Platform[] }) => {
-    return request.post<ApiResponse<{ taskIds: string[] }>>('/publish/batch', data);
-  },
-
-  // 取消任务
-  cancel: (id: string) => {
-    return request.post<ApiResponse<void>>(`/publish/tasks/${id}/cancel`);
   }
 };
 
@@ -420,20 +323,6 @@ export interface Agent {
   };
 }
 
-// 贴牌配置类型
-export interface BrandingConfig {
-  id: string;
-  userId: string;
-  appName: string;
-  logo?: string;
-  favicon?: string;
-  themeColor: string;
-  primaryColor: string;
-  secondaryColor: string;
-  welcomeText?: string;
-  description?: string;
-}
-
 // 功能开关 API（Admin 端功能开关已并入客户管理，仅保留 Client 端用户功能接口）
 export const featureApi = {
   // 获取用户功能开关状态（Customer / APK）
@@ -527,9 +416,6 @@ export const agentApi = {
 export default {
   auth: authApi,
   materials: materialsApi,
-  content: contentApi,
-  accounts: accountsApi,
-  publish: publishApi,
   recruitment: recruitmentApi,
   acquisition: acquisitionApi,
   referral: referralApi,

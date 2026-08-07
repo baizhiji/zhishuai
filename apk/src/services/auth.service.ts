@@ -135,15 +135,22 @@ class AuthService {
     }
   }
 
-  // 退出登录
+  // 发送验证码
+  async sendCode(phone: string): Promise<void> {
+    try {
+      await apiClient.post(API_ENDPOINTS.SEND_CODE, { phone });
+    } catch (error) {
+      console.error('发送验证码失败:', error);
+      throw error;
+    }
+  }
+
+  // 退出登录（仅清除本地状态，服务端暂不支持 /auth/logout）
   async logout(): Promise<void> {
     try {
-      await apiClient.post(API_ENDPOINTS.LOGOUT);
+      TokenStorage.clearAll();
     } catch (error) {
       console.error('退出登录失败:', error);
-    } finally {
-      // 清除本地存储
-      TokenStorage.clearAll();
     }
   }
 

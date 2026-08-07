@@ -70,7 +70,7 @@ const CATEGORY_NAMES: Record<ContentCategory, string> = {
   [ContentCategory.ECOMMERCE]: '电商详情页',
   [ContentCategory.VIDEO]: '短视频',
   [ContentCategory.VIDEO_ANALYSIS]: '视频解析',
-  [ContentCategory.DIGITAL_HUMAN]: '数字人视频',
+  [ContentCategory.DIGITAL_HUMAN]: 'AI数字人视频',
 };
 
 export default function AICreateDetailScreen() {
@@ -264,7 +264,7 @@ export default function AICreateDetailScreen() {
           setGeneratedContent(res.output.analysis);
           setGeneratedUrls([res.output.url]);
         } else if (category === ContentCategory.DIGITAL_HUMAN) {
-          // 数字人视频
+          // AI数字人视频
           const res = await generateDigitalHumanVideo({
             description,
             digitalHumanId,
@@ -312,7 +312,7 @@ export default function AICreateDetailScreen() {
 
   // 保存内容
   const handleSave = useCallback(() => {
-    Alert.alert('成功', '内容已保存到素材库');
+    Alert.alert('成功', '内容已保存到内容中心');
   }, []);
 
   // 复制内容

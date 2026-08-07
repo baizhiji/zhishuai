@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const { width } = Dimensions.get('window');
+import { useNavigation } from '@react-navigation/native';
+import { apiClient } from '../services/api.client';
 
 interface Message {
   id: string;
@@ -23,85 +22,12 @@ interface Message {
   iconBg: string;
 }
 
-const MOCK_MESSAGES: Message[] = [
-  {
-    id: '1',
-    type: 'ai',
-    title: 'AI创作任务完成',
-    content: '您的产品文案已生成完成，点击查看详细内容...',
-    time: '刚刚',
-    read: false,
-    icon: 'sparkles',
-    iconColor: '#f59e0b',
-    iconBg: '#fef3c7',
-  },
-  {
-    id: '2',
-    type: 'order',
-    title: '套餐购买成功',
-    content: '恭喜您成功购买智枢AI年度会员，服务已开通...',
-    time: '10分钟前',
-    read: false,
-    icon: 'card',
-    iconColor: '#10b981',
-    iconBg: '#d1fae5',
-  },
-  {
-    id: '3',
-    type: 'system',
-    title: '系统升级通知',
-    content: '智枢AI系统将于今晚22:00-23:00进行版本升级...',
-    time: '1小时前',
-    read: false,
-    icon: 'settings',
-    iconColor: '#6366f1',
-    iconBg: '#e0e7ff',
-  },
-  {
-    id: '4',
-    type: 'activity',
-    title: '限时活动提醒',
-    content: '新用户首月优惠仅剩3天，立即开通享5折优惠...',
-    time: '2小时前',
-    read: true,
-    icon: 'gift',
-    iconColor: '#ec4899',
-    iconBg: '#fce7f3',
-  },
-  {
-    id: '5',
-    type: 'system',
-    title: '账号安全提醒',
-    content: '您的账号在新设备上登录，如非本人操作请及时修改密码...',
-    time: '昨天',
-    read: true,
-    icon: 'shield-checkmark',
-    iconColor: '#3b82f6',
-    iconBg: '#dbeafe',
-  },
-  {
-    id: '7',
-    type: 'activity',
-    title: '创作大赛开启',
-    content: '智枢AI首届内容创作大赛正式开启，万元奖金等你来拿...',
-    time: '3天前',
-    read: true,
-    icon: 'trophy',
-    iconColor: '#f59e0b',
-    iconBg: '#fef3c7',
-  },
-  {
-    id: '8',
-    type: 'ai',
-    title: '批量创作完成',
-    content: '您提交的50条视频文案已全部生成完成...',
-    time: '上周',
-    read: true,
-    icon: 'film',
-    iconColor: '#06b6d4',
-    iconBg: '#cffafe',
-  },
-];
+const TYPE_ICON_MAP: Record<string, { icon: string; color: string; bg: string }> = {
+  ai: { icon: 'sparkles', color: '#f59e0b', bg: '#fef3c7' },
+  order: { icon: 'card', color: '#10b981', bg: '#d1fae5' },
+  system: { icon: 'settings', color: '#6366f1', bg: '#e0e7ff' },
+  activity: { icon: 'gift', color: '#ec4899', bg: '#fce7f3' },
+};
 
 const TABS = [
   { key: 'all', label: '全部', icon: 'list' },
@@ -112,8 +38,39 @@ const TABS = [
 ];
 
 export default function MessagesScreen() {
+  const navigation = useNavigation<any>();
   const [activeTab, setActiveTab] = useState('all');
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchMessages = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await apiClient.get<{ items: any[] }>('/notifications');
+      const items = (res as any)?.items || (res as any)?.data || [];
+      const mapped: Message[] = items.map((n: any) => {
+        const typeInfo = TYPE_ICON_MAP[n.type] || TYPE_ICON_MAP.system;
+        return {
+          id: String(n.id),
+          type: n.type || 'system',
+          title: n.title || '',
+          content: n.content || '',
+          time: n.createdAt || '',
+          read: n.read || false,
+          ...typeInfo,
+        };
+      });
+      setMessages(mapped);
+    } catch {
+      setMessages([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
 
   const filteredMessages = messages.filter(msg => 
     activeTab === 'all' || msg.type === activeTab
@@ -160,7 +117,7 @@ export default function MessagesScreen() {
     <View style={styles.container}>
       {/* 头部 */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color="#1a1a2e" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>消息中心</Text>

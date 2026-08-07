@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { apiClient } from '../../services/api.client';
 
 const { width } = Dimensions.get('window');
 
@@ -23,7 +24,7 @@ interface DigitalHuman {
   id: string;
   name: string;
   avatar: string;
-  gender: 'male' | 'female';
+  gender: 'male' | 'female' | string;
   style: string;
 }
 
@@ -42,20 +43,45 @@ export default function DigitalHumanScreen({ navigation }: { navigation: any }) 
   const [generating, setGenerating] = useState(false);
   const [showHumanPicker, setShowHumanPicker] = useState(false);
   const [showVoicePicker, setShowVoicePicker] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const digitalHumans: DigitalHuman[] = [
-    { id: '1', name: '小智助手', avatar: '', gender: 'female', style: 'friendly' },
-    { id: '2', name: '智囊专家', avatar: '', gender: 'male', style: 'professional' },
-    { id: '3', name: '青春主播', avatar: '', gender: 'female', style: 'casual' },
-    { id: '4', name: '商务精英', avatar: '', gender: 'male', style: 'serious' },
-  ];
+  // 从后端 API 加载真实数据
+  const [digitalHumans, setDigitalHumans] = useState<DigitalHuman[]>([]);
+  const [voices, setVoices] = useState<VoiceOption[]>([]);
 
-  const voices: VoiceOption[] = [
-    { id: '1', name: '女声-温暖型', gender: 'female', preview: '音色柔和，适合情感类内容' },
-    { id: '2', name: '女声-专业型', gender: 'female', preview: '清晰稳重，适合知识科普' },
-    { id: '3', name: '男声-温暖型', gender: 'male', preview: '磁性温和，适合励志内容' },
-    { id: '4', name: '男声-专业型', gender: 'male', preview: '沉稳有力，适合商务内容' },
-  ];
+  useEffect(() => {
+    fetchOptions();
+  }, []);
+
+  const fetchOptions = async () => {
+    try {
+      const [humansRes, voicesRes] = await Promise.all([
+        apiClient.get('/enhancement/digital-human/avatars'),
+        apiClient.get('/voice-clone/voices'),
+      ]);
+      if (humansRes && Array.isArray(humansRes)) {
+        setDigitalHumans(humansRes.map((h: any) => ({
+          id: h.id || h._id,
+          name: h.name || '数字人',
+          avatar: h.avatar || h.image || '',
+          gender: h.gender || 'female',
+          style: h.style || 'professional',
+        })));
+      }
+      if (voicesRes && Array.isArray(voicesRes)) {
+        setVoices(voicesRes.map((v: any) => ({
+          id: v.id || v._id,
+          name: v.name || '声音',
+          gender: v.gender || 'female',
+          preview: v.description || v.preview || '音色描述',
+        })));
+      }
+    } catch (e) {
+      console.log('获取数字人列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const videoTypes = [
     { id: '1', name: '数字人口播', icon: 'person', desc: 'AI数字人自动播报' },
@@ -89,10 +115,9 @@ export default function DigitalHumanScreen({ navigation }: { navigation: any }) 
       setGenerating(false);
       Alert.alert(
         '视频生成中',
-        '您的数字人视频正在生成中，预计需要3-5分钟。您可以在视频中心查看进度。',
+        '您的AI数字人视频正在生成中，预计需要3-5分钟。',
         [
           { text: '知道了', style: 'cancel' },
-          { text: '去视频中心', onPress: () => navigation.navigate('MediaFactory') },
         ]
       );
     }, 2000);
@@ -142,7 +167,7 @@ export default function DigitalHumanScreen({ navigation }: { navigation: any }) 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* 页面标题 */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme === 'dark' ? '#fff' : '#333' }]}>数字人视频</Text>
+          <Text style={[styles.title, { color: theme === 'dark' ? '#fff' : '#333' }]}>AI数字人</Text>
           <Text style={styles.subtitle}>选择形象，一键生成AI数字人口播视频</Text>
         </View>
 

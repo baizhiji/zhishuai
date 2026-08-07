@@ -18,10 +18,10 @@ const { Title, Paragraph } = Typography;
 
 const features = [
   {
-    id: 'matrix',
+    id: 'digital-human',
     icon: <VideoCameraOutlined style={{ fontSize: 48, color: '#1890ff' }} />,
-    title: '矩阵管理',
-    desc: '多平台账号统一管理，一键发布到抖音、快手、小红书、视频号等主流平台，提升运营效率。',
+    title: '数字人平台',
+    desc: 'AI数字人克隆与视频生成，支持形象定制、语音合成、智能互动，打造专属数字分身。',
   },
   {
     id: 'ai-content',

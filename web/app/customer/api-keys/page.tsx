@@ -3,18 +3,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, Button, Table, Tag, Modal, Form, Input, Select, message,
-  Popconfirm, Space, Typography, Alert, Divider,
+  Popconfirm, Space, Typography, Alert, Divider, Row, Col, Statistic,
 } from 'antd';
 import {
   PlusOutlined, KeyOutlined, DeleteOutlined,
   CloudServerOutlined, CheckCircleOutlined, ExclamationCircleOutlined,
-  ReloadOutlined, StarFilled, StarOutlined, CopyOutlined,
+  ReloadOutlined, StarFilled, StarOutlined, CopyOutlined, ApiOutlined,
 } from '@ant-design/icons';
+import PageContainer from '@/components/customer/PageContainer';
 
 const { Title, Text, Paragraph } = Typography;
-const { Option } = Select;
 
-// localStorage key映射
 const LOCAL_STORAGE_KEYS: Record<string, string> = {
   dashscope: 'api_key_alibaba',
   tokenhub: 'api_key_tencent',
@@ -36,12 +35,16 @@ interface ApiKeyItem {
   createdAt: string;
 }
 
-// API调用工具函数
 function getAuthHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${localStorage.getItem('token')}`,
   };
+}
+
+function maskKey(key: string): string {
+  if (key.length <= 12) return key.slice(0, 4) + '****';
+  return key.slice(0, 8) + '****' + key.slice(-4);
 }
 
 export default function ApiKeysPage() {
@@ -52,7 +55,6 @@ export default function ApiKeysPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
 
-  // 从后端加载API Key列表
   const loadKeys = useCallback(async () => {
     try {
       setLoading(true);
@@ -61,40 +63,28 @@ export default function ApiKeysPage() {
       if (json.success && Array.isArray(json.data)) {
         setKeys(json.data);
       }
-    } catch (err: any) {
-      console.warn('加载API Key列表失败，从本地缓存恢复:', err.message);
+    } catch (err: unknown) {
+      console.warn('加载API Key列表失败，从本地缓存恢复:', (err as Error).message);
       const localKeys: ApiKeyItem[] = [];
       const alibaba = localStorage.getItem('api_key_alibaba');
       const tencent = localStorage.getItem('api_key_tencent');
       if (alibaba) {
         localKeys.push({
-          id: 'local-dashscope',
-          provider: 'dashscope',
+          id: 'local-dashscope', provider: 'dashscope',
           providerName: '阿里云百炼 (DashScope)',
-          apiKey: alibaba.slice(0, 8) + '****' + alibaba.slice(-4),
-          status: 'active',
-          isPrimary: true,
-          isSecondary: false,
-          usage: 0,
-          limit: 0,
-          failCount: 0,
-          lastUsedAt: null,
+          apiKey: maskKey(alibaba),
+          status: 'active', isPrimary: true, isSecondary: false,
+          usage: 0, limit: 0, failCount: 0, lastUsedAt: null,
           createdAt: new Date().toISOString(),
         });
       }
       if (tencent) {
         localKeys.push({
-          id: 'local-tokenhub',
-          provider: 'tokenhub',
+          id: 'local-tokenhub', provider: 'tokenhub',
           providerName: '腾讯云TokenHub',
-          apiKey: tencent.slice(0, 8) + '****' + tencent.slice(-4),
-          status: 'active',
-          isPrimary: !alibaba,
-          isSecondary: !!alibaba,
-          usage: 0,
-          limit: 0,
-          failCount: 0,
-          lastUsedAt: null,
+          apiKey: maskKey(tencent),
+          status: 'active', isPrimary: !alibaba, isSecondary: !!alibaba,
+          usage: 0, limit: 0, failCount: 0, lastUsedAt: null,
           createdAt: new Date().toISOString(),
         });
       }
@@ -108,18 +98,14 @@ export default function ApiKeysPage() {
     loadKeys();
   }, [loadKeys]);
 
-  const handleAdd = async (values: any) => {
+  const handleAdd = async (values: Record<string, string | boolean>) => {
     setSubmitting(true);
     try {
-      // 1. 先保存到localStorage（前端AI工厂直接使用）
-      const provider = values.provider;
+      const provider = values.provider as string;
       const localStorageKey = LOCAL_STORAGE_KEYS[provider];
       if (localStorageKey) {
-        localStorage.setItem(localStorageKey, values.apiKey);
-        console.log(`[api-keys] 已保存到 localStorage: ${localStorageKey}`);
+        localStorage.setItem(localStorageKey, values.apiKey as string);
       }
-
-      // 2. 保存到后端数据库（后端AI对话使用）
       try {
         const res = await fetch('/api/ai-config/keys', {
           method: 'POST',
@@ -137,16 +123,14 @@ export default function ApiKeysPage() {
         } else {
           throw new Error(json.error || json.message || '保存失败');
         }
-      } catch (backendErr: any) {
-        // 后端保存失败但不影响localStorage
-        message.warning(`已保存到本地，但服务端同步失败: ${backendErr.message || '未知错误'}`);
+      } catch (backendErr: unknown) {
+        message.warning(`已保存到本地，但服务端同步失败: ${(backendErr as Error).message || '未知错误'}`);
       }
-
       setModalOpen(false);
       form.resetFields();
       loadKeys();
-    } catch (error: any) {
-      message.error(error.message || '添加失败');
+    } catch (error: unknown) {
+      message.error((error as Error).message || '添加失败');
     } finally {
       setSubmitting(false);
     }
@@ -154,56 +138,45 @@ export default function ApiKeysPage() {
 
   const handleDelete = async (id: string, provider: string) => {
     try {
-      // 同时清除localStorage
       const localStorageKey = LOCAL_STORAGE_KEYS[provider];
-      if (localStorageKey) {
-        localStorage.removeItem(localStorageKey);
-      }
-
-      // 调用后端删除
+      if (localStorageKey) localStorage.removeItem(localStorageKey);
       try {
         await fetch(`/api/ai-config/keys/${id}`, {
-          method: 'DELETE',
-          headers: getAuthHeaders(),
+          method: 'DELETE', headers: getAuthHeaders(),
         });
-      } catch (e: any) {
-        // 忽略后端删除失败
-      }
-
+      } catch { /* ignore */ }
       message.success('已删除');
       loadKeys();
-    } catch (error: any) {
-      message.error(error.message || '删除失败');
+    } catch (error: unknown) {
+      message.error((error as Error).message || '删除失败');
     }
   };
 
   const handleSetPrimary = async (id: string) => {
     try {
       const res = await fetch(`/api/ai-config/keys/${id}/set-primary`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
+        method: 'POST', headers: getAuthHeaders(),
       });
       const json = await res.json();
       if (json.success) message.success('已设置为主Key');
       else throw new Error(json.error || '设置失败');
       loadKeys();
-    } catch (error: any) {
-      message.error(error.message || '设置失败');
+    } catch (error: unknown) {
+      message.error((error as Error).message || '设置失败');
     }
   };
 
   const handleSetSecondary = async (id: string) => {
     try {
       const res = await fetch(`/api/ai-config/keys/${id}/set-secondary`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
+        method: 'POST', headers: getAuthHeaders(),
       });
       const json = await res.json();
       if (json.success) message.success('已设为备用Key');
       else throw new Error(json.error || '设置失败');
       loadKeys();
-    } catch (error: any) {
-      message.error(error.message || '设置失败');
+    } catch (error: unknown) {
+      message.error((error as Error).message || '设置失败');
     }
   };
 
@@ -211,11 +184,12 @@ export default function ApiKeysPage() {
     navigator.clipboard.writeText(key).then(() => message.success('已复制'));
   };
 
+  const totalUsage = keys.reduce((sum, k) => sum + k.usage, 0);
+  const activeKeys = keys.filter(k => k.status === 'active').length;
+
   const columns = [
     {
-      title: '服务商',
-      dataIndex: 'providerName',
-      key: 'providerName',
+      title: '服务商', dataIndex: 'providerName', key: 'providerName',
       render: (text: string, record: ApiKeyItem) => (
         <Space>
           <CloudServerOutlined />
@@ -226,9 +200,7 @@ export default function ApiKeysPage() {
       ),
     },
     {
-      title: 'API Key',
-      dataIndex: 'apiKey',
-      key: 'apiKey',
+      title: 'API Key', dataIndex: 'apiKey', key: 'apiKey',
       render: (text: string) => (
         <Space>
           <Text code>{text}</Text>
@@ -237,10 +209,7 @@ export default function ApiKeysPage() {
       ),
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      width: 100,
+      title: '状态', dataIndex: 'status', key: 'status', width: 100,
       render: (status: string) => (
         status === 'active' ? (
           <Tag icon={<CheckCircleOutlined />} color="success">启用</Tag>
@@ -250,16 +219,11 @@ export default function ApiKeysPage() {
       ),
     },
     {
-      title: '使用次数',
-      dataIndex: 'usage',
-      key: 'usage',
-      width: 100,
+      title: '使用次数', dataIndex: 'usage', key: 'usage', width: 100,
     },
     {
-      title: '操作',
-      key: 'action',
-      width: 220,
-      render: (_: any, record: ApiKeyItem) => (
+      title: '操作', key: 'action', width: 220,
+      render: (_: unknown, record: ApiKeyItem) => (
         <Space size="small" wrap>
           {!record.isPrimary && (
             <Button type="link" size="small" onClick={() => handleSetPrimary(record.id)}>
@@ -288,12 +252,16 @@ export default function ApiKeysPage() {
   const hasKeys = keys.length > 0;
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <Title level={4} style={{ margin: 0 }}>API Key 管理</Title>
-          <Text type="secondary">配置AI模型API密钥，启用AI相关功能</Text>
-        </div>
+    <PageContainer
+      title="API 设置"
+      description="配置AI模型API密钥，启用AI相关功能"
+      breadcrumb={[
+        { title: '首页', href: '/customer/dashboard' },
+        { title: 'API 设置' },
+      ]}
+      loading={false}
+      skeletonType="card"
+      extra={
         <Space>
           <Button icon={<ReloadOutlined />} onClick={loadKeys} disabled={loading}>
             刷新
@@ -302,67 +270,92 @@ export default function ApiKeysPage() {
             添加API Key
           </Button>
         </Space>
-      </div>
+      }
+    >
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+        {/* 使用统计 */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic title="已配置 Key" value={activeKeys} suffix={`/ ${keys.length}`} prefix={<ApiOutlined />} valueStyle={{ color: '#1677ff' }} />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic title="累计调用次数" value={totalUsage} prefix={<CloudServerOutlined />} />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card size="small">
+              <Statistic title="AI功能状态" value={hasKeys ? '已就绪' : '未配置'} valueStyle={{ color: hasKeys ? '#52c41a' : '#999' }} />
+            </Card>
+          </Col>
+        </Row>
 
-      {showHelp && (
-        <Alert
-          type="info"
-          showIcon
-          closable
-          onClose={() => setShowHelp(false)}
-          style={{ marginBottom: 16 }}
-          message="配置说明"
-          description={
-            <div>
-              <Paragraph style={{ marginBottom: 8 }}>
-                配置至少一家服务商的API Key后，以下功能即可使用：
-              </Paragraph>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <Card size="small" title="阿里云百炼 (DashScope)" type="inner">
-                  <Text type="secondary">支持模型：通义千问、DeepSeek R1</Text><br />
-                  <Text type="secondary">适用功能：AI对话、诊断分析、文案生成</Text><br />
-                  <Text type="secondary">获取地址：dashscope.aliyun.com</Text>
-                </Card>
-                <Card size="small" title="腾讯云TokenHub" type="inner">
-                  <Text type="secondary">支持模型：混元、Kimi、GLM</Text><br />
-                  <Text type="secondary">适用功能：AI对话、图片理解、视频分析、语音合成</Text><br />
-                  <Text type="secondary">获取地址：console.cloud.tencent.com</Text>
-                </Card>
+        {showHelp && (
+          <Alert
+            type="info"
+            showIcon
+            closable
+            onClose={() => setShowHelp(false)}
+            style={{ marginBottom: 16 }}
+            message="配置说明"
+            description={
+              <div>
+                <Paragraph style={{ marginBottom: 8 }}>
+                  配置至少一家服务商的API Key后，AI创作工厂的全部功能即可使用。两个Key都配置效果最佳。
+                </Paragraph>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <Card size="small" title="阿里云百炼 (DashScope)" type="inner">
+                    <Text type="secondary">支持模型：通义千问 Qwen 系列、DeepSeek R1/V3、WAN 图像、HappyHorse 视频、千问 TTS</Text><br />
+                    <Text type="secondary">适用功能：文案创作、图片生成、视频生成、配音合成、反AI化重写</Text><br />
+                    <Text type="secondary">申请入口：</Text>
+                    <a href="https://bailian.console.aliyun.com" target="_blank" rel="noopener noreferrer" style={{ color: '#1677ff', fontWeight: 500 }}>
+                      bailian.console.aliyun.com <span style={{ fontSize: 11 }}>↗</span>
+                    </a>
+                  </Card>
+                  <Card size="small" title="腾讯云TokenHub" type="inner">
+                    <Text type="secondary">支持模型：混元 Image/Video、可灵 KLING、Vidu、Kimi K3、优图数字人</Text><br />
+                    <Text type="secondary">适用功能：图片生成、视频生成、数字人口播、英文去AI化</Text><br />
+                    <Text type="secondary">申请入口：</Text>
+                    <a href="https://console.cloud.tencent.com/tokenhub" target="_blank" rel="noopener noreferrer" style={{ color: '#1677ff', fontWeight: 500 }}>
+                      console.cloud.tencent.com/tokenhub <span style={{ fontSize: 11 }}>↗</span>
+                    </a>
+                  </Card>
+                </div>
               </div>
-            </div>
-          }
+            }
+          />
+        )}
+
+        <Table
+          columns={columns}
+          dataSource={keys}
+          rowKey="id"
+          loading={loading}
+          locale={{ emptyText: '暂无API Key，点击「添加API Key」开始配置' }}
+          pagination={false}
         />
-      )}
 
-      <Table
-        columns={columns}
-        dataSource={keys}
-        rowKey="id"
-        loading={loading}
-        locale={{ emptyText: '暂无API Key，点击「添加API Key」开始配置' }}
-        pagination={false}
-      />
+        <Divider />
 
-      <Divider />
-
-      <div style={{ textAlign: 'center' }}>
-        <Text type="secondary">
-          配置完成后，以下功能即可正常使用：
-        </Text>
-        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
-          {[
-            { name: 'AI 对话', status: hasKeys },
-            { name: 'AI 创作工厂', status: hasKeys },
-            { name: '自媒体/文案生成', status: hasKeys },
-            { name: '话术生成', status: hasKeys },
-            { name: '数字人·声音克隆', status: hasKeys },
-            { name: '自动回复', status: true },
-            { name: '内容发布', status: true },
-          ].map(f => (
-            <Tag key={f.name} color={f.status ? 'success' : 'default'}>
-              {f.name} {f.status ? '✓' : '○'}
-            </Tag>
-          ))}
+        <div style={{ textAlign: 'center' }}>
+          <Text type="secondary">配置完成后，以下功能即可正常使用：</Text>
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+            {[
+              { name: 'AI 对话', status: hasKeys },
+              { name: 'AI 创作工厂', status: hasKeys },
+              { name: '自媒体/文案生成', status: hasKeys },
+              { name: '话术生成', status: hasKeys },
+              { name: '数字人·声音克隆', status: hasKeys },
+              { name: '自动回复', status: true },
+              { name: '内容发布', status: true },
+            ].map(f => (
+              <Tag key={f.name} color={f.status ? 'success' : 'default'}>
+                {f.name} {f.status ? '✓' : '○'}
+              </Tag>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -381,29 +374,39 @@ export default function ApiKeysPage() {
           initialValues={{ provider: 'dashscope', isSecondary: false }}
         >
           <Form.Item
-            name="provider"
-            label="服务商"
+            name="provider" label="服务商"
             rules={[{ required: true, message: '请选择服务商' }]}
           >
             <Select placeholder="请选择AI服务商">
-              <Option value="dashscope">
-                <Space>
-                  <CloudServerOutlined />
-                  阿里云百炼 (DashScope) — 通义千问/DeepSeek
+              <Select.Option value="dashscope">
+                <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                  <Space>
+                    <CloudServerOutlined />
+                    <Text strong>阿里云百炼 (DashScope)</Text>
+                    <Text type="secondary">— 通义千问/DeepSeek/WAN/HappyHorse</Text>
+                  </Space>
+                  <Text type="secondary" style={{ fontSize: 11, marginLeft: 24 }}>
+                    申请入口：<a href="https://bailian.console.aliyun.com" target="_blank" rel="noopener noreferrer">bailian.console.aliyun.com ↗</a>
+                  </Text>
                 </Space>
-              </Option>
-              <Option value="tokenhub">
-                <Space>
-                  <CloudServerOutlined />
-                  腾讯云TokenHub — 混元/Kimi/GLM
+              </Select.Option>
+              <Select.Option value="tokenhub">
+                <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                  <Space>
+                    <CloudServerOutlined />
+                    <Text strong>腾讯云TokenHub</Text>
+                    <Text type="secondary">— 混元/可灵/Vidu/Kimi/数字人</Text>
+                  </Space>
+                  <Text type="secondary" style={{ fontSize: 11, marginLeft: 24 }}>
+                    申请入口：<a href="https://console.cloud.tencent.com/tokenhub" target="_blank" rel="noopener noreferrer">console.cloud.tencent.com/tokenhub ↗</a>
+                  </Text>
                 </Space>
-              </Option>
+              </Select.Option>
             </Select>
           </Form.Item>
 
           <Form.Item
-            name="apiKey"
-            label="API Key"
+            name="apiKey" label="API Key"
             rules={[{ required: true, message: '请输入API Key' }]}
           >
             <Input.Password
@@ -414,8 +417,7 @@ export default function ApiKeysPage() {
           </Form.Item>
 
           <Form.Item
-            name="secretKey"
-            label="Secret Key"
+            name="secretKey" label="Secret Key"
             tooltip="部分服务商需要Secret Key，如不需要可留空"
           >
             <Input.Password
@@ -437,6 +439,6 @@ export default function ApiKeysPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </div>
+    </PageContainer>
   );
 }

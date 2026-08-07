@@ -1,0 +1,96 @@
+src/routes/admin-agents.ts(83,9): error TS1117: An object literal cannot have multiple properties with the same name.
+src/routes/admin-agents.ts(319,20): error TS2561: Object literal may only specify known properties, but 'agent' does not exist in type '(Without<AgentNullableRelationFilter, AgentWhereInput> & AgentWhereInput) | (Without<AgentWhereInput, AgentNullableRelationFilter> & AgentNullableRelationFilter)'. Did you mean to write 'Agent'?
+src/routes/admin-agents.ts(336,32): error TS2561: Object literal may only specify known properties, but 'agent' does not exist in type '(Without<UserAgentRelationNullableRelationFilter, UserAgentRelationWhereInput> & UserAgentRelationWhereInput) | (Without<...> & UserAgentRelationNullableRelationFilter)'. Did you mean to write 'Agent'?
+src/routes/admin-agents.ts(450,11): error TS1117: An object literal cannot have multiple properties with the same name.
+src/routes/admin-agents.ts(454,15): error TS1117: An object literal cannot have multiple properties with the same name.
+src/routes/admin-dashboard.ts(54,9): error TS2561: Object literal may only specify known properties, but 'user' does not exist in type 'AgentInclude<DefaultArgs>'. Did you mean to write 'User'?
+src/routes/admin-features.ts(23,9): error TS2561: Object literal may only specify known properties, but 'featureSubSwitch' does not exist in type 'FeatureSwitchInclude<DefaultArgs>'. Did you mean to write 'FeatureSubSwitch'?
+src/routes/admin-logs.ts(33,11): error TS2561: Object literal may only specify known properties, but 'user' does not exist in type 'AdminLogInclude<DefaultArgs>'. Did you mean to write 'User'?
+src/routes/agent.ts(61,9): error TS2353: Object literal may only specify known properties, and 'user' does not exist in type 'TicketWhereInput'.
+src/routes/agent.ts(68,16): error TS2561: Object literal may only specify known properties, but 'user' does not exist in type 'MaterialWhereInput'. Did you mean to write 'User'?
+src/routes/agent.ts(400,9): error TS2561: Object literal may only specify known properties, but 'featureSubSwitch' does not exist in type 'FeatureSwitchInclude<DefaultArgs>'. Did you mean to write 'FeatureSubSwitch'?
+src/routes/agent.ts(418,35): error TS2339: Property 'featureSubSwitch' does not exist on type '{ code: string; name: string; description: string; id: string; createdAt: Date; enabled: boolean; updatedAt: Date; icon: string; sortOrder: number; }'.
+src/routes/ai-chat.ts(744,15): error TS2353: Object literal may only specify known properties, and 'userId' does not exist in type '(Without<ChatMessageCreateInput, ChatMessageUncheckedCreateInput> & ChatMessageUncheckedCreateInput) | (Without<...> & ChatMessageCreateInput)'.
+src/routes/auth.ts(41,36): error TS2559: Type 'ZodObject<{ body: ZodObject<{ phone: ZodString; type: ZodDefault<ZodEnum<["register", "login", "reset"]>>; }, "strip", ZodTypeAny, { phone?: string; type?: "register" | ... 1 more ... | "reset"; }, { ...; }>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' has no properties in common with type 'ValidateOptions'.
+src/routes/auth.ts(231,42): error TS2559: Type 'ZodObject<{ body: ZodObject<{ phone: ZodString; type: ZodDefault<ZodEnum<["register", "login", "reset"]>>; }, "strip", ZodTypeAny, { phone?: string; type?: "register" | ... 1 more ... | "reset"; }, { ...; }>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' has no properties in common with type 'ValidateOptions'.
+src/routes/auth.ts(323,41): error TS2559: Type 'ZodObject<{ body: ZodObject<{ phone: ZodString; code: ZodString; newPassword: ZodString; }, "strip", ZodTypeAny, { phone?: string; code?: string; newPassword?: string; }, { ...; }>; }, "strip", ZodTypeAny, { ...; }, { ...; }>' has no properties in common with type 'ValidateOptions'.
+src/routes/dashboard-stats.ts(10,8): error TS2307: Cannot find module '../services/dashboard-service' or its corresponding type declarations.
+src/routes/dashboard-stats.ts(108,40): error TS2353: Object literal may only specify known properties, and 'leads' does not exist in type 'AcquisitionTaskCountOutputTypeSelect<DefaultArgs>'.
+src/routes/dashboard-stats.ts(116,67): error TS2339: Property '_count' does not exist on type '{ userId: string; status: string; id: string; createdAt: Date; updatedAt: Date; title: string; channel: string; progress: number; leadsCount: number; targetCount: number; startedAt: Date; completedAt: Date; }'.
+src/routes/dashboard-stats.ts(198,116): error TS2554: Expected 0 arguments, but got 1.
+src/routes/dashboard-stats.ts(210,44): error TS2554: Expected 0 arguments, but got 1.
+src/routes/dashboard-stats.ts(220,44): error TS2554: Expected 0 arguments, but got 1.
+src/routes/export.ts(88,34): error TS2339: Property 'publishRecord' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/export.ts(130,14): error TS2339: Property 'publishRecord' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/script.ts(165,11): error TS2353: Object literal may only specify known properties, and 'contentTemplate' does not exist in type 'ConversationLogInclude<DefaultArgs>'.
+src/routes/share.ts(79,16): error TS2561: Object literal may only specify known properties, but 'shareQrCode' does not exist in type 'ShareRecordWhereInput'. Did you mean to write 'ShareQrCode'?
+src/routes/share.ts(83,18): error TS2561: Object literal may only specify known properties, but 'shareQrCode' does not exist in type 'ShareRecordInclude<DefaultArgs>'. Did you mean to write 'ShareQrCode'?
+src/routes/share.ts(86,61): error TS2561: Object literal may only specify known properties, but 'shareQrCode' does not exist in type 'ShareRecordWhereInput'. Did you mean to write 'ShareQrCode'?
+src/routes/share.ts(233,9): error TS2561: Object literal may only specify known properties, but 'shareRecord' does not exist in type 'ShareCommissionInclude<DefaultArgs>'. Did you mean to write 'ShareRecord'?
+src/routes/statistics.ts(162,11): error TS2561: Object literal may only specify known properties, but 'userFeatureSwitch' does not exist in type 'UserWhereInput'. Did you mean to write 'UserFeatureSwitch'?
+src/routes/statistics.ts(172,11): error TS2561: Object literal may only specify known properties, but 'userFeatureSwitch' does not exist in type 'UserWhereInput'. Did you mean to write 'UserFeatureSwitch'?
+src/routes/statistics.ts(182,11): error TS2561: Object literal may only specify known properties, but 'userFeatureSwitch' does not exist in type 'UserWhereInput'. Did you mean to write 'UserFeatureSwitch'?
+src/routes/statistics.ts(217,9): error TS2561: Object literal may only specify known properties, but 'user' does not exist in type 'UserAgentRelationInclude<DefaultArgs>'. Did you mean to write 'User'?
+src/routes/statistics.ts(235,41): error TS2339: Property 'user' does not exist on type '{ userId: string; id: string; createdAt: Date; agentId: string; }'.
+src/routes/statistics.ts(289,9): error TS2561: Object literal may only specify known properties, but 'user' does not exist in type 'UserAgentRelationInclude<DefaultArgs>'. Did you mean to write 'User'?
+src/routes/statistics.ts(318,43): error TS2339: Property 'user' does not exist on type '{ userId: string; id: string; createdAt: Date; agentId: string; }'.
+src/routes/ticket.ts(44,11): error TS2561: Object literal may only specify known properties, but 'ticketResponse' does not exist in type 'TicketInclude<DefaultArgs>'. Did you mean to write 'TicketResponse'?
+src/routes/ticket.ts(78,9): error TS2561: Object literal may only specify known properties, but 'ticketResponse' does not exist in type 'TicketInclude<DefaultArgs>'. Did you mean to write 'TicketResponse'?
+src/routes/user-features.ts(22,9): error TS2353: Object literal may only specify known properties, and 'subFeatures' does not exist in type 'FeatureSwitchInclude<DefaultArgs>'.
+src/routes/user-features.ts(39,30): error TS2339: Property 'subFeatures' does not exist on type '{ code: string; name: string; description: string; id: string; createdAt: Date; enabled: boolean; updatedAt: Date; icon: string; sortOrder: number; }'.
+src/routes/user-features.ts(116,9): error TS2353: Object literal may only specify known properties, and 'subFeatures' does not exist in type 'FeatureSwitchInclude<DefaultArgs>'.
+src/routes/user-features.ts(140,36): error TS2339: Property 'subFeatures' does not exist on type '{ code: string; name: string; description: string; id: string; createdAt: Date; enabled: boolean; updatedAt: Date; icon: string; sortOrder: number; }'.
+src/services/acquisition-service.ts(414,7): error TS2353: Object literal may only specify known properties, and 'task' does not exist in type 'AcquisitionLeadInclude<DefaultArgs>'.
+src/services/acquisition-service.ts(426,21): error TS2339: Property 'task' does not exist on type '{ userId: string; phone: string; status: string; name: string; email: string; id: string; createdAt: Date; updatedAt: Date; source: string; taskId: string; aiQuality: string; aiFollowup: string; ... 4 more ...; notes: string; }'.
+src/services/acquisition-service.ts(427,19): error TS2339: Property 'task' does not exist on type '{ userId: string; phone: string; status: string; name: string; email: string; id: string; createdAt: Date; updatedAt: Date; source: string; taskId: string; aiQuality: string; aiFollowup: string; ... 4 more ...; notes: string; }'.
+src/services/acquisition-service.ts(428,25): error TS2551: Property 'followups' does not exist on type '{ userId: string; phone: string; status: string; name: string; email: string; id: string; createdAt: Date; updatedAt: Date; source: string; taskId: string; aiQuality: string; aiFollowup: string; ... 4 more ...; notes: string; }'. Did you mean 'aiFollowup'?
+src/services/admin-agents.service.ts(83,9): error TS2353: Object literal may only specify known properties, and 'children' does not exist in type 'AgentInclude<DefaultArgs>'.
+src/services/admin-agents.service.ts(103,7): error TS2353: Object literal may only specify known properties, and 'parent' does not exist in type 'AgentInclude<DefaultArgs>'.
+src/services/admin-agents.service.ts(267,29): error TS2353: Object literal may only specify known properties, and '_count' does not exist in type 'UserCountOutputTypeSelect<DefaultArgs>'.
+src/services/agent.service.ts(164,16): error TS2561: Object literal may only specify known properties, but 'featureSwitches' does not exist in type 'UserInclude<DefaultArgs>'. Did you mean to write 'UserFeatureSwitch'?
+src/services/agent.service.ts(183,31): error TS2339: Property 'featureSwitches' does not exist on type '{ role: string; phone: string; status: string; password: string; name: string; email: string; avatar: string; id: string; createdAt: Date; updatedAt: Date; expireAt: Date; fee: Decimal; ... 8 more ...; lastLoginAt: Date; }'.
+src/services/agent.service.ts(287,48): error TS2353: Object literal may only specify known properties, and 'subFeatures' does not exist in type 'FeatureSwitchInclude<DefaultArgs>'.
+src/services/agent.service.ts(299,28): error TS2339: Property 'subFeatures' does not exist on type '{ code: string; name: string; description: string; id: string; createdAt: Date; enabled: boolean; updatedAt: Date; icon: string; sortOrder: number; }'.
+src/services/ai-chat.service.ts(59,5): error TS2322: Type '{ messages: { orderBy: { createdAt: string; }; take: number; }; }' is not assignable to type 'never'.
+src/services/ai-chat.service.ts(71,5): error TS2322: Type '{ messages: { orderBy: { createdAt: string; }; }; }' is not assignable to type 'never'.
+src/services/ai-chat.service.ts(229,17): error TS2339: Property 'choices' does not exist on type 'unknown'.
+src/services/ai-client.ts(687,76): error TS2339: Property 'modelId' does not exist on type '{ id: string; name: string; provider: string; type: string; priority: number; cost: string; maxTokens: number; description: string; keywords: string[]; fallback: string; } | { id: string; name: string; ... 7 more ...; fallback: string; } | ... 9 more ... | { ...; }'.
+src/services/ai-client.ts(687,101): error TS2551: Property 'getModelId' does not exist on type 'AIModelRouter'. Did you mean 'getModelInfo'?
+src/services/ai-client.ts(703,20): error TS2552: Cannot find name 'fallbackModel'. Did you mean 'fallbackModelInfo'?
+src/services/ai-pipeline.ts(500,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(508,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(525,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(534,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(542,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/amap.service.ts(138,14): error TS2339: Property 'status' does not exist on type 'unknown'.
+src/services/amap.service.ts(139,28): error TS2339: Property 'info' does not exist on type 'unknown'.
+src/services/amap.service.ts(143,19): error TS2339: Property 'pois' does not exist on type 'unknown'.
+src/services/amap.service.ts(158,28): error TS2339: Property 'count' does not exist on type 'unknown'.
+src/services/amap.service.ts(229,19): error TS2339: Property 'pois' does not exist on type 'unknown'.
+src/services/amap.service.ts(241,28): error TS2339: Property 'count' does not exist on type 'unknown'.
+src/services/auth.service.ts(367,9): error TS2353: Object literal may only specify known properties, and 'action' does not exist in type '(Without<LoginLogCreateInput, LoginLogUncheckedCreateInput> & LoginLogUncheckedCreateInput) | (Without<...> & LoginLogCreateInput)'.
+src/services/auth.service.ts(471,20): error TS2353: Object literal may only specify known properties, and 'createdAt' does not exist in type 'LoginLogOrderByWithRelationInput | LoginLogOrderByWithRelationInput[]'.
+src/services/chat-history.service.ts(123,7): error TS2353: Object literal may only specify known properties, and 'messages' does not exist in type 'ChatConversationInclude<DefaultArgs>'.
+src/services/data-acquisition.service.ts(65,17): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue'.
+src/services/data-acquisition.service.ts(73,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue'.
+src/services/data-acquisition.service.ts(97,21): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue'.
+src/services/data-acquisition.service.ts(102,33): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue'.
+src/services/data-acquisition.service.ts(440,16): error TS2322: Type 'string' is not assignable to type '"douyin" | "kuaishou"'.
+src/services/data-acquisition.service.ts(441,22): error TS2322: Type 'string' is not assignable to type '"douyin" | "kuaishou"'.
+src/services/data-acquisition.service.ts(442,20): error TS2322: Type 'string' is not assignable to type '"douyin" | "kuaishou"'.
+src/services/model-registry.ts(430,25): error TS2322: Type '"professional"' is not assignable to type 'ModelCapability'.
+src/services/model-registry.ts(465,25): error TS2322: Type '"professional"' is not assignable to type 'ModelCapability'.
+src/services/multi-model-orchestrator.ts(383,52): error TS2345: Argument of type '"professional"' is not assignable to parameter of type 'ModelCapability'.
+src/services/multi-model-orchestrator.ts(431,3): error TS2322: Type '"professional"' is not assignable to type 'ModelCapability'.
+src/services/multi-model-orchestrator.ts(541,7): error TS2322: Type '"professional"' is not assignable to type 'ModelCapability'.
+src/services/recruitment-service.ts(152,33): error TS2339: Property 'platformAccount' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/recruitment-service.ts(161,39): error TS2339: Property 'sessionExpiry' does not exist on type 'unknown'.
+src/services/recruitment-service.ts(162,49): error TS2339: Property 'sessionExpiry' does not exist on type 'unknown'.
+src/services/recruitment-service.ts(301,11): error TS2820: Type '"user"' is not assignable to type '"User" | "assistant" | "system"'. Did you mean '"User"'?
+src/services/recruitment-service.ts(524,11): error TS2820: Type '"user"' is not assignable to type '"User" | "assistant" | "system"'. Did you mean '"User"'?
+src/services/recruitment-service.ts(615,11): error TS2820: Type '"user"' is not assignable to type '"User" | "assistant" | "system"'. Did you mean '"User"'?
+src/services/recruitment-service.ts(695,11): error TS2820: Type '"user"' is not assignable to type '"User" | "assistant" | "system"'. Did you mean '"User"'?
+src/services/recruitment-service.ts(744,34): error TS2339: Property 'recruitmentInterview' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/recruitment-service.ts(759,16): error TS2339: Property 'crmReminder' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/recruitment-service.ts(785,12): error TS2339: Property 'recruitmentInterview' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/user-api-key.service.ts(188,5): error TS2322: Type '{ userId: string; provider: "dashscope" | "tokenhub"; apiKey: string; secretKey: string; status: string; isPrimary: boolean; usage: number; failCount: number; }' is not assignable to type '(Without<ApiKeyCreateInput, ApiKeyUncheckedCreateInput> & ApiKeyUncheckedCreateInput) | (Without<...> & ApiKeyCreateInput)'.

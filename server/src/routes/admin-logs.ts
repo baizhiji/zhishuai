@@ -1,12 +1,15 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-
+import type { PrismaClient } from '@prisma/client';
+import { prisma } from '../utils/db';
+import { authMiddleware } from '../middleware/auth';
 const router = Router();
-const prisma = new PrismaClient();
-
 // 获取日志列表
-router.get('/logs', async (req, res) => {
+router.get('/logs', authMiddleware, async (req, res) => {
   try {
+    // 只有 admin 可以查看日志
+    if ((req as any).userRole !== 'admin') {
+      return res.status(403).json({ error: '无权限访问操作日志' });
+    }
     const { page = '1', pageSize = '20', userId, action, startDate, endDate, keyword } = req.query;
     
     const where: any = {};
@@ -46,8 +49,12 @@ router.get('/logs', async (req, res) => {
 });
 
 // 获取日志统计
-router.get('/logs/stats', async (req, res) => {
+router.get('/logs/stats', authMiddleware, async (req, res) => {
   try {
+    // 只有 admin 可以查看日志
+    if ((req as any).userRole !== 'admin') {
+      return res.status(403).json({ error: '无权限访问操作日志' });
+    }
     const { days = '7' } = req.query;
     const numDays = Number(days);
     const startDate = new Date();

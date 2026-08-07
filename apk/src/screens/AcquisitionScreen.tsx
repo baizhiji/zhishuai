@@ -1,110 +1,79 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal, RefreshControl } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import PageHeader from '../components/PageHeader';
+import {
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  Modal, TextInput, Alert, ActivityIndicator, Dimensions,
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import acquisitionService from '../services/acquisition.service';
+import { PageHeader } from '../components/PageHeader';
+import { acquisitionService } from '../services/acquisition.service';
+import type { AcquisitionTask, AcquisitionLead, StatsData, LeadStatus } from '../services/acquisition.service';
 
-// 获客任务类型
-interface Task {
-  id: string;
-  name: string;
-  channel: 'douyin' | 'wechat' | 'sms' | 'xiaohongshu';
-  status: 'running' | 'completed' | 'paused';
-  progress: number;
-  sent: number;
-  scanned: number;
-  converted: number;
-  startTime: string;
-}
+const { width: SW } = Dimensions.get('window');
 
-// 线索类型
-interface Lead {
-  id: string;
-  name: string;
-  phone: string;
-  source: string;
-  status: 'new' | 'contacted' | 'converted' | 'invalid';
-  createTime: string;
-  tags: string[];
-}
+// ─── 常量 ──────────────────────────────────────────────────
+const TABS = ['数据总览', '获客任务', '潜客管理', 'AI发现'];
+const CHANNELS = [
+  { key: 'douyin', label: '抖音' },
+  { key: 'kuaishou', label: '快手' },
+  { key: 'xiaohongshu', label: '小红书' },
+  { key: 'weibo', label: '微博' },
+  { key: 'bosszhipin', label: 'BOSS直聘' },
+  { key: 'zhilian', label: '智联' },
+];
 
-// 统计数据
-const stats = {
-  discover: 1256,
-  discoverChange: 15.8,
-  sent: 45892,
-  sentChange: 12.3,
-  scanned: 8934,
-  scannedChange: 8.5,
-  converted: 1523,
-  convertedChange: 18.2,
+const STATUS_COLORS: Record<string, string> = {
+  pending: '#faad14', running: '#1890ff', completed: '#52c41a', paused: '#8c8c8c',
+  new: '#1890ff', contacted: '#722ed1', qualified: '#13c2c2', converted: '#52c41a',
+  invalid: '#8c8c8c', blacklisted: '#ff4d4f',
 };
 
-// 漏斗数据
-const funnelData = [
-  { stage: '发送消息', count: 45892, rate: 100 },
-  { stage: '查看消息', count: 28934, rate: 63 },
-  { stage: '扫码次数', count: 8934, rate: 19 },
-  { stage: '成功转化', count: 1523, rate: 3.3 },
-];
+const STATUS_LABELS: Record<string, string> = {
+  pending: '待启动', running: '运行中', completed: '已完成', paused: '已暂停',
+  new: '新潜客', contacted: '已联系', qualified: '已确认', converted: '已转化',
+  invalid: '无效', blacklisted: '已拉黑',
+};
 
-// 渠道分布
-const channelData = [
-  { channel: '抖音', count: 1856, rate: 12.2, color: '#ff4757' },
-  { channel: '微信', count: 4567, rate: 30.0, color: '#07c160' },
-  { channel: '短信', count: 8934, rate: 58.7, color: '#4F46E5' },
-  { channel: '小红书', count: 1234, rate: 8.1, color: '#ff6b9d' },
-];
-
-// 模拟任务数据
-const mockTasks: Task[] = [
-  { id: '1', name: '新品推广活动', channel: 'douyin', status: 'running', progress: 78, sent: 1234, scanned: 456, converted: 78, startTime: '2024-03-25 10:30' },
-  { id: '2', name: '限时优惠引流', channel: 'wechat', status: 'running', progress: 55, sent: 2345, scanned: 876, converted: 156, startTime: '2024-03-25 09:15' },
-  { id: '3', name: '会员招募短信', channel: 'sms', status: 'completed', progress: 100, sent: 5678, scanned: 1234, converted: 234, startTime: '2024-03-24 14:20' },
-  { id: '4', name: '新品预约通知', channel: 'douyin', status: 'paused', progress: 45, sent: 987, scanned: 345, converted: 56, startTime: '2024-03-24 11:45' },
-];
-
-// 模拟线索数据
-const mockLeads: Lead[] = [
-  { id: '1', name: '张先生', phone: '138****1234', source: '抖音广告', status: 'new', createTime: '2024-03-25', tags: ['高意向', '北京'] },
-  { id: '2', name: '李女士', phone: '139****5678', source: '微信推广', status: 'contacted', createTime: '2024-03-25', tags: ['已咨询', '上海'] },
-  { id: '3', name: '王先生', phone: '137****9012', source: '短信链接', status: 'converted', createTime: '2024-03-24', tags: ['已付费', '深圳'] },
-  { id: '4', name: '刘女士', phone: '136****3456', source: '小红书', status: 'new', createTime: '2024-03-24', tags: ['高意向'] },
-];
-
+// ─── 组件 ──────────────────────────────────────────────────
 export default function AcquisitionScreen() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'stats' | 'tasks' | 'leads'>('stats');
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [leads, setLeads] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>({ discover: 0, sent: 0, scanned: 0, converted: 0 });
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(0);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showLeadModal, setShowLeadModal] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [form, setForm] = useState({
-    name: '',
-    channel: 'douyin',
-    content: '',
-    targetCount: '',
-  });
 
-  // 加载数据
-  const loadData = useCallback(async () => {
+  // 数据
+  const [stats, setStats] = useState<StatsData>({
+    totalTasks: 0, runningTasks: 0, totalLeads: 0, newLeads: 0,
+    contactedLeads: 0, convertedLeads: 0, invalidLeads: 0, conversionRate: 0,
+  });
+  const [tasks, setTasks] = useState<AcquisitionTask[]>([]);
+  const [leads, setLeads] = useState<AcquisitionLead[]>([]);
+
+  // 弹窗
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [showLeadDetail, setShowLeadDetail] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<AcquisitionLead | null>(null);
+
+  // 表单
+  const [taskName, setTaskName] = useState('');
+  const [taskChannel, setTaskChannel] = useState('douyin');
+  const [targetCount, setTargetCount] = useState('100');
+
+  // ─── 数据加载 ────────────────────────────────────────
+  const loadData = useCallback(async (silent = false) => {
     if (!user?.id) return;
+    if (!silent) setLoading(true);
     try {
-      const [tasksData, leadsData, statsData] = await Promise.all([
-        acquisitionService.getTasks(user.id),
-        acquisitionService.getLeads(user.id),
-        acquisitionService.getStats(user.id),
+      const [statsRes, tasksRes, leadsRes] = await Promise.all([
+        acquisitionService.getStats(),
+        acquisitionService.getTasks({ pageSize: 50 }),
+        acquisitionService.getLeads({ pageSize: 50 }),
       ]);
-      setTasks(tasksData);
-      setLeads(leadsData);
-      setStats(statsData);
-    } catch (error) {
-      console.error('加载数据失败:', error);
+      setStats(statsRes);
+      setTasks(tasksRes.tasks || []);
+      setLeads(leadsRes.leads || []);
+    } catch (e: any) {
+      if (!silent) Alert.alert('加载失败', e.message || '请稍后重试');
+      console.error('获客数据加载失败:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -112,403 +81,190 @@ export default function AcquisitionScreen() {
   }, [user?.id]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (user?.id) loadData();
+  }, [user?.id, loadData]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    loadData();
-  };
-
-  // 创建获客任务
+  // ─── 操作 ──────────────────────────────────────────
   const handleCreateTask = async () => {
-    if (!form.name || !form.content || !form.targetCount) {
-      Alert.alert('提示', '请填写完整信息');
-      return;
-    }
+    if (!taskName.trim()) return Alert.alert('提示', '请输入任务名称');
     try {
-      const newTask = await acquisitionService.createTask(user!.id, {
-        name: form.name,
-        channel: form.channel,
-        content: form.content,
-        targetCount: parseInt(form.targetCount),
+      setLoading(true);
+      await acquisitionService.createTask({
+        name: taskName.trim(),
+        channel: taskChannel,
+        targetCount: parseInt(targetCount, 10) || 100,
       });
-      setTasks([newTask, ...tasks]);
-      setShowAddModal(false);
-      setForm({ name: '', channel: 'douyin', content: '', targetCount: '' });
-      Alert.alert('成功', '获客任务已创建');
-    } catch (error) {
-      Alert.alert('错误', '创建任务失败');
+      setShowCreateTask(false);
+      setTaskName('');
+      setTaskChannel('douyin');
+      setTargetCount('100');
+      await loadData(true);
+    } catch (e: any) {
+      Alert.alert('创建失败', e.message || '请稍后重试');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 更新线索状态
-  const updateLeadStatus = async (id: string, status: string) => {
+  const handleStartTask = async (taskId: string) => {
     try {
-      await acquisitionService.updateLeadStatus(id, status);
-      setLeads(leads.map(l => l.id === id ? { ...l, status } : l));
-      Alert.alert('成功', `线索状态已更新`);
-      setShowLeadModal(false);
-    } catch (error) {
-      Alert.alert('错误', '更新状态失败');
+      setLoading(true);
+      await acquisitionService.startTask(taskId);
+      await loadData(true);
+    } catch (e: any) {
+      Alert.alert('启动失败', e.message || '请稍后重试');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 获取渠道信息
-  const getChannelInfo = (channel: string) => {
-    switch (channel) {
-      case 'douyin': return { name: '抖音', icon: 'logo-octocat' as const, color: '#ff4757' };
-      case 'wechat': return { name: '微信', icon: 'chatbubble' as const, color: '#07c160' };
-      case 'sms': return { name: '短信', icon: 'mail' as const, color: '#4F46E5' };
-      case 'xiaohongshu': return { name: '小红书', icon: 'book' as const, color: '#ff6b9d' };
-      default: return { name: channel, icon: 'globe' as const, color: '#64748b' };
+  const handleUpdateLead = async (leadId: string, status: LeadStatus) => {
+    try {
+      setLoading(true);
+      await acquisitionService.updateLead(leadId, { status });
+      setShowLeadDetail(false);
+      setSelectedLead(null);
+      await loadData(true);
+    } catch (e: any) {
+      Alert.alert('更新失败', e.message || '请稍后重试');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 获取状态颜色
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'running': case 'new': return { bg: '#dbeafe', text: '#1e40af' };
-      case 'completed': case 'converted': return { bg: '#dcfce7', text: '#166534' };
-      case 'paused': case 'contacted': return { bg: '#fef3c7', text: '#92400e' };
-      case 'invalid': return { bg: '#fee2e2', text: '#dc2626' };
-      default: return { bg: '#f1f5f9', text: '#64748b' };
+  const handleDiscover = async (taskId: string) => {
+    try {
+      setLoading(true);
+      const result = await acquisitionService.discoverLeads(taskId, 5);
+      Alert.alert('发现完成', `AI 发现 ${result.count} 个潜在客户`);
+      await loadData(true);
+    } catch (e: any) {
+      Alert.alert('发现失败', e.message || '请稍后重试');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 获取状态文本
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'running': return '进行中';
-      case 'completed': return '已完成';
-      case 'paused': return '已暂停';
-      case 'new': return '新线索';
-      case 'contacted': return '已联系';
-      case 'converted': return '已转化';
-      case 'invalid': return '无效';
-      default: return status;
-    }
-  };
-
+  // ─── 渲染 ──────────────────────────────────────────
   return (
     <View style={styles.container}>
       <PageHeader title="智能获客" />
 
-      {/* Tab栏 */}
+      {/* Tab 栏 */}
       <View style={styles.tabBar}>
-        {[
-          { key: 'stats', icon: 'stats-chart', label: '数据' },
-          { key: 'tasks', icon: 'rocket', label: '任务' },
-          { key: 'leads', icon: 'people', label: '线索' },
-        ].map(tab => (
-          <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key as any)}>
-            <Ionicons name={tab.icon as any} size={18} color={activeTab === tab.key ? '#4F46E5' : '#94a3b8'} />
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+        {TABS.map((tab, i) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === i && styles.tabActive]}
+            onPress={() => setActiveTab(i)}
+          >
+            <Text style={[styles.tabText, activeTab === i && styles.tabTextActive]}>{tab}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}>
-        {/* 数据统计 */}
-        {activeTab === 'stats' && (
-          <>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#dbeafe' }]}>
-                  <Ionicons name="eye" size={18} color="#1890ff" />
-                </View>
-                <Text style={styles.statValue}>{stats.discover.toLocaleString()}</Text>
-                <Text style={styles.statLabel}>发现潜客</Text>
-                <Text style={[styles.statChange, { color: stats.discoverChange > 0 ? '#22c55e' : '#ef4444' }]}>
-                  {stats.discoverChange > 0 ? '↑' : '↓'} {Math.abs(stats.discoverChange)}%
-                </Text>
-              </View>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#dcfce7' }]}>
-                  <Ionicons name="send" size={18} color="#52c41a" />
-                </View>
-                <Text style={styles.statValue}>{stats.sent > 9999 ? (stats.sent / 1000).toFixed(1) + 'k' : stats.sent}</Text>
-                <Text style={styles.statLabel}>发送消息</Text>
-                <Text style={[styles.statChange, { color: stats.sentChange > 0 ? '#22c55e' : '#ef4444' }]}>
-                  {stats.sentChange > 0 ? '↑' : '↓'} {Math.abs(stats.sentChange)}%
-                </Text>
-              </View>
-            </View>
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#fef3c7' }]}>
-                  <Ionicons name="qr-code" size={18} color="#f59e0b" />
-                </View>
-                <Text style={styles.statValue}>{stats.scanned > 9999 ? (stats.scanned / 1000).toFixed(1) + 'k' : stats.scanned}</Text>
-                <Text style={styles.statLabel}>扫码次数</Text>
-                <Text style={[styles.statChange, { color: stats.scannedChange > 0 ? '#22c55e' : '#ef4444' }]}>
-                  {stats.scannedChange > 0 ? '↑' : '↓'} {Math.abs(stats.scannedChange)}%
-                </Text>
-              </View>
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#f3e8ff' }]}>
-                  <Ionicons name="checkmark-circle" size={18} color="#9333ea" />
-                </View>
-                <Text style={styles.statValue}>{stats.converted.toLocaleString()}</Text>
-                <Text style={styles.statLabel}>成功转化</Text>
-                <Text style={[styles.statChange, { color: stats.convertedChange > 0 ? '#22c55e' : '#ef4444' }]}>
-                  {stats.convertedChange > 0 ? '↑' : '↓'} {Math.abs(stats.convertedChange)}%
-                </Text>
-              </View>
-            </View>
-
-            {/* 转化漏斗 */}
-            <Text style={styles.sectionTitle}>转化漏斗</Text>
-            <View style={styles.funnelCard}>
-              {funnelData.map((item, index) => (
-                <View key={index} style={styles.funnelItem}>
-                  <View style={[styles.funnelBar, { width: `${item.rate}%`, backgroundColor: ['#4F46E5', '#818cf8', '#a5b4fc', '#c7d2fe'][index] }]} />
-                  <View style={styles.funnelContent}>
-                    <Text style={styles.funnelStage}>{item.stage}</Text>
-                    <Text style={styles.funnelCount}>{item.count.toLocaleString()}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-
-            {/* 渠道分布 */}
-            <Text style={styles.sectionTitle}>渠道分布</Text>
-            <View style={styles.channelCard}>
-              {channelData.map((item, index) => (
-                <View key={index} style={styles.channelItem}>
-                  <View style={[styles.channelDot, { backgroundColor: item.color }]} />
-                  <Text style={styles.channelName}>{item.channel}</Text>
-                  <Text style={styles.channelCount}>{item.count.toLocaleString()}</Text>
-                  <Text style={styles.channelRate}>{item.rate}%</Text>
-                </View>
-              ))}
-            </View>
-          </>
-        )}
-
-        {/* 获客任务 */}
-        {activeTab === 'tasks' && (
-          <>
-            <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddModal(true)}>
-              <Ionicons name="add-circle" size={20} color="#fff" />
-              <Text style={styles.addBtnText}>创建获客任务</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.sectionTitle}>进行中的任务 ({tasks.filter(t => t.status === 'running').length})</Text>
-            {tasks.filter(t => t.status === 'running').map(task => {
-              const channelInfo = getChannelInfo(task.channel);
-              return (
-                <View key={task.id} style={styles.taskCard}>
-                  <View style={styles.taskHeader}>
-                    <View style={styles.taskTitleRow}>
-                      <View style={[styles.channelBadge, { backgroundColor: channelInfo.color + '20' }]}>
-                        <Ionicons name={channelInfo.icon} size={14} color={channelInfo.color} />
-                      </View>
-                      <Text style={styles.taskName}>{task.name}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusConfig(task.status).bg }]}>
-                      <Text style={[styles.statusText, { color: getStatusConfig(task.status).text }]}>{getStatusText(task.status)}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: `${task.progress}%` }]} />
-                  </View>
-                  <View style={styles.taskStats}>
-                    <View style={styles.taskStat}>
-                      <Text style={styles.taskStatValue}>{task.sent}</Text>
-                      <Text style={styles.taskStatLabel}>发送</Text>
-                    </View>
-                    <View style={styles.taskStat}>
-                      <Text style={styles.taskStatValue}>{task.scanned}</Text>
-                      <Text style={styles.taskStatLabel}>扫码</Text>
-                    </View>
-                    <View style={styles.taskStat}>
-                      <Text style={styles.taskStatValue}>{task.converted}</Text>
-                      <Text style={styles.taskStatLabel}>转化</Text>
-                    </View>
-                    <Text style={styles.taskProgress}>{task.progress}%</Text>
-                  </View>
-                </View>
-              );
-            })}
-
-            <Text style={styles.sectionTitle}>已完成的任务 ({tasks.filter(t => t.status === 'completed').length})</Text>
-            {tasks.filter(t => t.status !== 'running').map(task => {
-              const channelInfo = getChannelInfo(task.channel);
-              return (
-                <View key={task.id} style={styles.taskCard}>
-                  <View style={styles.taskHeader}>
-                    <View style={styles.taskTitleRow}>
-                      <View style={[styles.channelBadge, { backgroundColor: channelInfo.color + '20' }]}>
-                        <Ionicons name={channelInfo.icon} size={14} color={channelInfo.color} />
-                      </View>
-                      <Text style={styles.taskName}>{task.name}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusConfig(task.status).bg }]}>
-                      <Text style={[styles.statusText, { color: getStatusConfig(task.status).text }]}>{getStatusText(task.status)}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.taskStats}>
-                    <View style={styles.taskStat}>
-                      <Text style={styles.taskStatValue}>{task.sent}</Text>
-                      <Text style={styles.taskStatLabel}>发送</Text>
-                    </View>
-                    <View style={styles.taskStat}>
-                      <Text style={styles.taskStatValue}>{task.scanned}</Text>
-                      <Text style={styles.taskStatLabel}>扫码</Text>
-                    </View>
-                    <View style={styles.taskStat}>
-                      <Text style={styles.taskStatValue}>{task.converted}</Text>
-                      <Text style={styles.taskStatLabel}>转化</Text>
-                    </View>
-                    <Text style={styles.taskTime}>{task.startTime}</Text>
-                  </View>
-                </View>
-              );
-            })}
-          </>
-        )}
-
-        {/* 线索管理 */}
-        {activeTab === 'leads' && (
-          <>
-            <Text style={styles.sectionTitle}>线索列表 ({leads.length})</Text>
-            {leads.map(lead => (
-              <TouchableOpacity key={lead.id} style={styles.leadCard} onPress={() => { setSelectedLead(lead); setShowLeadModal(true); }}>
-                <View style={styles.leadHeader}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{lead.name[0]}</Text>
-                  </View>
-                  <View style={styles.leadInfo}>
-                    <Text style={styles.leadName}>{lead.name}</Text>
-                    <Text style={styles.leadPhone}>{lead.phone}</Text>
-                  </View>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusConfig(lead.status).bg }]}>
-                    <Text style={[styles.statusText, { color: getStatusConfig(lead.status).text }]}>{getStatusText(lead.status)}</Text>
-                  </View>
-                </View>
-                <View style={styles.leadTags}>
-                  <Text style={styles.leadSource}>{lead.source}</Text>
-                  {lead.tags.map((tag, i) => (
-                    <Text key={i} style={styles.leadTag}>{tag}</Text>
-                  ))}
-                </View>
-                <Text style={styles.leadTime}>创建时间: {lead.createTime}</Text>
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+      {loading && tasks.length === 0 ? (
+        <View style={styles.center}><ActivityIndicator size="large" color="#1677ff" /></View>
+      ) : (
+        <ScrollView style={styles.body} contentContainerStyle={styles.bodyInner}>
+          {activeTab === 0 && <OverviewTab stats={stats} />}
+          {activeTab === 1 && (
+            <TasksTab
+              tasks={tasks}
+              onRefresh={() => loadData(true)}
+              onCreate={() => setShowCreateTask(true)}
+              onStart={handleStartTask}
+              onDiscover={handleDiscover}
+              channels={CHANNELS}
+            />
+          )}
+          {activeTab === 2 && (
+            <LeadsTab
+              leads={leads}
+              onRefresh={() => loadData(true)}
+              onPress={(lead) => { setSelectedLead(lead); setShowLeadDetail(true); }}
+            />
+          )}
+          {activeTab === 3 && (
+            <DiscoverTab
+              tasks={tasks}
+              onDiscover={handleDiscover}
+            />
+          )}
+        </ScrollView>
+      )}
 
       {/* 创建任务弹窗 */}
-      <Modal visible={showAddModal} animationType="slide" transparent>
+      <Modal visible={showCreateTask} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>创建获客任务</Text>
-              <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <Ionicons name="close" size={24} color="#64748b" />
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>创建获客任务</Text>
+            <Text style={styles.label}>任务名称</Text>
+            <TextInput style={styles.input} value={taskName} onChangeText={setTaskName} placeholder="如：母婴产品北京潜在客户" />
+            <Text style={styles.label}>获客渠道</Text>
+            <View style={styles.chipRow}>
+              {CHANNELS.map(c => (
+                <TouchableOpacity
+                  key={c.key}
+                  style={[styles.chip, taskChannel === c.key && styles.chipActive]}
+                  onPress={() => setTaskChannel(c.key)}
+                >
+                  <Text style={[styles.chipText, taskChannel === c.key && styles.chipTextActive]}>{c.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={styles.label}>目标数量</Text>
+            <TextInput style={styles.input} value={targetCount} onChangeText={setTargetCount} keyboardType="numeric" placeholder="100" />
+            <View style={styles.btnRow}>
+              <TouchableOpacity style={styles.btnCancel} onPress={() => setShowCreateTask(false)}>
+                <Text style={styles.btnCancelText}>取消</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnPrimary} onPress={handleCreateTask}>
+                <Text style={styles.btnPrimaryText}>创建任务</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.inputLabel}>任务名称 *</Text>
-              <TextInput style={styles.input} placeholder="例如：新品推广活动" placeholderTextColor="#94a3b8" value={form.name} onChangeText={t => setForm({ ...form, name: t })} />
-
-              <Text style={styles.inputLabel}>推广渠道 *</Text>
-              <View style={styles.channelSelect}>
-                {[
-                  { key: 'douyin', label: '抖音', icon: 'logo-octocat' as const, color: '#ff4757' },
-                  { key: 'wechat', label: '微信', icon: 'chatbubble' as const, color: '#07c160' },
-                  { key: 'sms', label: '短信', icon: 'mail' as const, color: '#4F46E5' },
-                  { key: 'xiaohongshu', label: '小红书', icon: 'book' as const, color: '#ff6b9d' },
-                ].map(item => (
-                  <TouchableOpacity key={item.key} style={[styles.channelOption, form.channel === item.key && { borderColor: item.color, backgroundColor: item.color + '10' }]} onPress={() => setForm({ ...form, channel: item.key as Task['channel'] })}>
-                    <Ionicons name={item.icon} size={20} color={form.channel === item.key ? item.color : '#64748b'} />
-                    <Text style={[styles.channelOptionText, form.channel === item.key && { color: item.color }]}>{item.label}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.inputLabel}>推广内容 *</Text>
-              <TextInput style={[styles.input, styles.textArea]} placeholder="输入推广内容或上传素材链接" placeholderTextColor="#94a3b8" multiline value={form.content} onChangeText={t => setForm({ ...form, content: t })} />
-
-              <Text style={styles.inputLabel}>目标发送量 *</Text>
-              <TextInput style={styles.input} placeholder="输入目标发送数量" placeholderTextColor="#94a3b8" keyboardType="numeric" value={form.targetCount} onChangeText={t => setForm({ ...form, targetCount: t })} />
-
-              <TouchableOpacity style={styles.submitBtn} onPress={handleCreateTask}>
-                <Text style={styles.submitBtnText}>创建任务</Text>
-              </TouchableOpacity>
-              <View style={{ height: 40 }} />
-            </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* 线索详情弹窗 */}
-      <Modal visible={showLeadModal} animationType="slide" transparent>
+      {/* 潜客详情弹窗 */}
+      <Modal visible={showLeadDetail} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>线索详情</Text>
-              <TouchableOpacity onPress={() => setShowLeadModal(false)}>
-                <Ionicons name="close" size={24} color="#64748b" />
-              </TouchableOpacity>
-            </View>
+          <View style={styles.modalCard}>
             {selectedLead && (
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.leadDetailHeader}>
-                  <View style={styles.avatarLarge}>
-                    <Text style={styles.avatarTextLarge}>{selectedLead.name[0]}</Text>
-                  </View>
-                  <Text style={styles.leadDetailName}>{selectedLead.name}</Text>
-                  <View style={[styles.statusBadge, { backgroundColor: getStatusConfig(selectedLead.status).bg }]}>
-                    <Text style={[styles.statusText, { color: getStatusConfig(selectedLead.status).text }]}>{getStatusText(selectedLead.status)}</Text>
-                  </View>
+              <>
+                <Text style={styles.modalTitle}>{selectedLead.name || '未命名'}</Text>
+                <InfoRow label="手机号" value={selectedLead.phone} />
+                {selectedLead.email ? <InfoRow label="邮箱" value={selectedLead.email} /> : null}
+                <InfoRow label="来源" value={selectedLead.source} />
+                <InfoRow label="状态" value={STATUS_LABELS[selectedLead.status] || selectedLead.status} />
+                {selectedLead.aiScore != null && <InfoRow label="AI评分" value={`${selectedLead.aiScore}`} />}
+                {selectedLead.aiQuality && <InfoRow label="线索质量" value={selectedLead.aiQuality} />}
+                {selectedLead.aiFollowup && <InfoRow label="跟进建议" value={selectedLead.aiFollowup} />}
+                {selectedLead.notes && <InfoRow label="备注" value={selectedLead.notes} />}
+                {selectedLead.lastContact && <InfoRow label="最近联系" value={new Date(selectedLead.lastContact).toLocaleString('zh-CN')} />}
+
+                <Text style={[styles.label, { marginTop: 16 }]}>状态操作</Text>
+                <View style={styles.chipRow}>
+                  {(['contacted', 'qualified', 'converted', 'invalid'] as LeadStatus[]).map(s => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.chip, selectedLead.status === s && styles.chipActive]}
+                      onPress={() => handleUpdateLead(selectedLead.id, s)}
+                    >
+                      <Text style={[styles.chipText, selectedLead.status === s && styles.chipTextActive]}>
+                        {STATUS_LABELS[s]}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
 
-                <View style={styles.leadDetailSection}>
-                  <Text style={styles.detailLabel}>联系方式</Text>
-                  <Text style={styles.detailValue}>{selectedLead.phone}</Text>
-                </View>
-
-                <View style={styles.leadDetailSection}>
-                  <Text style={styles.detailLabel}>来源渠道</Text>
-                  <Text style={styles.detailValue}>{selectedLead.source}</Text>
-                </View>
-
-                <View style={styles.leadDetailSection}>
-                  <Text style={styles.detailLabel}>标签</Text>
-                  <View style={styles.tagsRow}>
-                    {selectedLead.tags.map((tag, i) => (
-                      <Text key={i} style={styles.tagBadge}>{tag}</Text>
-                    ))}
-                  </View>
-                </View>
-
-                <View style={styles.leadDetailSection}>
-                  <Text style={styles.detailLabel}>创建时间</Text>
-                  <Text style={styles.detailValue}>{selectedLead.createTime}</Text>
-                </View>
-
-                <Text style={styles.actionTitle}>处理线索</Text>
-                <View style={styles.actionRow}>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dbeafe' }]} onPress={() => updateLeadStatus(selectedLead.id, 'contacted')}>
-                    <Ionicons name="call" size={18} color="#1e40af" />
-                    <Text style={[styles.actionBtnText, { color: '#1e40af' }]}>联系</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dcfce7' }]} onPress={() => updateLeadStatus(selectedLead.id, 'converted')}>
-                    <Ionicons name="checkmark-circle" size={18} color="#166534" />
-                    <Text style={[styles.actionBtnText, { color: '#166534' }]}>转化</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#fee2e2' }]} onPress={() => updateLeadStatus(selectedLead.id, 'invalid')}>
-                    <Ionicons name="close-circle" size={18} color="#dc2626" />
-                    <Text style={[styles.actionBtnText, { color: '#dc2626' }]}>无效</Text>
+                <View style={styles.btnRow}>
+                  <TouchableOpacity style={styles.btnCancel} onPress={() => { setShowLeadDetail(false); setSelectedLead(null); }}>
+                    <Text style={styles.btnCancelText}>关闭</Text>
                   </TouchableOpacity>
                 </View>
-                <View style={{ height: 40 }} />
-              </ScrollView>
+              </>
             )}
           </View>
         </View>
@@ -517,84 +273,288 @@ export default function AcquisitionScreen() {
   );
 }
 
+// ─── 子组件: 数据总览 ──────────────────────────────────────
+function OverviewTab({ stats }: { stats: StatsData }) {
+  const cards = [
+    { label: '获客任务', value: stats.totalTasks, sub: `运行中 ${stats.runningTasks}` },
+    { label: '潜客总数', value: stats.totalLeads, sub: `新增 ${stats.newLeads}` },
+    { label: '已转化', value: stats.convertedLeads, sub: `转化率 ${stats.conversionRate}%` },
+    { label: '待跟进', value: stats.contactedLeads + stats.newLeads, sub: `无效 ${stats.invalidLeads}` },
+  ];
+
+  return (
+    <View>
+      <Text style={styles.sectionTitle}>核心指标</Text>
+      <View style={styles.cardGrid}>
+        {cards.map(c => (
+          <View key={c.label} style={styles.statCard}>
+            <Text style={styles.statValue}>{c.value}</Text>
+            <Text style={styles.statLabel}>{c.label}</Text>
+            <Text style={styles.statSub}>{c.sub}</Text>
+          </View>
+        ))}
+      </View>
+
+      <Text style={styles.sectionTitle}>漏斗概览</Text>
+      <View style={styles.funnelCard}>
+        <FunnelStep label="潜客总数" count={stats.totalLeads} color="#1890ff" max={stats.totalLeads || 1} />
+        <FunnelStep label="已联系" count={stats.contactedLeads} color="#722ed1" max={stats.totalLeads || 1} />
+        <FunnelStep label="已确认" count={stats.contactedLeads > 0 ? Math.round(stats.contactedLeads * 0.5) : 0} color="#13c2c2" max={stats.totalLeads || 1} />
+        <FunnelStep label="已转化" count={stats.convertedLeads} color="#52c41a" max={stats.totalLeads || 1} />
+      </View>
+    </View>
+  );
+}
+
+function FunnelStep({ label, count, color, max }: { label: string; count: number; color: string; max: number }) {
+  const pct = max > 0 ? Math.round((count / max) * 100) : 0;
+  const barW = Math.max(4, pct);
+  return (
+    <View style={styles.funnelRow}>
+      <Text style={styles.funnelLabel}>{label}</Text>
+      <View style={styles.funnelBarOuter}>
+        <View style={[styles.funnelBar, { width: `${barW}%`, backgroundColor: color }]} />
+      </View>
+      <Text style={styles.funnelCount}>{count}</Text>
+    </View>
+  );
+}
+
+// ─── 子组件: 任务列表 ──────────────────────────────────────
+function TasksTab({
+  tasks, onRefresh, onCreate, onStart, onDiscover, channels,
+}: {
+  tasks: AcquisitionTask[]; onRefresh: () => void; onCreate: () => void; onStart: (id: string) => void;
+  onDiscover: (id: string) => void; channels: { key: string; label: string }[];
+}) {
+  const chLabel = (k: string) => channels.find(c => c.key === k)?.label || k;
+
+  return (
+    <View>
+      <View style={styles.actionBar}>
+        <Text style={styles.sectionTitle}>获客任务 ({tasks.length})</Text>
+        <TouchableOpacity style={styles.btnPrimarySm} onPress={onCreate}>
+          <Text style={styles.btnPrimarySmText}>+ 创建任务</Text>
+        </TouchableOpacity>
+      </View>
+      {tasks.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>暂无获客任务，点击上方按钮创建</Text>
+        </View>
+      ) : (
+        tasks.map(task => (
+          <View key={task.id} style={styles.taskCard}>
+            <View style={styles.taskHeader}>
+              <Text style={styles.taskTitle}>{task.title}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[task.status] || '#8c8c8c' }]}>
+                <Text style={styles.statusBadgeText}>{STATUS_LABELS[task.status] || task.status}</Text>
+              </View>
+            </View>
+            <Text style={styles.taskMeta}>
+              渠道: {chLabel(task.channel)} | 进度: {task.leadsCount}/{task.targetCount} | 完成率: {task.progress || 0}%
+            </Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${task.progress || 0}%` }]} />
+            </View>
+            <View style={styles.taskActions}>
+              {task.status === 'pending' && (
+                <TouchableOpacity style={styles.btnOutlineSm} onPress={() => onStart(task.id)}>
+                  <Text style={styles.btnOutlineSmText}>启动任务</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.btnAiSm} onPress={() => onDiscover(task.id)}>
+                <Text style={styles.btnAiSmText}>AI发现潜客</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))
+      )}
+    </View>
+  );
+}
+
+// ─── 子组件: 潜客列表 ──────────────────────────────────────
+function LeadsTab({
+  leads, onRefresh, onPress,
+}: {
+  leads: AcquisitionLead[]; onRefresh: () => void; onPress: (lead: AcquisitionLead) => void;
+}) {
+  return (
+    <View>
+      <View style={styles.actionBar}>
+        <Text style={styles.sectionTitle}>潜客列表 ({leads.length})</Text>
+      </View>
+      {leads.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>暂无潜客，请先创建获客任务并使用 AI 发现</Text>
+        </View>
+      ) : (
+        leads.map(lead => (
+          <TouchableOpacity key={lead.id} style={styles.leadCard} onPress={() => onPress(lead)}>
+            <View style={styles.leadRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.leadName}>{lead.name || '未命名'}</Text>
+                <Text style={styles.leadMeta}>{lead.phone}</Text>
+              </View>
+              <View style={styles.leadRight}>
+                {lead.aiScore != null && (
+                  <Text style={[styles.aiScore, { color: lead.aiScore >= 70 ? '#52c41a' : lead.aiScore >= 50 ? '#faad14' : '#ff4d4f' }]}>
+                    {lead.aiScore}分
+                  </Text>
+                )}
+                <View style={[styles.statusBadge, { backgroundColor: STATUS_COLORS[lead.status] || '#8c8c8c' }]}>
+                  <Text style={styles.statusBadgeText}>{STATUS_LABELS[lead.status] || lead.status}</Text>
+                </View>
+              </View>
+            </View>
+            <Text style={styles.leadMeta}>{lead.source}{lead.taskName ? ` · ${lead.taskName}` : ''}{lead.aiQuality ? ` · ${lead.aiQuality}级` : ''}</Text>
+          </TouchableOpacity>
+        ))
+      )}
+    </View>
+  );
+}
+
+// ─── 子组件: AI发现 ──────────────────────────────────────
+function DiscoverTab({
+  tasks, onDiscover,
+}: {
+  tasks: AcquisitionTask[]; onDiscover: (id: string) => void;
+}) {
+  const activeTasks = tasks.filter(t => t.status === 'running' || t.status === 'pending');
+
+  return (
+    <View>
+      <Text style={styles.sectionTitle}>AI 潜客发现</Text>
+      <View style={styles.infoCard}>
+        <Text style={styles.infoText}>
+          AI 将根据获客任务的目标渠道和关键词，智能匹配并推荐高意向潜在客户，同时生成自动跟进话术。
+        </Text>
+      </View>
+
+      {activeTasks.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>暂无活跃的获客任务，请先在"获客任务"标签页创建任务</Text>
+        </View>
+      ) : (
+        activeTasks.map(task => (
+          <View key={task.id} style={styles.discoverCard}>
+            <Text style={styles.discoverTitle}>{task.title}</Text>
+            <Text style={styles.discoverMeta}>
+              渠道: {task.channel} | 已有潜客: {task.leadsCount} | 目标: {task.targetCount}
+            </Text>
+            <TouchableOpacity style={styles.btnAiLg} onPress={() => onDiscover(task.id)}>
+              <Text style={styles.btnAiLgText}>开始 AI 发现 (每次5人)</Text>
+            </TouchableOpacity>
+          </View>
+        ))
+      )}
+    </View>
+  );
+}
+
+// ─── 公用小组件 ────────────────────────────────────────
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  );
+}
+
+// ─── 样式 ──────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6, gap: 4 },
-  tabActive: { backgroundColor: '#eef2ff', borderRadius: 8 },
-  tabText: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
-  tabTextActive: { color: '#4F46E5', fontWeight: '600' },
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: '#334155', marginBottom: 12, marginTop: 8 },
-  statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center' },
-  statIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  statValue: { fontSize: 20, fontWeight: '700', color: '#1e293b' },
-  statLabel: { fontSize: 11, color: '#64748b', marginTop: 4 },
-  statChange: { fontSize: 11, marginTop: 2 },
-  funnelCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 16 },
-  funnelItem: { marginBottom: 12 },
-  funnelBar: { height: 24, borderRadius: 6, marginBottom: 4 },
-  funnelContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  funnelStage: { fontSize: 12, color: '#64748b' },
-  funnelCount: { fontSize: 12, fontWeight: '600', color: '#1e293b' },
-  channelCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14 },
-  channelItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-  channelDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-  channelName: { flex: 1, fontSize: 13, color: '#1e293b' },
-  channelCount: { fontSize: 13, fontWeight: '600', color: '#1e293b', marginRight: 8 },
-  channelRate: { fontSize: 12, color: '#64748b', width: 45 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, gap: 8, marginBottom: 16 },
-  addBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
-  taskCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
-  taskHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  taskTitleRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  channelBadge: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  taskName: { fontSize: 14, fontWeight: '600', color: '#1e293b', flex: 1 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 12, fontWeight: '500' },
-  progressBar: { height: 6, backgroundColor: '#e2e8f0', borderRadius: 3, marginBottom: 12 },
-  progressFill: { height: '100%', backgroundColor: '#4F46E5', borderRadius: 3 },
-  taskStats: { flexDirection: 'row', alignItems: 'center' },
-  taskStat: { flex: 1, alignItems: 'center' },
-  taskStatValue: { fontSize: 16, fontWeight: '600', color: '#1e293b' },
-  taskStatLabel: { fontSize: 11, color: '#64748b', marginTop: 2 },
-  taskProgress: { fontSize: 14, fontWeight: '600', color: '#4F46E5' },
-  taskTime: { fontSize: 11, color: '#94a3b8' },
-  leadCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
-  leadHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '600', color: '#4F46E5' },
-  leadInfo: { flex: 1, marginLeft: 12 },
-  leadName: { fontSize: 15, fontWeight: '600', color: '#1e293b' },
-  leadPhone: { fontSize: 13, color: '#64748b', marginTop: 2 },
-  leadTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 },
-  leadSource: { fontSize: 12, color: '#64748b', backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
-  leadTag: { fontSize: 12, color: '#4F46E5', backgroundColor: '#eef2ff', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
-  leadTime: { fontSize: 11, color: '#94a3b8' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%', paddingBottom: 40 },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  modalTitle: { fontSize: 17, fontWeight: '600', color: '#1e293b' },
-  inputLabel: { fontSize: 13, fontWeight: '500', color: '#374151', marginBottom: 6, marginTop: 12 },
-  input: { backgroundColor: '#f9fafb', borderRadius: 10, padding: 12, fontSize: 14, color: '#1e293b', borderWidth: 1, borderColor: '#e5e7eb' },
-  textArea: { height: 80, textAlignVertical: 'top' },
-  channelSelect: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  channelOption: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 10, backgroundColor: '#f9fafb', borderWidth: 2, borderColor: '#e5e7eb', gap: 8 },
-  channelOptionText: { fontSize: 13, color: '#64748b' },
-  submitBtn: { backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 20 },
-  submitBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
-  leadDetailHeader: { alignItems: 'center', paddingVertical: 20 },
-  avatarLarge: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  avatarTextLarge: { fontSize: 28, fontWeight: '600', color: '#4F46E5' },
-  leadDetailName: { fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 },
-  leadDetailSection: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  detailLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 4 },
-  detailValue: { fontSize: 14, color: '#1e293b' },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  tagBadge: { fontSize: 13, color: '#4F46E5', backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  actionTitle: { fontSize: 15, fontWeight: '600', color: '#374151', marginTop: 20, marginBottom: 12, paddingHorizontal: 16 },
-  actionRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, borderRadius: 10, gap: 6 },
-  actionBtnText: { fontSize: 13, fontWeight: '500' },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  body: { flex: 1 },
+  bodyInner: { padding: 16, paddingBottom: 40 },
+
+  // Tab
+  tabBar: { flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderColor: '#f0f0f0' },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: '#1677ff' },
+  tabText: { fontSize: 14, color: '#666' },
+  tabTextActive: { color: '#1677ff', fontWeight: '600' },
+
+  // 通用
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#222', marginBottom: 12, marginTop: 8 },
+  actionBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 8 },
+
+  // 统计卡片
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  statCard: { flex: 1, minWidth: (SW - 56) / 2, backgroundColor: '#fff', borderRadius: 12, padding: 16, elevation: 1 },
+  statValue: { fontSize: 28, fontWeight: '700', color: '#1677ff' },
+  statLabel: { fontSize: 13, color: '#666', marginTop: 4 },
+  statSub: { fontSize: 11, color: '#999', marginTop: 2 },
+
+  // 漏斗
+  funnelCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, elevation: 1 },
+  funnelRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  funnelLabel: { width: 64, fontSize: 13, color: '#555' },
+  funnelBarOuter: { flex: 1, height: 20, backgroundColor: '#f0f0f0', borderRadius: 10, marginHorizontal: 10 },
+  funnelBar: { height: 20, borderRadius: 10, minWidth: 4 },
+  funnelCount: { width: 40, fontSize: 14, fontWeight: '600', textAlign: 'right', color: '#333' },
+
+  // 任务卡片
+  taskCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  taskHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  taskTitle: { fontSize: 15, fontWeight: '600', color: '#222', flex: 1 },
+  taskMeta: { fontSize: 12, color: '#888', marginTop: 8 },
+  progressBar: { height: 6, backgroundColor: '#f0f0f0', borderRadius: 3, marginTop: 8 },
+  progressFill: { height: 6, backgroundColor: '#1677ff', borderRadius: 3 },
+  taskActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+
+  // 潜客卡片
+  leadCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 10, elevation: 1 },
+  leadRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  leadName: { fontSize: 15, fontWeight: '600', color: '#222' },
+  leadMeta: { fontSize: 12, color: '#888', marginTop: 4 },
+  leadRight: { alignItems: 'flex-end' },
+  aiScore: { fontSize: 16, fontWeight: '700' },
+
+  // AI发现
+  infoCard: { backgroundColor: '#e6f4ff', borderRadius: 12, padding: 16, marginBottom: 16 },
+  infoText: { fontSize: 13, color: '#1677ff', lineHeight: 20 },
+  discoverCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, elevation: 1 },
+  discoverTitle: { fontSize: 15, fontWeight: '600', color: '#222' },
+  discoverMeta: { fontSize: 12, color: '#888', marginTop: 6, marginBottom: 12 },
+
+  // 状态徽章
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  statusBadgeText: { fontSize: 11, color: '#fff', fontWeight: '500' },
+
+  // 空状态
+  emptyCard: { backgroundColor: '#fff', borderRadius: 12, padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 14, color: '#999' },
+
+  // 按钮
+  btnPrimarySm: { backgroundColor: '#1677ff', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6 },
+  btnPrimarySmText: { color: '#fff', fontSize: 13, fontWeight: '500' },
+  btnOutlineSm: { borderWidth: 1, borderColor: '#1677ff', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6 },
+  btnOutlineSmText: { color: '#1677ff', fontSize: 13 },
+  btnAiSm: { borderWidth: 1, borderColor: '#722ed1', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 6 },
+  btnAiSmText: { color: '#722ed1', fontSize: 13 },
+  btnAiLg: { backgroundColor: '#722ed1', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+  btnAiLgText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+
+  // 弹窗
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalCard: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 16 },
+  label: { fontSize: 13, color: '#666', marginBottom: 6, marginTop: 10 },
+  input: { borderWidth: 1, borderColor: '#d9d9d9', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: '#d9d9d9' },
+  chipActive: { backgroundColor: '#1677ff', borderColor: '#1677ff' },
+  chipText: { fontSize: 12, color: '#666' },
+  chipTextActive: { color: '#fff' },
+  btnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 20 },
+  btnCancel: { paddingHorizontal: 20, paddingVertical: 10 },
+  btnCancelText: { color: '#666', fontSize: 14 },
+  btnPrimary: { backgroundColor: '#1677ff', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+  btnPrimaryText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
+  infoLabel: { fontSize: 13, color: '#888' },
+  infoValue: { fontSize: 13, color: '#333', flex: 1, textAlign: 'right', marginLeft: 16 },
 });

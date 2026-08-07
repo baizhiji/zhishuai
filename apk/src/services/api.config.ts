@@ -1,7 +1,8 @@
-// API 配置
+// API 配置 - 通过 Expo 环境变量或默认值配置
+// 生产: https://api.zhishuai.cc/api  |  本地: http://localhost:3001/api
+// 可通过 EXPO_PUBLIC_API_URL 环境变量覆盖
 export const API_CONFIG = {
-  // 后端服务地址（生产环境）- 统一使用实际服务器地址
-  BASE_URL: 'http://43.129.16.148:3001/api',
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://api.zhishuai.cc/api',
   
   // 启用生产模式
   DEV_MODE: false,
@@ -18,8 +19,6 @@ export const API_ENDPOINTS = {
   // 认证
   LOGIN: '/auth/login',
   REGISTER: '/auth/register',
-  LOGOUT: '/auth/logout',
-  REFRESH_TOKEN: '/auth/refresh',
   SEND_CODE: '/auth/send-code',
   
   // 用户
@@ -27,7 +26,7 @@ export const API_ENDPOINTS = {
   UPDATE_USER: '/account/',
   UPDATE_PASSWORD: '/account/password',
   
-  // 素材库
+  // 内容中心
   MATERIALS: '/materials',
   MATERIALS_DETAIL: '/materials/:id',
   MATERIALS_DOWNLOAD: '/materials/:id/download',
@@ -35,16 +34,7 @@ export const API_ENDPOINTS = {
   // AI对话
   AI_CHAT: '/ai-chat/chat',
   
-  // 矩阵管理
-  MATRIX_ACCOUNTS: '/matrix/accounts',
-  MATRIX_ACCOUNT_DETAIL: '/matrix/accounts/:id',
-  
-  // 发布中心
-  PUBLISH_LIST: '/publish',
-  PUBLISH_CREATE: '/publish',
-  PUBLISH_HISTORY: '/publish/history',
-  
-  // 招聘助手
+  // 智能招聘
   RECRUITMENT_JOBS: '/recruitment/jobs',
   RECRUITMENT_CANDIDATES: '/recruitment/candidates',
   RECRUITMENT_INTERVIEWS: '/recruitment/interviews',
@@ -52,8 +42,12 @@ export const API_ENDPOINTS = {
   // 智能获客
   ACQUISITION_TASKS: '/acquisition/tasks',
   ACQUISITION_LEADS: '/acquisition/leads',
+  ACQUISITION_STATS: '/acquisition/stats',
   
   // 推荐分享
+  REFERRAL_STATS: '/referral/stats',
+  REFERRAL_CODE: '/share/codes',
+  REFERRAL_RECORDS: '/share/records',
   SHARE_QRCODES: '/share/codes',
   SHARE_RECORDS: '/share/records',
   

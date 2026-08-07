@@ -5,13 +5,13 @@
  */
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
-import { PrismaClient } from '@prisma/client';
 import { getPrimaryApiKey } from '../services/user-api-key.service';
+import { prisma } from '../utils/db';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { prisma } from '../utils/db';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 // 文件上传配置
@@ -419,6 +419,21 @@ router.get('/exports', authMiddleware, async (req: Request, res: Response) => {
     res.json({ success: true, data: exports });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// 获取声音/视频状态概览（APK 客户终端使用）
+router.get('/status', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const [voiceCount, videoCount, readyVideoCount] = await Promise.all([
+      prisma.voiceClone.count({ where: { userId } }),
+      prisma.videoClone.count({ where: { userId } }),
+      prisma.videoClone.count({ where: { userId, status: 'ready' } }),
+    ]);
+    res.json({ code: 200, message: 'ok', data: { voiceCount, videoCount, readyVideoCount } });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
   }
 });
 

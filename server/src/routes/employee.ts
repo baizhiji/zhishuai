@@ -1,11 +1,9 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { authMiddleware, agentMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 员工管理路由需要认证 + 代理商角色
 router.use(authMiddleware);
 router.use(agentMiddleware);

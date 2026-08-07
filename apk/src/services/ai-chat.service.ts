@@ -276,8 +276,8 @@ export const RECOMMENDED_MODELS = {
   digitalHuman: {
     model: 'YT-Video-HumanActor',
     provider: 'tencent',
-    name: '数字人视频',
-    description: '数字人口播视频',
+    name: 'AI数字人',
+    description: 'AI数字人口播视频',
   },
 };
 
@@ -372,7 +372,7 @@ export const ALL_MODELS: ModelInfo[] = [
   },
   {
     id: 'YT-Video-HumanActor',
-    name: '数字人视频',
+    name: 'AI数字人',
     provider: 'tencent',
     providerName: '腾讯云TokenHub',
     type: 'digital_human',

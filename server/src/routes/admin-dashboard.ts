@@ -26,7 +26,6 @@ router.get('/', async (req: Request, res: Response) => {
       newCustomersLastMonth,
       pendingTickets,
       totalMaterials,
-      totalPublished,
       totalApiProviders,
       enabledApiProviders,
     ] = await Promise.all([
@@ -41,7 +40,6 @@ router.get('/', async (req: Request, res: Response) => {
       prisma.user.count({ where: { role: 'customer', createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
       prisma.ticket.count({ where: { status: { in: ['open', 'in_progress'] } } }),
       prisma.material.count(),
-      prisma.publishedContent.count(),
       prisma.apiProvider.count(),
       prisma.apiProvider.count({ where: { enabled: true } }),
     ]);
@@ -77,7 +75,6 @@ router.get('/', async (req: Request, res: Response) => {
         // 工单 / 素材 / 发布
         pendingTickets,
         totalMaterials,
-        totalPublished,
         // API 服务商
         totalApiProviders,
         enabledApiProviders,

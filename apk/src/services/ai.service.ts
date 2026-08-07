@@ -18,48 +18,60 @@ export interface GenerateResponse {
 }
 
 class AIService {
-  // AI创作
+  // AI创作 —— 对齐 WEB 端 POST /api/ai-enhanced/post
   async generate(data: GenerateRequest): Promise<GenerateResponse> {
-    const response = await apiClient.post<GenerateResponse>('/ai/generate', data);
-    return response;
+    const resp = await apiClient.post<any>('/ai-enhanced/post', {
+      topic: data.description,
+      style: data.style,
+      wordCount: data.wordCount,
+      requirements: data.extraRequirements,
+    });
+    return {
+      id: Date.now().toString(),
+      content: resp?.content || resp?.script || resp?.text || '',
+      type: data.type,
+      createdAt: new Date().toISOString(),
+    };
   }
 
-  // 视频解析
+  // 视频解析 —— 对齐 WEB 端 POST /api/ai-chat/video
   async parseVideo(url: string): Promise<{
     title: string;
     description: string;
     downloadUrl: string;
   }> {
-    const response = await apiClient.post<{
-      title: string;
-      description: string;
-      downloadUrl: string;
-    }>('/ai/parse-video', { url });
-    return response;
+    const resp = await apiClient.post<any>('/ai-chat/video', { videoUrl: url });
+    return {
+      title: resp?.title || '',
+      description: resp?.analysis || resp?.content || resp?.description || '',
+      downloadUrl: resp?.downloadUrl || url,
+    };
   }
 
-  // 下载视频
+  // 下载视频 —— 对齐 WEB 端 POST /api/ai-chat/chat（后端无直接下载端点）
   async downloadVideo(url: string): Promise<{ localPath: string }> {
-    const response = await apiClient.post<{ localPath: string }>('/ai/download-video', { url });
-    return response;
-  }
-
-  // AI生成类似视频
-  async generateSimilarVideo(videoUrl: string, description: string): Promise<{ videoUrl: string }> {
-    const response = await apiClient.post<{ videoUrl: string }>('/ai/generate-similar-video', {
-      videoUrl,
-      description,
+    const resp = await apiClient.post<any>('/ai-chat/chat', {
+      messages: [{ role: 'user', content: `请提取并分析视频链接: ${url}` }],
     });
-    return response;
+    return { localPath: resp?.localPath || '' };
   }
 
-  // 获取创作历史
+  // AI生成类似视频 —— 对齐 WEB 端 POST /api/ai-enhanced/post
+  async generateSimilarVideo(videoUrl: string, description: string): Promise<{ videoUrl: string }> {
+    const resp = await apiClient.post<any>('/ai-enhanced/post', {
+      topic: `参考视频(${videoUrl})生成类似内容: ${description}`,
+      style: '创意',
+    });
+    return { videoUrl: resp?.videoUrl || '' };
+  }
+
+  // 获取创作历史 —— 对齐 WEB 端 GET /api/ai-enhanced/history
   async getHistory(params?: {
     page?: number;
     pageSize?: number;
     type?: string;
   }): Promise<{ items: GenerateResponse[]; total: number }> {
-    const response = await apiClient.get<{ items: GenerateResponse[]; total: number }>('/ai/history', params);
+    const response = await apiClient.get<{ items: GenerateResponse[]; total: number }>('/ai-enhanced/history', params);
     return response;
   }
 }

@@ -148,10 +148,15 @@ export default function AdminDashboardPage() {
   return (
     <div style={{ padding: 24 }}>
       <Spin spinning={loading}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            数据总览
-          </Typography.Title>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+          <div>
+            <Typography.Title level={3} style={{ margin: 0 }}>
+              数据总览
+            </Typography.Title>
+            <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+              概览平台核心业务数据，快速掌握各维度运营状况
+            </Typography.Text>
+          </div>
           <Button icon={<ReloadOutlined />} onClick={fetchStatistics}>
             刷新
           </Button>

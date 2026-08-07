@@ -1,6 +1,10 @@
 /**
  * 智枢AI 共享类型定义
  * 被 web/ 和 server/ 共同引用
+ *
+ * TODO: 目前仅含基础 API 类型（ApiResponse/Pagination/UserInfo/ErrorCode 等）。
+ * 随着三端发展，应将更多跨端类型（如 FeatureToggle、AgentInfo 等）提升至此文件，
+ * 避免 web/ 和 server/ 各自维护独立类型定义。
  */
 
 // ========== API 响应格式 ==========
@@ -73,3 +77,7 @@ export enum ErrorCode {
   INTERNAL_ERROR = 'INTERNAL_ERROR',
   DATABASE_ERROR = 'DATABASE_ERROR',
 }
+
+// ========== 视频生产配置 ==========
+// 配音/字幕/横幅/BGM 统一类型，web/apk/server 三端共用
+export * from './types/video-production';

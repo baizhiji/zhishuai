@@ -13,6 +13,8 @@ import {
   Typography,
   Progress,
   Statistic,
+  Empty,
+  Alert,
 } from 'antd';
 import {
   ApiOutlined,
@@ -81,98 +83,36 @@ export default function ApiStatsPage() {
     fetchApiStats();
   }, []);
 
+  const [error, setError] = useState<string | null>(null);
+
   const fetchApiStats = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await request.get('/api/admin/api-providers/usage');
-      if (res.data) {
-        setUsage(res.data.usage || generateMockUsage());
-        setTrendData(res.data.trendData || generateMockTrend());
-        setProviderData(res.data.providerData || generateMockProvider());
-        setStats(
-          res.data.stats || {
-            totalCalls: 156789,
-            totalTokens: 45678900,
-            totalCost: 1289.56,
-            avgSuccessRate: 98.5,
-          }
-        );
+      if (res.data && (res.data.usage || res.data.stats)) {
+        setUsage(res.data.usage || []);
+        setTrendData(res.data.trendData || []);
+        setProviderData(res.data.providerData || []);
+        setStats(res.data.stats || { totalCalls: 0, totalTokens: 0, totalCost: 0, avgSuccessRate: 0 });
+      } else {
+        setUsage([]);
+        setTrendData([]);
+        setProviderData([]);
+        setStats({ totalCalls: 0, totalTokens: 0, totalCost: 0, avgSuccessRate: 0 });
+        setError('暂无 API 使用数据，请确认服务商配置正确后重试');
       }
-    } catch (error) {
-      setUsage(generateMockUsage());
-      setTrendData(generateMockTrend());
-      setProviderData(generateMockProvider());
-      setStats({
-        totalCalls: 156789,
-        totalTokens: 45678900,
-        totalCost: 1289.56,
-        avgSuccessRate: 98.5,
-      });
+    } catch (err: any) {
+      console.error('获取API统计数据失败', err);
+      setUsage([]);
+      setTrendData([]);
+      setProviderData([]);
+      setStats({ totalCalls: 0, totalTokens: 0, totalCost: 0, avgSuccessRate: 0 });
+      setError(err?.response?.data?.message || '获取统计数据失败，请稍后重试');
     } finally {
       setLoading(false);
     }
   };
-
-  const generateMockUsage = () => [
-    {
-      id: '1',
-      provider: 'coze',
-      modelName: 'doubao-pro-32k',
-      totalCalls: 45678,
-      successCalls: 45234,
-      failedCalls: 444,
-      successRate: 99.0,
-      totalTokens: 12345678,
-      cost: 456.78,
-      avgLatency: 1.2,
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    },
-    {
-      id: '2',
-      provider: 'coze',
-      modelName: 'doubao-pro-128k',
-      totalCalls: 23456,
-      successCalls: 23100,
-      failedCalls: 356,
-      successRate: 98.5,
-      totalTokens: 8900000,
-      cost: 567.89,
-      avgLatency: 2.5,
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    },
-    {
-      id: '3',
-      provider: 'coze',
-      modelName: 'doubao-vision',
-      totalCalls: 12345,
-      successCalls: 12100,
-      failedCalls: 245,
-      successRate: 98.0,
-      totalTokens: 5678900,
-      cost: 234.56,
-      avgLatency: 3.2,
-      lastCallAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    },
-  ];
-
-  const generateMockTrend = () => {
-    const data = [];
-    for (let i = 6; i >= 0; i--) {
-      data.push({
-        date: dayjs().subtract(i, 'day').format('MM-DD'),
-        calls: Math.floor(Math.random() * 20000) + 15000,
-        tokens: Math.floor(Math.random() * 5000000) + 3000000,
-        cost: Math.random() * 200 + 100,
-      });
-    }
-    return data;
-  };
-
-  const generateMockProvider = () => [
-    { provider: 'coze-doubao', calls: 65000, cost: 890.23 },
-    { provider: 'coze-vision', calls: 25000, cost: 234.56 },
-    { provider: 'coze-32k', calls: 40000, cost: 123.45 },
-  ];
 
   const columns = [
     {
@@ -245,14 +185,30 @@ export default function ApiStatsPage() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">API 使用统计</h1>
-        <p className="text-gray-500">查看 AI API 调用情况和费用分析</p>
+    <div style={{ padding: 24 }}>
+      <div style={{ marginBottom: 24 }}>
+        <Title level={3}>API 使用统计</Title>
+        <Text type="secondary">查看 AI API 调用情况和费用分析</Text>
       </div>
 
+      {error && (
+        <Alert
+          message="数据加载提示"
+          description={error}
+          type={usage.length === 0 ? 'info' : 'warning'}
+          showIcon
+          closable
+          style={{ marginBottom: 24 }}
+          onClose={() => setError(null)}
+        />
+      )}
+
+      {!loading && usage.length === 0 && !error && (
+        <Empty description="暂无 API 调用记录" style={{ padding: 60 }} />
+      )}
+
       {/* 总体统计 */}
-      <Row gutter={16} className="mb-6">
+      <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card loading={loading}>
             <Statistic
@@ -267,8 +223,8 @@ export default function ApiStatsPage() {
           <Card loading={loading}>
             <Statistic
               title="总 Tokens"
-              value={stats.totalTokens}
-              suffix="M"
+              value={stats.totalTokens >= 1000000 ? (stats.totalTokens / 1000000).toFixed(1) : (stats.totalTokens / 1000).toFixed(1)}
+              suffix={stats.totalTokens >= 1000000 ? 'M' : 'K'}
               prefix={<AreaChartOutlined />}
               valueStyle={{ color: '#52c41a' }}
             />
@@ -298,7 +254,7 @@ export default function ApiStatsPage() {
       </Row>
 
       {/* 趋势图 */}
-      <Row gutter={16} className="mb-6">
+      <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={16}>
           <Card title="调用趋势（近7天）">
             <ResponsiveContainer width="100%" height={300}>

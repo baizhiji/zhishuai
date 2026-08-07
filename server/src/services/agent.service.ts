@@ -10,10 +10,8 @@
  * - 功能开关管理
  */
 
-import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../middleware/auth';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ==================== 类型定义 ====================
 
@@ -81,12 +79,10 @@ async function validateCustomerOwnership(agentId: string, customerId: string) {
 }
 
 async function getCustomerStats(customerId: string) {
-  const [materialCount, accountCount, publishCount] = await Promise.all([
+  const [materialCount] = await Promise.all([
     prisma.material.count({ where: { userId: customerId } }),
-    prisma.matrixAccount.count({ where: { userId: customerId } }),
-    prisma.publishedContent.count({ where: { userId: customerId } }),
   ]);
-  return { materialCount, accountCount, publishCount };
+  return { materialCount };
 }
 
 // ==================== 业务逻辑 ====================
@@ -362,13 +358,11 @@ export async function getCustomerDetailStats(
     ...(Object.keys(dateWhere).length ? { createdAt: dateWhere } : {}),
   };
 
-  const [materialCount, accountCount, publishCount] = await Promise.all([
+  const [materialCount] = await Promise.all([
     prisma.material.count({ where }),
-    prisma.matrixAccount.count({ where }),
-    prisma.publishedContent.count({ where }),
   ]);
 
-  return { materialCount, accountCount, publishCount };
+  return { materialCount };
 }
 
 // ==================== 自定义错误类 ====================

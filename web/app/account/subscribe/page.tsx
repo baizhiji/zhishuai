@@ -42,7 +42,7 @@ export default function SubscribePage() {
     { name: '矩阵账号', used: 8, limit: '无限', percent: 100, icon: <CheckCircleOutlined /> },
     { name: '智能获客', used: 320, limit: '无限', percent: 100, icon: <RocketOutlined /> },
     { name: '数字人视频', used: 45, limit: '无限', percent: 100, icon: <ThunderboltOutlined /> },
-    { name: '招聘助手', used: 89, limit: '无限', percent: 100, icon: <SafetyOutlined /> },
+    { name: '智能招聘', used: 89, limit: '无限', percent: 100, icon: <SafetyOutlined /> },
   ];
 
   // 套餐列表
@@ -56,7 +56,7 @@ export default function SubscribePage() {
         '无限次内容生成',
         '矩阵管理最多5个账号',
         '发布中心不限次数',
-        '招聘助手基础功能',
+        '智能招聘基础功能',
         '智能获客100条/月',
         '客服支持（工作日）',
       ],
@@ -71,7 +71,7 @@ export default function SubscribePage() {
         '无限次内容生成',
         '矩阵管理最多10个账号',
         '发布中心不限次数',
-        '招聘助手高级功能',
+        '智能招聘高级功能',
         '智能获客500条/月',
         '客服支持（7x24小时）',
         '优先功能体验',
@@ -86,7 +86,7 @@ export default function SubscribePage() {
         '无限次内容生成',
         '矩阵管理不限账号',
         '发布中心不限次数',
-        '招聘助手全部功能',
+        '智能招聘全部功能',
         '智能获客不限条数',
         '客服支持（7x24小时）',
         '专属客户经理',

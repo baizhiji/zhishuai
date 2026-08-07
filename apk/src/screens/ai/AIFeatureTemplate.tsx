@@ -68,7 +68,7 @@ export default function AIFeatureTemplate({
       setResult({
         id: Date.now().toString(),
         type: contentType,
-        content: `${inputText}\n\n[AI生成内容 - API集成后可获取真实结果]\n\n这里是由AI生成的${title}内容示例。您可以复制、分享或保存到素材库。`,
+        content: `${inputText}\n\n[AI生成内容 - API集成后可获取真实结果]\n\n这里是由AI生成的${title}内容示例。您可以复制、分享或保存到内容中心。`,
         createdAt: new Date().toISOString(),
         status: 'completed',
       });
@@ -98,7 +98,7 @@ export default function AIFeatureTemplate({
     }
   }, [result]);
 
-  // 保存到素材库
+  // 保存到内容中心
   const handleSave = async () => {
     if (!result?.content) return;
     
@@ -113,10 +113,10 @@ export default function AIFeatureTemplate({
       });
       setShowSaveModal(false);
       setSaveTitle('');
-      Alert.alert('成功', '已保存到素材库');
+      Alert.alert('成功', '已保存到内容中心');
     } catch (error: any) {
       // 模拟保存成功
-      Alert.alert('成功', '已保存到素材库');
+      Alert.alert('成功', '已保存到内容中心');
       setShowSaveModal(false);
       setSaveTitle('');
       console.log('保存模拟:', error?.message);
@@ -265,7 +265,7 @@ export default function AIFeatureTemplate({
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>保存到素材库</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>保存到内容中心</Text>
             <TextInput
               style={[styles.modalInput, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               placeholder="输入素材标题（可选）"

@@ -1,10 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authMiddleware, adminMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // ============================================
 // 公共接口：客户端/代理商/管理员获取已发布公告
 // GET /api/announcements?audience=agent|user|all&limit=10

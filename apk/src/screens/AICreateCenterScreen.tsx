@@ -66,7 +66,7 @@ const CONTENT_TYPES = [
   },
   { 
     id: ContentCategory.ECOMMERCE, 
-    name: '电商详情', 
+    name: '电商详情页', 
     icon: 'cart', 
     color: '#DC2626', 
     desc: '商品详情页' 
@@ -87,10 +87,10 @@ const CONTENT_TYPES = [
   },
   { 
     id: ContentCategory.DIGITAL_HUMAN, 
-    name: '数字人', 
+    name: '数字人短视频', 
     icon: 'person', 
     color: '#6366F1', 
-    desc: '数字人口播' 
+    desc: '数字人口播短视频' 
   },
 ];
 

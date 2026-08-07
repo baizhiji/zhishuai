@@ -1,299 +1,329 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Card,
-  Row,
-  Col,
-  Statistic,
-  Typography,
-  Table,
-  Tag,
-  Space,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Select,
-  message,
-  Tabs,
-  Timeline,
-  Avatar,
-  Popconfirm,
+  Card, Row, Col, Statistic, Typography, Table, Tag, Space,
+  Button, Modal, Form, Input, Select, App, Drawer, Tooltip,
+  Timeline, Avatar, Popconfirm,
 } from 'antd';
 import {
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  ClockCircleOutlined,
-  ExclamationCircleOutlined,
-  PlusOutlined,
-  MessageOutlined,
-  UserOutlined,
-  FileTextOutlined,
-  MailOutlined,
+  CheckCircleOutlined, CloseCircleOutlined, ClockCircleOutlined,
+  SyncOutlined, SearchOutlined, ReloadOutlined, SendOutlined,
+  TeamOutlined, ExclamationCircleOutlined, FilterOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { useAuth } from '@/contexts/AuthContext';
+import { TicketAPI, ticketCategories, ticketPriorities, ticketStatuses } from '@/services/ticket';
+import PageContainer from '@/components/agent/PageContainer';
 
-const { Title, Text } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
-const { TabPane } = Tabs;
 
-// 工单类型
-interface Ticket {
-  key: string;
+interface TicketResponse {
   id: string;
-  title: string;
-  type: string;
-  customer: string;
-  company: string;
-  status: 'pending' | 'approved' | 'rejected';
-  priority: 'low' | 'medium' | 'high';
-  createTime: string;
-  updateTime: string;
-  description: string;
+  ticketId: string;
+  userName: string;
+  userRole: string;
+  content: string;
+  createdAt: string;
+  isInternal: boolean;
 }
 
-// Mock 数据
-const mockTickets: Ticket[] = [
-  {
-    key: '1',
-    id: 'T202504001',
-    title: '申请开通数字人仓库功能',
-    type: 'feature',
-    customer: '张经理',
-    company: '上海某科技有限公司',
-    status: 'pending',
-    priority: 'medium',
-    createTime: '2025-04-29 10:30',
-    updateTime: '2025-04-29 10:30',
-    description: '公司业务扩展，需要使用数字人视频功能来制作产品宣传视频，请尽快开通。',
-  },
-  {
-    key: '2',
-    id: 'T202504002',
-    title: '申请开通智能获客功能',
-    type: 'feature',
-    customer: '王主管',
-    company: '北京某文化传媒',
-    status: 'pending',
-    priority: 'high',
-    createTime: '2025-04-29 09:15',
-    updateTime: '2025-04-29 09:15',
-    description: '需要拓展客户渠道，申请开通智能获客模块，包括潜客发现和引流任务功能。',
-  },
-  {
-    key: '3',
-    id: 'T202503015',
-    title: '申请开通简历筛选功能',
-    type: 'feature',
-    customer: '李总监',
-    company: '杭州某网络公司',
-    status: 'approved',
-    priority: 'medium',
-    createTime: '2025-04-25 14:20',
-    updateTime: '2025-04-26 09:30',
-    description: '公司正在大量招聘，需要使用AI简历筛选功能提高招聘效率。',
-  },
-  {
-    key: '4',
-    id: 'T202503012',
-    title: '申请增加API调用额度',
-    type: 'quota',
-    customer: '陈总',
-    company: '广州某信息科技',
-    status: 'approved',
-    priority: 'high',
-    createTime: '2025-04-22 16:45',
-    updateTime: '2025-04-23 10:15',
-    description: '当前API额度不足，申请将API调用额度从10万次提升到30万次/月。',
-  },
-  {
-    key: '5',
-    id: 'T202503008',
-    title: '申请开通面试管理功能',
-    type: 'feature',
-    customer: '刘经理',
-    company: '深圳某电商公司',
-    status: 'rejected',
-    priority: 'low',
-    createTime: '2025-04-20 11:00',
-    updateTime: '2025-04-21 15:30',
-    description: '希望开通面试管理功能来管理招聘流程。',
-  },
-];
+interface TicketData {
+  id: string;
+  ticketNo: string;
+  title: string;
+  category: string;
+  priority: string;
+  status: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: { phone: string; name?: string; company?: string };
+  responses?: TicketResponse[];
+}
 
-// Mock 工单处理记录
-const mockTicketHistory = [
-  { time: '2025-04-29 10:30', action: '提交申请', operator: '张经理' },
-  { time: '2025-04-29 14:20', action: '查看详情', operator: '代理商' },
-  { time: '2025-04-29 16:45', action: '添加备注：需要确认公司资质', operator: '代理商' },
-];
+const cardBase: React.CSSProperties = {
+  borderRadius: 8,
+  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
+  border: '1px solid #f0f0f0',
+};
 
-export default function TicketManagement() {
-  const [tickets, setTickets] = useState<Ticket[]>(mockTickets);
-  const [activeTab, setActiveTab] = useState<string>('pending');
-  const [detailVisible, setDetailVisible] = useState(false);
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [form] = Form.useForm();
+export default function AgentTicketPage() {
+  const { user } = useAuth();
+  const { message } = App.useApp();
+  const [tickets, setTickets] = useState<TicketData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0 });
+  const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
+  const [replySubmitting, setReplySubmitting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchText, setSearchText] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
-  // 统计数据
-  const stats = {
-    pending: tickets.filter(t => t.status === 'pending').length,
-    approved: tickets.filter(t => t.status === 'approved').length,
-    rejected: tickets.filter(t => t.status === 'rejected').length,
-  };
+  const fetchTickets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await TicketAPI.list({
+        agentId: user?.id,
+        page: pagination.page,
+        pageSize: pagination.pageSize,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        category: categoryFilter !== 'all' ? categoryFilter : undefined,
+      });
+      const data = res as unknown as {
+        success?: boolean;
+        data?: TicketData[];
+        pagination?: { total: number };
+      };
+      if (data?.data) {
+        setTickets(data.data);
+        if (data.pagination) {
+          setPagination(prev => ({ ...prev, total: data.pagination!.total }));
+        }
+      } else {
+        setTickets([]);
+      }
+    } catch (err: any) {
+      console.error('获取工单列表失败', err);
+      message.error(err?.message || '获取工单列表失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, pagination.page, pagination.pageSize, statusFilter, categoryFilter, message]);
 
-  // 筛选工单
-  const filteredTickets =
-    activeTab === 'all' ? tickets : tickets.filter(t => t.status === activeTab);
+  useEffect(() => {
+    if (user?.id) fetchTickets();
+  }, [user?.id, pagination.page, pagination.pageSize]);
 
-  // 查看详情
-  const handleViewDetail = (ticket: Ticket) => {
+  // 当筛选条件变化时重新请求
+  useEffect(() => {
+    if (user?.id) {
+      setPagination(prev => ({ ...prev, page: 1 }));
+      fetchTickets();
+    }
+  }, [statusFilter, categoryFilter]);
+
+  const handleViewDetail = async (ticket: TicketData) => {
     setSelectedTicket(ticket);
-    setDetailVisible(true);
+    setDrawerVisible(true);
+    setDetailLoading(true);
+    try {
+      const res = await TicketAPI.detail(ticket.id);
+      const data = res as unknown as { data?: TicketData };
+      if (data?.data) setSelectedTicket(data.data);
+    } catch {
+      message.error('获取工单详情失败');
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
-  // 审批通过
-  const handleApprove = (ticket: Ticket) => {
-    setTickets(prev =>
-      prev.map(t =>
-        t.key === ticket.key
-          ? { ...t, status: 'approved', updateTime: new Date().toLocaleString() }
-          : t
-      )
-    );
-    message.success(`已通过申请：${ticket.title}`);
-    setDetailVisible(false);
+  const handleUpdateStatus = async (ticketId: string, status: string) => {
+    try {
+      await TicketAPI.updateStatus(ticketId, { status });
+      message.success(status === 'resolved' ? '工单已标记为已解决' : '工单已关闭');
+      setDrawerVisible(false);
+      fetchTickets();
+    } catch (err: any) {
+      message.error(err?.message || '状态更新失败');
+    }
   };
 
-  // 审批拒绝
-  const handleReject = (ticket: Ticket, reason: string) => {
-    setTickets(prev =>
-      prev.map(t =>
-        t.key === ticket.key
-          ? { ...t, status: 'rejected', updateTime: new Date().toLocaleString() }
-          : t
-      )
-    );
-    message.info(`已拒绝申请：${ticket.title}`);
-    setDetailVisible(false);
+  const handleAssign = async (ticketId: string) => {
+    try {
+      await TicketAPI.updateStatus(ticketId, {
+        status: 'in_progress',
+        assigneeId: user?.id,
+        assigneeName: user?.name || user?.phone || '代理商',
+      });
+      message.success('已接单，工单处理中');
+      fetchTickets();
+      // 刷新详情
+      const res = await TicketAPI.detail(ticketId);
+      const data = res as unknown as { data?: TicketData };
+      if (data?.data) setSelectedTicket(data.data);
+    } catch (err: any) {
+      message.error(err?.message || '接单失败');
+    }
   };
 
-  // 获取状态标签
+  const handleReply = async () => {
+    if (!replyContent.trim() || !selectedTicket) return;
+    setReplySubmitting(true);
+    try {
+      await TicketAPI.reply(selectedTicket.id, {
+        userId: user?.id || '',
+        userName: user?.name || user?.phone || '代理商',
+        userRole: 'agent',
+        content: replyContent,
+        isInternal: false,
+      });
+      message.success('回复成功');
+      setReplyContent('');
+      const res = await TicketAPI.detail(selectedTicket.id);
+      const data = res as unknown as { data?: TicketData };
+      if (data?.data) setSelectedTicket(data.data);
+    } catch (err: any) {
+      message.error(err?.message || '回复失败');
+    } finally {
+      setReplySubmitting(false);
+    }
+  };
+
+  const handleInternalNote = async () => {
+    if (!replyContent.trim() || !selectedTicket) return;
+    setReplySubmitting(true);
+    try {
+      await TicketAPI.reply(selectedTicket.id, {
+        userId: user?.id || '',
+        userName: user?.name || user?.phone || '代理商',
+        userRole: 'agent',
+        content: replyContent,
+        isInternal: true,
+      });
+      message.success('内部备注已添加');
+      setReplyContent('');
+      const res = await TicketAPI.detail(selectedTicket.id);
+      const data = res as unknown as { data?: TicketData };
+      if (data?.data) setSelectedTicket(data.data);
+    } catch (err: any) {
+      message.error(err?.message || '添加失败');
+    } finally {
+      setReplySubmitting(false);
+    }
+  };
+
   const getStatusTag = (status: string) => {
-    const map: Record<string, { color: string; text: string; icon: React.ReactNode }> = {
-      pending: { color: 'orange', text: '待处理', icon: <ClockCircleOutlined /> },
-      approved: { color: 'green', text: '已通过', icon: <CheckCircleOutlined /> },
-      rejected: { color: 'red', text: '已拒绝', icon: <CloseCircleOutlined /> },
+    const s = ticketStatuses.find(t => t.value === status);
+    const icons: Record<string, React.ReactNode> = {
+      open: <ClockCircleOutlined />,
+      in_progress: <SyncOutlined spin />,
+      resolved: <CheckCircleOutlined />,
+      closed: <CloseCircleOutlined />,
     };
-    const item = map[status];
     return (
-      <Tag color={item.color} icon={item.icon}>
-        {item.text}
+      <Tag color={s?.color || 'default'} icon={icons[status]}>
+        {s?.label || status}
       </Tag>
     );
   };
 
-  // 获取类型标签
-  const getTypeTag = (type: string) => {
-    const map: Record<string, { color: string; text: string }> = {
-      feature: { color: 'blue', text: '功能申请' },
-      quota: { color: 'purple', text: '额度申请' },
-      tech: { color: 'cyan', text: '技术支持' },
-    };
-    const item = map[type];
-    return <Tag color={item.color}>{item.text}</Tag>;
-  };
-
-  // 获取优先级标签
   const getPriorityTag = (priority: string) => {
-    const map: Record<string, { color: string; text: string }> = {
-      low: { color: 'default', text: '低' },
-      medium: { color: 'orange', text: '中' },
-      high: { color: 'red', text: '高' },
-    };
-    const item = map[priority];
-    return <Tag color={item.color}>{item.text}</Tag>;
+    const p = ticketPriorities.find(t => t.value === priority);
+    return <Tag color={p?.color || 'default'}>{p?.label || priority}</Tag>;
   };
 
-  const columns: ColumnsType<Ticket> = [
+  const getCategoryLabel = (category: string) => {
+    const c = ticketCategories.find(t => t.value === category);
+    return c?.label || category;
+  };
+
+  const isSlaBreached = (ticket: TicketData): boolean => {
+    if (ticket.status === 'closed' || ticket.status === 'resolved') return false;
+    const created = new Date(ticket.createdAt).getTime();
+    const now = Date.now();
+    const maxHours = ticket.priority === 'high' ? 4 : ticket.priority === 'medium' ? 8 : 24;
+    return (now - created) > maxHours * 3600000;
+  };
+
+  // 统计数据
+  const stats = useMemo(() => {
+    const counts: Record<string, number> = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
+    tickets.forEach(t => { if (t.status in counts) counts[t.status]++; });
+    return counts;
+  }, [tickets]);
+
+  // 筛选
+  const filteredTickets = useMemo(() => {
+    let list = [...tickets];
+    if (searchText) {
+      const kw = searchText.toLowerCase();
+      list = list.filter(t =>
+        t.ticketNo?.toLowerCase().includes(kw) ||
+        t.title?.toLowerCase().includes(kw) ||
+        t.user?.name?.toLowerCase().includes(kw) ||
+        t.user?.phone?.includes(kw)
+      );
+    }
+    return list;
+  }, [tickets, searchText]);
+
+  const columns: ColumnsType<TicketData> = [
     {
       title: '工单编号',
-      dataIndex: 'id',
-      key: 'id',
-      render: (id: string) => <Text code>{id}</Text>,
+      dataIndex: 'ticketNo',
+      width: 130,
+      sorter: true,
     },
     {
       title: '标题',
       dataIndex: 'title',
-      key: 'title',
-      render: (title: string, record: Ticket) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{title}</div>
-          <Space size={4} className="mt-1">
-            {getTypeTag(record.type)}
-            {getPriorityTag(record.priority)}
-          </Space>
-        </div>
+      render: (text: string, record: TicketData) => (
+        <Space size={4}>
+          <a onClick={() => handleViewDetail(record)}>{text}</a>
+          {isSlaBreached(record) && (
+            <Tooltip title="SLA超时">
+              <ExclamationCircleOutlined style={{ color: '#ff4d4f' }} />
+            </Tooltip>
+          )}
+        </Space>
       ),
     },
     {
       title: '申请人',
-      key: 'customer',
-      render: (_, record) => (
+      key: 'applicant',
+      width: 140,
+      render: (_: unknown, record: TicketData) => (
         <div>
-          <div style={{ fontWeight: 500 }}>{record.customer}</div>
-          <Text type="secondary" style={{ fontSize: 12 }}>
-            {record.company}
-          </Text>
+          <div style={{ fontWeight: 500 }}>{record.user?.name || '未设置昵称'}</div>
+          <div style={{ fontSize: 12, color: '#8c8c8c' }}>{record.user?.phone}</div>
         </div>
       ),
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      key: 'status',
-      filters: [
-        { text: '待处理', value: 'pending' },
-        { text: '已通过', value: 'approved' },
-        { text: '已拒绝', value: 'rejected' },
-      ],
-      onFilter: (value, record) => record.status === value,
-      render: (status: string) => getStatusTag(status),
+      title: '类别',
+      dataIndex: 'category',
+      width: 100,
+      render: (cat: string) => getCategoryLabel(cat),
     },
     {
-      title: '申请时间',
-      dataIndex: 'createTime',
-      key: 'createTime',
+      title: '优先级',
+      dataIndex: 'priority',
+      width: 80,
+      render: (p: string) => getPriorityTag(p),
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 110,
+      render: (s: string) => getStatusTag(s),
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      width: 160,
+      render: (d: string) => new Date(d).toLocaleString('zh-CN'),
     },
     {
       title: '操作',
       key: 'action',
-      render: (_, record) => (
-        <Space>
+      width: 140,
+      render: (_: unknown, record: TicketData) => (
+        <Space size="small">
           <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
             查看
           </Button>
-          {record.status === 'pending' && (
-            <>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => handleApprove(record)}
-                style={{ color: '#52c41a' }}
-              >
-                通过
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => handleReject(record, '')}
-                style={{ color: '#ff4d4f' }}
-              >
-                拒绝
-              </Button>
-            </>
+          {record.status === 'open' && (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => handleAssign(record.id)}
+            >
+              接单
+            </Button>
           )}
         </Space>
       ),
@@ -301,191 +331,275 @@ export default function TicketManagement() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <Title level={2} className="mb-2">
-          工单/申请处理
-        </Title>
-        <Text type="secondary">接收客户的功能开通申请，审批通过或拒绝</Text>
-      </div>
-
+    <PageContainer
+      title="工单处理"
+      description="管理客户提交的工单，审批功能开通申请，处理技术支持请求"
+      breadcrumb={[{ title: '工单处理' }]}
+      loading={false}
+      skeletonType="table"
+      extra={
+        <Space>
+          <Input
+            placeholder="搜索编号/标题/申请人"
+            prefix={<SearchOutlined />}
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            style={{ width: 220 }}
+            allowClear
+          />
+          <Select
+            value={statusFilter}
+            onChange={setStatusFilter}
+            style={{ width: 120 }}
+            options={[
+              { label: '全部状态', value: 'all' },
+              ...ticketStatuses.map(s => ({ label: s.label, value: s.value })),
+            ]}
+          />
+          <Select
+            value={categoryFilter}
+            onChange={setCategoryFilter}
+            style={{ width: 130 }}
+            options={[
+              { label: '全部分类', value: 'all' },
+              ...ticketCategories.map(c => ({ label: c.label, value: c.value })),
+            ]}
+          />
+          <Button icon={<ReloadOutlined />} onClick={fetchTickets}>
+            刷新
+          </Button>
+        </Space>
+      }
+    >
       {/* 统计卡片 */}
-      <Row gutter={16} className="mb-4">
-        <Col span={8}>
-          <Card>
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col xs={24} sm={12} md={6}>
+          <Card style={{ ...cardBase, borderTop: '3px solid #1677ff' }} styles={{ body: { padding: '16px 24px' } }}>
             <Statistic
               title="待处理"
-              value={stats.pending}
-              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
-              valueStyle={{ color: '#faad14' }}
+              value={stats.open}
+              prefix={<ClockCircleOutlined style={{ color: '#1677ff' }} />}
+              valueStyle={{ color: '#1677ff' }}
             />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
+        <Col xs={24} sm={12} md={6}>
+          <Card style={{ ...cardBase, borderTop: '3px solid #fa8c16' }} styles={{ body: { padding: '16px 24px' } }}>
             <Statistic
-              title="已通过"
-              value={stats.approved}
+              title="处理中"
+              value={stats.in_progress}
+              prefix={<SyncOutlined style={{ color: '#fa8c16' }} />}
+              valueStyle={{ color: '#fa8c16' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Card style={{ ...cardBase, borderTop: '3px solid #52c41a' }} styles={{ body: { padding: '16px 24px' } }}>
+            <Statistic
+              title="已解决"
+              value={stats.resolved}
               prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
               valueStyle={{ color: '#52c41a' }}
             />
           </Card>
         </Col>
-        <Col span={8}>
-          <Card>
+        <Col xs={24} sm={12} md={6}>
+          <Card style={{ ...cardBase, borderTop: '3px solid #8c8c8c' }} styles={{ body: { padding: '16px 24px' } }}>
             <Statistic
-              title="已拒绝"
-              value={stats.rejected}
-              prefix={<CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
-              valueStyle={{ color: '#ff4d4f' }}
+              title="已关闭"
+              value={stats.closed}
+              prefix={<CloseCircleOutlined style={{ color: '#8c8c8c' }} />}
+              valueStyle={{ color: '#8c8c8c' }}
             />
           </Card>
         </Col>
       </Row>
 
-      {/* 工单列表 */}
-      <Card>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          items={[
-            { key: 'pending', label: `待处理 (${stats.pending})` },
-            { key: 'approved', label: `已通过 (${stats.approved})` },
-            { key: 'rejected', label: `已拒绝 (${stats.rejected})` },
-            { key: 'all', label: '全部' },
-          ]}
-        />
+      {/* 工单表格 */}
+      <div style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', padding: 8 }}>
         <Table
-          rowKey="key"
           columns={columns}
           dataSource={filteredTickets}
+          rowKey="id"
+          loading={loading}
           pagination={{
-            pageSize: 10,
+            current: pagination.page,
+            pageSize: pagination.pageSize,
+            total: pagination.total,
             showSizeChanger: true,
-            showTotal: total => `共 ${total} 条`,
+            showTotal: total => `共 ${total} 条工单`,
+            onChange: (page, pageSize) => setPagination(prev => ({ ...prev, page, pageSize })),
           }}
+          onRow={(record) => ({
+            style: {
+              background: record.priority === 'high'
+                ? '#fff2f0'
+                : isSlaBreached(record)
+                  ? '#fffbe6'
+                  : undefined,
+            },
+          })}
         />
-      </Card>
+      </div>
 
-      {/* 详情弹窗 */}
-      <Modal
-        title="工单详情"
-        open={detailVisible}
-        onCancel={() => setDetailVisible(false)}
-        footer={
-          selectedTicket?.status === 'pending' ? (
-            <Space>
-              <Button onClick={() => setDetailVisible(false)}>取消</Button>
-              <Button
-                danger
-                onClick={() => {
-                  form.validateFields().then(values => {
-                    handleReject(selectedTicket, values.reason);
-                  });
-                }}
-              >
-                拒绝
-              </Button>
-              <Button type="primary" onClick={() => handleApprove(selectedTicket)}>
-                通过
-              </Button>
-            </Space>
-          ) : (
-            <Button onClick={() => setDetailVisible(false)}>关闭</Button>
-          )
+      {/* 详情抽屉 */}
+      <Drawer
+        title={
+          <Space>
+            <span>工单详情</span>
+            {selectedTicket && getStatusTag(selectedTicket.status)}
+          </Space>
         }
-        width={700}
+        placement="right"
+        width={640}
+        open={drawerVisible}
+        onClose={() => { setDrawerVisible(false); setReplyContent(''); }}
+        loading={detailLoading}
       >
         {selectedTicket && (
           <div>
-            <Form form={form} layout="vertical">
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="工单编号">
-                    <Text code>{selectedTicket.id}</Text>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="状态">{getStatusTag(selectedTicket.status)}</Form.Item>
-                </Col>
-              </Row>
+            {/* 基本信息 */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 4 }}>
+                工单编号：{selectedTicket.ticketNo}
+              </div>
+              <Typography.Title level={4} style={{ margin: '0 0 12px' }}>
+                {selectedTicket.title}
+              </Typography.Title>
+              <Space size={8} style={{ marginBottom: 12 }}>
+                {getPriorityTag(selectedTicket.priority)}
+                <Tag>{getCategoryLabel(selectedTicket.category)}</Tag>
+              </Space>
+              <div style={{ padding: 16, background: '#f5f5f5', borderRadius: 8, lineHeight: 1.8 }}>
+                {selectedTicket.content}
+              </div>
+            </div>
 
-              <Form.Item label="标题">
-                <Text strong>{selectedTicket.title}</Text>
-              </Form.Item>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="申请人">
-                    <Space>
-                      <Avatar size="small" icon={<UserOutlined />} />
-                      {selectedTicket.customer}
-                    </Space>
-                  </Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="公司">
-                    <Text>{selectedTicket.company}</Text>
-                  </Form.Item>
-                </Col>
-              </Row>
-
-              <Row gutter={16}>
-                <Col span={12}>
-                  <Form.Item label="申请类型">{getTypeTag(selectedTicket.type)}</Form.Item>
-                </Col>
-                <Col span={12}>
-                  <Form.Item label="优先级">{getPriorityTag(selectedTicket.priority)}</Form.Item>
-                </Col>
-              </Row>
-
-              <Form.Item label="申请说明">
-                <div
-                  style={{
-                    padding: 12,
-                    background: '#f5f5f5',
-                    borderRadius: 4,
-                  }}
-                >
-                  {selectedTicket.description}
+            {/* 申请人信息 */}
+            <Card size="small" style={{ marginBottom: 20, background: '#fafafa' }}>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <Avatar icon={<TeamOutlined />} />
+                <div>
+                  <div style={{ fontWeight: 500 }}>{selectedTicket.user?.name || '未设置昵称'}</div>
+                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>{selectedTicket.user?.phone}</div>
+                  {selectedTicket.user?.company && (
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>{selectedTicket.user.company}</div>
+                  )}
                 </div>
-              </Form.Item>
+              </div>
+            </Card>
 
-              {selectedTicket.status === 'pending' && (
-                <Form.Item name="reason" label="拒绝原因（拒绝时必填）">
-                  <Input.TextArea rows={3} placeholder="请输入拒绝原因" />
-                </Form.Item>
-              )}
-            </Form>
+            {/* 操作按钮 */}
+            <div style={{ marginBottom: 20 }}>
+              <Space>
+                {selectedTicket.status === 'open' && (
+                  <Button type="primary" onClick={() => handleAssign(selectedTicket.id)}>
+                    接单处理
+                  </Button>
+                )}
+                {(selectedTicket.status === 'open' || selectedTicket.status === 'in_progress') && (
+                  <>
+                    <Button
+                      type="primary"
+                      style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                      onClick={() => handleUpdateStatus(selectedTicket.id, 'resolved')}
+                    >
+                      <CheckCircleOutlined /> 标记已解决
+                    </Button>
+                    <Popconfirm
+                      title="确定关闭此工单？"
+                      onConfirm={() => handleUpdateStatus(selectedTicket.id, 'closed')}
+                    >
+                      <Button danger>
+                        <CloseCircleOutlined /> 关闭工单
+                      </Button>
+                    </Popconfirm>
+                  </>
+                )}
+              </Space>
+            </div>
 
-            {/* 处理历史 */}
-            {selectedTicket.status !== 'pending' && (
-              <div className="mt-4">
-                <Title level={5}>处理历史</Title>
-                <Timeline
-                  items={mockTicketHistory.map(item => ({
-                    color: item.action.includes('通过')
-                      ? 'green'
-                      : item.action.includes('拒绝')
-                        ? 'red'
-                        : 'blue',
-                    children: (
-                      <div>
-                        <Text strong>{item.action}</Text>
-                        <div>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {item.operator} · {item.time}
-                          </Text>
-                        </div>
+            {/* 沟通记录 */}
+            <Typography.Title level={5} style={{ marginBottom: 16 }}>
+              沟通记录
+            </Typography.Title>
+            {selectedTicket.responses && selectedTicket.responses.length > 0 ? (
+              <Timeline
+                items={selectedTicket.responses.map((r, idx) => ({
+                  color: r.isInternal ? 'orange' : r.userRole === 'agent' ? 'blue' : 'green',
+                  children: (
+                    <div key={r.id}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <Space size={4}>
+                          <strong>{r.userName}</strong>
+                          <Tag style={{ fontSize: 10, lineHeight: '16px' }}>
+                            {r.userRole === 'agent' ? '代理商' : '客户'}
+                          </Tag>
+                          {r.isInternal && (
+                            <Tag color="orange" style={{ fontSize: 10, lineHeight: '16px' }}>
+                              内部备注
+                            </Tag>
+                          )}
+                        </Space>
+                        <span style={{ fontSize: 12, color: '#8c8c8c' }}>
+                          {new Date(r.createdAt).toLocaleString('zh-CN')}
+                        </span>
                       </div>
-                    ),
-                  }))}
+                      <div
+                        style={{
+                          padding: 12,
+                          background: r.isInternal ? '#fffbe6' : r.userRole === 'agent' ? '#f0f5ff' : '#f6ffed',
+                          borderRadius: 8,
+                          borderLeft: `3px solid ${r.isInternal ? '#faad14' : r.userRole === 'agent' ? '#1677ff' : '#52c41a'}`,
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        {r.content}
+                      </div>
+                    </div>
+                  ),
+                }))}
+              />
+            ) : (
+              <div style={{ textAlign: 'center', padding: 24, color: '#999' }}>暂无沟通记录</div>
+            )}
+
+            {/* 回复区域 */}
+            {selectedTicket.status !== 'closed' && (
+              <div style={{ marginTop: 24, borderTop: '1px solid #f0f0f0', paddingTop: 24 }}>
+                <Typography.Title level={5} style={{ marginBottom: 12 }}>
+                  回复客户
+                </Typography.Title>
+                <TextArea
+                  rows={4}
+                  value={replyContent}
+                  onChange={e => setReplyContent(e.target.value)}
+                  placeholder="请输入回复内容..."
                 />
+                <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                  <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={handleReply}
+                    loading={replySubmitting}
+                    disabled={!replyContent.trim()}
+                  >
+                    发送回复
+                  </Button>
+                  <Button
+                    icon={<FilterOutlined />}
+                    onClick={handleInternalNote}
+                    loading={replySubmitting}
+                    disabled={!replyContent.trim()}
+                  >
+                    添加内部备注
+                  </Button>
+                </div>
               </div>
             )}
           </div>
         )}
-      </Modal>
-    </div>
+      </Drawer>
+    </PageContainer>
   );
 }

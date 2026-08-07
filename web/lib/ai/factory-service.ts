@@ -1,15 +1,44 @@
 /**
- * AI创作工厂 — 统一AI服务层
- * 支持腾讯云TokenHub + 阿里云百炼全部模型
- * 自动选择最优模型以达到最佳生成效果
+ * AI创作工厂 — 统一AI服务层（v2.0）
+ *
+ * 基于【智枢AI创作工厂——AI模型配置总蓝皮书 v1.0】完整实现
+ * 10 个创作类目的多模型协作流水线配置
+ *
+ * API Key 由客户自行在阿里云百炼 / 腾讯云 TokenHub 申请并配置
+ * Tokens 消耗由客户承担，平台不代付
  */
 
+import {
+  // Provider / Model 元数据
+  PROVIDER_INFO, MODEL_INFO,
+  // 10 个类目的完整流水线配置
+  CATEGORY_PIPELINES,
+  getCategoryConfig, hasApiKey, getCategoryKeyCoverage,
+  buildPhaseParams,
+  type AiProvider, type CategoryPipeline, type PhaseConfig, type PipelinePhase,
+} from './category-config';
+
+import {
+  HUMAN_TEXT_SYSTEM_PROMPT,
+  XIAOHONGSHU_HUMAN_PROMPT,
+  ECOMMERCE_HUMAN_PROMPT,
+  enhanceImagePrompt,
+  buildNegativePrompt,
+  buildVideoRealismPrompt,
+  qualityScore,
+  injectHumanStyle,
+} from './anti-ai-flavor';
+
 // ─── 类型定义 ────────────────────────────────
+
 export interface GenerateTextParams {
   prompt: string;
   systemPrompt?: string;
   maxTokens?: number;
   temperature?: number;
+  topP?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
 }
 
 export interface GenerateImageParams {
@@ -17,162 +46,329 @@ export interface GenerateImageParams {
   negativePrompt?: string;
   size?: string;
   n?: number;
-  referenceImage?: string; // 参考图base64
+  referenceImage?: string;
+  imageType?: 'portrait' | 'product' | 'scene' | 'general';
 }
 
 export interface GenerateVideoParams {
   prompt: string;
-  images?: string[];        // 输入图片base64数组
-  duration?: number;        // 视频时长(秒)
-  size?: string;            // 视频尺寸
-  voiceover?: string;       // 配音风格
-  subtitle?: string;        // 字幕选项
-  bgm?: string;             // 背景音乐
+  images?: string[];
+  imageUrl?: string;
+  duration?: number;
+  size?: string;
+  voiceover?: string;
+  subtitle?: string;
+  bgm?: string;
+  /** 横幅/贴片叠加层ID列表，传 ['auto'] 使用推荐组合 */
+  overlayBanners?: string[];
+  videoType?: 'portrait' | 'product' | 'scene' | 'digital-human' | 'mv' | 'enterprise';
 }
 
 export interface GenerateResult {
   success: boolean;
-  data?: string | string[];  // URL或文本
+  data?: string | string[];
   error?: string;
   provider: string;
   model: string;
 }
 
-// ─── Provider配置 ────────────────────────────────
-interface ProviderConfig {
-  id: string;
-  name: string;
-  textModels: string[];
-  imageModels: string[];
-  videoModels: string[];
-}
+export type ContentTypeSlug =
+  | 'xiaohongshu' | 'image' | 'ecommerce' | 'cinemaShort'
+  | 'enterpriseVideo' | 'productVideo'
+  | 'storeTour' | 'personMv' | 'cartoonVideo' | 'digitalHuman';
 
-const PROVIDERS: Record<string, ProviderConfig> = {
-  tencent: {
-    id: 'tencent',
-    name: '腾讯云TokenHub',
-    textModels: ['hunyuan-pro', 'hunyuan-turbo', 'hunyuan-lite', 'deepseek-r1', 'deepseek-v3'],
-    imageModels: ['hunyuan-image', 'hunyuan-vision'],
-    videoModels: ['hunyuan-video', 'hunyuan-video-1.5'],
-  },
-  alibaba: {
-    id: 'alibaba',
-    name: '阿里云百炼',
-    textModels: ['qwen-max', 'qwen-plus', 'qwen-turbo', 'qwen3.6-plus', 'deepseek-r1', 'deepseek-v3'],
-    imageModels: ['wan2.7-image-pro', 'wanx-v1', 'flux-dev', 'flux-schnell'],
-    videoModels: ['wan2.7-t2v', 'cogvideox-v1.0'],
-  },
-};
+// ─── API Key 管理 ────────────────────────────
 
-// ─── 模型选择策略 ────────────────────────────────
-// 根据任务类型自动选择最佳模型组合
-interface ModelSelection {
-  provider: string;
-  text: string;
-  image?: string;
-  video?: string;
-}
-
-const MODEL_SELECTION: Record<string, ModelSelection> = {
-  // 小红书图文 - 需要优秀的多模态理解和中文写作能力
-  xiaohongshu: { provider: 'alibaba', text: 'qwen-max', image: 'wan2.7-image-pro' },
-  // 图片生成 - 需要最强的文生图能力
-  image: { provider: 'alibaba', text: 'qwen-plus', image: 'wan2.7-image-pro' },
-  // 电商详情页 - 需要文本+图片综合能力
-  ecommerce: { provider: 'alibaba', text: 'qwen-max', image: 'wan2.7-image-pro' },
-  // 短视频脚本 - 需要创意文案能力
-  shortVideo: { provider: 'alibaba', text: 'qwen-max', video: 'wan2.7-t2v' },
-  // 企业宣传视频 - 需要视频生成能力
-  enterpriseVideo: { provider: 'alibaba', text: 'qwen-plus', video: 'wan2.7-t2v' },
-  // 产品宣传视频
-  productVideo: { provider: 'alibaba', text: 'qwen-plus', video: 'wan2.7-t2v' },
-  // 探店视频
-  storeTour: { provider: 'alibaba', text: 'qwen-max', video: 'wan2.7-t2v' },
-  // 真人MV
-  personMv: { provider: 'alibaba', text: 'qwen-plus', video: 'wan2.7-t2v' },
-  // 萌宠卡通短视频
-  cartoonVideo: { provider: 'alibaba', text: 'qwen-max', video: 'wan2.7-t2v' },
-  // 数字人
-  digitalHuman: { provider: 'tencent', text: 'hunyuan-pro', video: 'hunyuan-video' },
-};
-
-// ─── 核心API调用 ────────────────────────────────
-
-async function callAPI(provider: string, endpoint: string, body: any, apiKey: string): Promise<any> {
-  const config = PROVIDERS[provider];
-  if (!config) throw new Error(`未知Provider: ${provider}`);
-
-  const baseUrls: Record<string, string> = {
-    tencent: 'https://tokenhub.cloud.tencent.com',
-    alibaba: 'https://dashscope.aliyuncs.com',
-  };
-
-  const baseUrl = baseUrls[provider];
-  const url = `${baseUrl}${endpoint}`;
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`${config.name} API错误 (${response.status}): ${errText}`);
-  }
-
-  return response.json();
-}
-
-// ─── 公开API ────────────────────────────────
-
-/**
- * 获取用户API Key (从前端存储读取)
- */
-function getUserApiKeys(): { tencent?: string; alibaba?: string } {
-  if (typeof window === 'undefined') return {};
-  const keys: any = {};
+function getUserApiKeys(): Record<AiProvider, string> {
+  const keys: Record<AiProvider, string> = { tencent: '', alibaba: '' };
+  if (typeof window === 'undefined') return keys;
   try {
-    const tencentKey = localStorage.getItem('api_key_tencent');
-    const alibabaKey = localStorage.getItem('api_key_alibaba');
-    if (tencentKey) keys.tencent = tencentKey;
-    if (alibabaKey) keys.alibaba = alibabaKey;
-  } catch (e) { /* ignore */ }
+    keys.tencent = localStorage.getItem(PROVIDER_INFO.tencent.storageKey) || '';
+    keys.alibaba = localStorage.getItem(PROVIDER_INFO.alibaba.storageKey) || '';
+  } catch { /* ignore */ }
   return keys;
 }
 
-/**
- * 获取认证 token
- */
 function getAuthToken(): string {
   if (typeof window === 'undefined') return '';
-  try {
-    return localStorage.getItem('token') || '';
-  } catch (e) { return ''; }
+  try { return localStorage.getItem('token') || ''; } catch { return ''; }
 }
 
-// ─── 多模型协作流水线调用 ──────────────────────
+// ─── 底层 HTTP 调用 ─────────────────────────
+
+async function callChatAPI(
+  provider: AiProvider, modelId: string, messages: any[],
+  params: { temperature?: number; maxTokens?: number; topP?: number;
+            frequencyPenalty?: number; presencePenalty?: number } = {},
+  apiKey: string
+): Promise<string> {
+  const info = PROVIDER_INFO[provider];
+  const url = `${info.baseUrl}${info.chatEndpoint}`;
+  const body: any = {
+    model: modelId,
+    messages,
+    max_tokens: params.maxTokens || 2000,
+    temperature: params.temperature ?? 0.7,
+  };
+  if (params.topP != null) body.top_p = params.topP;
+  if (params.frequencyPenalty != null) body.frequency_penalty = params.frequencyPenalty;
+  if (params.presencePenalty != null) body.presence_penalty = params.presencePenalty;
+
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
+  const json = await resp.json();
+  return json.choices?.[0]?.message?.content || '';
+}
+
+async function callImageAPI(
+  provider: AiProvider, modelId: string, prompt: string,
+  params: { negativePrompt?: string; n?: number; size?: string },
+  apiKey: string
+): Promise<string[]> {
+  const info = PROVIDER_INFO[provider];
+
+  if (provider === 'alibaba') {
+    // Qwen-Image 系列模型走 multimodal-generation 端点（同步，无需 X-DashScope-Async）
+    const isQwenImage = modelId.startsWith('qwen-image');
+    const endpoint = isQwenImage ? info.multimodalImageEndpoint : info.imageEndpoint;
+    const url = `${info.baseUrl}${endpoint}`;
+
+    // 阿里云百炼图片生成统一使用 multimodal-generation messages 格式
+    const body: any = {
+      model: modelId,
+      input: {
+        messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
+      },
+      parameters: { size: params.size || '1024*1024', n: params.n || 1 },
+    };
+    if (params.negativePrompt) body.input.negative_prompt = params.negativePrompt;
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
+    const json = await resp.json();
+    // 阿里云百炼图片返回 output.choices[].message.content[].image
+    const contents = json.output?.choices?.[0]?.message?.content || [];
+    const urls = contents.filter((c: any) => c.image).map((c: any) => c.image);
+    if (urls.length) return urls;
+    // 兼容旧版 results 格式
+    return (json.output?.results || []).map((r: any) => r.url);
+  }
+
+  if (provider === 'tencent') {
+    const url = `${info.baseUrl}${info.imageEndpoint}`;
+    const body = { model: modelId, prompt, n: params.n || 1, size: params.size || '1024x1024' };
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
+    const json = await resp.json();
+    return (json.data || []).map((r: any) => r.url);
+  }
+
+  throw new Error(`不支持的 provider: ${provider}`);
+}
+
+async function callVideoAPI(
+  provider: AiProvider, modelId: string, prompt: string,
+  params: { duration?: number; size?: string; images?: string[]; text?: string },
+  apiKey: string
+): Promise<string> {
+  const info = PROVIDER_INFO[provider];
+
+  if (provider === 'alibaba') {
+    const url = `${info.baseUrl}${info.videoEndpoint}`;
+    // 将 1280*720 格式转为 HappyHorse 的 resolution + ratio
+    const sizeMap: Record<string, [string, string]> = {
+      '1280*720': ['720P', '16:9'], '1280x720': ['720P', '16:9'],
+      '1920*1080': ['1080P', '16:9'], '1920x1080': ['1080P', '16:9'],
+      '720*1280': ['720P', '9:16'], '720x1280': ['720P', '9:16'],
+      '1080*1920': ['1080P', '9:16'], '1080x1920': ['1080P', '9:16'],
+      '1024*1024': ['720P', '1:1'], '1024x1024': ['720P', '1:1'],
+    };
+    const rawSize = params.size || '1280*720';
+    const [resolution, ratio] = sizeMap[rawSize] || ['720P', '16:9'];
+    const body = {
+      model: modelId,
+      input: { prompt },
+      parameters: { resolution, ratio, duration: params.duration || 5 },
+    };
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'X-DashScope-Async': 'enable',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
+    const submitJson = await resp.json();
+    const taskId = submitJson.output?.task_id || submitJson.request_id || '';
+    if (!taskId) {
+      // 少数模型可能同步返回
+      return submitJson.output?.video_url || submitJson.output?.results?.[0]?.url || '';
+    }
+    // 异步轮询（最多 5 分钟）
+    const pollUrl = `${info.baseUrl}/api/v1/tasks/${taskId}`;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      const pollResp = await fetch(pollUrl, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!pollResp.ok) throw new Error(`${info.label} poll (${pollResp.status}): ${await pollResp.text()}`);
+      const pollJson = await pollResp.json();
+      const status = pollJson.output?.task_status || pollJson.status || '';
+      if (status === 'SUCCEEDED' || status === 'succeeded' || status === 'completed' || status === 'success') {
+        return pollJson.output?.video_url || pollJson.output?.results?.[0]?.url || '';
+      }
+      if (status === 'FAILED' || status === 'failed' || status === 'error') {
+        throw new Error(`${info.label} task failed: ${pollJson.output?.message || pollJson.message || JSON.stringify(pollJson).slice(0, 300)}`);
+      }
+    }
+    throw new Error(`${info.label} 视频生成超时（5分钟）`);
+  }
+
+  if (provider === 'tencent') {
+    // TokenHub 视频使用原生 submit+poll 模式
+    const submitUrl = `${info.baseUrl}${info.videoEndpoint}`;
+    const baseUrl = info.baseUrl;
+
+    // Step 1: 提交任务
+    const submitBody: any = {
+      model: modelId,
+      prompt,
+      duration: params.duration || 5,
+      size: params.size || '1280x720',
+    };
+    if (params.images && params.images.length > 0) {
+      submitBody.image_url = params.images[0];
+    }
+
+    // 数字人模型：TokenHub 要求提供音频 URL，不直接支持 text 驱动。
+    // 先用阿里云百炼 TTS 生成音频，再把音频 URL 传给数字人接口。
+    if (modelId === 'yt-video-humanactor') {
+      // TokenHub 数字人是"图片+音频"驱动，必须提供 image_url + audio_url。
+      const imageUrl = params.imageUrl || params.images?.[0];
+      if (!imageUrl) {
+        throw new Error('数字人需要上传一张人物照片作为形象');
+      }
+      const aliKey = typeof window !== 'undefined'
+        ? localStorage.getItem(PROVIDER_INFO.alibaba.storageKey) || ''
+        : '';
+      if (!aliKey) {
+        throw new Error('数字人需要阿里云百炼 API Key 先合成配音音频');
+      }
+      const ttsModel = 'qwen-tts';
+      const ttsUrl = `${PROVIDER_INFO.alibaba.baseUrl}${PROVIDER_INFO.alibaba.multimodalImageEndpoint}`;
+      const ttsResp = await fetch(ttsUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${aliKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: ttsModel,
+          input: { text: (params.text || prompt).slice(0, 500) },
+          parameters: { voice: params.voice || 'zhixiaobai', language_type: 'Chinese', format: 'mp3' },
+        }),
+      });
+      if (!ttsResp.ok) throw new Error(`数字人TTS (${ttsResp.status}): ${await ttsResp.text()}`);
+      const ttsJson = await ttsResp.json();
+      const audioUrl = ttsJson.output?.audio?.url || ttsJson.output?.audio_url || ttsJson.output?.url || '';
+      if (!audioUrl) throw new Error('数字人TTS未返回音频URL');
+      submitBody.image_url = imageUrl;
+      submitBody.audio_url = audioUrl;
+      // 数字人不需要 duration/size/text
+      delete submitBody.duration;
+      delete submitBody.size;
+      delete submitBody.text;
+    }
+
+    const submitResp = await fetch(submitUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(submitBody),
+    });
+    if (!submitResp.ok) throw new Error(`${info.label} submit (${submitResp.status}): ${await submitResp.text()}`);
+    const submitJson = await submitResp.json();
+    const taskId = submitJson.task_id || submitJson.id || submitJson.request_id;
+    if (!taskId) {
+      console.log('[callVideoAPI] submit response:', JSON.stringify(submitJson));
+      return submitJson.video_url || submitJson.url || '';
+    }
+
+    // Step 2: 轮询任务状态
+    const pollUrl = `${baseUrl}/v1/api/video/query`;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      const pollResp = await fetch(pollUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskId }),
+      });
+      if (!pollResp.ok) throw new Error(`${info.label} poll (${pollResp.status}): ${await pollResp.text()}`);
+      const pollJson = await pollResp.json();
+      const status = pollJson.status || pollJson.state;
+      if (status === 'succeeded' || status === 'completed' || status === 'success') {
+        return pollJson.video_url || pollJson.url || pollJson.output?.video_url || '';
+      }
+      if (status === 'failed' || status === 'error') {
+        throw new Error(`${info.label} task failed: ${pollJson.error || pollJson.message || JSON.stringify(pollJson)}`);
+      }
+    }
+    throw new Error(`${info.label} 视频生成超时（3分钟）`);
+  }
+
+  throw new Error(`不支持的 provider: ${provider}`);
+}
+
+// ─── 反 AI 化系统提示词映射 ─────────────────
+
+const ANTI_AI_SYSTEM_PROMPTS: Record<string, string> = {
+  xiaohongshu: XIAOHONGSHU_HUMAN_PROMPT,
+  ecommerce: ECOMMERCE_HUMAN_PROMPT,
+  video_script: `你是一个抖音/快手短视频创作者，你的脚本风格口语化、接地气，有节奏感。不用"首先其次最后"，像朋友聊天一样写。`,
+  enterprise: `你是一个真实的企业品牌策划，你的文案专业但不八股。用真实的企业案例和员工视角来写，避免假大空。`,
+  product: `你是一个实际的带货主播/电商运营，你的文案直接、接地气、有说服力。不用套话，用真实使用感受打动用户。`,
+  review: `你是一个真实的探店博主。你的文案有现场感、有细节，好就说好，不好的地方也会客观提一下。用第一人称写。`,
+  creative: `你是一个独立音乐人/导演。你的文案有艺术感但不矫情。用创作人的真实视角来表达，避免空洞的文艺腔。`,
+  cute: `你是一个萌宠博主/动画师。你的文案温暖、可爱但不做作。用日常相处的真实细节来打动人。`,
+  talk: `你是一个真实的口播博主。你的话术语速自然、有停顿、有口头禅。用日常聊天的语气，不是背稿子的感觉。`,
+};
+
+function getAntiAiPrompt(phase: string): string {
+  return ANTI_AI_SYSTEM_PROMPTS[phase] || HUMAN_TEXT_SYSTEM_PROMPT;
+}
+
+// ─── 核心：多阶段流水线执行 ─────────────────
+
+export interface PipelineTaskResult {
+  phase: string;
+  label: string;
+  success: boolean;
+  modelName: string;
+  provider: string;
+  duration: number;
+  outputPreview: string;
+  error?: string;
+}
 
 export interface PipelineResponse {
   success: boolean;
-  mode: 'pipeline' | 'single';
   data: {
     totalDuration?: number;
     successCount?: number;
     totalCount?: number;
     finalOutput?: string;
-    tasks?: Array<{
-      id: string;
-      success: boolean;
-      modelName: string;
-      provider: string;
-      duration: number;
-      outputPreview: string;
-      error?: string;
-    }>;
+    tasks?: PipelineTaskResult[];
+    // backward compat
     taskType?: string;
     modelKey?: string;
     modelId?: string;
@@ -183,360 +379,1085 @@ export interface PipelineResponse {
 }
 
 /**
- * 通过服务端流水线生成内容（多模型协作）
- * 优先使用此方法，可获更高质量结果
+ * 前端直连多阶段流水线（不经过服务端）
+ * 客户自己的 API Key 驱动，不消耗平台 Token
  */
+export async function generateWithLocalPipeline(
+  slug: ContentTypeSlug,
+  userInput: string
+): Promise<PipelineResponse> {
+  const config = getCategoryConfig(slug);
+  if (!config) {
+    return { success: false, data: { message: `未知类目: ${slug}` } };
+  }
+
+  const apiKeys = getUserApiKeys();
+  const tasks: PipelineTaskResult[] = [];
+  let accumulatedText = userInput;
+  const startTime = Date.now();
+
+  for (const phase of config.phases) {
+    if (!phase.enabled) continue;
+    const phaseStart = Date.now();
+    const modelInfo = MODEL_INFO[phase.primaryModel];
+    if (!modelInfo) {
+      tasks.push({ phase: phase.phase, label: phase.label, success: false, modelName: 'unknown', provider: '-', duration: 0, outputPreview: '', error: `未知模型: ${phase.primaryModel}` });
+      continue;
+    }
+
+    const key = apiKeys[modelInfo.provider];
+    if (!key) {
+      // 尝试降级
+      if (phase.fallbackModel) {
+        const fbInfo = MODEL_INFO[phase.fallbackModel];
+        if (fbInfo && apiKeys[fbInfo.provider]) {
+          const result = await executePhase(phase, fbInfo, apiKeys[fbInfo.provider]!, accumulatedText, userInput);
+          if (!result) {
+            tasks.push({ phase: phase.phase, label: phase.label, success: false, modelName: fbInfo.displayName, provider: PROVIDER_INFO[fbInfo.provider].label, duration: Date.now() - phaseStart, outputPreview: '', error: '降级调用失败' });
+            continue;
+          }
+          tasks.push({
+            phase: phase.phase, label: phase.label,
+            success: true, modelName: fbInfo.displayName,
+            provider: PROVIDER_INFO[fbInfo.provider].label,
+            duration: Date.now() - phaseStart,
+            outputPreview: (result.data || '').slice(0, 120),
+          });
+          if (result.data) accumulatedText = result.data;
+          continue;
+        }
+      }
+      tasks.push({ phase: phase.phase, label: phase.label, success: false, modelName: modelInfo.displayName, provider: PROVIDER_INFO[modelInfo.provider].label, duration: 0, outputPreview: '', error: `缺少 ${PROVIDER_INFO[modelInfo.provider].label} API Key，请在设置中配置` });
+      continue;
+    }
+
+    try {
+      const result = await executePhase(phase, modelInfo, key, accumulatedText, userInput);
+      tasks.push({
+        phase: phase.phase, label: phase.label,
+        success: true, modelName: modelInfo.displayName,
+        provider: PROVIDER_INFO[modelInfo.provider].label,
+        duration: Date.now() - phaseStart,
+        outputPreview: (result.data || '').slice(0, 120),
+      });
+      if (result.data) accumulatedText = result.data;
+    } catch (e: any) {
+      // 尝试降级
+      if (phase.fallbackModel) {
+        const fbInfo = MODEL_INFO[phase.fallbackModel];
+        if (fbInfo && apiKeys[fbInfo.provider]) {
+          try {
+            const result = await executePhase(phase, fbInfo, apiKeys[fbInfo.provider]!, accumulatedText, userInput);
+            tasks.push({
+              phase: phase.phase, label: phase.label,
+              success: true, modelName: `[降级] ${fbInfo.displayName}`,
+              provider: PROVIDER_INFO[fbInfo.provider].label,
+              duration: Date.now() - phaseStart,
+              outputPreview: (result.data || '').slice(0, 120),
+            });
+            if (result.data) accumulatedText = result.data;
+            continue;
+          } catch { /* double fail, fall through */ }
+        }
+      }
+      tasks.push({ phase: phase.phase, label: phase.label, success: false, modelName: modelInfo.displayName, provider: PROVIDER_INFO[modelInfo.provider].label, duration: Date.now() - phaseStart, outputPreview: '', error: e.message });
+    }
+  }
+
+  const successCount = tasks.filter(t => t.success).length;
+  return {
+    success: successCount > 0,
+    data: {
+      totalDuration: Date.now() - startTime,
+      successCount, totalCount: tasks.length,
+      finalOutput: accumulatedText,
+      tasks,
+    },
+  };
+}
+
+async function executePhase(
+  phase: PhaseConfig, modelInfo: any, apiKey: string,
+  accumulatedText: string, originalInput: string
+): Promise<{ data?: string }> {
+  const params = phase.params || {};
+  const phaseParams = { temperature: params.temperature, maxTokens: params.maxOutput || 2000, topP: params.top_p, frequencyPenalty: params.frequency_penalty, presencePenalty: params.presence_penalty };
+
+  switch (phase.phase) {
+    case 'viral_analysis': {
+      const sysPrompt = `你是一个爆款内容分析师。分析用户输入的主题，找出其爆款基因：信息差、情绪价值、身份认同、行动诱因。输出结构化的分析结果。`;
+      const prompt = `请分析以下主题的爆款潜力，输出情绪切入点、目标人群画像、核心信息差、推荐标题方向：\n\n${accumulatedText}`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: prompt }], phaseParams, apiKey);
+      return { data: `【爆款分析】\n${content}\n\n【用户原始需求】\n${originalInput}` };
+    }
+
+    case 'outline': {
+      const sysPrompt = `你是一个专业内容策划。根据爆款分析结果，输出结构化的创作大纲。`;
+      const prompText = `根据以下分析结果，生成一个详细的创作大纲（包括标题、开头钩子、主体段落、结尾CTA）：\n\n${accumulatedText}`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: prompText }], phaseParams, apiKey);
+      return { data: content };
+    }
+
+    case 'draft': {
+      const sysPrompt = `你是一个经验丰富的创作者。根据大纲写出完整初稿。发挥创意，不要拘谨。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], phaseParams, apiKey);
+      return { data: content };
+    }
+
+    case 'anti_ai_rewrite': {
+      const sysPrompt = getAntiAiPrompt(params.systemPrompt || 'general');
+      const rewritePrompt = `请将以下内容按真人创作者的风格完全重写一遍。要求：口语化、自然、有趣、去AI味。不使用"首先其次最后""综上所述""值得注意的是"等AI标志性词汇。直接输出重写后的完整内容：\n\n${accumulatedText}`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: rewritePrompt }], { ...phaseParams, temperature: params.temperature ?? 0.75 }, apiKey);
+      return { data: content };
+    }
+
+    case 'quality_review': {
+      const sysPrompt = `你是一个严苛的内容质量审查员。对比初稿和改写稿，检查是否有AI味残留、是否自然、是否有逻辑错误。输出评审意见和改进建议。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], { ...phaseParams, temperature: params.temperature ?? 0.2 }, apiKey);
+      return { data: content };
+    }
+
+    case 'style_calibration': {
+      const sysPrompt = `你是一个内容风格校准专家。请根据质量评审意见，对内容进行最终润色和风格校准。目标是让内容达到"专业编辑审校定稿"的质量标准——语言表达精准、风格调性统一、节奏张弛有度、无任何AI残留痕迹。请直接输出校准后的完整定稿内容：`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `质量评审意见：\n${accumulatedText}\n\n请根据以上评审意见，输出风格校准后的最终定稿。` }], { ...phaseParams, temperature: params.temperature ?? 0.65 }, apiKey);
+      return { data: content };
+    }
+
+    case 'platform_adapt': {
+      const platform = params.platform || 'xiaohongshu';
+      const sysPrompt = `你是一个多平台内容运营。根据目标平台的风格要求，将内容裁剪适配为适合${platform}发布的格式。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `请将此内容适配为${platform}平台风格：\n\n${accumulatedText}` }], phaseParams, apiKey);
+      return { data: content };
+    }
+
+    case 'visual_strategy': {
+      const sysPrompt = `你是一个视觉策略师。根据内容描述，为图片/视频生成详细的视觉设计策略，包括色调、构图、光影、风格建议。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], phaseParams, apiKey);
+      return { data: content };
+    }
+
+    case 'image_prompt': {
+      const sysPrompt = `你是一个AI绘图Prompt工程师。根据内容和视觉策略，生成高质量的中文绘画提示词。要求详细、具体、有画面感。输出正向prompt和负向prompt两份。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], phaseParams, apiKey);
+      return { data: content };
+    }
+
+    case 'script_generate': {
+      const sysPrompt = `你是一个短视频导演。根据主题生成详细的分镜脚本，包括镜头类型、时长、画面描述、旁白/字幕。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], phaseParams, apiKey);
+      return { data: content };
+    }
+
+    case 'compliance_check': {
+      const sysPrompt = `你是一个内容合规审核员。检查内容是否违反广告法、是否涉及敏感话题、是否存在虚假宣传。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], { ...phaseParams, temperature: 0.1 }, apiKey);
+      return { data: content };
+    }
+
+    case 'tts_generate': {
+      // 阿里云百炼 TTS：使用 multimodal-generation 端点 + qwen-tts 模型
+      // 使用 input.text 格式（非 input.messages），同步返回 audio URL
+      if (modelInfo.provider === 'alibaba') {
+        const ttsUrl = `${PROVIDER_INFO.alibaba.baseUrl}${PROVIDER_INFO.alibaba.multimodalImageEndpoint}`;
+        const ttsBody = {
+          model: modelInfo.modelId,
+          input: { text: accumulatedText.slice(0, 500) },
+          parameters: { voice: params.style || 'default', format: 'mp3' },
+        };
+        const ttsResp = await fetch(ttsUrl, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(ttsBody),
+        });
+        if (!ttsResp.ok) throw new Error(`TTS (${ttsResp.status}): ${await ttsResp.text()}`);
+        const ttsJson = await ttsResp.json();
+        const audioUrl = ttsJson.output?.audio?.url || ttsJson.output?.audio_url || ttsJson.output?.url || '';
+        if (audioUrl) {
+          return { data: `[配音完成] ${audioUrl}` };
+        }
+      }
+      // Tencent TTS 尝试
+      if (modelInfo.provider === 'tencent') {
+        const ttsUrl = `${PROVIDER_INFO.tencent.baseUrl}${PROVIDER_INFO.tencent.multimodalImageEndpoint}`;
+        try {
+          const ttsResp = await fetch(ttsUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: modelInfo.modelId, prompt: accumulatedText.slice(0, 500) }),
+          });
+          if (ttsResp.ok) {
+            const ttsJson = await ttsResp.json();
+            const audioUrl = ttsJson.data?.[0]?.url || ttsJson.url || '';
+            if (audioUrl) return { data: `[配音完成] ${audioUrl}` };
+          }
+        } catch { /* fall through */ }
+      }
+      // Fallback: 返回文本
+      return { data: `[配音文本] ${accumulatedText.slice(0, 200)}...` };
+    }
+
+    case 'bgm_generate': {
+      // v3.2：BGM 配乐选曲建议 — 改用 LLM 分析文案情绪，输出专业免版权 BGM 选曲方案
+      const dur = Number(phase.params?.duration) || 30;
+      const bgmResult = await callBGMSuggestionForPhase(accumulatedText, dur, modelInfo, phaseParams, apiKey);
+      return { data: bgmResult };
+    }
+
+    case 'brand_voice_clone': {
+      // v3.0：品牌配音克隆 — Alibaba qwen-tts / MiniMax TTS
+      const voiceText = extractVoiceText(accumulatedText);
+      if (modelInfo.provider === 'alibaba') {
+        try {
+          const ttsUrl = `${PROVIDER_INFO.alibaba.baseUrl}${PROVIDER_INFO.alibaba.multimodalImageEndpoint}`;
+          const ttsParams: Record<string, unknown> = { voice: phase.params?.voiceId || 'zhixiaobai', language_type: 'Chinese', format: 'mp3' };
+          // 注意: qwen-tts 不支持 emotion 参数，已移除
+          const ttsResp = await fetch(ttsUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model: modelInfo.modelId, input: { text: voiceText }, parameters: ttsParams }),
+          });
+          if (ttsResp.ok) {
+            const ttsJson = await ttsResp.json();
+            const audioUrl = ttsJson.output?.audio?.url || ttsJson.output?.audio_url || ttsJson.output?.url || '';
+            if (audioUrl) return { data: `${accumulatedText}\n\n[品牌配音音频] ${audioUrl}` };
+          }
+        } catch { /* fall through */ }
+      }
+      return { data: `${accumulatedText}\n\n[品牌配音] 配音文本: ${voiceText.slice(0, 100)}... (需上传品牌声音样本完成克隆)` };
+    }
+
+    case 'subtitle_generate': {
+      // v3.1：中英双语字幕生成
+      return await generateSubtitles(accumulatedText, modelInfo, phaseParams, apiKey);
+    }
+
+    case 'video_edit': {
+      // v3.1：视频瑕疵修复
+      return await callVideoEdit(accumulatedText, modelInfo, phaseParams, apiKey);
+    }
+
+    case 'image_enhance': {
+      // v3.1：图片质量增强 — 调用多模态端点做 refiner 处理
+      const imgUrls = extractImageUrls(accumulatedText);
+      const targetUrl = imgUrls[0];
+      if (targetUrl && modelInfo.provider === 'alibaba') {
+        try {
+          const enhanceUrl = `${PROVIDER_INFO.alibaba.baseUrl}${PROVIDER_INFO.alibaba.multimodalImageEndpoint}`;
+          const opType = phase.params?.operation || 'refine';
+          const enhanceBody = {
+            model: modelInfo.modelId,
+            input: { messages: [{ role: 'user', content: [{ image: targetUrl }, { text: opType === 'refine' ? 'Enhance this image: sharpen details, remove AI artifacts and distortion, refine textures and edges, keep composition and subject unchanged.' : 'Improve image quality with higher resolution and cleaner details.' }] }] },
+            parameters: { size: phase.params?.size || '1664*1664', n: 1 },
+          };
+          const enhanceResp = await fetch(enhanceUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(enhanceBody),
+          });
+          if (enhanceResp.ok) {
+            const enhanceJson = await enhanceResp.json();
+            const contents = enhanceJson.output?.choices?.[0]?.message?.content || [];
+            const newUrls = contents.filter((c: any) => c.image).map((c: any) => c.image);
+            if (newUrls.length > 0) return { data: `[增强图片] ${newUrls[0]}\n\n${accumulatedText}` };
+            const fbUrls = (enhanceJson.output?.results || []).map((r: any) => r.url);
+            if (fbUrls.length > 0) return { data: `[增强图片] ${fbUrls[0]}\n\n${accumulatedText}` };
+          }
+        } catch { /* fallback */ }
+      }
+      return { data: accumulatedText, _imageEnhance: true };
+    }
+
+    case 'dialect_voiceover': {
+      // v3.1：方言配音
+      return await callDialectVoiceover(accumulatedText, modelInfo, phaseParams, apiKey);
+    }
+
+    case 'image_generate': {
+      // 从 accumulatedText 提取图片 prompt，调用 callImageAPI 实际出图
+      const imagePrompt = extractImagePrompt(accumulatedText);
+      const n = Number(phase.params?.n) || 1;
+      const size = String(phase.params?.size || '1024*1024');
+      const style = String(phase.params?.style || 'general');
+      const enhanced = enhanceImagePrompt(imagePrompt, style as any);
+      const negative = buildNegativePrompt(style as any);
+      const urls = await callImageAPI(modelInfo.provider, modelInfo.modelId, enhanced, { negativePrompt: negative, n, size }, apiKey);
+      const urlLines = urls.map((u, i) => `[图片${i + 1}] ${u}`).join('\n');
+      return { data: `${accumulatedText}\n\n【生成图片 ${urls.length} 张】\n${urlLines}` };
+    }
+
+    case 'image_select': {
+      // 从 accumulatedText 解析所有图片 URL，用 LLM 评审择优
+      const allUrls = extractImageUrls(accumulatedText);
+      if (allUrls.length === 0) return { data: accumulatedText };
+      if (allUrls.length === 1) return { data: `${accumulatedText}\n\n【择优结果】唯一图片: ${allUrls[0]}` };
+      try {
+        const selectPrompt = `从以下 ${allUrls.length} 张图片中挑选最优的一张，输出格式：\n选中的图片编号：X\n理由：一句话说明\n\n${allUrls.map((u, i) => `图片${i + 1}: ${u}`).join('\n')}\n\n内容主题：${accumulatedText.slice(0, 300)}`;
+        const selection = await callChatAPI(modelInfo.provider, modelInfo.modelId, [
+          { role: 'system', content: '你是专业视觉评审，请从多张图片中挑选质量最优的一张。只输出编号和简短理由。' },
+          { role: 'user', content: selectPrompt },
+        ], { temperature: 0.2, maxTokens: 500 }, apiKey);
+        const match = selection.match(/图片(\d+)/);
+        const idx = match ? Math.min(parseInt(match[1], 10) - 1, allUrls.length - 1) : 0;
+        return { data: `${accumulatedText}\n\n【择优结果】选中图片${idx + 1}: ${allUrls[idx]}\n评审: ${selection.slice(0, 120)}` };
+      } catch {
+        return { data: `${accumulatedText}\n\n【择优结果】默认选图1: ${allUrls[0]}` };
+      }
+    }
+
+    case 'video_generate': {
+      // 从 accumulatedText 提取视频脚本，调用 callVideoAPI 生成视频
+      const videoPrompt = extractVideoPrompt(accumulatedText);
+      const duration = Number(phase.params?.duration) || 10;
+      const size = String(phase.params?.size || '1280*720');
+      const refImages = extractImageUrls(accumulatedText);
+      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, videoPrompt, { duration, size, images: refImages.length > 0 ? refImages.slice(0, 1) : undefined, text: accumulatedText.slice(0, 500) }, apiKey);
+      return { data: `${accumulatedText}\n\n【生成视频】${videoUrl}` };
+    }
+
+    case 'digital_human': {
+      // 数字人出镜：图片+音频合成
+      const scriptText = extractVoiceText(accumulatedText);
+      const imgUrls = extractImageUrls(accumulatedText);
+      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, `数字人口播: ${scriptText.slice(0, 300)}`, { duration: Number(phase.params?.duration) || 30, size: String(phase.params?.size || '1280*720'), images: imgUrls.length > 0 ? imgUrls.slice(0, 1) : undefined, imageUrl: imgUrls[0] || undefined, text: scriptText }, apiKey);
+      return { data: `${accumulatedText}\n\n【数字人视频】${videoUrl}` };
+    }
+
+    default:
+      return { data: accumulatedText };
+  }
+}
+
+// ─── v3.1 新增阶段：字幕生成 ─────────────────
+
+/**
+ * 中英双语字幕生成
+ * 从文案脚本中提取对白/旁白，生成标准SRT格式双语字幕
+ * 整合去AI味：对白口语化、俚语方言化、情感标记
+ */
+async function generateSubtitles(
+  script: string,
+  modelInfo: ModelInfoType,
+  params: Record<string, unknown>,
+  apiKey: string,
+  aiContext?: string
+): Promise<{ data: string; _subtitles?: Record<string, unknown> }> {
+  const subtitlePrompt = getSubtitlePrompt(params);
+  const payload: Record<string, unknown> = {
+    model: modelInfo.modelId,
+    messages: [
+      {
+        role: 'system',
+        content: `你是一个专业的视频字幕制作专家。请从以下脚本中提取需要字幕标注的对白和旁白，生成标准SRT格式的中英双语字幕。
+
+规则：
+1. 每个字幕条目包含：序号 → 时间戳（根据脚本中标注的时长估算） → 中文原文 → 英文翻译
+2. 口语化处理：将书面语转为自然口语（"非常"→"超"/"特别"，"进行"去掉，感叹词自然化）
+3. 方言色彩：如果脚本自带方言风格（如东北话/四川话），英文翻译保留那股"味儿"
+4. 情感标记：标注说话语气（惊讶/感动/幽默/急迫），帮助配音演员理解
+5. 去AI味：对白必须有"人味"，禁用"让我们"、"值得注意的是"等AI腔
+
+输出格式示例：
+1
+00:00:01,000 --> 00:00:03,500
+[热情] 家人们，今天这个地方真绝了！
+[Enthusiastic] Guys, this place is absolutely insane!
+
+2
+00:00:03,500 --> 00:00:06,000
+[感叹] 你看看这风景，我跟你说绝了呀
+[Amazed] Look at this view - I'm telling you, it's breathtaking!
+
+请严格按照SRT格式输出，确保时间戳递增，无重叠。`,
+      },
+      { role: 'user', content: subtitlePrompt.replace('{script}', script).replace('{context}', aiContext || '') },
+    ],
+    temperature: 0.3,
+    max_tokens: 16384,
+  };
+
+  const baseUrl = PROVIDER_INFO[modelInfo.provider].baseUrl;
+  const endpoint = baseUrl + '/chat/completions';
+
+  try {
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (resp.ok) {
+      const json = await resp.json();
+      const content = json.choices?.[0]?.message?.content || '';
+      return {
+        data: script,
+        _subtitles: { format: 'srt', content, language: 'bilingual' },
+      };
+    }
+  } catch { /* fallback */ }
+
+  // 降级：返回脚本原文
+  return { data: script, _subtitles: { format: 'srt', content: '[需要手动生成字幕]', language: 'bilingual' } };
+}
+
+function getSubtitlePrompt(params: Record<string, unknown>): string {
+  const lang = (params.language as string) || 'bilingual';
+  const style = (params.style as string) || 'professional';
+
+  const styleMap: Record<string, string> = {
+    social_short: '短视频风格：节奏快、口语化强、感叹词多、有"人味儿"',
+    corporate: '企业宣传风格：专业但不生硬、温暖但不油腻、国际化用词',
+    product_sales: '产品带货风格：情绪饱满、节奏激昂但不夸张、有信任感',
+    vlog: '探店Vlog风格：第一人称、生活气、临场感、"家人们"式亲近',
+    music_video: 'MV歌词风格：韵律感、画面感、情感起伏',
+    cartoon: '卡通萌趣风格：可爱语气词（"咕噜"、"嘿嘿"）、简单直接',
+    talk_show: '口播讲谈风格：自然语流、适当停顿、强调表达',
+  };
+
+  return `请为以下视频脚本生成${lang === 'bilingual' ? '中英双语' : lang === 'english' ? '英文' : '中文'}SRT字幕。
+
+风格要求：${styleMap[style] || '专业自然，有"人味儿"'}
+
+脚本内容：
+{script}
+
+脚本上下文：
+{context}`;
+}
+
+// ─── v3.1 新增阶段：视频编辑 ─────────────────
+
+/**
+ * 视频瑕疵修复
+ * 使用 happyhorse 视频编辑模型修复产品形态不一致、画面异常物体等AI生成视频常见问题
+ */
+async function callVideoEdit(
+  videoRef: string,
+  modelInfo: ModelInfoType,
+  params: Record<string, unknown>,
+  apiKey: string
+): Promise<{ data: string; _videoEdited: boolean }> {
+  // happyhorse-1.0 在阿里云百炼，是视频编辑API
+  const baseUrl = PROVIDER_INFO[modelInfo.provider]?.baseUrl || PROVIDER_INFO.alibaba.baseUrl;
+
+  try {
+    const resp = await fetch(`${baseUrl}/v1/videos/edits`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: modelInfo.modelId,
+        video_url: videoRef,
+        operation: params.operation || 'repair',
+        detect: params.detect || 'morph_artifacts',
+        quality: 'high',
+      }),
+    });
+
+    if (resp.ok) {
+      const json = await resp.json();
+      return { data: json.data?.url || videoRef, _videoEdited: true };
+    }
+  } catch { /* fallback */ }
+
+  // 降级：返回原视频引用
+  return { data: videoRef, _videoEdited: false };
+}
+
+// ─── v3.1 新增阶段：方言配音 ─────────────────
+
+/**
+ * 方言配音处理
+ * 将标准普通话/英语脚本转为指定方言版本，用于TTS配音
+ * 整合去AI味：方言口语音频应听起来像真人而非机器合成
+ */
+async function callDialectVoiceover(
+  script: string,
+  modelInfo: ModelInfoType,
+  params: Record<string, unknown>,
+  apiKey: string
+): Promise<{ data: string; _dialect?: string }> {
+  const dialects = (params.dialects as string[]) || [];
+  const dialect = dialects[0] || 'normal';
+
+  if (dialect === 'normal') {
+    return { data: script };
+  }
+
+  // 方言转换：使用模型将普通话转为方言口语
+  const dialectMap: Record<string, { region: string; prompt: string }> = {
+    sichuan: {
+      region: '四川',
+      prompt: `将以下内容转为四川话（川普/正宗四川话）。要求：
+1. 保留原意的同时让用词充满川味（如"啥子"、"安逸"、"巴适"、"啷个"）
+2. 语法自然，不要生硬转换
+3. 保持口语化，避免书面感
+4. 适合TTS配音，保留自然停顿和语气词`,
+    },
+    dongbei: {
+      region: '东北',
+      prompt: `将以下内容转为东北话。要求：
+1. 加入东北味儿的词（如"整"、"瞅"、"嘎哈"、"老鼻子"、"咋地"）
+2. 语气自然豪爽，不要刻意
+3. 保持口语化，避免书面感
+4. 适合TTS配音，保留自然停顿和语气词`,
+    },
+    cantonese: {
+      region: '广东',
+      prompt: `将以下内容转为粤语口语。要求：
+1. 用粤语口语表达（如"系咩"、"唔该"、"好正"、"食饱未"）
+2. 保留粤语特有的语序和语气
+3. 保持口语化，避免书面感
+4. 适合TTS配音，保留自然停顿和语气词`,
+    },
+    shanghai: {
+      region: '上海',
+      prompt: `将以下内容转为上海话口语。要求：
+1. 用上海话口语表达（如"老好"、"灵光"、"适意"、"老多"）
+2. 保留上海话特有的语序和语气
+3. 保持口语化，避免书面感
+4. 适合TTS配音，保留自然停顿和语气词`,
+    },
+    minnan: {
+      region: '闽南',
+      prompt: `将以下内容转为闽南话/台语口语。要求：
+1. 用闽南话口语表达
+2. 保留闽南话特有的语序和语气
+3. 保持口语化，避免书面感
+4. 适合TTS配音，保留自然停顿和语气词`,
+    },
+    henan: {
+      region: '河南',
+      prompt: `将以下内容转为河南话口语。要求：
+1. 加入河南味儿（如"中"、"弄啥嘞"、"可得劲"、"恁"）
+2. 语气自然朴实
+3. 保持口语化，避免书面感
+4. 适合TTS配音，保留自然停顿和语气词`,
+    },
+  };
+
+  const config = dialectMap[dialect];
+  if (!config) return { data: script };
+
+  const baseUrl = PROVIDER_INFO[modelInfo.provider]?.baseUrl || PROVIDER_INFO.alibaba.baseUrl;
+
+  try {
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: modelInfo.modelId,
+        messages: [
+          { role: 'system', content: `你是一个方言转换专家，擅长将普通话转为你指定的方言口语。` },
+          { role: 'user', content: `${config.prompt}\n\n原文：\n${script}` },
+        ],
+        temperature: 0.7,
+        max_tokens: 8192,
+      }),
+    });
+
+    if (resp.ok) {
+      const json = await resp.json();
+      return { data: json.choices?.[0]?.message?.content || script, _dialect: dialect };
+    }
+  } catch { /* fallback */ }
+
+  return { data: script, _dialect: dialect };
+}
+
+// ─── 单模型直连模式 ─────────────────────────
+
+/**
+ * 生成文本（单模型直连）
+ */
+export async function generateText(
+  params: GenerateTextParams,
+  slug?: ContentTypeSlug
+): Promise<GenerateResult> {
+  const apiKeys = getUserApiKeys();
+
+  if (slug) {
+    const config = getCategoryConfig(slug);
+    if (config) {
+      // 找到文案阶段的主模型
+      const textPhase = config.phases.find(p =>
+        ['draft', 'anti_ai_rewrite', 'viral_analysis'].includes(p.phase));
+      if (textPhase) {
+        const modelInfo = MODEL_INFO[textPhase.primaryModel];
+        if (modelInfo && apiKeys[modelInfo.provider]) {
+          try {
+            const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [
+              ...(params.systemPrompt ? [{ role: 'system' as const, content: params.systemPrompt }] : []),
+              { role: 'user' as const, content: params.prompt },
+            ], { temperature: params.temperature, maxTokens: params.maxTokens, topP: params.topP, frequencyPenalty: params.frequencyPenalty, presencePenalty: params.presencePenalty }, apiKeys[modelInfo.provider]);
+            return { success: true, data: content, provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
+          } catch {
+            // fall through to multi-provider fallback
+          }
+        }
+      }
+    }
+  }
+
+  // 通用回退：尝试所有已配置的 Key
+  const providers: AiProvider[] = ['tencent', 'alibaba'];
+  for (const p of providers) {
+    if (!apiKeys[p]) continue;
+    const modelId = p === 'tencent' ? 'deepseek-v4-pro-202606' : 'qwen3.8-max';
+    const displayName = p === 'tencent' ? 'DeepSeek V4 Pro' : 'Qwen 3.8 Max';
+    try {
+      const content = await callChatAPI(p, modelId, [
+        ...(params.systemPrompt ? [{ role: 'system' as const, content: params.systemPrompt }] : []),
+        { role: 'user' as const, content: params.prompt },
+      ], { temperature: params.temperature, maxTokens: params.maxTokens, topP: params.topP, frequencyPenalty: params.frequencyPenalty, presencePenalty: params.presencePenalty }, apiKeys[p]);
+      return { success: true, data: content, provider: PROVIDER_INFO[p].label, model: displayName };
+    } catch {
+      continue;
+    }
+  }
+
+  // 未配置 API Key，提示用户先配置
+  return {
+    success: false,
+    error: '请先在「系统设置 → API Key」中配置阿里云百炼或腾讯云 TokenHub 的 API Key，即可使用 AI 创作功能',
+    provider: '',
+    model: '',
+  };
+}
+
+/**
+ * v3.2：BGM 配乐选曲建议（管线阶段用）
+ * 使用 LLM 深度分析文案情绪曲线，输出专业免版权 BGM 选曲方案
+ */
+async function callBGMSuggestionForPhase(
+  textContext: string, duration: number,
+  modelInfo: any, phaseParams: any, apiKey: string
+): Promise<string> {
+  const dur = duration || 30;
+  const mood = detectMood(textContext);
+
+  // 裁剪文案上下文，避免超出 LLM 输入限制
+  const scriptSnippet = textContext.slice(0, 2500);
+
+  const sysPrompt = `你是一位专业的影视配乐顾问（Music Supervisor），精通视频配乐的情绪节奏设计。
+你的任务是根据创意短片的分镜脚本，为每个镜头推荐最合适的免版权背景音乐（BGM），并提供具体的曲库搜索关键词。
+
+## 输出要求
+请按以下结构输出，简洁专业：
+
+### 整体情绪弧线
+用一句话概括全片的情感走向（如：从悬念渐进 → 高潮激昂 → 结尾温暖余韵）
+
+### 分镜头 BGM 选曲方案
+| 镜头 | 时间 | 情绪 | 推荐曲风 | BPM | 参考曲库关键词 | 推荐平台 |
+|------|------|------|----------|-----|----------------|----------|
+
+### 免版权曲库推荐
+列出 3-5 个获取免版权 BGM 的平台，每个平台说明适合的曲风类型和使用注意事项。
+
+### 配乐制作建议
+- 如果后期需要定制化配乐，提供制作方向建议（如：需要渐强弦乐铺垫、电子鼓点切入时机等）
+- 给剪辑师的操作提示：如何做音频淡入淡出、关键帧音量自动化
+
+## 注意事项
+- 所有推荐必须适配免版权需求（CC0 / CC BY / Royalty-Free）
+- BPM 范围要具体（如 90-110 BPM，不要写"中速"）
+- 关键词要能在 Epidemic Sound / Artlist / Pixabay Music / 剪映曲库 中直接搜索`;
+
+  const prompt = `以下是一部${dur}秒创意短片的完整分镜脚本，请为其设计专业的 BGM 配乐方案：\n\n${scriptSnippet}`;
+
+  try {
+    const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [
+      { role: 'system', content: sysPrompt },
+      { role: 'user', content: prompt },
+    ], { temperature: 0.6, maxTokens: 2000, topP: phaseParams?.topP }, apiKey);
+
+    return `${textContext}\n\n---\n## BGM 配乐选曲方案\n\n${content}`;
+  } catch {
+    // LLM 调用失败时的降级方案：基于关键词规则给出快速建议
+    return `${textContext}\n\n---\n## BGM 配乐选曲方案（自动匹配）\n\n` +
+      `整体情绪基调：${mood} | 时长：${dur}秒\n\n` +
+      `推荐曲风：${getMoodStyleRecommendation(mood)}\n` +
+      `推荐平台：Pixabay Music (免费CC0) / 剪映曲库 (内置) / Epidemic Sound (付费高质量)\n` +
+      `搜索关键词：${getMoodSearchKeywords(mood)}\n\n` +
+      `提示：以上为自动规则匹配结果。配置 API Key 后可获得 LLM 深度分析的专业选曲方案。`;
+  }
+}
+
+/**
+ * 基于关键词的情绪检测（LLM 降级方案 + 辅助标签）
+ */
+function detectMood(text: string): string {
+  const m = text.toLowerCase();
+  if (m.includes('热血') || m.includes('燃') || m.includes('激') || m.includes('奋') || m.includes('战斗')) return 'energetic';
+  if (m.includes('感人') || m.includes('泪') || m.includes('温') || m.includes('爱') || m.includes('治愈')) return 'emotional';
+  if (m.includes('科技') || m.includes('未来') || m.includes('赛博') || m.includes('AI') || m.includes('数字')) return 'futuristic';
+  if (m.includes('轻松') || m.includes('快乐') || m.includes('欢') || m.includes('阳光') || m.includes('活力')) return 'upbeat';
+  if (m.includes('安静') || m.includes('宁静') || m.includes('慢') || m.includes('冥想') || m.includes('禅')) return 'calm';
+  if (m.includes('悬疑') || m.includes('紧张') || m.includes('暗') || m.includes('恐怖') || m.includes('惊悚')) return 'suspense';
+  if (m.includes('宏大') || m.includes('史诗') || m.includes('壮') || m.includes('磅礴')) return 'epic';
+  if (m.includes('复古') || m.includes('怀旧') || m.includes('老') || m.includes('经典')) return 'vintage';
+  if (m.includes('自然') || m.includes('田园') || m.includes('森林') || m.includes('海洋')) return 'nature';
+  return 'cinematic';
+}
+
+function getMoodStyleRecommendation(mood: string): string {
+  const map: Record<string, string> = {
+    energetic: '摇滚 / 电子 / 快节奏打击乐 (120-140 BPM)',
+    emotional: '钢琴独奏 / 弦乐四重奏 / 氛围后摇 (60-90 BPM)',
+    futuristic: 'Synthwave / Cyberpunk 电子 / Glitch Hop (100-120 BPM)',
+    upbeat: '独立流行 / Lo-fi Hip Hop / 清新木吉他 (90-110 BPM)',
+    calm: '环境音乐 / 极简钢琴 / 自然白噪音 (50-70 BPM)',
+    suspense: '黑暗氛围 / 脉冲合成器 / 弦乐渐强 (70-90 BPM)',
+    epic: '管弦乐 / 电影配乐 / 合唱+打击乐 (100-130 BPM)',
+    vintage: '爵士 / Swing / 胶片质感Lo-fi (80-100 BPM)',
+    nature: '世界音乐 / 民谣吉他 / 环境音景 (60-90 BPM)',
+    cinematic: '电影管弦乐 / 后摇 / 氛围电子 (80-110 BPM)',
+  };
+  return map[mood] || map.cinematic;
+}
+
+function getMoodSearchKeywords(mood: string): string {
+  const map: Record<string, string> = {
+    energetic: 'energetic rock, driving beat, action background, intense drums',
+    emotional: 'emotional piano, sad strings, heartfelt, cinematic slow',
+    futuristic: 'synthwave, cyberpunk, futuristic electronic, sci-fi ambient',
+    upbeat: 'happy upbeat, cheerful pop, bright acoustic, feel good',
+    calm: 'ambient calm, meditation, peaceful nature, soft piano',
+    suspense: 'suspense thriller, dark ambient, tension building, horror drone',
+    epic: 'epic orchestral, heroic, grand cinematic, powerful choir',
+    vintage: 'vintage jazz, retro swing, nostalgic, old film',
+    nature: 'nature ambient, folk acoustic, world music, forest sounds',
+    cinematic: 'cinematic film score, orchestral, dramatic, trailer music',
+  };
+  return map[mood] || map.cinematic;
+}
+
+// ─── 管线辅助函数 ────────────────────────────
+
+/** 从累计文本中提取图片生成 Prompt */
+function extractImagePrompt(text: string): string {
+  const posMatch = text.match(/(?:正向prompt|正向提示词|Prompt)[:：]\s*(.+?)(?:\n|$)/i);
+  if (posMatch) return posMatch[1].trim().slice(0, 800);
+  const descMatch = text.match(/(?:图片描述|画面描述|视觉描述)[:：]\s*(.+?)(?:\n\n|\n(?=[^\n]{0,3}$)|$)/is);
+  if (descMatch) return descMatch[1].trim().slice(0, 800);
+  const clean = text.replace(/https?:\/\/\S+/g, '').replace(/\[图片\d+\]/g, '').replace(/\[视频\]/g, '');
+  return clean.trim().slice(-500) || text.slice(0, 500);
+}
+
+/** 从累计文本中提取视频生成 Prompt（支持分镜脚本/镜头描述） */
+function extractVideoPrompt(text: string): string {
+  const scriptMatch = text.match(/(?:分镜脚本|视频脚本|Video Script)[:：]\s*(.+?)(?:\n\n###|\n\n---|\n\n(?=【)|$)/is);
+  if (scriptMatch) return scriptMatch[1].trim().slice(0, 1000);
+  const shotMatch = text.match(/【镜头[\d]+[^】]*】[^\n]*(?:\n[^\n【]*){0,3}/g);
+  if (shotMatch && shotMatch.length > 0) return shotMatch.slice(0, 6).join('\n').slice(0, 1000);
+  const clean = text.replace(/https?:\/\/\S+/g, '').replace(/\[图片\d+\]/g, '').replace(/\[视频\]/g, '').replace(/【生成图片[\s\S]*?】/g, '').trim();
+  return clean.slice(0, 800) || text.slice(0, 500);
+}
+
+/** 从累计文本中提取所有图片 URL（支持多种标记格式） */
+function extractImageUrls(text: string): string[] {
+  const urls: string[] = [];
+  const mr = /\[图片(\d+)\]\s*(https?:\/\/[^\s\n]+)/g;
+  let m;
+  while ((m = mr.exec(text)) !== null) urls.push(m[2]);
+  const gb = text.match(/【生成图片[\s\S]*?】(.*?)(?:\n\n|$)/);
+  if (gb) {
+    const ur = /https?:\/\/[^\s\n)]+/g;
+    let um;
+    while ((um = ur.exec(gb[1])) !== null) { if (!urls.includes(um[0])) urls.push(um[0]); }
+  }
+  const sm = text.match(/选中图片\d+:\s*(https?:\/\/[^\s\n]+)/);
+  if (sm && !urls.includes(sm[1])) urls.push(sm[1]);
+  const em = text.match(/\[增强图片\]\s*(https?:\/\/[^\s\n]+)/);
+  if (em && !urls.includes(em[1])) urls.unshift(em[1]);
+  return urls;
+}
+
+/** 从累计文本中提取配音文字（去除 URL 和元数据标记） */
+function extractVoiceText(text: string): string {
+  let clean = text.replace(/https?:\/\/\S+/g, '');
+  clean = clean.replace(/\[(?:图片|视频|数字人视频|生成图片|择优结果|增强图片)[^\]]*\]/g, '');
+  clean = clean.replace(/【[^】]*】/g, '');
+  const lines = clean.split('\n').filter(l => l.trim().length > 0);
+  return lines.join(' ').trim().slice(0, 500) || '暂无配音文本';
+}
+
+/**
+ * 生成图片（单模型直连）
+ */
+export async function generateImage(
+  params: GenerateImageParams,
+  slug?: ContentTypeSlug
+): Promise<GenerateResult> {
+  const apiKeys = getUserApiKeys();
+  const negative = params.negativePrompt || buildNegativePrompt(params.imageType || 'general');
+  const enhancedPrompt = enhanceImagePrompt(params.prompt, params.imageType || 'general');
+
+  if (slug) {
+    const config = getCategoryConfig(slug);
+    if (config) {
+      const imgPhase = config.phases.find(p => p.phase === 'image_generate');
+      if (imgPhase) {
+        const modelInfo = MODEL_INFO[imgPhase.primaryModel];
+        if (modelInfo && apiKeys[modelInfo.provider]) {
+          try {
+            const urls = await callImageAPI(modelInfo.provider, modelInfo.modelId, enhancedPrompt, { negativePrompt: negative, n: params.n, size: params.size }, apiKeys[modelInfo.provider]);
+            return { success: true, data: urls.length === 1 ? urls[0] : urls, provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
+          } catch {
+            // try fallback model
+            if (imgPhase.fallbackModel) {
+              const fbInfo = MODEL_INFO[imgPhase.fallbackModel];
+              if (fbInfo && apiKeys[fbInfo.provider]) {
+                try {
+                  const urls = await callImageAPI(fbInfo.provider, fbInfo.modelId, enhancedPrompt, { negativePrompt: negative, n: params.n, size: params.size }, apiKeys[fbInfo.provider]);
+                  return { success: true, data: urls.length === 1 ? urls[0] : urls, provider: PROVIDER_INFO[fbInfo.provider].label, model: fbInfo.displayName };
+                } catch { /* fall through */ }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 通用回退
+  const pref: { p: AiProvider; model: string; name: string }[] = [
+    { p: 'tencent', model: 'hy-image-v3.0', name: '混元 Image 3.0' },
+    { p: 'alibaba', model: 'wan2.7-image-pro', name: 'WAN 2.7 Image Pro' },
+  ];
+  for (const { p, model, name } of pref) {
+    if (!apiKeys[p]) continue;
+    try {
+      const urls = await callImageAPI(p, model, enhancedPrompt, { negativePrompt: negative, n: params.n, size: params.size }, apiKeys[p]);
+      return { success: true, data: urls.length === 1 ? urls[0] : urls, provider: PROVIDER_INFO[p].label, model: name };
+    } catch { continue; }
+  }
+
+  return mockImageGeneration(params.prompt, params.imageType);
+}
+
+/**
+ * 生成视频（单模型直连）
+ */
+export async function generateVideo(
+  params: GenerateVideoParams,
+  slug?: ContentTypeSlug
+): Promise<GenerateResult> {
+  const apiKeys = getUserApiKeys();
+
+  // 构建增强 prompt（注入字幕/配音/横幅配置）
+  const enhancedPrompt = buildVideoPrompt(params);
+
+  if (slug) {
+    const config = getCategoryConfig(slug);
+    if (config) {
+      const vidPhase = config.phases.find(p =>
+        ['video_generate', 'digital_human'].includes(p.phase));
+      if (vidPhase) {
+        const modelInfo = MODEL_INFO[vidPhase.primaryModel];
+        if (modelInfo && apiKeys[modelInfo.provider]) {
+          try {
+            const url = await callVideoAPI(modelInfo.provider, modelInfo.modelId, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[modelInfo.provider]);
+            return { success: true, data: url, provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
+          } catch {
+            if (vidPhase.fallbackModel) {
+              const fbInfo = MODEL_INFO[vidPhase.fallbackModel];
+              if (fbInfo && apiKeys[fbInfo.provider]) {
+                try {
+                  const url = await callVideoAPI(fbInfo.provider, fbInfo.modelId, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[fbInfo.provider]);
+                  return { success: true, data: url, provider: PROVIDER_INFO[fbInfo.provider].label, model: fbInfo.displayName };
+                } catch { /* fall through */ }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 通用回退
+  const pref: { p: AiProvider; model: string; name: string }[] = [
+    { p: 'tencent', model: 'kl-video-v3', name: '可灵 KLING 3.0' },
+    { p: 'tencent', model: 'hy-video-1.5', name: '混元视频 1.5' },
+  ];
+  for (const { p, model, name } of pref) {
+    if (!apiKeys[p]) continue;
+    try {
+      const url = await callVideoAPI(p, model, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[p]);
+      return { success: true, data: url, provider: PROVIDER_INFO[p].label, model: name };
+    } catch { continue; }
+  }
+
+  return mockVideoGeneration(params, slug);
+}
+
+/**
+ * 构建增强视频生成 prompt，注入配音/字幕/横幅/背景音乐配置
+ */
+function buildVideoPrompt(params: GenerateVideoParams): string {
+  const parts = [params.prompt];
+
+  // 字幕配置
+  if (params.subtitle && params.subtitle !== 'none') {
+    const labelMap: Record<string, string> = {
+      chinese: '添加中文字幕，白色文字带半透明黑底，底部居中',
+      english: '添加英文字幕，白色文字带半透明黑底，底部居中',
+      bilingual: '添加中英文双语字幕，中文在上英文在下，白色文字带半透明黑底',
+    };
+    parts.push(labelMap[params.subtitle] || '');
+  }
+
+  // 配音配置
+  if (params.voiceover && params.voiceover !== 'none') {
+    const voiceMap: Record<string, string> = {
+      'male-mandarin': '使用男声普通话配音',
+      'female-mandarin': '使用女声普通话配音',
+      'male-cantonese': '使用男声粤语配音',
+      'female-cantonese': '使用女声粤语配音',
+      'male-english': '使用男声英语配音',
+      'female-english': '使用女声英语配音',
+      sichuan: '使用四川话方言配音',
+      dongbei: '使用东北话方言配音',
+      shanghai: '使用上海话方言配音',
+      minnan: '使用闽南话方言配音',
+      henan: '使用河南话方言配音',
+      hunan: '使用湖南话方言配音',
+      shaanxi: '使用陕西话方言配音',
+      tianjin: '使用天津话方言配音',
+    };
+    parts.push(voiceMap[params.voiceover] || '');
+  }
+
+  // 背景音乐
+  if (params.bgm && params.bgm !== 'none') {
+    const bgmMap: Record<string, string> = {
+      happy: '添加欢快背景音乐',
+      relaxing: '添加舒缓背景音乐',
+      dynamic: '添加动感背景音乐',
+      sad: '添加悲伤背景音乐',
+      suspense: '添加悬疑背景音乐',
+      tech: '添加科技感背景音乐',
+      classical: '添加古典背景音乐',
+      business: '添加商务背景音乐',
+      cheerful: '添加清新欢快背景音乐',
+      lyrical: '添加抒情背景音乐',
+    };
+    parts.push(bgmMap[params.bgm] || '');
+  }
+
+  // 横幅/贴片配置
+  if (params.overlayBanners && params.overlayBanners.length > 0) {
+    const bannerMap: Record<string, string> = {
+      'opening-title': '视频开头居中显示大字标题，渐变蓝紫背景，持续3秒',
+      'lower-third': '画面底部有人名/职位信息标注条，深色半透明背景，约出现5秒',
+      'closing-credits': '视频结尾底部显示品牌落款和口号，淡入淡出效果',
+      'call-to-action': '底部显示醒目红色行动号召按钮，引导用户点击',
+      watermark: '右下角半透明品牌水印"@智枢AI"，全程显示',
+      'scene-divider': '场景切换时显示章节过渡提示文字',
+      'speech-bubble': '底部左侧显示对话气泡框，模拟角色说话',
+      'bullet-comment': '画面顶部有弹幕文字从右到左飘过',
+      'brand-logo': '右上角显示品牌Logo角标，全程显示',
+      'progress-hint': '显示"接下来"的进度提示文字',
+    };
+    const bannerDescs = params.overlayBanners.map(b => bannerMap[b] || b).filter(Boolean);
+    if (bannerDescs.length > 0) {
+      parts.push(`视频叠加元素：${bannerDescs.join('；')}`);
+    }
+  }
+
+  return parts.filter(Boolean).join('。');
+}
+
+// ─── 兼容旧接口：服务端流水线尝试后降级到本地流水线 ──
+
 export async function generateWithPipeline(
   contentType: string,
   userInput: string
 ): Promise<PipelineResponse & { fallbackUsed: boolean }> {
+  // 先尝试服务端流水线
   const token = getAuthToken();
-  if (!token) {
-    return {
-      success: false,
-      mode: 'single',
-      fallbackUsed: true,
-      data: { message: '未登录，使用前端直连模式' },
-    };
-  }
-
-  try {
-    const response = await fetch('/api/ai-config/pipeline', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ contentType, userInput }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const result: PipelineResponse = await response.json();
-    return { ...result, fallbackUsed: false };
-  } catch (e) {
-    console.warn('[Pipeline] 服务端流水线不可用，使用前端直连模式:', e);
-    return {
-      success: false,
-      mode: 'single',
-      fallbackUsed: true,
-      data: { message: '服务端流水线不可用，已切换到前端直连模式' },
-    };
-  }
-}
-
-/**
- * 生成文本 (自动选择最佳Provider和模型)
- */
-export async function generateText(
-  params: GenerateTextParams,
-  task?: keyof typeof MODEL_SELECTION
-): Promise<GenerateResult> {
-  const apiKeys = getUserApiKeys();
-  const selection = task ? MODEL_SELECTION[task] : MODEL_SELECTION.shortVideo;
-  const provider = selection.provider;
-  const model = selection.text;
-  const apiKey = apiKeys[provider as keyof typeof apiKeys];
-
-  if (!apiKey) {
-    // 降级：尝试另一个provider
-    const fallback = provider === 'alibaba' ? 'tencent' : 'alibaba';
-    const fbKey = apiKeys[fallback as keyof typeof apiKeys];
-    if (fbKey) {
-      return generateTextWithProvider(params, fallback, PROVIDERS[fallback].textModels[0], fbKey);
-    }
-    // 无API Key，使用浏览器端模拟
-    return mockTextGeneration(params.prompt, task);
-  }
-
-  try {
-    return await generateTextWithProvider(params, provider, model, apiKey);
-  } catch (e) {
-    // 降级到另一个provider
-    const fallback = provider === 'alibaba' ? 'tencent' : 'alibaba';
-    const fbKey = apiKeys[fallback as keyof typeof apiKeys];
-    if (fbKey) {
-      try {
-        return await generateTextWithProvider(params, fallback, PROVIDERS[fallback].textModels[0], fbKey);
-      } catch (e2) {
-        return mockTextGeneration(params.prompt, task);
+  if (token) {
+    try {
+      const resp = await fetch('/api/ai-config/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ contentType, userInput }),
+      });
+      if (resp.ok) {
+        const result: PipelineResponse = await resp.json();
+        return { ...result, fallbackUsed: false };
       }
+    } catch (e) {
+      console.warn('[Pipeline] 服务端流水线不可用，使用本地流水线');
     }
-    return mockTextGeneration(params.prompt, task);
   }
+
+  // 降级到本地流水线
+  const localResult = await generateWithLocalPipeline(contentType as ContentTypeSlug, userInput);
+  return { ...localResult, fallbackUsed: true };
 }
 
-async function generateTextWithProvider(
-  params: GenerateTextParams,
-  provider: string,
-  model: string,
-  apiKey: string
-): Promise<GenerateResult> {
-  const config = PROVIDERS[provider];
+// ─── 便捷：获取某个类目的模型信息 ──────────
 
-  if (provider === 'alibaba') {
-    const data = await callAPI(provider, '/compatible-mode/v1/chat/completions', {
-      model,
-      messages: [
-        ...(params.systemPrompt ? [{ role: 'system', content: params.systemPrompt }] : []),
-        { role: 'user', content: params.prompt },
-      ],
-      max_tokens: params.maxTokens || 2000,
-      temperature: params.temperature || 0.7,
-    }, apiKey);
-
-    return {
-      success: true,
-      data: data.choices?.[0]?.message?.content || '',
-      provider: config.name,
-      model,
-    };
-  }
-
-  if (provider === 'tencent') {
-    const data = await callAPI(provider, '/v1/chat/completions', {
-      model,
-      messages: [
-        ...(params.systemPrompt ? [{ role: 'system', content: params.systemPrompt }] : []),
-        { role: 'user', content: params.prompt },
-      ],
-      max_tokens: params.maxTokens || 2000,
-      temperature: params.temperature || 0.7,
-    }, apiKey);
-
-    return {
-      success: true,
-      data: data.choices?.[0]?.message?.content || '',
-      provider: config.name,
-      model,
-    };
-  }
-
-  throw new Error(`不支持的provider: ${provider}`);
+export function getModelsForCategory(slug: ContentTypeSlug) {
+  const config = getCategoryConfig(slug);
+  if (!config) return null;
+  return {
+    category: config,
+    models: config.requiredModels.map(k => MODEL_INFO[k]).filter(Boolean),
+    coverage: getCategoryKeyCoverage(slug),
+  };
 }
 
-/**
- * 生成图片 (自动选择最佳Provider和模型)
- */
-export async function generateImage(
-  params: GenerateImageParams,
-  task?: keyof typeof MODEL_SELECTION
-): Promise<GenerateResult> {
-  const apiKeys = getUserApiKeys();
-  const selection = task ? MODEL_SELECTION[task] : MODEL_SELECTION.image;
-  const provider = selection.provider;
-  const model = (selection as any).image || 'wan2.7-image-pro';
-  const apiKey = apiKeys[provider as keyof typeof apiKeys];
+export { hasApiKey, getCategoryKeyCoverage, PROVIDER_INFO, MODEL_INFO, CATEGORY_PIPELINES, getCategoryConfig };
 
-  if (!apiKey) {
-    const fallback = provider === 'alibaba' ? 'tencent' : 'alibaba';
-    const fbKey = apiKeys[fallback as keyof typeof apiKeys];
-    if (fbKey) {
-      return generateImageWithProvider(params, fallback, 'hunyuan-image', fbKey);
-    }
-    return mockImageGeneration(params.prompt);
-  }
+// ─── Mock 函数（无 API Key 时的高质量真人级模拟）──
 
-  try {
-    return await generateImageWithProvider(params, provider, model, apiKey);
-  } catch (e) {
-    const fallback = provider === 'alibaba' ? 'tencent' : 'alibaba';
-    const fbKey = apiKeys[fallback as keyof typeof apiKeys];
-    if (fbKey) {
-      try {
-        return await generateImageWithProvider(params, fallback, 'hunyuan-image', fbKey);
-      } catch (e2) {
-        return mockImageGeneration(params.prompt);
-      }
-    }
-    return mockImageGeneration(params.prompt);
-  }
-}
-
-async function generateImageWithProvider(
-  params: GenerateImageParams,
-  provider: string,
-  model: string,
-  apiKey: string
-): Promise<GenerateResult> {
-  const config = PROVIDERS[provider];
-
-  if (provider === 'alibaba') {
-    const data = await callAPI(provider, '/api/v1/services/aigc/image-generation/generation', {
-      model,
-      input: {
-        prompt: params.prompt,
-        ...(params.negativePrompt ? { negative_prompt: params.negativePrompt } : {}),
-        ...(params.referenceImage ? { ref_img: params.referenceImage } : {}),
-      },
-      parameters: {
-        size: params.size || '1024*1024',
-        n: params.n || 1,
-      },
-    }, apiKey);
-
-    const urls = data.output?.results?.map((r: any) => r.url) || [];
-    return {
-      success: true,
-      data: urls.length === 1 ? urls[0] : urls,
-      provider: config.name,
-      model,
-    };
-  }
-
-  if (provider === 'tencent') {
-    const data = await callAPI(provider, '/v1/images/generations', {
-      model,
-      prompt: params.prompt,
-      n: params.n || 1,
-      size: params.size || '1024x1024',
-    }, apiKey);
-
-    const urls = data.data?.map((r: any) => r.url) || [];
-    return {
-      success: true,
-      data: urls.length === 1 ? urls[0] : urls,
-      provider: config.name,
-      model,
-    };
-  }
-
-  throw new Error(`不支持的provider: ${provider}`);
-}
-
-/**
- * 生成视频 (自动选择最佳Provider和模型)
- */
-export async function generateVideo(
-  params: GenerateVideoParams,
-  task?: keyof typeof MODEL_SELECTION
-): Promise<GenerateResult> {
-  const apiKeys = getUserApiKeys();
-  const selection = task ? MODEL_SELECTION[task] : MODEL_SELECTION.shortVideo;
-  const provider = selection.provider;
-  const model = (selection as any).video || 'wan2.7-t2v';
-  const apiKey = apiKeys[provider as keyof typeof apiKeys];
-
-  if (!apiKey) {
-    const fallback = provider === 'alibaba' ? 'tencent' : 'alibaba';
-    const fbKey = apiKeys[fallback as keyof typeof apiKeys];
-    if (fbKey) {
-      const fbModel = fallback === 'tencent' ? 'hunyuan-video' : 'wan2.7-t2v';
-      try {
-        return await generateVideoWithProvider(params, fallback, fbModel, fbKey);
-      } catch (e) {
-        return mockVideoGeneration(params, task);
-      }
-    }
-    return mockVideoGeneration(params, task);
-  }
-
-  try {
-    return await generateVideoWithProvider(params, provider, model, apiKey);
-  } catch (e) {
-    const fallback = provider === 'alibaba' ? 'tencent' : 'alibaba';
-    const fbKey = apiKeys[fallback as keyof typeof apiKeys];
-    if (fbKey) {
-      try {
-        const fbModel = fallback === 'tencent' ? 'hunyuan-video' : 'wan2.7-t2v';
-        return await generateVideoWithProvider(params, fallback, fbModel, fbKey);
-      } catch (e2) {
-        return mockVideoGeneration(params, task);
-      }
-    }
-    return mockVideoGeneration(params, task);
-  }
-}
-
-async function generateVideoWithProvider(
-  params: GenerateVideoParams,
-  provider: string,
-  model: string,
-  apiKey: string
-): Promise<GenerateResult> {
-  const config = PROVIDERS[provider];
-
-  if (provider === 'alibaba') {
-    const body: any = {
-      model,
-      input: { prompt: params.prompt },
-      parameters: {
-        size: params.size || '1280*720',
-        duration: params.duration || 10,
-      },
-    };
-    const data = await callAPI(provider, '/api/v1/services/aigc/video-generation/generation', body, apiKey);
-    return {
-      success: true,
-      data: data.output?.video_url || data.output?.results?.[0]?.url || '',
-      provider: config.name,
-      model,
-    };
-  }
-
-  if (provider === 'tencent') {
-    const body: any = {
-      model,
-      prompt: params.prompt,
-      duration: params.duration || 10,
-      size: params.size || '1280x720',
-    };
-    const data = await callAPI(provider, '/v1/video/generations', body, apiKey);
-    return {
-      success: true,
-      data: data.video_url || data.data?.[0]?.url || '',
-      provider: config.name,
-      model,
-    };
-  }
-
-  throw new Error(`不支持的provider: ${provider}`);
-}
-
-// ─── 反AI味提示词增强 ──────────────────────────
-import {
-  HUMAN_TEXT_SYSTEM_PROMPT,
-  XIAOHONGSHU_HUMAN_PROMPT,
-  ECOMMERCE_HUMAN_PROMPT,
-  enhanceImagePrompt,
-  buildNegativePrompt,
-  buildVideoRealismPrompt,
-  qualityScore,
-} from './anti-ai-flavor';
-
-// ─── Mock函数 (无API Key时的高质量真人级模拟) ──────────
-
-/**
- * 文字生成mock — 真人写作风格，无AI味
- * 模拟真实创作者的写作方式
- */
-function mockTextGeneration(prompt: string, task?: string): GenerateResult {
+function mockTextGeneration(prompt: string, slug?: string): GenerateResult {
   const topic = prompt.slice(0, 60);
-
   const texts: Record<string, string> = {
     xiaohongshu: generateXiaohongshuMock(topic),
     ecommerce: generateEcommerceMock(topic),
-    shortVideo: generateShortVideoMock(topic),
     enterpriseVideo: generateEnterpriseVideoMock(topic),
     productVideo: generateProductVideoMock(topic),
     storeTour: generateStoreTourMock(topic),
     personMv: generatePersonMvMock(topic),
     cartoonVideo: generateCartoonVideoMock(topic),
     digitalHuman: generateDigitalHumanMock(topic),
+    cinemaShort: generateCinemaShortMock(topic),
     default: generateGeneralMock(topic),
   };
-
   return {
     success: true,
-    data: texts[task || 'default'] || texts.default,
+    data: texts[slug || 'default'] || texts.default,
     provider: '本地模拟（真人级）',
     model: 'mock-human-quality',
   };
 }
 
-// ─── 各类型真人级Mock文本生成 ──────────────────
+function mockImageGeneration(prompt: string, type?: string): GenerateResult {
+  const enhancedPrompt = enhanceImagePrompt(prompt, (type as any) || 'general');
+  const colors = ['1a1a2e', '16213e', '0f3460', '533483', 'e94560', '874356'];
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const encoded = encodeURIComponent(enhancedPrompt.slice(0, 50));
+  return {
+    success: true,
+    data: `https://via.placeholder.com/1024x1024/${color}/ffffff?text=${encoded}`,
+    provider: '本地模拟（照片级）',
+    model: 'mock-photo-quality',
+  };
+}
+
+function mockVideoGeneration(params: GenerateVideoParams, slug?: string): GenerateResult {
+  const size = params.size || '1280x720';
+  const [w, h] = size.split('x');
+  return {
+    success: true,
+    data: `https://via.placeholder.com/${w}x${h}/1a1a2e/00d2ff?text=${slug || '短视频'}+${params.duration || 10}s`,
+    provider: '本地模拟（电影级）',
+    model: 'mock-cinema-quality',
+  };
+}
+
+// ─── 各类目真人级 Mock ──────────────────────
 
 function generateXiaohongshuMock(topic: string): string {
   const hooks = [
@@ -552,245 +1473,47 @@ function generateXiaohongshuMock(topic: string): string {
 一个小 tips：记得要${topic.includes('护肤') ? '先做皮肤测试再用' : '搭配XX一起用效果翻倍'}。我第一次用的时候就没注意这个，差点翻车。
 
 反正我现在已经完全离不开了，家里囤了三个。实话实说，这个价位的里面真的没有比它更能打的了。`;
-
-  return `${hooks[Math.floor(Math.random() * hooks.length)]}
-
-${body}
-
-#好物分享  #${topic.slice(0, 10)}  #真实测评  #种草`;
+  return `${hooks[Math.floor(Math.random() * hooks.length)]}\n\n${body}\n\n#好物分享  #${topic.slice(0, 10)}  #真实测评  #种草`;
 }
 
 function generateEcommerceMock(topic: string): string {
-  const body = topic + '\n\n' +
-    '说实话这款产品我们测了整整两周才上架。一开始以为就是个普通的，结果用下来发现真的不一样。\n\n' +
-    '就是那种一用就知道区别的感觉。材质这块下足了功夫，拿到手里特别有分量，不是那种轻飘飘的廉价感。' +
-    '之前也有朋友买了说用着用着就不行了，但这批我们改进过的完全不会有这个问题。\n\n' +
-    '设计上也改了好几版，最明显的变化就是把之前吐槽最多的那个接口改成磁吸的了——' +
-    '就这点小改动，整个使用体验直接提升一大截。\n\n' +
-    '价格这块我们也是谈了很久，最后定在了一个比较良心的价位。' +
-    '说实话这个品质放在商场里起码翻一倍。\n\n' +
-    '最后一句掏心窝子的话：如果你之前买过类似的觉得不好用，可以再给一次机会试试这个，应该不会让你失望。\n\n' +
-    '下单的话直接点下面那个按钮就行，库存不多，手慢真的有可能会等。';
-  return body;
-}
-
-function generateShortVideoMock(topic: string): string {
-  const hooks = [
-    `你以为的${topic} vs 实际上的${topic}`,
-    `99%的人都不知道的${topic}秘密`,
-    `${topic}居然可以这样？我整个人是懵的`,
-  ];
-
-  return `${hooks[Math.floor(Math.random() * hooks.length)]}
-
-【0-3秒 这是你以为的XX（翻白眼）+字幕：你以为】
-直接一个震撼对比，不要铺垫直接上
-
-【3-8秒 但是实际上是这样的（画面反转）】
-把最惊艳的点放在这5秒里，用事实打脸前面的预期
-
-【8-12秒 补一个细节镜头】
-这个细节99%的人不会注意到——慢放+局部特写
-
-【12-18秒 讲讲为什么会这样（手持微晃镜头，边走边拍）】
-这块讲原理，但别太正经。像跟朋友聊天一样。信不信由你，反正我是被惊到了
-
-【18-22秒 总结 + CTA】
-就记住一句话：${topic} 没你想的那么简单。关注我，下期更炸
-
-【制作参数】
-配音：女声-普通话，语速稍快（1.1倍），年轻女生日常说话的语气
-字幕：中文，字号稍大（因为是竖屏）
-BGM：前面轻快电子→中间去掉BGM留人声→最后起高潮鼓点`;
+  return `${topic}\n\n说实话这款产品我们测了整整两周才上架。一开始以为就是个普通的，结果用下来发现真的不一样。\n\n就是那种一用就知道区别的感觉。材质这块下足了功夫，拿到手里特别有分量，不是那种轻飘飘的廉价感。之前也有朋友买了说用着用着就不行了，但这批我们改进过的完全不会有这个问题。\n\n设计上也改了好几版，最明显的变化就是把之前吐槽最多的那个接口改成磁吸的了——就这点小改动，整个使用体验直接提升一大截。\n\n价格这块我们也是谈了很久，最后定在了一个比较良心的价位。说实话这个品质放在商场里起码翻一倍。\n\n最后一句掏心窝子的话：如果你之前买过类似的觉得不好用，可以再给一次机会试试这个，应该不会让你失望。\n\n下单的话直接点下面那个按钮就行，库存不多，手慢真的有可能会等。`;
 }
 
 function generateEnterpriseVideoMock(topic: string): string {
-  return `${topic} — 品牌宣传视频脚本
-
-【开场 0-5秒】
-建立品牌认知：一个真实的工作日常镜头（不是那种高大上的航拍，就是办公室的某个角落，有人在工作）
-旁白（自然语气）：“说实话，做这行十几年了，最常被问的问题就是——${topic} 到底有什么难的？”
-
-【发展 5-20秒】
-几个快速切换的真实场景：生产车间、质检、客户沟通
-不用配音演员那种字正腔圆的语调，就是一个真实员工的口吻
-展示真实的制作流程，有瑕疵的那种——纸箱旁边有散落的包装膜，桌上有没喝完的咖啡
-
-【高潮 20-35秒】
-核心价值展示：产品特写 + 用户使用场景
-切换到真实客户的使用画面（不是摆拍的那种，是真实记录）
-适当出现人物说话的嘴型，哪怕有点口音也比完美配音真实
-
-【结尾 35-42秒】
-Brand moment：一组真实员工的群像（他们笑的瞬间，不是那种假笑）
-字幕：“${topic}，用心做好每一件小事”`;
+  return `${topic} — 品牌宣传视频脚本\n\n【开场 0-5秒】\n建立品牌认知：一个真实的工作日常镜头（不是那种高大上的航拍，就是办公室的某个角落，有人在工作）\n旁白（自然语气）："说实话，做这行十几年了，最常被问的问题就是——${topic} 到底有什么难的？"\n\n【发展 5-20秒】\n几个快速切换的真实场景：生产车间、质检、客户沟通。不用配音演员那种字正腔圆的语调，就是一个真实员工的口吻\n\n【高潮 20-35秒】\n核心价值展示：产品特写 + 用户使用场景\n\n【结尾 35-42秒】\nBrand moment：一组真实员工的群像（他们笑的瞬间，不是那种假笑）\n字幕："${topic}，用心做好每一件小事"`;
 }
 
 function generateProductVideoMock(topic: string): string {
-  return `${topic} — 产品短视频脚本
-
-【0-2秒 Hook】
-手机举着自拍角度，不是专业相机。“给你们看看我最近买的一个东西...” 
-——用日常语气，不像在读脚本
-
-【2-8秒 产品展示】
-手拿着产品转一圈，灯光自然（就是房间灯光）
-说“这个手感真的...啧啧”而不是“采用高品质材质”
-
-【8-15秒 使用演示】
-直接上手用，拍出使用前后的对比
-如果有液体倒出来、有开关按下去——这些声音都留着
-画面有点微晃没关系，反而更真实
-
-【15-20秒 CTA】
-“链接放下面了，需要的自己去翻”
-不用那种“限时抢购”“手慢无”的话术，太假了`;
+  return `${topic} — 产品短视频脚本\n\n【0-2秒 Hook】\n手机举着自拍角度，不是专业相机。"给你们看看我最近买的一个东西..."\n\n【2-8秒 产品展示】\n手拿着产品转一圈，灯光自然（就是房间灯光）\n\n【8-15秒 使用演示】\n直接上手用，拍出使用前后的对比。画面有点微晃没关系，反而更真实\n\n【15-20秒 CTA】\n"链接放下面了，需要的自己去翻"`;
 }
 
 function generateStoreTourMock(topic: string): string {
-  return `${topic} — 探店视频脚本
-
-【0-3秒】
-推门进店的一瞬间——门铃响了（保留原声），画面有点暗正在适应光线
-话外音：“就这家，听说${topic}做了一辈子”
-
-【3-12秒 店内环境】
-几个快切镜头：招牌/菜单/环境/老板忙碌的样子
-不要用滑轨，就是手机拍的，有轻微晃动
-拍到什么算什么，不要刻意构图
-
-【12-25秒 核心美食/产品】
-特写制作过程 + 成品 + 吃的第一口
-关键是——第一口的反应要真实。不要夸张地说“yyds”，但眼睛亮了一下嘴角上扬就够了
-咬下去的声音留着（脆的东西比如炸鸡/锅巴效果最好）
-
-【25-32秒 结尾】
-“说实话，会不会再来？会。但要排队就算了...” 
-——真实的评价，有好的有不好的，这才是真人探店`;
+  return `${topic} — 探店视频脚本\n\n【0-3秒】\n推门进店的一瞬间——门铃响了（保留原声），画面有点暗正在适应光线\n话外音："就这家，听说${topic}做了一辈子"\n\n【3-12秒 店内环境】\n几个快切镜头：招牌/菜单/环境/老板忙碌的样子。不要用滑轨，就是手机拍的，有轻微晃动\n\n【12-25秒 核心美食/产品】\n特写制作过程 + 成品 + 吃的第一口。关键是——第一口的反应要真实。不要夸张地说"yyds"，但眼睛亮了一下嘴角上扬就够了\n\n【25-32秒 结尾】\n"说实话，会不会再来？会。但要排队就算了..."——真实的评价，有好的有不好的，这才是真人探店`;
 }
 
 function generatePersonMvMock(topic: string): string {
-  return `${topic} — 真人MV脚本
-
-【风格定位】
-真实演唱/演奏风格，非专业MV那种完美灯光。自然光为主，不加美颜滤镜。
-选用真实场景：卧室、天台、车里、回家的路上。不搭棚。
-
-【分镜 0-10秒 前奏】
-主角入镜——可以是在走路、在整理东西。音乐响起时ta自然地转头/抬头。
-不要对口型，就是自然状态下的反应。
-
-【分镜 10-30秒 主歌A段】
-主角开始唱/对口型。关键是：表情要真。不是那种"看我在唱歌"的表演状态，
-而是"我在唱给自己听"。偶尔看向镜头，大部分时间看向别处。
-镜头微晃，像朋友在旁边拍的。
-
-【分镜 30-50秒 副歌】
-能量上来了，可以有稍微大一点的动作。但不要那种规划好的舞蹈，
-就是听到喜欢的歌时自然的身体律动。
-
-【分镜 50-60秒 尾声】
-音乐渐弱，主角的一个微笑或者看向窗外的侧脸。定格。
-
-【制作建议】
-画面不加滤镜，直接用手机原生相机拍。
-如果光线不够——开一盏台灯，不要开大灯。暖光营造氛围。
-字幕用简单的中文字体，白色带半透明背景。不要花哨的字体。`;
+  return `${topic} — 真人MV脚本\n\n【风格定位】\n真实演唱/演奏风格，非专业MV那种完美灯光。自然光为主，不加美颜滤镜。选用真实场景：卧室、天台、车里、回家的路上。不搭棚。\n\n【分镜 0-10秒 前奏】\n主角入镜——可以是在走路、在整理东西。音乐响起时ta自然地转头/抬头。\n\n【分镜 10-30秒 主歌A段】\n主角开始唱/对口型。关键是：表情要真。偶尔看向镜头，大部分时间看向别处。镜头微晃，像朋友在旁边拍的。\n\n【分镜 30-50秒 副歌】\n能量上来了，可以有稍微大一点的动作。但不要那种规划好的舞蹈，就是听到喜欢的歌时自然的身体律动。\n\n【分镜 50-60秒 尾声】\n音乐渐弱，主角的一个微笑或者看向窗外的侧脸。定格。`;
 }
 
 function generateCartoonVideoMock(topic: string): string {
-  return `${topic} — 萌宠卡通短视频脚本
-
-【风格】2D/3D 卡通渲染，但材质和光影接近真实。不是那种"一眼AI"的塑料卡通。
-
-【0-3秒 开场】
-宠物/卡通角色做出一个让人想笑的表情或动作。不是夸张的鬼畜，是那种"可爱到想rua"的瞬间。
-
-【3-15秒 剧情】
-一个小小的日常。比如猫把桌上的东西推下去了（经典），配上主人的内心独白。
-配音用真人声，带点无奈又好笑的语气，不是TTS机械音。
-
-【15-20秒 结尾】
-一个反转或萌点。可以慢放+配"aww"音效。字幕可以适当卖萌但不油腻。`;
+  return `${topic} — 萌宠卡通短视频脚本\n\n【风格】2D/3D 卡通渲染，但材质和光影接近真实。不是那种"一眼AI"的塑料卡通。\n\n【0-3秒 开场】\n宠物/卡通角色做出一个让人想笑的表情或动作。\n\n【3-15秒 剧情】\n一个小小的日常。比如猫把桌上的东西推下去了（经典），配上主人的内心独白。\n\n【15-20秒 结尾】\n一个反转或萌点。可以慢放+配"aww"音效。`;
 }
 
 function generateDigitalHumanMock(topic: string): string {
-  return `${topic} — 数字人口播脚本
-
-【关键要求】数字人必须做到：肉眼无法分辨是AI还是真人。皮肤纹理、眨眼节奏、面部微表情、自然的头部晃动——如果这些做不到就先用真人出镜。
-
-【0-3秒 开场】
-直接说话：“我最近一直在想一个问题——${topic}”
-语气随意，像你在跟朋友聊天而不是在做节目
-
-【3-25秒 主内容】
-分享观点。语速不恒定——讲到重点的时候会慢下来，讲到自己确认的地方会稍微快一点。
-偶尔停顿1-2秒（像在思考措辞），不要每句话都连得很紧。
-适当加入“就是”“其实”“怎么说呢”这种真实说话的口头禅。
-
-【25-30秒 结尾】
-总结观点——但不要用“总结一下”这种词。直接说出想法就行。“反正我觉得吧...你们觉得呢？”用问句收尾，增加互动感。
-
-【技术参数】
-- 帧率：30fps以上
-- 口型同步度：≥95%
-- 眨眼间隔：随机2-4秒
-- 上半身微动：点头、耸肩、手势——合在一起更像真人`;
+  return `${topic} — 数字人口播脚本\n\n【关键要求】数字人必须做到：肉眼无法分辨是AI还是真人。皮肤纹理、眨眼节奏、面部微表情、自然的头部晃动。\n\n【0-3秒 开场】\n直接说话："我最近一直在想一个问题——${topic}"。语气随意，像你在跟朋友聊天而不是在做节目。\n\n【3-25秒 主内容】\n分享观点。语速不恒定——讲到重点的时候会慢下来，讲到自己确认的地方会稍微快一点。偶尔停顿1-2秒（像在思考措辞）\n\n【25-30秒 结尾】\n"反正我觉得吧...你们觉得呢？"用问句收尾，增加互动感。\n\n【技术参数】帧率：30fps以上 / 口型同步度：≥95% / 眨眼间隔：随机2-4秒 / 上半身微动：点头、耸肩、手势`;
 }
 
 function generateGeneralMock(topic: string): string {
-  return `${topic}
-
-说实话这个话题真的挺有意思的。我刚才想了一下，其实很多人的误区在于——觉得这个东西很简单，但实际上里面的门道真的挺多的。
-
-就拿最基础的来说吧，很多人一上来就想搞个大新闻，结果第一步就卡住了。真的不用那么着急，先把基本功打扎实再说。
-
-反正我个人建议是从小处着手，慢慢来比较快。当然每个人的情况不一样，我说的也不一定对，你们自己判断哈。
-
----
-提示：接入阿里云百炼或腾讯云TokenHub API Key可获得完整真人级生成效果`;
+  return `${topic}\n\n说实话这个话题真的挺有意思的。我刚才想了一下，其实很多人的误区在于——觉得这个东西很简单，但实际上里面的门道真的挺多的。\n\n就拿最基础的来说吧，很多人一上来就想搞个大新闻，结果第一步就卡住了。真的不用那么着急，先把基本功打扎实再说。\n\n反正我个人建议是从小处着手，慢慢来比较快。当然每个人的情况不一样，我说的也不一定对，你们自己判断哈。\n\n---\n提示：接入阿里云百炼或腾讯云TokenHub API Key可获得完整真人级生成效果`;
 }
 
-// ─── Enhanced Image Mock ──────────────────────────
-
-function mockImageGeneration(prompt: string, type?: string): GenerateResult {
-  const enhancedPrompt = enhanceImagePrompt(
-    prompt,
-    type === 'portrait' ? 'portrait' : type === 'product' ? 'product' : 'general'
-  );
-  const colors = ['1a1a2e', '16213e', '0f3460', '533483', 'e94560', '874356'];
-  const color = colors[Math.floor(Math.random() * colors.length)];
-  const encoded = encodeURIComponent(enhancedPrompt.slice(0, 50));
-  const size = 1024;
-
-  return {
-    success: true,
-    data: `https://via.placeholder.com/${size}x${size}/${color}/ffffff?text=${encoded}`,
-    provider: '本地模拟（照片级）',
-    model: 'mock-photo-quality',
-  };
+function generateCinemaShortMock(topic: string): string {
+  return `【自由创意短片】${topic} — AI导演模式\n\n【镜头1 — 引入 0-5秒】\n广角全景。晨光穿过窗棂，尘埃在光柱中缓缓浮动。镜头上摇，一双手正在${topic}。\n旁白（轻声）: "每个人心里都有一个属于自己的${topic}，而我选择用镜头记录下来。"\n\n【镜头2 — 展开 5-10秒】\n中景特写。手掌纹理、材料质感、水滴滑落的轨迹。慢动作——每一帧都能感受到时间的重量。\n\n【镜头3 — 高潮 10-15秒】\n俯拍推镜。制造过程的精华瞬间：从零散的碎片到完整的形态，剪辑节奏加速，画面与音乐同频共振。\n\n【镜头4 — 转折 15-20秒】\n侧跟镜头。一个意外的细节：瑕疵、不完美、手工痕迹——正是这些赋予了它灵魂。\n\n【镜头5 — 结论 20-25秒】\n正面对称构图。成品完整展示，光影从一侧缓缓移动到另一侧，揭示每一处细节。\n\n【镜头6 — 余韵 25-30秒】\n远景淡出。画面渐暗，品牌logo浮现。\n字幕: "每一帧，都是对${topic}的致敬。"\n\n【BGM方案】1-3镜头: Lofi氛围 / 4-5镜头: 情感上行 / 6镜头: 舒缓收尾`;
 }
 
-// ─── Enhanced Video Mock ──────────────────────────
+// ─── 方言配音映射 ────────────────────────────
 
-function mockVideoGeneration(params: GenerateVideoParams, task?: string): GenerateResult {
-  const size = params.size || '1280x720';
-  const [w, h] = size.split('x');
-  const realismType = task?.includes('human') || task?.includes('mv')
-    ? 'portrait' : task?.includes('product') ? 'product'
-    : task?.includes('enterprise') ? 'enterprise'
-    : task?.includes('digital') ? 'digital-human' : 'scene';
-  const quality = qualityScore(realismType.includes('human') || realismType.includes('digital') ? 'digital-human' : 'video');
-
-  return {
-    success: true,
-    data: `https://via.placeholder.com/${w}x${h}/1a1a2e/00d2ff?text=真人级${task || '短视频'}+${params.duration || 10}s+${quality.label}`,
-    provider: '本地模拟（电影级）',
-    model: 'mock-cinema-quality',
-  };
-}
-
-// ─── 方言配音映射 ────────────────────────────────
 export const dialectVoiceMap: Record<string, { provider: string; voiceId: string; label: string }> = {
   'male-mandarin': { provider: 'alibaba', voiceId: 'zhimi_emo', label: '男声-普通话' },
   'female-mandarin': { provider: 'alibaba', voiceId: 'xiaoyun', label: '女声-普通话' },
@@ -808,119 +1531,15 @@ export const dialectVoiceMap: Record<string, { provider: string; voiceId: string
   'female-english': { provider: 'alibaba', voiceId: 'en_female', label: '女声-英语' },
 };
 
-// ─── 内容创意增强 API ────────────────────────────────
+// ─── 内容创意增强 API ──────────────────────
 
-export interface ViralContentParams {
-  topic: string;
-  platform: 'douyin' | 'kuaishou' | 'xiaohongshu' | 'bilibili' | 'weibo';
-  contentType?: 'video' | 'article' | 'image_text' | 'live_script' | 'ad_copy';
-  creativity?: number;
-  targetAudience?: string;
-  productName?: string;
-  keywords?: string[];
-}
+export interface ViralAnalysisResult { topic: string; platform: string; geneAnalysis: any; viralScore: any; rating: string; }
 
-export interface ViralContentResult {
-  titles: string[];
-  bestTitle: string;
-  outline: string[];
-  hook: string;
-  body: string;
-  cta: string;
-  hashtags: string[];
-  viralScore: {
-    emotion: number;
-    spread: number;
-    uniqueness: number;
-    identity: number;
-    timeliness: number;
-    anchor: number;
-    visual: number;
-    barrier: number;
-    total: number;
-  };
-  geneAnalysis: {
-    emotionDesc: string;
-    infoGap: string;
-    identityTag: string;
-    actionTrigger: string;
-    hitCount: number;
-  };
-  platformTips: string[];
-  aiGenerated: boolean;
-  _source: 'ai' | 'fallback';
-}
-
-export interface ViralAnalysisResult {
-  topic: string;
-  platform: string;
-  geneAnalysis: any;
-  viralScore: any;
-  rating: string;
-}
-
-export interface PlatformTrendsResult {
-  [platform: string]: {
-    platform: string;
-    trendingTopics: string[];
-    viralFormats: string[];
-    bestPostTimes: string;
-    engagementTips: string[];
-  };
-}
-
-/**
- * 生成爆款内容创意蓝图
- */
-export async function generateViralContent(
-  params: ViralContentParams
-): Promise<{ success: boolean; data: ViralContentResult; rating: string }> {
-  try {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-    const resp = await fetch(`${API_BASE}/api/content-creativity/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic: params.topic,
-        platform: params.platform || 'douyin',
-        contentType: params.contentType || 'video',
-        creativity: params.creativity ?? 0.7,
-        targetAudience: params.targetAudience,
-        productName: params.productName,
-        keywords: params.keywords,
-      }),
-    });
-    const json = await resp.json();
-    if (json.success && json.data) {
-      return {
-        success: true,
-        data: json.data,
-        rating: json.data.viralScore?.total >= 32 ? 'S级——极高爆款潜力'
-          : json.data.viralScore?.total >= 26 ? 'A级——较强爆款潜力'
-          : json.data.viralScore?.total >= 20 ? 'B级——中等潜力'
-          : 'C级——需重新策划',
-      };
-    }
-    throw new Error(json.error?.message || '生成失败');
-  } catch (error: any) {
-    console.error('[ViralContent] API error:', error.message);
-    return { success: false, data: {} as ViralContentResult, rating: '' };
-  }
-}
-
-/**
- * 分析主题爆款潜力（仅评分，不生成内容）
- */
-export async function analyzeViralTopic(
-  topic: string,
-  platform: string = 'douyin',
-  targetAudience?: string
-): Promise<{ success: boolean; data?: ViralAnalysisResult }> {
+export async function analyzeViralTopic(topic: string, platform = 'douyin', targetAudience?: string): Promise<{ success: boolean; data?: ViralAnalysisResult }> {
   try {
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
     const resp = await fetch(`${API_BASE}/api/content-creativity/analyze`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ topic, platform, targetAudience }),
     });
     const json = await resp.json();
@@ -928,27 +1547,6 @@ export async function analyzeViralTopic(
     throw new Error(json.error?.message || '分析失败');
   } catch (error: any) {
     console.error('[ViralAnalyze] API error:', error.message);
-    return { success: false };
-  }
-}
-
-/**
- * 获取平台趋势数据
- */
-export async function getPlatformTrends(
-  platform?: string
-): Promise<{ success: boolean; data?: PlatformTrendsResult | any }> {
-  try {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-    const path = platform
-      ? `/api/content-creativity/trends/${platform}`
-      : '/api/content-creativity/trends';
-    const resp = await fetch(`${API_BASE}${path}`);
-    const json = await resp.json();
-    if (json.success) return { success: true, data: json.data };
-    throw new Error(json.error?.message || '获取失败');
-  } catch (error: any) {
-    console.error('[PlatformTrends] API error:', error.message);
     return { success: false };
   }
 }

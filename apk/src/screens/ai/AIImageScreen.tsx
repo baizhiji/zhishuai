@@ -1,5 +1,5 @@
 /**
- * AI图片生成页面
+ * AI图片生成页面 - 支持下载到本地相册
  */
 import React, { useState } from 'react'
 import {
@@ -12,7 +12,12 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Platform,
+  PermissionsAndroid,
 } from 'react-native'
+import * as FileSystem from 'expo-file-system'
+import * as MediaLibrary from 'expo-media-library'
+import * as Sharing from 'expo-sharing'
 import { Ionicons } from '@expo/vector-icons'
 import {
   generateImage,
@@ -20,7 +25,6 @@ import {
   saveGenerationHistory,
   ContentCategory,
   imageSizeOptions,
-  styleOptions,
 } from '../../services/content.service'
 
 interface Props {
@@ -34,6 +38,7 @@ export default function AIImageScreen({ navigation }: Props) {
   const [generating, setGenerating] = useState(false)
   const [progress, setProgress] = useState(0)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
 
   const handleGenerate = async () => {
     if (!description.trim()) {
@@ -98,13 +103,58 @@ export default function AIImageScreen({ navigation }: Props) {
     )
 
     if (success) {
-      Alert.alert('保存成功', '已保存到素材库')
+      Alert.alert('保存成功', '已保存到内容中心')
     }
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!imageUrl) return
-    Alert.alert('下载', '图片下载功能开发中')
+
+    try {
+      setDownloading(true)
+
+      // 请求权限
+      if (Platform.OS === 'android') {
+        const perm = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          { title: '存储权限', message: '保存图片到相册需要存储权限', buttonPositive: '确定' }
+        )
+        if (perm !== 'granted') {
+          Alert.alert('权限不足', '请在设置中开启存储权限')
+          setDownloading(false)
+          return
+        }
+      }
+
+      const { status } = await MediaLibrary.requestPermissionsAsync()
+      if (status !== 'granted') {
+        Alert.alert('权限不足', '请在设置中开启相册权限')
+        setDownloading(false)
+        return
+      }
+
+      const timestamp = Date.now()
+      const fileName = `ai_image_${timestamp}.jpg`
+      const filePath = `${FileSystem.cacheDirectory}${fileName}`
+
+      const downloadResult = await FileSystem.downloadAsync(imageUrl, filePath)
+
+      if (downloadResult.status === 200) {
+        const asset = await MediaLibrary.createAssetAsync(downloadResult.uri)
+        if (asset) {
+          Alert.alert('下载成功', '图片已保存到系统相册', [
+            { text: '查看', onPress: () => Sharing.shareAsync(downloadResult.uri).catch(() => {}) },
+            { text: '确定' },
+          ])
+        }
+      } else {
+        Alert.alert('下载失败', '请稍后重试')
+      }
+    } catch (error) {
+      Alert.alert('下载失败', '请检查网络连接后重试')
+    } finally {
+      setDownloading(false)
+    }
   }
 
   return (
@@ -216,9 +266,15 @@ export default function AIImageScreen({ navigation }: Props) {
                   <Ionicons name="bookmark-outline" size={18} color="#3B82F6" />
                   <Text style={styles.previewActionText}>保存</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.previewAction} onPress={handleDownload}>
-                  <Ionicons name="download-outline" size={18} color="#3B82F6" />
-                  <Text style={styles.previewActionText}>下载</Text>
+                <TouchableOpacity style={styles.previewAction} onPress={handleDownload} disabled={downloading}>
+                  {downloading ? (
+                    <ActivityIndicator size="small" color="#3B82F6" />
+                  ) : (
+                    <>
+                      <Ionicons name="download-outline" size={18} color="#3B82F6" />
+                      <Text style={styles.previewActionText}>下载</Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>

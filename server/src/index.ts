@@ -9,25 +9,16 @@ import acquisitionRoutes from './routes/acquisition';
 import dataAcquisitionRoutes from './routes/data-acquisition';
 import shareRoutes from './routes/share';
 import materialsRoutes from './routes/materials';
-// 以下路由已废弃 — 矩阵账号、发布、CRM、内容发布、自动回复功能已删除
-// import matrixRoutes from './routes/matrix';
-// import publishRoutes from './routes/publish';
 import notificationsRoutes from './routes/notifications';
-// import crmRoutes from './routes/crm';
-// import crmAdvancedRoutes from './routes/crm-advanced';
 import statisticsRoutes from './routes/statistics';
 import aiChatRoutes from './routes/ai-chat';
 import adminAgentsRoutes from './routes/admin-agents';
 import userFeaturesRoutes from './routes/user-features';
 import adminApiProvidersRoutes, { adminApiProvidersAdminRouter } from './routes/admin-api-providers';
-// import smsRoutes from './routes/sms';
 import oauthRoutes from './routes/oauth';
 import socialAccountRoutes from './routes/social-account';
-// import contentPublishRoutes from './routes/content-publish';
-// import autoReplyRoutes from './routes/auto-reply';
 import agentRoutes from './routes/agent';
 import hotTopicsRoutes from './routes/hot-topics';
-// import versionRoutes from './routes/version';
 import versionRoutes from './routes/version';
 import adminLogsRoutes from './routes/admin-logs';
 import employeeRoutes from './routes/employee';
@@ -44,9 +35,7 @@ import aiRoutes from './routes/ai';
 import aiEnhancedRoutes from './routes/ai-enhanced';
 import aiWorkflowRoutes from './routes/ai-workflow';
 import tokenStatsRoutes from './routes/token-stats';
-import mediaRoutes from './routes/media';
 import exportRoutes from './routes/export';
-// import settlementRoutes from './routes/settlement';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -101,13 +90,7 @@ app.use('/api/acquisition', acquisitionRoutes);
 app.use('/api/data-acquisition', dataAcquisitionRoutes);
 app.use('/api/share', shareRoutes);
 app.use('/api/materials', materialsRoutes);
-// 矩阵账号 / 发布 / CRM 路由已废弃
-// app.use('/api/matrix', matrixRoutes);
-// app.use('/api/publish', publishRoutes);
 app.use('/api/notifications', notificationsRoutes);
-// app.use('/api/crm', crmRoutes);
-// app.use('/api/crm-advanced', crmAdvancedRoutes);
-// app.use('/api/statistics', statisticsRoutes); // temporarily disabled
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/referral', referralRoutes);
 
@@ -119,11 +102,7 @@ app.use('/api/digital-human', digitalHumanRoutes);
 app.use('/api/voice-clone', voiceCloneRoutes);
 app.use('/api/dashboard-stats', dashboardStatsRoutes);
 
-// Admin 功能开关管理（功能开关已并入客户管理）
-// app.use('/api/admin', adminFeaturesRoutes); // 暂时停用
 app.use('/api/admin', adminAgentsRoutes);
-// 贴牌配置已删除
-// app.use('/api/admin', adminBrandingRoutes);
 // API 服务商：客户端可用列表 + Admin 管理
 app.use('/api/api-providers', adminApiProvidersRoutes);
 app.use('/api/admin/api-providers', adminApiProvidersAdminRouter);
@@ -144,9 +123,6 @@ app.use('/api/agent', agentRoutes);
 // 热点话题
 app.use('/api/hot-topics', hotTopicsRoutes);
 
-// 版本管理 & 系统公告
-// app.use('/api/version', versionRoutes); // temporarily disabled
-
 // 操作日志
 app.use('/api/admin', adminLogsRoutes);
 
@@ -157,21 +133,11 @@ app.use('/api/account', accountRoutes);
 // 员工管理
 app.use('/api/employee', employeeRoutes);
 
-// 短信服务
-// app.use('/api/sms', smsRoutes); // temporarily disabled
-
 // OAuth 授权
 app.use('/api/oauth', oauthRoutes);
 
 // 社交账号授权
 app.use('/api/social', socialAccountRoutes);
-
-// 内容发布 / 自动回复路由已废弃
-// app.use('/api/content', contentPublishRoutes);
-// app.use('/api/auto-reply', autoReplyRoutes);
-
-// 数据报表导出
-// app.use('/api/report', reportRoutes); // temporarily disabled
 
 // 工单系统
 app.use('/api/tickets', ticketRoutes);
@@ -181,7 +147,6 @@ app.use('/api/export', exportRoutes);
 
 // AI 能力配置 & 调用 & Token 统计
 app.use('/api/ai-config', aiConfigRoutes);
-app.use('/api/media', mediaRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/ai-enhanced', aiEnhancedRoutes);
 app.use('/api/ai-workflow', aiWorkflowRoutes);
@@ -203,17 +168,22 @@ app.use('/api/multimodal', multimodalRoutes);
 import enhancementRoutes from './routes/enhancement';
 app.use('/api/enhancement', enhancementRoutes);
 
+// Playwright 浏览器自动化
+import playwrightBridgeRoutes from './routes/playwright-bridge';
+app.use('/api/playwright', playwrightBridgeRoutes);
+
 // 在线客服路由
 import supportRoutes from './routes/support';
 app.use('/api/support', supportRoutes);
 
-// 代理分成结算
-// app.use('/api/settlement', settlementRoutes); // temporarily disabled
+// 商业助手
+import businessAssistantRoutes from './routes/business-assistant';
+app.use('/api/business', businessAssistantRoutes);
 
 // 健康检查
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// 健康检查与监控
+import healthRoutes from './routes/health';
+app.use('/', healthRoutes);
 
 // 错误处理
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

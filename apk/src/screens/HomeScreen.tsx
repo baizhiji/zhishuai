@@ -24,11 +24,11 @@ interface FeatureItem {
 
 // 默认功能配置（后备方案）
 const DEFAULT_FEATURES: FeatureItem[] = [
-  { id: 'media', title: '自媒体运营', icon: 'videocam', color: '#FFFFFF', bgColor: '#3B82F6', route: 'MediaOperation' },
-  { id: 'recruitment', title: '招聘助手', icon: 'people', color: '#FFFFFF', bgColor: '#8B5CF6', route: 'Recruitment' },
+  { id: 'media', title: 'AI创作工厂', icon: 'sparkles', color: '#FFFFFF', bgColor: '#3B82F6', route: 'MediaOperation' },
+  { id: 'recruitment', title: '智能招聘', icon: 'people', color: '#FFFFFF', bgColor: '#8B5CF6', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up', color: '#FFFFFF', bgColor: '#10B981', route: 'Acquisition' },
   { id: 'share', title: '推荐分享', icon: 'share-social', color: '#FFFFFF', bgColor: '#F97316', route: 'Share' },
-  { id: 'materials', title: '素材库', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
+  { id: 'materials', title: '内容中心', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
   { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' },
 ];
 
@@ -64,9 +64,9 @@ export default function HomeScreen() {
               route: FEATURE_ROUTES[f.code] || 'Home',
             }));
           
-          // 添加素材库和数据统计（固定功能）
+          // 添加内容中心和数据统计（固定功能）
           featureItems.push(
-            { id: 'materials', title: '素材库', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
+            { id: 'materials', title: '内容中心', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
             { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' }
           );
           
@@ -169,16 +169,6 @@ export default function HomeScreen() {
         <View style={styles.statsCard}>
           <Text style={styles.statsTitle}>今日概览</Text>
           <View style={styles.statsRow}>
-            <View style={[styles.statItem, styles.statBorder]}>
-              <Text style={styles.statValue}>
-                {todayStats?.contentGenerated || 0}
-              </Text>
-              <Text style={styles.statLabel}>生成内容</Text>
-              <View style={[styles.statChange, styles.trendUp]}>
-                <Text style={styles.changeText}>+{todayStats?.contentUsed || 0}使用</Text>
-              </View>
-            </View>
-            
             <View style={[styles.statItem, styles.statBorder]}>
               <Text style={styles.statValue}>
                 {todayStats?.newCustomers || 0}

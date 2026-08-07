@@ -2,12 +2,10 @@
  * 数据采集服务层
  * 封装数据源管理、采集任务执行、模拟数据生成的业务逻辑
  */
-import { PrismaClient } from '@prisma/client';
 import { searchCompanies } from './tianyancha.service';
 import { searchPOIByKeyword } from './amap.service';
 import { getDanmu, getLiveViewers, getLiveStats, calculateIntentScore } from './live-acquisition.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ─── 类型 ───
 export interface SourceConfig {

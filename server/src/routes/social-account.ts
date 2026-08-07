@@ -310,6 +310,27 @@ router.post('/session/:sessionId/login', async (req: Request, res: Response) => 
 });
 
 /**
+ * 获取用户账号列表（/list 别名）
+ */
+router.get('/list', async (req: Request, res: Response) => {
+  try {
+    const userId = req.headers['x-user-id'] as string || req.query.userId as string;
+    
+    if (!userId) {
+      return res.json({ code: 401, message: '未授权' });
+    }
+    
+    const accounts = await getUserAccounts(userId);
+    
+    res.json({ code: 0, data: accounts });
+    
+  } catch (error: any) {
+    console.error('获取账号列表失败:', error);
+    res.json({ code: 500, message: '获取账号列表失败' });
+  }
+});
+
+/**
  * 获取用户账号列表
  */
 router.get('/accounts', async (req: Request, res: Response) => {

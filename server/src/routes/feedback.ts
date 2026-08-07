@@ -10,6 +10,50 @@ const router = Router();
 // 反馈路由需要认证
 router.use(authMiddleware);
 
+// 获取反馈列表
+router.get('/', async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    const feedbacks = await (async () => {
+      try {
+        const { prisma } = await import('../utils/db');
+        return await prisma.aIContentFeedback.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        });
+      } catch {
+        return [];
+      }
+    })();
+    res.json({ code: 200, message: 'success', data: feedbacks });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+// 获取我的反馈
+router.get('/my', async (req, res) => {
+  try {
+    const userId = (req as any).userId;
+    const feedbacks = await (async () => {
+      try {
+        const { prisma } = await import('../utils/db');
+        return await prisma.aIContentFeedback.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        });
+      } catch {
+        return [];
+      }
+    })();
+    res.json({ code: 200, message: 'success', data: feedbacks });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
 // Record content feedback
 router.post('/content', async (req, res) => {
   try {

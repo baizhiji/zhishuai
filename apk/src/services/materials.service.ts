@@ -1,4 +1,4 @@
-// 素材库服务
+// 内容中心服务
 import { apiClient } from './api.client';
 
 export interface Material {
@@ -44,7 +44,7 @@ class MaterialsService {
     await apiClient.delete(`/materials/${id}`);
   }
 
-  // 上传文件
+  // 上传文件 —— 对齐 WEB 端 POST /api/materials（以 Base64 内联或 multipart 上传）
   async uploadFile(uri: string, type: 'image' | 'video' | 'document'): Promise<{ url: string }> {
     const formData = new FormData();
     const filename = uri.split('/').pop() || 'file';

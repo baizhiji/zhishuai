@@ -22,7 +22,6 @@ import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MediaOperationScreen from '../screens/MediaOperationScreen';
-import AccountManagementScreen from '../screens/AccountManagementScreen';
 import MaterialsScreen from '../screens/MaterialsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
@@ -31,19 +30,19 @@ import StatisticsScreen from '../screens/StatisticsScreen';
 import RecruitmentScreen from '../screens/RecruitmentScreen';
 import AcquisitionScreen from '../screens/AcquisitionScreen';
 import ShareScreen from '../screens/ShareScreen';
-import AccountOverviewScreen from '../screens/AccountOverviewScreen';
-import SubscriptionScreen from '../screens/SubscriptionScreen';
-import StaffManagementScreen from '../screens/StaffManagementScreen';
+import SupportQRScreen from '../screens/SupportQRScreen';
 import AICreateCenterScreen from '../screens/AICreateCenterScreen';
 import AICreateDetailScreen from '../screens/AICreateDetailScreen';
-import MatrixAccountScreen from '../screens/MatrixAccountScreen';
-import DataListScreen from '../screens/DataListScreen';
-import MediaFactoryScreen from '../screens/MediaFactoryScreen';
+
 
 import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, AIEditScreen, DigitalHumanScreen, VoiceCloneScreen, AIChatScreen } from '../screens/ai';
+// 商业助手
+import BusinessAssistantScreen from '../screens/ai/BusinessAssistantScreen';
+import PlanGenerationScreen from '../screens/ai/PlanGenerationScreen';
+import PlanViewScreen from '../screens/ai/PlanViewScreen';
+import BusinessChatScreen from '../screens/ai/BusinessChatScreen';
 // 导入Auth
 import { useAuth } from '../context/AuthContext';
-import { Storage } from '../utils/tokenStorage';
 
 // 导航类型
 export type RootStackParamList = {
@@ -51,10 +50,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Settings: undefined;
   MediaOperation: undefined;
-  AccountManagement: undefined;
-  AccountOverview: undefined;
-  Subscription: undefined;
-  StaffManagement: undefined;
+  SupportQR: undefined;
   Materials: undefined;
   Messages: undefined;
   Notifications: undefined;
@@ -73,9 +69,10 @@ export type RootStackParamList = {
   AIChat: undefined;
   AICreateDetail: { category: string };
   AICreateCenter: undefined;
-  MatrixAccount: undefined;
-  DataList: undefined;
-  MediaFactory: undefined;
+  BusinessAssistant: undefined;
+  PlanGeneration: { scenario: { id: string; name: string; description: string; icon: string; category: string } };
+  PlanView: { planId: string; scenarioId: string };
+  BusinessChat: undefined;
 };
 
 export type MainTabParamList = {
@@ -90,15 +87,11 @@ const MainTab = createBottomTabNavigator<MainTabParamList>();
 // 页面标题
 const SCREEN_TITLES: Record<string, string> = {
   Settings: '设置',
-  Materials: '素材库',
+  Materials: '内容中心',
   Messages: '消息',
   Referral: '转介绍',
   AICreateCenter: 'AI创作中心',
-  AccountOverview: '账号总览',
-  Subscription: '订阅管理',
-  StaffManagement: '员工管理',
-  MediaOperation: '自媒体运营',
-  AccountManagement: '账号管理',
+  MediaOperation: 'AI创作工厂',
 };
 
 // Tab导航组件
@@ -147,7 +140,7 @@ const MainTabs = () => {
       />
       <MainTab.Screen
         name="Create"
-        component={AIChatScreen}
+        component={BusinessAssistantScreen}
         options={{ tabBarLabel: 'AI助手' }}
       />
       <MainTab.Screen
@@ -225,7 +218,7 @@ const AppNavigator = () => {
           <RootStack.Screen
             name="Materials"
             component={MaterialsScreen}
-            options={{ title: '素材库' }}
+            options={{ title: '内容中心' }}
           />
           <RootStack.Screen
             name="Messages"
@@ -264,12 +257,7 @@ const AppNavigator = () => {
           <RootStack.Screen
             name="MediaOperation"
             component={MediaOperationScreen}
-            options={{ title: '自媒体运营' }}
-          />
-          <RootStack.Screen
-            name="AccountManagement"
-            component={AccountManagementScreen}
-            options={{ title: '账号管理' }}
+            options={{ title: 'AI创作工厂' }}
           />
           <RootStack.Screen
             name="Statistics"
@@ -279,7 +267,7 @@ const AppNavigator = () => {
           <RootStack.Screen
             name="Recruitment"
             component={RecruitmentScreen}
-            options={{ title: '招聘助手' }}
+            options={{ title: '智能招聘' }}
           />
           <RootStack.Screen
             name="Acquisition"
@@ -289,7 +277,7 @@ const AppNavigator = () => {
           <RootStack.Screen
             name="DigitalHuman"
             component={DigitalHumanScreen}
-            options={{ title: '数字人视频' }}
+            options={{ title: 'AI数字人' }}
           />
           <RootStack.Screen
             name="AICopy"
@@ -312,21 +300,6 @@ const AppNavigator = () => {
             options={{ title: '声音克隆' }}
           />
           <RootStack.Screen
-            name="AccountOverview"
-            component={AccountOverviewScreen}
-            options={{ title: '账号总览' }}
-          />
-          <RootStack.Screen
-            name="Subscription"
-            component={SubscriptionScreen}
-            options={{ title: '订阅管理' }}
-          />
-          <RootStack.Screen
-            name="StaffManagement"
-            component={StaffManagementScreen}
-            options={{ title: '员工管理' }}
-          />
-          <RootStack.Screen
             name="AICreateCenter"
             component={AICreateCenterScreen}
             options={{ headerShown: false }}
@@ -337,19 +310,30 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
           <RootStack.Screen
-            name="MatrixAccount"
-            component={MatrixAccountScreen}
+            name="SupportQR"
+            component={SupportQRScreen}
+            options={{ title: '在线客服' }}
+          />
+          {/* 商业助手 */}
+          <RootStack.Screen
+            name="BusinessAssistant"
+            component={BusinessAssistantScreen}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
-            name="DataList"
-            component={DataListScreen}
+            name="PlanGeneration"
+            component={PlanGenerationScreen}
             options={{ headerShown: false }}
           />
           <RootStack.Screen
-            name="MediaFactory"
-            component={MediaFactoryScreen}
-            options={{ title: '视频中心' }}
+            name="PlanView"
+            component={PlanViewScreen}
+            options={{ headerShown: false }}
+          />
+          <RootStack.Screen
+            name="BusinessChat"
+            component={BusinessChatScreen}
+            options={{ headerShown: false }}
           />
         </RootStack.Navigator>
       </NavigationContainer>

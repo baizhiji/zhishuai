@@ -19,15 +19,6 @@ export function exportAcquisitionData(params?: {
   return request.get('/api/export/acquisition', { params });
 }
 
-// 导出发布记录
-export function exportPublishRecords(params?: {
-  format?: 'csv' | 'xlsx' | 'json';
-  platform?: string;
-  status?: string;
-}) {
-  return request.get('/api/export/publish', { params });
-}
-
 // 导出统计数据
 export function exportStatistics(params?: {
   format?: 'csv' | 'xlsx' | 'json';

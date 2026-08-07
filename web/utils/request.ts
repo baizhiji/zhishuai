@@ -1,6 +1,9 @@
 /**
- * 统一 API 请求工具
+ * 统一 API 请求工具（基于 Fetch）
  * 使用环境变量配置 baseURL
+ *
+ * TODO: lib/request.ts（基于 Axios）与本文件功能重复，需统一为一个 HTTP 客户端。
+ * 目标：仅保留一个，所有服务层统一导入路径。
  */
 
 import { dispatchAuthExpired } from '@/lib/auth-events';

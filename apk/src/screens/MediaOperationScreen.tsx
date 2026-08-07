@@ -35,26 +35,17 @@ export default function MediaOperationScreen() {
       color: '#4F46E5',
       route: 'AICreateCenter',
     },
-    {
-      id: 'data-list',
-      title: '数据列表',
-      icon: 'bar-chart',
-      color: '#0891B2',
-      route: 'DataList',
-    },
   ];
 
   const handlePress = (item: OperationItem) => {
     if (item.route === 'AICreateCenter') {
       navigation.navigate('AICreateCenter');
-    } else if (item.route === 'DataList') {
-      navigation.navigate('DataList');
     }
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <PageHeader title="自媒体运营" showBack={false} />
+      <PageHeader title="AI创作工厂" showBack={false} />
       
       <ScrollView
         style={[styles.scrollView, { backgroundColor: theme.background }]}

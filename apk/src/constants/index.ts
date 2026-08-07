@@ -17,11 +17,11 @@ export const AI_CREATION_TYPES = CONTENT_TYPES;
 
 // 首页功能中心
 export const FEATURES = [
-  { id: 'media', name: '自媒体运营', icon: 'newspaper-outline', color: '#2563EB', description: 'AI内容生成与发布' },
-  { id: 'recruitment', name: '招聘助手', icon: 'briefcase-outline', color: '#7C3AED', description: '智能招聘解决方案' },
+  { id: 'media', name: 'AI创作工厂', icon: 'newspaper-outline', color: '#2563EB', description: 'AI图文、图片、视频创作' },
+  { id: 'recruitment', name: '智能招聘', icon: 'briefcase-outline', color: '#7C3AED', description: 'AI驱动的智能招聘' },
   { id: 'acquisition', name: '智能获客', icon: 'trending-up-outline', color: '#10B981', description: '精准客户发现' },
   { id: 'referral', name: '推荐分享', icon: 'share-social-outline', color: '#D97706', description: '推荐奖励系统' },
-  { id: 'materials', name: '素材库', icon: 'images-outline', color: '#EC4899', description: '素材管理' },
+  { id: 'materials', name: '内容中心', icon: 'images-outline', color: '#EC4899', description: '内容管理' },
   { id: 'analytics', name: '数据统计', icon: 'stats-chart-outline', color: '#0891B2', description: '数据报表' },
 ];
 
@@ -51,7 +51,7 @@ export const MOCK_CONTENT = [
 ];
 
 export const MOCK_MESSAGES = [
-  { id: '1', title: '系统通知', content: '您的账号已开通自媒体运营功能', type: 'system' as const, read: false, createdAt: '2024-05-01' },
+  { id: '1', title: '系统通知', content: '您的账号已开通AI创作工厂功能', type: 'system' as const, read: false, createdAt: '2024-05-01' },
   { id: '2', title: '订单完成', content: '您的视频剪辑任务已完成', type: 'order' as const, read: true, createdAt: '2024-04-30' },
   { id: '3', title: '活动提醒', content: '五一活动即将开始，快来参与！', type: 'activity' as const, read: false, createdAt: '2024-04-29' },
 ];

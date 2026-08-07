@@ -2,9 +2,7 @@
  * AI 对话服务层
  * 封装会话管理、诊断检测的业务逻辑
  */
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ─── 诊断关键词 ───
 const DIAGNOSIS_KEYWORDS = [

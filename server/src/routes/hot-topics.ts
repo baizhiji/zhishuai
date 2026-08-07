@@ -5,12 +5,10 @@
  */
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
-import { PrismaClient } from '@prisma/client';
 import { getPrimaryApiKey } from '../services/user-api-key.service';
+import { prisma } from '../utils/db';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 热点话题平台列表
 const HOT_TOPIC_PLATFORMS = [
   { id: 'douyin', name: '抖音', icon: '🎵' },

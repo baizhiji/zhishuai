@@ -1,13 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
 import { searchCompanies, getCompanyDetail } from '../services/tianyancha.service';
 import { searchPOIByKeyword, searchPOIAround } from '../services/amap.service';
 import { getDanmu, getLiveViewers, getLiveStats, calculateIntentScore } from '../services/live-acquisition.service';
+import { prisma } from '../utils/db';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 所有路由都需要登录
 router.use(authMiddleware);
 
@@ -548,24 +546,6 @@ router.post('/search/live', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[直播间采集]', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// 批量导入数据到CRM
-router.post('/import/crm', async (req: Request, res: Response) => {
-  try {
-    const { dataIds } = req.body;
-    const userId = (req as any).userId;
-    
-    const importCount = dataIds?.length || 0;
-    
-    res.json({
-      success: true,
-      message: `成功导入 ${importCount} 条数据到CRM`,
-      data: { count: importCount }
-    });
-  } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });

@@ -1,3 +1,5 @@
+// TODO: 本文件（基于 Axios）与 utils/request.ts（基于 Fetch）功能重复，需统一为一个 HTTP 客户端。
+// 目标：仅保留一个，所有服务层统一导入路径。
 import axios, {
   AxiosInstance,
   AxiosRequestConfig,

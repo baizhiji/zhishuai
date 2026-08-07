@@ -1,11 +1,13 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { authMiddleware, generateToken, hashPassword, verifyPassword } from '../middleware/auth';
 import { generateCode, sendSms } from '../services/sms.service';
+import { prisma } from '../utils/db';
+import { z } from 'zod';
+import { validate } from '../utils/validate';
+import { sendCodeSchema, registerSchema, loginSchema, changePasswordSchema, phoneSchema, passwordSchema } from '../validators/schemas';
+import { ok, badRequest, unauthorized, forbidden, notFound, internalError, tooManyRequests } from '../utils/api-response';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // ============================================
 // 登录限速：简单内存计数器，生产环境应用Redis
 // ============================================
@@ -36,18 +38,9 @@ function clearLoginRateLimit(identifier: string): void {
 
 // 发送验证码（含5分钟内只允许发送一次的限速）
 const smsRateLimit = new Map<string, Date>();
-router.post('/send-code', async (req: Request, res: Response) => {
+router.post('/send-code', validate(sendCodeSchema), async (req: Request, res: Response) => {
   try {
     const { phone, type = 'register' } = req.body;
-    
-    if (!phone) {
-      return res.status(400).json({ error: '请输入手机号' });
-    }
-
-    // 手机号格式验证
-    if (!/^1[3-9]\d{9}$/.test(phone)) {
-      return res.status(400).json({ error: '请输入正确的手机号' });
-    }
 
     // 检查发送频率（60秒内只能发送一次）
     const recentCode = await prisma.smsLog.findFirst({
@@ -59,7 +52,7 @@ router.post('/send-code', async (req: Request, res: Response) => {
     });
 
     if (recentCode) {
-      return res.status(400).json({ error: '发送太频繁，请稍后再试' });
+      return badRequest(res, '发送太频繁，请稍后再试');
     }
 
     // 获取短信配置
@@ -86,7 +79,7 @@ router.post('/send-code', async (req: Request, res: Response) => {
         },
       });
       
-      return res.json({ success: true, message: '验证码已发送', code });
+      return ok(res, { message: '验证码已发送', code });
     }
 
     // 生成验证码
@@ -118,28 +111,23 @@ router.post('/send-code', async (req: Request, res: Response) => {
     });
 
     if (result.success) {
-      // 开发环境返回验证码方便测试
       if (process.env.NODE_ENV === 'development') {
-        return res.json({ success: true, message: '验证码已发送', code });
+        return ok(res, { message: '验证码已发送', code });
       }
-      return res.json({ success: true, message: '验证码已发送' });
+      return ok(res, { message: '验证码已发送' });
     } else {
-      return res.status(500).json({ error: result.error || '发送失败' });
+      return internalError(res, result.error || '发送失败');
     }
   } catch (error: any) {
     console.error('发送验证码失败:', error);
-    res.status(500).json({ error: error.message });
+    internalError(res, error.message);
   }
 });
 
 // 注册
-router.post('/register', async (req: Request, res: Response) => {
+router.post('/register', validate(registerSchema), async (req: Request, res: Response) => {
   try {
     const { phone, password, code, name } = req.body;
-    
-    if (!phone || !password) {
-      return res.status(400).json({ error: '请填写完整信息' });
-    }
 
     // 验证验证码：生产环境必须有短信配置并验证，开发环境无配置时可跳过
     const smsConfig = await prisma.smsConfig.findFirst({
@@ -150,10 +138,6 @@ router.post('/register', async (req: Request, res: Response) => {
 
     if (smsConfig) {
       // 有短信配置时，必须验证验证码
-      if (!code) {
-        return res.status(400).json({ error: '请输入验证码' });
-      }
-
       const smsLog = await prisma.smsLog.findFirst({
         where: {
           phone,
@@ -166,7 +150,7 @@ router.post('/register', async (req: Request, res: Response) => {
       });
 
       if (!smsLog) {
-        return res.status(400).json({ error: '验证码错误或已过期' });
+        return badRequest(res, '验证码错误或已过期');
       }
 
       usedSmsLogId = smsLog.id;
@@ -178,10 +162,6 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     } else if (process.env.NODE_ENV === 'development') {
       // 开发环境无短信配置时，签到code
-      if (!code) {
-        return res.status(400).json({ error: '请输入验证码' });
-      }
-
       const smsLog = await prisma.smsLog.findFirst({
         where: {
           phone,
@@ -194,7 +174,7 @@ router.post('/register', async (req: Request, res: Response) => {
       });
 
       if (!smsLog) {
-        return res.status(400).json({ error: '验证码错误或已过期' });
+        return badRequest(res, '验证码错误或已过期');
       }
 
       usedSmsLogId = smsLog.id;
@@ -208,17 +188,22 @@ router.post('/register', async (req: Request, res: Response) => {
     // 检查用户是否已存在
     const existingUser = await prisma.user.findUnique({ where: { phone } });
     if (existingUser) {
-      return res.status(400).json({ error: '该手机号已注册' });
+      return badRequest(res, '该手机号已注册');
     }
 
-    // 创建用户
+    // 创建用户（id 和 updatedAt 需手动设置，因为 schema 未设置 @default）
+    const userId = require('crypto').randomUUID();
+    const now = new Date();
     const user = await prisma.user.create({
       data: {
+        id: userId,
         phone,
         password: hashPassword(password),
         name: name || `用户${phone.slice(-4)}`,
         role: 'customer',
         status: 'active',
+        createdAt: now,
+        updatedAt: now,
       },
     });
 
@@ -232,42 +217,30 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const token = generateToken(user.id, user.role);
 
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user.id,
-          phone: user.phone,
-          name: user.name,
-          role: user.role,
-        },
-        token,
-        expireTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    ok(res, {
+      user: {
+        id: user.id,
+        phone: user.phone,
+        name: user.name,
+        role: user.role,
       },
+      token,
+      expireTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    internalError(res, error.message);
   }
 });
 
 // 发送重置密码验证码
-router.post('/send-reset-code', async (req: Request, res: Response) => {
+router.post('/send-reset-code', validate(sendCodeSchema), async (req: Request, res: Response) => {
   try {
     const { phone } = req.body;
-    
-    if (!phone) {
-      return res.status(400).json({ error: '请输入手机号' });
-    }
 
     // 检查用户是否存在
     const user = await prisma.user.findUnique({ where: { phone } });
     if (!user) {
-      return res.status(400).json({ error: '该手机号未注册' });
-    }
-
-    // 手机号格式验证
-    if (!/^1[3-9]\d{9}$/.test(phone)) {
-      return res.status(400).json({ error: '请输入正确的手机号' });
+      return badRequest(res, '该手机号未注册');
     }
 
     // 检查发送频率（60秒内只能发送一次）
@@ -280,7 +253,7 @@ router.post('/send-reset-code', async (req: Request, res: Response) => {
     });
 
     if (recentCode) {
-      return res.status(400).json({ error: '发送太频繁，请稍后再试' });
+      return badRequest(res, '发送太频繁，请稍后再试');
     }
 
     // 获取短信配置
@@ -306,7 +279,7 @@ router.post('/send-reset-code', async (req: Request, res: Response) => {
         },
       });
       
-      return res.json({ success: true, message: '验证码已发送', code });
+      return ok(res, { message: '验证码已发送', code });
     }
 
     // 生成验证码
@@ -339,31 +312,33 @@ router.post('/send-reset-code', async (req: Request, res: Response) => {
 
     if (result.success) {
       if (process.env.NODE_ENV === 'development') {
-        return res.json({ success: true, message: '验证码已发送', code });
+        return ok(res, { message: '验证码已发送', code });
       }
-      return res.json({ success: true, message: '验证码已发送' });
+      return ok(res, { message: '验证码已发送' });
     } else {
-      return res.status(500).json({ error: result.error || '发送失败' });
+      return internalError(res, result.error || '发送失败');
     }
   } catch (error: any) {
     console.error('发送重置密码验证码失败:', error);
-    res.status(500).json({ error: error.message });
+    return internalError(res, error.message);
   }
 });
 
 // 重置密码
-router.post('/reset-password', async (req: Request, res: Response) => {
+router.post('/reset-password', validate(z.object({
+  body: z.object({
+    phone: phoneSchema,
+    code: z.string().length(6, '验证码为6位数字'),
+    newPassword: passwordSchema,
+  }),
+})), async (req: Request, res: Response) => {
   try {
     const { phone, code, newPassword } = req.body;
-    
-    if (!phone || !code || !newPassword) {
-      return res.status(400).json({ error: '请填写完整信息' });
-    }
 
     // 查找用户
     const user = await prisma.user.findUnique({ where: { phone } });
     if (!user) {
-      return res.status(400).json({ error: '该手机号未注册' });
+      return badRequest(res, '该手机号未注册');
     }
 
     // 获取短信配置
@@ -399,14 +374,8 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       });
 
       if (!devSmsLog) {
-        return res.status(400).json({ error: '验证码错误或已过期' });
+        return badRequest(res, '验证码错误或已过期');
       }
-
-      // 更新密码
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { password: hashPassword(newPassword) },
-      });
 
       // 标记验证码已使用
       await prisma.smsLog.update({
@@ -414,7 +383,7 @@ router.post('/reset-password', async (req: Request, res: Response) => {
         data: { used: true, usedAt: new Date(), status: 'verified' },
       });
 
-      return res.json({ success: true, message: '密码重置成功' });
+      return ok(res, { message: '密码重置成功' });
     }
 
     // 标记验证码已使用
@@ -429,26 +398,22 @@ router.post('/reset-password', async (req: Request, res: Response) => {
       data: { password: hashPassword(newPassword) },
     });
 
-    res.json({ success: true, message: '密码重置成功' });
+    return ok(res, { message: '密码重置成功' });
   } catch (error: any) {
     console.error('重置密码失败:', error);
-    res.status(500).json({ error: error.message });
+    return internalError(res, error.message);
   }
 });
 
 // 登录
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
   try {
     const { phone, password, loginType } = req.body;
-    
-    if (!phone || !password) {
-      return res.status(400).json({ error: '请填写手机号和密码' });
-    }
 
     // 登录速率限制
     const rateLimitKey = `login:${phone}:${req.ip}`;
     if (!checkLoginRateLimit(rateLimitKey)) {
-      return res.status(429).json({ error: '登录尝试次数过多，请15分钟后再试' });
+      return tooManyRequests(res, '登录尝试次数过多，请15分钟后再试');
     }
 
     // 查找用户
@@ -458,22 +423,19 @@ router.post('/login', async (req: Request, res: Response) => {
     const isValidUser = user && verifyPassword(password, user.password);
 
     if (!isValidUser) {
-      return res.status(401).json({ error: '手机号或密码错误' });
+      return unauthorized(res, '手机号或密码错误');
     }
 
     // 检查账号状态
     if (user!.status !== 'active') {
-      return res.status(401).json({ error: '账号已被禁用，请联系管理员' });
+      return unauthorized(res, '账号已被禁用，请联系管理员');
     }
 
     // 入口权限控制
     const userRole = user!.role;
     
-    // admin 角色可以从所有入口登录
-    // agent 角色可以从所有入口登录（可以切换视角）
-    // customer 角色只能从 user 入口登录
     if (userRole === 'customer' && loginType !== 'user') {
-      return res.status(403).json({ error: '您的账号不支持从此入口登录' });
+      return forbidden(res, '您的账号不支持从此入口登录');
     }
 
     // 登录成功，清除限速标记
@@ -485,23 +447,20 @@ router.post('/login', async (req: Request, res: Response) => {
     // 从哪个入口登录就跳转到对应的后台
     const targetRole = loginType || userRole;
 
-    res.json({
-      success: true,
-      data: {
-        user: {
-          id: user!.id,
-          phone: user!.phone,
-          name: user!.name,
-          role: user!.role,
-          targetRole: targetRole,
-          avatar: user!.avatar,
-        },
-        token,
-        expireTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    ok(res, {
+      user: {
+        id: user!.id,
+        phone: user!.phone,
+        name: user!.name,
+        role: user!.role,
+        targetRole: targetRole,
+        avatar: user!.avatar,
       },
+      token,
+      expireTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return internalError(res, error.message);
   }
 });
 
@@ -524,12 +483,12 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: '用户不存在' });
+      return notFound(res, '用户不存在');
     }
 
-    res.json({ success: true, data: user });
+    ok(res, user);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return internalError(res, error.message);
   }
 });
 
@@ -551,13 +510,13 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
       },
     });
 
-    res.json({ success: true, data: user });
+    ok(res, user);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return internalError(res, error.message);
   }
 });
 
-// 修改密码
+// ... 后续路由 (change-password, update-profile 等)
 router.put('/password', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
@@ -565,11 +524,11 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      return res.status(404).json({ error: '用户不存在' });
+      return notFound(res, '用户不存在');
     }
 
     if (!verifyPassword(oldPassword, user.password)) {
-      return res.status(400).json({ error: '原密码错误' });
+      return badRequest(res, '原密码错误');
     }
 
     await prisma.user.update({
@@ -577,9 +536,9 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
       data: { password: hashPassword(newPassword) },
     });
 
-    res.json({ success: true, message: '密码修改成功' });
+    ok(res, { message: '密码修改成功' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return internalError(res, error.message);
   }
 });
 
@@ -618,10 +577,8 @@ router.get('/login-logs', authMiddleware, async (req: Request, res: Response) =>
       prisma.smsLog.count({ where }),
     ]);
 
-    res.json({
-      success: true,
-      data: {
-      logs: logs.map(l => ({
+    ok(res, {
+      logs: logs.map((l: any) => ({
         id: l.id,
         userId: l.userId,
         userName: l.phone,
@@ -631,13 +588,32 @@ router.get('/login-logs', authMiddleware, async (req: Request, res: Response) =>
         status: l.status,
         createdAt: l.createdAt?.toISOString(),
       })),
-        total,
-        page: Number(page),
-        pageSize: Number(pageSize),
-      },
+      total,
+      page: Number(page),
+      pageSize: Number(pageSize),
     });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    return internalError(res, error.message);
+  }
+});
+
+// POST /logout — 用户登出
+router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    // 记录登出日志
+    await prisma.loginLog.create({
+      data: {
+        id: `logout_${Date.now()}`,
+        userId: userId,
+        type: 'logout',
+        ip: req.ip || req.socket.remoteAddress || 'unknown',
+        status: 'success',
+      },
+    }).catch(() => {}); // 忽略记录失败
+    return ok(res, { message: '登出成功' });
+  } catch (error: any) {
+    return internalError(res, error.message);
   }
 });
 

@@ -741,29 +741,18 @@ export async function scheduleInterview(
   userId: string,
   schedule: InterviewSchedule,
 ) {
-  const interview = await prisma.recruitmentInterview.create({
+  const interview = await prisma.recruitmentProcess.create({
     data: {
       userId,
       jobId: schedule.jobId,
       resumeId: schedule.candidateId,
-      interviewerId: schedule.interviewerId,
       scheduledAt: schedule.scheduledAt,
-      format: schedule.format,
-      duration: schedule.duration || 60,
       notes: schedule.notes,
-      status: 'scheduled',
+      stage: 'interview_scheduled',
     },
   });
 
-  // 自动生成面试提醒
-  await prisma.crmReminder.create({
-    data: {
-      userId,
-      type: 'interview',
-      content: `面试提醒：${schedule.scheduledAt.toLocaleString()}，形式：${schedule.format}`,
-      dueDate: new Date(schedule.scheduledAt.getTime() - 30 * 60 * 1000), // 提前30分钟提醒
-    },
-  }).catch(() => {});
+  // CRM reminder model removed - skip auto-reminder creation
 
   return interview;
 }
@@ -782,8 +771,8 @@ export async function getRecruitmentPipeline(userId: string) {
       where: { userId },
       _count: true,
     }),
-    prisma.recruitmentInterview.groupBy({
-      by: ['status'],
+    prisma.recruitmentProcess.groupBy({
+      by: ['stage'],
       where: { userId },
       _count: true,
     }),
@@ -793,7 +782,7 @@ export async function getRecruitmentPipeline(userId: string) {
   resumes.forEach(r => { resumeStatus[r.status] = r._count; });
 
   const interviewStatus: Record<string, number> = {};
-  interviews.forEach(i => { interviewStatus[i.status] = i._count; });
+  interviews.forEach(i => { interviewStatus[i.stage] = i._count; });
 
   return {
     activeJobs: jobs.filter(j => j.status === 'active').length,

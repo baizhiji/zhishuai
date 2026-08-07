@@ -1,0 +1,566 @@
+{
+  "test_time": "2026-08-07 18:31:01",
+  "summary": {
+    "api_total": 45,
+    "api_pass": 16,
+    "api_warn": 0,
+    "api_fail": 29,
+    "api_error": 0,
+    "api_rate": "35%",
+    "page_total": 21,
+    "page_pass": 21,
+    "page_warn": 0,
+    "page_fail": 0,
+    "page_error": 0,
+    "page_rate": "100%"
+  },
+  "api_results": {
+    "Dashboard: Customer Summary": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data"
+      ],
+      "category": "Dashboard"
+    },
+    "Dashboard: Token Stats": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data"
+      ],
+      "category": "Dashboard"
+    },
+    "Dashboard: Business Lines": {
+      "status": "FAIL",
+      "code": 500,
+      "has_data": false,
+      "body_keys": [
+        "success",
+        "message"
+      ],
+      "category": "Dashboard"
+    },
+    "AI: Generate Text (proxy)": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "AI Factory"
+    },
+    "AI: Chat": {
+      "status": "FAIL",
+      "code": 400,
+      "has_data": false,
+      "body_keys": [
+        "error"
+      ],
+      "category": "AI Factory"
+    },
+    "AI: Image": {
+      "status": "FAIL",
+      "code": 400,
+      "has_data": false,
+      "body_keys": [
+        "error"
+      ],
+      "category": "AI Factory"
+    },
+    "AI: Video Analysis": {
+      "status": "FAIL",
+      "code": 400,
+      "has_data": false,
+      "body_keys": [
+        "error"
+      ],
+      "category": "AI Factory"
+    },
+    "AI: History": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "AI Factory"
+    },
+    "AI: Post": {
+      "status": "FAIL",
+      "code": 500,
+      "has_data": false,
+      "body_keys": [
+        "code",
+        "message",
+        "data"
+      ],
+      "category": "AI Factory"
+    },
+    "AI: Title": {
+      "status": "FAIL",
+      "code": 500,
+      "has_data": false,
+      "body_keys": [
+        "code",
+        "message",
+        "data"
+      ],
+      "category": "AI Factory"
+    },
+    "AI: Hashtags": {
+      "status": "FAIL",
+      "code": 500,
+      "has_data": false,
+      "body_keys": [
+        "code",
+        "message",
+        "data"
+      ],
+      "category": "AI Factory"
+    },
+    "Recruitment: Job List": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Recruitment"
+    },
+    "Recruitment: Pipeline Stats": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Recruitment"
+    },
+    "Recruitment: Search Config": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Recruitment"
+    },
+    "Acquisition: Leads": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Acquisition"
+    },
+    "Acquisition: Tasks": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Acquisition"
+    },
+    "Acquisition: Dashboard": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Acquisition"
+    },
+    "Share: Dashboard": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Share"
+    },
+    "Share: Codes": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "code",
+        "message",
+        "data"
+      ],
+      "category": "Share"
+    },
+    "Share: Track Records": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "code",
+        "message",
+        "data"
+      ],
+      "category": "Share"
+    },
+    "Materials: List": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data"
+      ],
+      "category": "Materials"
+    },
+    "Tickets: List": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "data",
+        "pagination"
+      ],
+      "category": "Tickets"
+    },
+    "Support: QR Code": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data"
+      ],
+      "category": "Support"
+    },
+    "API Keys: List": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data"
+      ],
+      "category": "API Keys"
+    },
+    "App: Version": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "App Download"
+    },
+    "DH: Avatars": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Digital Human"
+    },
+    "DH: Voices": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data"
+      ],
+      "category": "Digital Human"
+    },
+    "Login Logs: List": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data",
+        "error",
+        "meta"
+      ],
+      "category": "Login Logs"
+    },
+    "Account: Info": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data",
+        "error",
+        "meta"
+      ],
+      "category": "Account"
+    },
+    "Account: Usage Stats": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data",
+        "error",
+        "meta"
+      ],
+      "category": "Account"
+    },
+    "Account: Packages": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data",
+        "error",
+        "meta"
+      ],
+      "category": "Account"
+    },
+    "Announcements: List": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "success",
+        "data"
+      ],
+      "category": "Announcements"
+    },
+    "Notifications: List": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "code",
+        "message",
+        "data"
+      ],
+      "category": "Notifications"
+    },
+    "Messages: List": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Messages"
+    },
+    "Feedback: Submit": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Feedback"
+    },
+    "Referral: Codes": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Referral"
+    },
+    "Referral: Records": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Referral"
+    },
+    "Publish: Tasks": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Publish"
+    },
+    "Social: Account List": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Social"
+    },
+    "Statistics: Overview": {
+      "status": "PASS",
+      "code": 200,
+      "has_data": true,
+      "body_keys": [
+        "code",
+        "message",
+        "data"
+      ],
+      "category": "Statistics"
+    },
+    "Workflow: Templates": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Workflow"
+    },
+    "Enhancement: Tasks": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Enhancement"
+    },
+    "Hotspot: Trending": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "Hotspot"
+    },
+    "Employee: List": {
+      "status": "FAIL",
+      "code": 403,
+      "has_data": false,
+      "body_keys": [
+        "error"
+      ],
+      "category": "Employee"
+    },
+    "AutoReply: Config": {
+      "status": "FAIL",
+      "code": 404,
+      "has_data": false,
+      "body_keys": "empty",
+      "category": "AutoReply"
+    }
+  },
+  "page_results": {
+    "Dashboard Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7491,
+      "redirected": false,
+      "category": "Dashboard"
+    },
+    "AI Factory Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7427,
+      "redirected": false,
+      "category": "AI Factory"
+    },
+    "AI Chat Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7731,
+      "redirected": false,
+      "category": "AI Factory"
+    },
+    "Recruitment Main Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7502,
+      "redirected": false,
+      "category": "Recruitment"
+    },
+    "Publish Jobs Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 8026,
+      "redirected": false,
+      "category": "Recruitment"
+    },
+    "Auto Recruitment Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 8008,
+      "redirected": false,
+      "category": "Recruitment"
+    },
+    "Recruitment Platforms Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 8037,
+      "redirected": false,
+      "category": "Recruitment"
+    },
+    "Discover Leads Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 8031,
+      "redirected": false,
+      "category": "Acquisition"
+    },
+    "Acquisition Tasks Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 8007,
+      "redirected": false,
+      "category": "Acquisition"
+    },
+    "Acquisition Board Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 8014,
+      "redirected": false,
+      "category": "Acquisition"
+    },
+    "Share Board Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7972,
+      "redirected": false,
+      "category": "Share"
+    },
+    "Share Code Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7966,
+      "redirected": false,
+      "category": "Share"
+    },
+    "Share Track Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7972,
+      "redirected": false,
+      "category": "Share"
+    },
+    "Materials Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7438,
+      "redirected": false,
+      "category": "Materials"
+    },
+    "Tickets Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7479,
+      "redirected": false,
+      "category": "Tickets"
+    },
+    "Support Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7424,
+      "redirected": false,
+      "category": "Support"
+    },
+    "API Keys Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7432,
+      "redirected": false,
+      "category": "API Keys"
+    },
+    "Security Settings Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7957,
+      "redirected": false,
+      "category": "Security"
+    },
+    "App Download Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7982,
+      "redirected": false,
+      "category": "App Download"
+    },
+    "Digital Human Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7792,
+      "redirected": false,
+      "category": "Digital Human"
+    },
+    "Login Logs Page": {
+      "status": "PASS",
+      "code": 200,
+      "size": 7497,
+      "redirected": false,
+      "category": "Login Logs"
+    }
+  }
+}

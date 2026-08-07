@@ -43,38 +43,41 @@ export const customerService = {
     return request.put(`/api/agent/customers/${id}`, data);
   },
 
-  // 冻结客户
+  // 冻结/解冻客户（toggle-status 自动切换状态）
   freezeCustomer: (id: string) => {
-    return request.post(`/api/agent/customers/${id}/freeze`);
+    return request.post(`/api/agent/customers/${id}/toggle-status`);
   },
 
-  // 解冻客户
+  // 解冻客户（复用 toggle-status，服务端自动切换 active ↔ frozen）
   unfreezeCustomer: (id: string) => {
-    return request.post(`/api/agent/customers/${id}/unfreeze`);
+    return request.post(`/api/agent/customers/${id}/toggle-status`);
   },
 
   // 获取统计数据
   getStats: () => {
-    return request.get('/api/agent/stats');
+    return request.get('/api/agent/statistics');
   },
 
-  // 获取功能开关列表
-  getFeatureSwitches: (customerId?: string) => {
-    return request.get('/api/user/features', { params: { customerId } });
+  // 获取功能开关列表（当前登录用户自身的功能开关）
+  getFeatureSwitches: (_customerId?: string) => {
+    return request.get('/api/features');
   },
 
-  // 设置客户功能开关
+  // TODO: 设置客户功能开关 — 服务端 features API 仅支持用户自操作（基于 auth userId），
+  // 尚不支持代理商为客户设置功能。需新增服务端路由后启用。
+  // 如需启动，请在 server/src/routes/ 添加 /api/features/customer/:id/toggle 端点。
+  /*
   setCustomerFeature: (customerId: string, featureKey: string, enabled: boolean) => {
-    return request.post(`/api/user/features/customer/${customerId}`, {
-      featureKey,
-      enabled,
-    });
+    return request.put(`/api/features/customer/${customerId}`, { featureKey, enabled });
   },
+  */
 
-  // 批量设置客户功能开关
+  // TODO: 批量设置客户功能开关 — 同上，需服务端先支持。
+  /*
   batchSetCustomerFeatures: (customerId: string, features: Record<string, boolean>) => {
-    return request.post(`/api/user/features/customer/${customerId}/batch`, { features });
+    return request.put(`/api/features/customer/${customerId}/batch`, { features });
   },
+  */
 };
 
 export default customerService;

@@ -3,7 +3,6 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import AntdProvider from '@/components/providers/AntdProvider';
-import { UserProvider } from '@/components/auth/UserProvider';
 
 export const metadata: Metadata = {
   title: '智枢AI - 智能商业平台',
@@ -23,11 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="zh-CN">
       <body className="antialiased">
         <AntdProvider>
-          <UserProvider>
-            <AuthProvider>
-              <AuthGuard>{children}</AuthGuard>
-            </AuthProvider>
-          </UserProvider>
+          <AuthProvider>
+            <AuthGuard>{children}</AuthGuard>
+          </AuthProvider>
         </AntdProvider>
       </body>
     </html>

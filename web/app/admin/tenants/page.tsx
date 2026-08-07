@@ -61,16 +61,21 @@ interface CustomerStatistics {
   newThisMonth: number;
 }
 
-const FEATURE_LABELS: Array<{ key: string; label: string; color: string }> = [
-  { key: 'media', label: 'AI 自媒体', color: 'cyan' },
-  { key: 'recruitment', label: '招聘助手', color: 'purple' },
-  { key: 'acquisition', label: '智能获客', color: 'orange' },
-  { key: 'sharing', label: '内容分享', color: 'green' },
-  { key: 'referral', label: '邀请返佣', color: 'magenta' },
-  { key: 'analytics', label: '数据分析', color: 'blue' },
-  { key: 'voice', label: 'AI 语音', color: 'volcano' },
-  { key: 'video', label: 'AI 短剧', color: 'gold' },
-];
+// 功能开关类型（与 FeatureSwitch DB 表对应）
+interface CustomerFeature {
+  id: string;
+  code: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  enabled: boolean;
+  subSwitches?: CustomerFeature[];
+}
+
+const TAG_COLORS = [
+  'cyan', 'purple', 'orange', 'green', 'magenta', 'blue', 'volcano', 'gold',
+  'red', 'lime', 'geekblue', 'processing', 'success', 'warning', 'error',
+] as const;
 
 export default function AdminCustomersPage() {
   const [loading, setLoading] = useState(false);
@@ -86,8 +91,11 @@ export default function AdminCustomersPage() {
   const [createLoading, setCreateLoading] = useState(false);
   const [detailCustomer, setDetailCustomer] = useState<Customer | null>(null);
   const [createForm] = Form.useForm();
-  const [featureForm] = Form.useForm();
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
+  // 功能开关：从 FeatureSwitch DB 动态获取，每客户粒度控制
+  const [customerFeatures, setCustomerFeatures] = useState<CustomerFeature[]>([]);
+  const [featuresLoading, setFeaturesLoading] = useState(false);
+  const [featureDefMap, setFeatureDefMap] = useState<Map<string, { name: string; color: string }>>(new Map());
 
   // 拉取客户列表
   const fetchCustomers = useCallback(async () => {
@@ -99,7 +107,7 @@ export default function AdminCustomersPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       params.set('pageSize', '50');
       const res = (await request.get<{ success: boolean; data: { list: Customer[]; total: number } }>(
-        `/api/admin/tenants?${params.toString()}`
+        `/api/admin/customers?${params.toString()}`
       )) as unknown as { success: boolean; data: { list: Customer[]; total: number } };
       if (res.success) {
         setCustomers(res.data?.list || []);
@@ -152,11 +160,31 @@ export default function AdminCustomersPage() {
     }
   }, []);
 
+  // 获取功能开关定义（用于表格列渲染功能名称/颜色）
+  const fetchFeatureDefs = useCallback(async () => {
+    try {
+      const request = (await import('@/lib/request')).default;
+      const res = (await request.get<{ success: boolean; data: CustomerFeature[] }>(
+        '/api/admin/features'
+      )) as unknown as { success: boolean; data: CustomerFeature[] };
+      if (res.success) {
+        const map = new Map<string, { name: string; color: string }>();
+        (res.data || []).forEach((f, i) => {
+          map.set(f.code, { name: f.name, color: TAG_COLORS[i % TAG_COLORS.length] });
+        });
+        setFeatureDefMap(map);
+      }
+    } catch (err) {
+      console.error('获取功能开关定义失败', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchCustomers();
     fetchStatistics();
     fetchAgents();
-  }, [fetchCustomers, fetchStatistics, fetchAgents]);
+    fetchFeatureDefs();
+  }, [fetchCustomers, fetchStatistics, fetchAgents, fetchFeatureDefs]);
 
   // 切换状态
   const handleToggleStatus = async (customer: Customer) => {
@@ -164,7 +192,7 @@ export default function AdminCustomersPage() {
       const request = (await import('@/lib/request')).default;
       const nextStatus = customer.status === 'active' ? 'disabled' : 'active';
       const res = (await request.patch<{ success: boolean; message?: string }>(
-        `/api/admin/tenants/${customer.id}/status`,
+        `/api/admin/customers/${customer.id}/status`,
         { status: nextStatus }
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {
@@ -184,7 +212,7 @@ export default function AdminCustomersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.post<{ success: boolean; data?: { newPassword?: string }; message?: string }>(
-        `/api/admin/tenants/${customer.id}/reset-password`
+        `/api/admin/customers/${customer.id}/reset-password`
       )) as unknown as { success: boolean; data?: { newPassword?: string }; message?: string };
       if (res.success) {
         const pwd = res.data?.newPassword || '123456';
@@ -213,7 +241,7 @@ export default function AdminCustomersPage() {
       setCreateLoading(true);
       const request = (await import('@/lib/request')).default;
       const res = (await request.post<{ success: boolean; message?: string }>(
-        '/api/admin/tenants',
+        '/api/admin/customers',
         values
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {
@@ -233,27 +261,70 @@ export default function AdminCustomersPage() {
     }
   };
 
-  // 打开详情
-  const handleOpenDetail = (customer: Customer) => {
+  // 打开详情（含动态获取功能开关）
+  const handleOpenDetail = async (customer: Customer) => {
     setDetailCustomer(customer);
-    const features = customer.features || {};
-    featureForm.setFieldsValue(
-      FEATURE_LABELS.reduce((acc, f) => {
-        acc[f.key] = features[f.key] ?? true;
-        return acc;
-      }, {} as Record<string, boolean>)
-    );
     setDetailVisible(true);
+    setFeaturesLoading(true);
+    try {
+      const request = (await import('@/lib/request')).default;
+      const res = (await request.get<{ success: boolean; data: CustomerFeature[] }>(
+        `/api/admin/customers/${customer.id}/features`
+      )) as unknown as { success: boolean; data: CustomerFeature[] };
+      if (res.success) {
+        setCustomerFeatures(res.data || []);
+      } else {
+        setCustomerFeatures([]);
+      }
+    } catch (err) {
+      console.error('获取客户功能开关失败', err);
+      setCustomerFeatures([]);
+    } finally {
+      setFeaturesLoading(false);
+    }
   };
 
-  // 保存功能开关
+  // 切换功能开关
+  const handleFeatureToggle = (feature: CustomerFeature, enabled: boolean) => {
+    setCustomerFeatures(prev =>
+      prev.map(f => {
+        if (f.code === feature.code) {
+          return {
+            ...f,
+            enabled,
+            subSwitches: f.subSwitches?.map(s => ({ ...s, enabled })) ?? undefined,
+          };
+        }
+        return f;
+      })
+    );
+  };
+
+  // 切换子功能开关
+  const handleSubFeatureToggle = (parentCode: string, subFeature: CustomerFeature, enabled: boolean) => {
+    setCustomerFeatures(prev =>
+      prev.map(f => {
+        if (f.code === parentCode) {
+          return {
+            ...f,
+            subSwitches: f.subSwitches?.map(s =>
+              s.code === subFeature.code ? { ...s, enabled } : s
+            ) ?? undefined,
+          };
+        }
+        return f;
+      })
+    );
+  };
+
+  // 保存功能开关（按每客户粒度）
   const handleSaveFeatures = async () => {
     if (!detailCustomer) return;
     try {
-      const features = await featureForm.validateFields();
       const request = (await import('@/lib/request')).default;
+      const features = customerFeatures.map(f => ({ code: f.code, enabled: f.enabled }));
       const res = (await request.put<{ success: boolean; message?: string }>(
-        `/api/admin/tenants/${detailCustomer.id}/features`,
+        `/api/admin/customers/${detailCustomer.id}/features`,
         { features }
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {
@@ -264,7 +335,6 @@ export default function AdminCustomersPage() {
         message.error(res.message || '更新失败');
       }
     } catch (err: any) {
-      if (err?.errorFields) return;
       message.error(err?.response?.data?.message || '更新失败');
     }
   };
@@ -310,14 +380,20 @@ export default function AdminCustomersPage() {
       key: 'features',
       render: (_, r) => {
         const features = r.features || {};
-        const enabled = FEATURE_LABELS.filter(f => features[f.key] !== false);
-        if (enabled.length === 0) return <Text type="secondary">-</Text>;
+        const enabledEntries = Object.entries(features)
+          .filter(([, v]) => v !== false)
+          .map(([code]) => {
+            const def = featureDefMap.get(code);
+            return def ? { code, label: def.name, color: def.color } : null;
+          })
+          .filter(Boolean) as { code: string; label: string; color: string }[];
+        if (enabledEntries.length === 0) return <Text type="secondary">-</Text>;
         return (
           <Space size={2} wrap>
-            {enabled.slice(0, 3).map(f => (
-              <Tag key={f.key} color={f.color}>{f.label}</Tag>
+            {enabledEntries.slice(0, 3).map(f => (
+              <Tag key={f.code} color={f.color}>{f.label}</Tag>
             ))}
-            {enabled.length > 3 && <Tag>+{enabled.length - 3}</Tag>}
+            {enabledEntries.length > 3 && <Tag>+{enabledEntries.length - 3}</Tag>}
           </Space>
         );
       },
@@ -533,20 +609,76 @@ export default function AdminCustomersPage() {
               <SettingOutlined /> 功能权限配置
             </Divider>
             <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
-              关闭后客户在前台将不再看到对应功能模块
+              关闭后客户在前台将不再看到对应功能模块（从功能开关库动态加载）
             </Text>
-            <Form form={featureForm} layout="vertical">
-              {FEATURE_LABELS.map(f => (
-                <Form.Item
-                  key={f.key}
-                  name={f.key}
-                  label={<Tag color={f.color}>{f.label}</Tag>}
-                  valuePropName="checked"
-                >
-                  <Switch checkedChildren="开" unCheckedChildren="关" />
-                </Form.Item>
-              ))}
-            </Form>
+            {featuresLoading ? (
+              <div style={{ textAlign: 'center', padding: 24 }}>
+                <Spin tip="加载功能开关..." />
+              </div>
+            ) : customerFeatures.length === 0 ? (
+              <Text type="secondary">暂无可配置的功能模块</Text>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {customerFeatures.map(f => {
+                  const featureIndex = customerFeatures.findIndex(x => x.code === f.code);
+                  const color = TAG_COLORS[featureIndex % TAG_COLORS.length];
+                  return (
+                    <div key={f.code}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        background: '#fafafa',
+                        borderRadius: 6,
+                        marginBottom: 4,
+                      }}>
+                        <div>
+                          <Tag color={color}>{f.name}</Tag>
+                          {f.description && (
+                            <Text type="secondary" style={{ fontSize: 12, marginLeft: 8 }}>
+                              {f.description}
+                            </Text>
+                          )}
+                        </div>
+                        <Switch
+                          checked={f.enabled}
+                          onChange={v => handleFeatureToggle(f, v)}
+                          checkedChildren="开"
+                          unCheckedChildren="关"
+                        />
+                      </div>
+                      {/* 子功能开关 */}
+                      {f.subSwitches && f.subSwitches.length > 0 && (
+                        <div style={{ marginLeft: 24, marginBottom: 4 }}>
+                          {f.subSwitches.map(s => (
+                            <div
+                              key={s.code}
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                padding: '4px 8px',
+                              }}
+                            >
+                              <Text style={{ fontSize: 13 }}>{s.name}</Text>
+                              <Switch
+                                size="small"
+                                checked={s.enabled}
+                                onChange={v => handleSubFeatureToggle(f.code, s, v)}
+                                disabled={!f.enabled}
+                                checkedChildren="开"
+                                unCheckedChildren="关"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </>
         )}
       </Drawer>

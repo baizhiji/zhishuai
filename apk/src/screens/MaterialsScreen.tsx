@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, Image, ScrollView, Share } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, Image, Share, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
 import PageHeader from '../components/PageHeader';
+import { materialsService, Material } from '../services/materials.service';
 
 // 内容分类配置 - 与WEB端保持一致
 const categoryConfig: Record<string, { label: string; icon: string; color: string; type: string }> = {
@@ -20,43 +21,47 @@ const categoryConfig: Record<string, { label: string; icon: string; color: strin
   'digital-human': { label: '数字人短视频', icon: 'person', color: '#6366F1', type: 'video' },
 };
 
-// 素材类型
-interface Material {
-  id: string;
-  title: string;
+// 本地素材类型(扩展自服务层的 Material 接口)
+interface LocalMaterial extends Material {
   category: string;
-  content: string;
-  thumbnail?: string;
-  url?: string; // 用于下载的原始URL
-  status: 'unused' | 'used';
   createTime: string;
-  tags: string[];
-  isFavorite?: boolean; // 收藏状态
+  isFavorite?: boolean;
 }
 
-// 模拟素材数据
-const mockMaterials: Material[] = [
-  { id: '1', title: '产品推广标题', category: 'title', content: '限时优惠！智枢AI SaaS系统让营销更简单，点击查看详情...', status: 'unused', createTime: '2024-03-25 14:30', tags: ['推广', '限时'], isFavorite: true },
-  { id: '2', title: '#智枢AI#话题标签', category: 'tags', content: '#智枢AI# #智能营销# #企业必备#', status: 'unused', createTime: '2024-03-25 13:20', tags: ['热门', '营销'], isFavorite: false },
-  { id: '3', title: '小红书种草文案', category: 'xiaohongshu', content: '这款AI工具真的太香了！用它做营销推广效率提升10倍...', thumbnail: 'https://picsum.photos/200', url: 'https://picsum.photos/800', status: 'unused', createTime: '2024-03-25 11:45', tags: ['种草', '小红书'], isFavorite: false },
-  { id: '4', title: '产品展示图', category: 'image', content: 'https://picsum.photos/400', thumbnail: 'https://picsum.photos/400', url: 'https://picsum.photos/1600', status: 'used', createTime: '2024-03-24 16:20', tags: ['产品图'], isFavorite: true },
-  { id: '5', title: '电商详情页文案', category: 'ecommerce', content: '【智枢AI SaaS系统】\n一站式智能营销解决方案\n1. AI内容创作\n2. 矩阵账号管理\n3. 数据分析报表...', status: 'unused', createTime: '2024-03-24 10:30', tags: ['电商', '详情'], isFavorite: false },
-  { id: '6', title: '品牌宣传视频', category: 'video', content: 'https://example.com/video/demo.mp4', thumbnail: 'https://picsum.photos/300', url: 'https://example.com/video/demo.mp4', status: 'used', createTime: '2024-03-23 15:00', tags: ['品牌', '宣传'], isFavorite: false },
-  { id: '7', title: '竞品分析报告', category: 'copywriting', content: '通过对市场上主流AI营销工具的分析，智枢AI在功能完整性和性价比方面具有明显优势...', status: 'unused', createTime: '2024-03-23 09:15', tags: ['分析', '竞品'], isFavorite: false },
-  { id: '8', title: '数字人代言视频', category: 'digital-human', content: 'https://example.com/video/avatar.mp4', thumbnail: 'https://picsum.photos/350', url: 'https://example.com/video/avatar.mp4', status: 'used', createTime: '2024-03-22 14:00', tags: ['数字人', '代言'], isFavorite: true },
-];
-
 export default function MaterialsScreen() {
-  const [materials, setMaterials] = useState<Material[]>(mockMaterials);
+  const [materials, setMaterials] = useState<LocalMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<LocalMaterial | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]); // 批量选择
-  const [isSelectMode, setIsSelectMode] = useState(false); // 选择模式
-  const [filterFavorites, setFilterFavorites] = useState(false); // 收藏筛选
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [filterFavorites, setFilterFavorites] = useState(false);
+
+  const fetchMaterials = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await materialsService.getMaterials();
+      const mapped: LocalMaterial[] = (res.items || []).map((m: Material) => ({
+        ...m,
+        category: m.type || 'copywriting',
+        createTime: m.createdAt || '',
+        isFavorite: false,
+      }));
+      setMaterials(mapped);
+    } catch {
+      setMaterials([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [fetchMaterials]);
 
   // 筛选素材
   const filteredMaterials = materials.filter(m => {
@@ -89,14 +94,14 @@ export default function MaterialsScreen() {
   };
 
   // 删除素材
-  const handleDelete = (id: string) => {
-    Alert.alert('确认删除', '确定要删除这条素材吗？', [
-      { text: '取消', style: 'cancel' },
-      { text: '删除', style: 'destructive', onPress: () => {
-        setMaterials(materials.filter(m => m.id !== id));
-        Alert.alert('成功', '素材已删除');
-      }},
-    ]);
+  const handleDelete = async (id: string) => {
+    try {
+      await materialsService.deleteMaterial(id);
+      setMaterials(prev => prev.filter(m => m.id !== id));
+      Alert.alert('成功', '素材已删除');
+    } catch {
+      Alert.alert('失败', '删除失败，请重试');
+    }
   };
 
   // 切换收藏状态
@@ -309,7 +314,7 @@ export default function MaterialsScreen() {
           </TouchableOpacity>
         </View>
       ) : (
-        <PageHeader title="素材库" />
+        <PageHeader title="内容中心" />
       )}
 
       {/* 搜索栏 */}

@@ -67,7 +67,7 @@ export function resetCustomerPassword(id: string, newPassword?: string) {
 }
 
 export function getCustomerFeatures(id: string) {
-  return request.get<CustomerFeature[]>('/api/agent/customers/${id}/features');
+  return request.get<CustomerFeature[]>(`/api/agent/customers/${id}/features`);
 }
 
 export function updateCustomerFeatures(id: string, features: CustomerFeature[]) {

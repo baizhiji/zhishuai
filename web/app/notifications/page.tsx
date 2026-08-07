@@ -112,78 +112,7 @@ export default function NotificationsPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/notifications');
-      // 模拟数据
-      const mockNotifications: Notification[] = [
-        {
-          id: 1,
-          type: 'system',
-          title: '系统升级通知',
-          content: '智枢 AI SaaS 系统将于今晚 22:00 进行例行维护，预计持续 30 分钟。',
-          isRead: false,
-          createdAt: '2024-01-15 14:30:00',
-        },
-        {
-          id: 2,
-          type: 'recruitment',
-          title: '新简历投递',
-          content: '张某某投递了"前端开发工程师"职位，请及时查看。',
-          isRead: false,
-          createdAt: '2024-01-15 13:20:00',
-          metadata: { position: '前端开发工程师', candidate: '张某某' },
-        },
-        {
-          id: 3,
-          type: 'content',
-          title: '内容发布成功',
-          content: '您的内容已在抖音平台发布成功，当前播放量 1,280。',
-          isRead: true,
-          createdAt: '2024-01-15 11:45:00',
-          metadata: { platform: '抖音', views: 1280 },
-        },
-        {
-          id: 4,
-          type: 'chat',
-          title: 'AI 对话分析',
-          content: '您与客户李某某的 AI 对话已完成分析，转化意向较高。',
-          isRead: true,
-          createdAt: '2024-01-15 10:30:00',
-        },
-        {
-          id: 5,
-          type: 'payment',
-          title: '收益到账',
-          content: '您本月的代理分成收益 ¥2,580 已到账。',
-          isRead: true,
-          createdAt: '2024-01-15 09:00:00',
-          metadata: { amount: 2580 },
-        },
-        {
-          id: 6,
-          type: 'message',
-          title: '客户反馈',
-          content: '客户王某某对您的服务给出了 5 星好评！',
-          isRead: false,
-          createdAt: '2024-01-14 16:20:00',
-        },
-        {
-          id: 7,
-          type: 'recruitment',
-          title: '面试提醒',
-          content: '明天 14:00 您有一场面试安排，邀请人：赵某某。',
-          isRead: true,
-          createdAt: '2024-01-14 15:00:00',
-          metadata: { time: '明天 14:00', candidate: '赵某某' },
-        },
-        {
-          id: 8,
-          type: 'system',
-          title: '功能更新',
-          content: '新版本已上线，新增 AI 智能推荐功能，快去体验吧！',
-          isRead: true,
-          createdAt: '2024-01-14 10:00:00',
-        },
-      ];
-      setNotifications(mockNotifications);
+      setNotifications(res.data || []);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       setNotifications([]);

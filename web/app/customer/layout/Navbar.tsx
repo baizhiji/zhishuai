@@ -25,7 +25,6 @@ import {
 import {
   PieChartOutlined,
   VideoCameraOutlined,
-  TeamOutlined,
   UserAddOutlined,
   ShareAltOutlined,
   UserOutlined,
@@ -37,7 +36,6 @@ import {
   FileTextOutlined,
   ThunderboltOutlined,
   SwapOutlined,
-  PictureOutlined,
   AndroidOutlined,
   HomeOutlined,
   CommentOutlined,
@@ -51,9 +49,12 @@ import {
   BellOutlined,
   ClockCircleOutlined,
   CustomerServiceOutlined,
+  SearchOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLatestAnnouncements, type Announcement } from '@/services/version';
+import AnnouncementBar from '@/components/AnnouncementBar';
 
 const { Sider, Header, Content } = Layout;
 const { useToken } = theme;
@@ -95,17 +96,38 @@ function getNavigationItems(
           path: '/customer/dashboard',
         },
         {
-          key: 'materials',
-          label: '内容中心',
-          icon: <AppstoreOutlined />,
-          path: '/customer/materials',
-        },
-        {
           key: 'ai-factory',
           label: 'AI创作工厂',
           icon: <ExperimentOutlined />,
           featureKey: 'factory',
           path: '/customer/ai-factory',
+        },
+        {
+          key: 'recruitment',
+          label: '智能招聘',
+          icon: <SearchOutlined />,
+          featureKey: 'recruit',
+          path: '/customer/recruitment',
+        },
+        {
+          key: 'acquisition',
+          label: '智能获客',
+          icon: <ThunderboltOutlined />,
+          featureKey: 'leads',
+          path: '/customer/acquisition/discover',
+        },
+        {
+          key: 'share',
+          label: '推荐分享',
+          icon: <ShareAltOutlined />,
+          featureKey: 'referral',
+          path: '/customer/share/board',
+        },
+        {
+          key: 'materials',
+          label: '内容中心',
+          icon: <AppstoreOutlined />,
+          path: '/customer/materials',
         },
         {
           key: 'tickets',
@@ -120,28 +142,10 @@ function getNavigationItems(
           path: '/customer/support',
         },
         {
-          key: 'login-logs',
-          label: '登录日志',
-          icon: <FileTextOutlined />,
-          path: '/customer/login-logs',
-        },
-        {
-          key: 'api-keys',
-          label: 'API管理',
-          icon: <AppstoreOutlined />,
-          path: '/customer/api-keys',
-        },
-        {
           key: 'settings',
           label: '设置',
           icon: <SettingOutlined />,
           children: [
-            {
-              key: 'settings-company',
-              label: '公司信息',
-              icon: <TeamOutlined />,
-              path: '/customer/settings/company',
-            },
             {
               key: 'settings-security',
               label: '安全设置',
@@ -149,10 +153,10 @@ function getNavigationItems(
               path: '/customer/settings/security',
             },
             {
-              key: 'settings-theme',
-              label: '主题设置',
-              icon: <PictureOutlined />,
-              path: '/customer/settings/theme',
+              key: 'settings-api-keys',
+              label: 'API管理',
+              icon: <KeyOutlined />,
+              path: '/customer/api-keys',
             },
             {
               key: 'settings-app-download',
@@ -358,8 +362,8 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 退出登录（带二次确认）
   const handleLogout = useCallback(() => {
     Modal.confirm({
-      title: '确认退出登录？',
-      content: '退出后需要重新输入账号密码才能登录，确定继续吗？',
+      title: '退出登录',
+      content: '确定要退出当前账号吗？',
       okText: '确认退出',
       cancelText: '取消',
       okButtonProps: { danger: true },
@@ -632,10 +636,12 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
             padding: '0 24px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'flex-end',
             gap: 16,
           }}
         >
+          {/* 公告滚动栏：填充铃铛左侧全部空间 */}
+          <AnnouncementBar />
+
           {/* 系统公告铃铛入口 */}
           <Popover
             open={announcementPopoverOpen}

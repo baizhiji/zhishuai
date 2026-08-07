@@ -67,16 +67,12 @@ export const API_ENDPOINTS = {
   // 自媒体相关
   media: {
     generate: '/media/generate',
-    accounts: '/media/accounts',
-    publish: '/media/publish',
-    stats: '/media/stats',
   },
 
   // 电商相关
   ecommerce: {
     products: '/ecommerce/products',
     shops: '/ecommerce/shops',
-    publish: '/ecommerce/publish',
     priceMonitor: '/ecommerce/price-monitor',
     sales: '/ecommerce/sales',
   },

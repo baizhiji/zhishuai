@@ -2,9 +2,7 @@
  * 数字人服务层
  * 封装数字人 CRUD、视频模板、视频任务的业务逻辑
  */
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ─── 类型定义 ───
 export interface CreateHumanInput {

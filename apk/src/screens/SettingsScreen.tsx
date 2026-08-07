@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,14 @@ import {
   Alert,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useAppNavigation } from '../context/NavigationContext';
 import { useAuth } from '../context/AuthContext';
+import { apiClient } from '../services/api.client';
 import PageHeader from '../components/PageHeader';
-import RoleSwitcher from '../components/RoleSwitcher';
 
 interface SettingItem {
   id: string;
@@ -36,11 +37,35 @@ interface SettingSection {
 export default function SettingsScreen() {
   const { theme, themeMode, setThemeMode, isDark } = useTheme();
   const { navigate } = useAppNavigation();
-  const { user, isAdmin, logout } = useAuth();
+  const { logout, user } = useAuth();
   const [notifications, setNotifications] = useState(true);
   const [sound, setSound] = useState(false);
   const [darkModeModalVisible, setDarkModeModalVisible] = useState(false);
-  const [roleSwitcherVisible, setRoleSwitcherVisible] = useState(false);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
+
+  // 加载真实用户数据
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const resp = await apiClient.get('/account/');
+      if (resp) {
+        setUserData(resp);
+      }
+    } catch (e) {
+      console.log('获取账户信息失败');
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  const displayName = userData?.name || user?.name || '用户';
+  const displayPhone = userData?.phone || user?.phone || '138****0000';
+  const displayPhoneMask = displayPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+  const avatarChar = displayName.charAt(0);
 
   const handleToggle = (id: string, value: boolean) => {
     if (id === 'notifications') {
@@ -73,10 +98,8 @@ export default function SettingsScreen() {
           { text: '确定', style: 'destructive', onPress: () => logout() },
         ]
       );
-    } else if (item.type === 'navigate' && item.id === 'matrix') {
-      navigate?.('AccountManagement');
-    } else if (item.type === 'action' && item.id === 'roleSwitch') {
-      setRoleSwitcherVisible(true);
+    } else if (item.type === 'navigate' && item.id === 'accountSecurity') {
+      Alert.alert('账号安全', '跳转到账号安全页面');
     } else {
       Alert.alert(item.title, `跳转到${item.title}页面`);
     }
@@ -155,12 +178,20 @@ export default function SettingsScreen() {
       <View style={[styles.userCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
         <View style={styles.avatarContainer}>
           <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
-            <Text style={styles.avatarText}>张</Text>
+            {loadingUser ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.avatarText}>{avatarChar}</Text>
+            )}
           </View>
         </View>
         <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: theme.text }]}>张明</Text>
-          <Text style={[styles.userPhone, { color: theme.textSecondary }]}>138****8888</Text>
+          <Text style={[styles.userName, { color: theme.text }]}>
+            {loadingUser ? '加载中...' : displayName}
+          </Text>
+          <Text style={[styles.userPhone, { color: theme.textSecondary }]}>
+            {loadingUser ? '' : displayPhoneMask}
+          </Text>
         </View>
         <TouchableOpacity style={[styles.editBtn, { backgroundColor: theme.primaryLight }]}>
           <Text style={[styles.editText, { color: theme.primary }]}>编辑</Text>
@@ -172,39 +203,14 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* 管理员角色切换入口 */}
-        {isAdmin && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>角色视角</Text>
-            <View style={[styles.sectionContent, { backgroundColor: theme.card, borderColor: theme.border }]}>
-              <TouchableOpacity
-                style={styles.settingItem}
-                onPress={() => setRoleSwitcherVisible(true)}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: '#FF6B6B15' }]}>
-                  <Ionicons name="swap-horizontal" size={20} color="#FF6B6B" />
-                </View>
-                <View style={styles.itemContent}>
-                  <Text style={[styles.itemTitle, { color: theme.text }]}>切换角色视角</Text>
-                  <Text style={[styles.itemSubtitle, { color: theme.textSecondary }]}>
-                    当前：{user?.viewingRole === 'admin' ? '管理员' : user?.viewingRole === 'agent' ? '代理商' : '客户'}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
         {/* 设置项 */}
         {[
           {
             title: '账号设置',
             items: [
               { id: 'profile', title: '个人资料', subtitle: '头像、昵称、联系方式', icon: 'person-outline' as const, iconColor: '#2563EB', type: 'navigate' as const },
-              { id: 'matrix', title: '矩阵账号', subtitle: '管理多平台绑定账号', icon: 'people-outline' as const, iconColor: '#8B5CF6', type: 'navigate' as const },
               { id: 'security', title: '账号安全', subtitle: '修改密码、绑定手机', icon: 'shield-outline' as const, iconColor: '#3B82F6', type: 'navigate' as const },
-              { id: 'subscription', title: '服务到期', subtitle: '到期时间：2026-08-15', icon: 'calendar-outline' as const, iconColor: '#D97706', type: 'navigate' as const },
+              { id: 'subscription', title: '服务到期', subtitle: userData?.expireDate ? `到期时间：${userData.expireDate}` : '查询套餐详情', icon: 'calendar-outline' as const, iconColor: '#D97706', type: 'navigate' as const },
             ]
           },
           {
@@ -221,7 +227,7 @@ export default function SettingsScreen() {
               { id: 'help', title: '帮助中心', subtitle: '常见问题和使用教程', icon: 'help-circle-outline' as const, iconColor: '#0891B2', type: 'navigate' as const },
               { id: 'feedback', title: '意见反馈', subtitle: '提交问题和建议', icon: 'chatbubbles-outline' as const, iconColor: '#EA580C', type: 'navigate' as const },
               { id: 'about', title: '关于我们', subtitle: '版本 1.0.0', icon: 'information-circle-outline' as const, iconColor: '#475569', type: 'navigate' as const },
-              { id: 'logout', title: '退出登录', subtitle: '当前账号：138****8888', icon: 'log-out-outline' as const, iconColor: '#DC2626', type: 'action' as const },
+              { id: 'logout', title: '退出登录', subtitle: `当前账号：${displayPhoneMask}`, icon: 'log-out-outline' as const, iconColor: '#DC2626', type: 'action' as const },
             ]
           },
         ].map((section, index) => renderSection(section, index))}
@@ -278,11 +284,6 @@ export default function SettingsScreen() {
         </Pressable>
       </Modal>
 
-      {/* 角色切换弹窗 */}
-      <RoleSwitcher 
-        visible={roleSwitcherVisible} 
-        onClose={() => setRoleSwitcherVisible(false)} 
-      />
     </View>
   );
 }

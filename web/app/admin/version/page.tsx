@@ -14,8 +14,11 @@ import {
   Switch,
   message,
   Popconfirm,
+  Row,
+  Col,
+  Statistic,
 } from 'antd';
-import { PlusOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EditOutlined, AppstoreOutlined, CheckCircleOutlined, AndroidOutlined, AppleOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import {
   getVersions,
@@ -35,6 +38,8 @@ export default function VersionManagementPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingVersion, setEditingVersion] = useState<AppVersion | null>(null);
   const [form] = Form.useForm();
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [platformFilter, setPlatformFilter] = useState<string>('');
 
   useEffect(() => {
     loadVersions();
@@ -43,7 +48,10 @@ export default function VersionManagementPage() {
   const loadVersions = async (page = 1, pageSize = 20) => {
     setLoading(true);
     try {
-      const res = await getVersions({ page, pageSize });
+      const params: any = { page, pageSize };
+      if (statusFilter) params.status = statusFilter;
+      if (platformFilter) params.platform = platformFilter;
+      const res = await getVersions(params);
       setVersions(res.data || []);
       setPagination({ total: res.total || 0, page, pageSize });
     } catch (error) {
@@ -52,6 +60,14 @@ export default function VersionManagementPage() {
       setLoading(false);
     }
   };
+
+  const handleFilter = () => {
+    loadVersions(1, pagination.pageSize);
+  };
+
+  useEffect(() => {
+    loadVersions(1, pagination.pageSize);
+  }, [statusFilter, platformFilter]);
 
   const handleAdd = () => {
     setEditingVersion(null);
@@ -147,16 +163,68 @@ export default function VersionManagementPage() {
     },
   ];
 
+  const activeCount = versions.filter(v => v.status === 'active').length;
+  const androidCount = versions.filter(v => v.platform === 'android').length;
+  const iosCount = versions.filter(v => v.platform === 'ios').length;
+
   return (
     <div style={{ padding: 24 }}>
-      <Card
-        title="版本管理"
-        extra={
-          <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
-            新增版本
-          </Button>
-        }
-      >
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>版本管理</h3>
+          <p style={{ margin: '4px 0 0', color: '#8c8c8c', fontSize: 14 }}>管理移动端App版本更新，控制强制升级策略</p>
+        </div>
+        <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
+          新增版本
+        </Button>
+      </div>
+
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card bordered={false}>
+            <Statistic title="版本总数" value={pagination.total} prefix={<AppstoreOutlined />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card bordered={false}>
+            <Statistic title="启用中" value={activeCount} valueStyle={{ color: '#52c41a' }} prefix={<CheckCircleOutlined />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card bordered={false}>
+            <Statistic title="Android" value={androidCount} prefix={<AndroidOutlined />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card bordered={false}>
+            <Statistic title="iOS" value={iosCount} prefix={<AppleOutlined />} />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card>
+        <Space style={{ marginBottom: 16 }} wrap>
+          <Select
+            placeholder="平台筛选"
+            style={{ width: 130 }}
+            allowClear
+            value={platformFilter || undefined}
+            onChange={v => setPlatformFilter(v || '')}
+          >
+            <Option value="android">Android</Option>
+            <Option value="ios">iOS</Option>
+          </Select>
+          <Select
+            placeholder="状态筛选"
+            style={{ width: 130 }}
+            allowClear
+            value={statusFilter || undefined}
+            onChange={v => setStatusFilter(v || '')}
+          >
+            <Option value="active">启用</Option>
+            <Option value="inactive">禁用</Option>
+          </Select>
+        </Space>
         <Table
           columns={columns}
           dataSource={versions}

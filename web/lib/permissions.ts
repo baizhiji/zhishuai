@@ -17,23 +17,6 @@ export const permissions = {
     'materials:delete',
     'materials:download',
 
-    // 内容工厂
-    'content:generate',
-    'content:batchGenerate',
-    'content:batchEdit',
-
-    // 矩阵管理
-    'accounts:read',
-    'accounts:create',
-    'accounts:update',
-    'accounts:delete',
-    'accounts:sync',
-
-    // 发布中心
-    'publish:read',
-    'publish:create',
-    'publish:cancel',
-
     // 招聘助手
     'recruitment:read',
     'recruitment:create',
@@ -79,21 +62,6 @@ export const permissions = {
     'materials:create',
     'materials:download',
 
-    // 内容工厂
-    'content:generate',
-    'content:batchGenerate',
-    'content:batchEdit',
-
-    // 矩阵管理
-    'accounts:read',
-    'accounts:create',
-    'accounts:update',
-    'accounts:sync',
-
-    // 发布中心
-    'publish:read',
-    'publish:create',
-
     // 招聘助手
     'recruitment:read',
     'recruitment:create',
@@ -129,17 +97,6 @@ export const permissions = {
     // 素材库
     'materials:read',
     'materials:download',
-
-    // 内容工厂
-    'content:generate',
-
-    // 矩阵管理
-    'accounts:read',
-    'accounts:sync',
-
-    // 发布中心
-    'publish:read',
-    'publish:create',
 
     // 招聘助手
     'recruitment:read',

@@ -3,10 +3,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import * as qrcode from 'qrcode';
 import { authMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
 import {
   createBrowser,
   createContext,
@@ -22,8 +22,6 @@ const router = Router();
 
 // OAuth 路由需要认证
 router.use(authMiddleware);
-const prisma = new PrismaClient();
-
 // 浏览器会话缓存（生产环境应使用 Redis）
 const browserSessions: Map<string, BrowserSession> = new Map();
 

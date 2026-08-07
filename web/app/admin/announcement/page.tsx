@@ -252,16 +252,10 @@ export default function AdminAnnouncementPage() {
           <Tag color={STATUS_META[s as keyof typeof STATUS_META]?.color}>
             {STATUS_META[s as keyof typeof STATUS_META]?.label}
           </Tag>
-          {s === 'published' && (
+          {s !== 'archived' && (
             <Switch
               size="small"
-              defaultChecked
-              onChange={() => handleTogglePublish(r)}
-            />
-          )}
-          {s === 'draft' && (
-            <Switch
-              size="small"
+              checked={s === 'published'}
               onChange={() => handleTogglePublish(r)}
             />
           )}

@@ -113,6 +113,9 @@ export default function AdminAgentsPage() {
 
       if (res && Array.isArray(res.data)) {
         setAgents(res.data);
+        // 计算名下客户总数
+        const totalCustomers = res.data.reduce((sum: number, a: Agent) => sum + (a.totalCustomers || 0), 0);
+        setStats(prev => ({ ...prev, totalCustomers }));
       } else {
         setAgents([]);
       }
@@ -132,12 +135,12 @@ export default function AdminAgentsPage() {
         '/api/admin/dashboard'
       )) as unknown as { success: boolean; data: { totalAgents: number; activeAgents: number } };
       if (res.success && res.data) {
-        setStats({
+        setStats(prev => ({
           total: res.data.totalAgents || 0,
           active: res.data.activeAgents || 0,
-          totalCustomers: 0,
-          totalCommission: 0,
-        });
+          totalCustomers: prev.totalCustomers,
+          totalCommission: prev.totalCommission,
+        }));
       }
     } catch (err) {
       console.error('获取统计失败', err);
@@ -159,9 +162,6 @@ export default function AdminAgentsPage() {
       const res = (await request.get<{ data: Agent }>(`/api/admin/agents/${agent.id}`)) as unknown as { data: Agent };
       if (res?.data) {
         setDetailAgent(res.data);
-        // 累加客户数
-        const cCount = res.data.agentRelations?.length || res.data._count?.agentRelations || 0;
-        setStats(prev => ({ ...prev, totalCustomers: prev.totalCustomers + cCount }));
       }
     } catch (err) {
       console.error('获取代理商详情失败', err);

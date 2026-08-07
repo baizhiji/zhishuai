@@ -13,9 +13,7 @@
  * - 提供缓存机制（5分钟TTL）
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ==================== 类型定义 ====================
 
@@ -121,15 +119,9 @@ export async function getDashboardOverview(userId: string, days: number = 30): P
     totalLeads, todayLeads, weekLeads, monthLeads,
     activeTasks, convertedLeads,
 
-    // CRM 数据
-    totalCustomers, activeCustomers, newCustomersThisMonth,
-
     // 招聘数据
     activeJobs, totalCandidates, interviewsScheduled,
     hiredCandidates,
-
-    // 内容数据
-    totalContent, contentThisWeek,
   ] = await Promise.all([
     // 获客
     prisma.acquisitionLead.count({ where: { userId } }),
@@ -139,20 +131,11 @@ export async function getDashboardOverview(userId: string, days: number = 30): P
     prisma.acquisitionTask.count({ where: { userId, status: 'running' } }),
     prisma.acquisitionLead.count({ where: { userId, status: 'converted' } }),
 
-    // CRM
-    prisma.crmCustomer.count({ where: { userId } }),
-    prisma.crmCustomer.count({ where: { userId, status: 'active' } }),
-    prisma.crmCustomer.count({ where: { userId, createdAt: { gte: monthAgo } } }),
-
     // 招聘
     prisma.recruitmentPost.count({ where: { userId, status: 'active' } }),
     prisma.recruitmentResume.count({ where: { userId } }),
-    prisma.recruitmentInterview.count({ where: { userId, status: 'scheduled' } }),
+    prisma.recruitmentProcess.count({ where: { userId, stage: 'interview_scheduled' } }),
     prisma.recruitmentResume.count({ where: { userId, status: 'hired' } }),
-
-    // 内容
-    prisma.publishedContent.count({ where: { userId } }),
-    prisma.publishedContent.count({ where: { userId, publishedAt: { gte: weekAgo } } }),
   ]);
 
   // 计算趋势
@@ -173,12 +156,10 @@ export async function getDashboardOverview(userId: string, days: number = 30): P
       trend: leadsTrend,
     },
     customers: {
-      total: totalCustomers,
-      active: activeCustomers,
-      newThisMonth: newCustomersThisMonth,
-      churnRate: totalCustomers > 0
-        ? Math.round(((totalCustomers - activeCustomers) / totalCustomers) * 100)
-        : 0,
+      total: 0,
+      active: 0,
+      newThisMonth: 0,
+      churnRate: 0,
     },
     recruitment: {
       activeJobs,
@@ -189,9 +170,9 @@ export async function getDashboardOverview(userId: string, days: number = 30): P
         : 0,
     },
     content: {
-      total: totalContent,
-      publishedThisWeek: contentThisWeek,
-      avgEngagement: Math.round(Math.random() * 500 + 200), // 后续改为真实数据
+      total: 0,
+      publishedThisWeek: 0,
+      avgEngagement: 0,
     },
     acquisition: {
       activeTasks,
@@ -201,7 +182,7 @@ export async function getDashboardOverview(userId: string, days: number = 30): P
         : 0,
     },
     revenue: {
-      estimated: convertedLeads * 5000, // 估算：每条转化线索价值 5000
+      estimated: convertedLeads * 5000,
       trend: leadsTrend,
     },
   };
@@ -228,22 +209,14 @@ export async function getDashboardTrend(userId: string, days: number = 30): Prom
   }
 
   // 并行查询各维度每日数据
-  const [dailyLeads, dailyCustomers, dailyCandidates, dailyContent] = await Promise.all([
+  const [dailyLeads, dailyCandidates] = await Promise.all([
     prisma.acquisitionLead.findMany({
       where: { userId, createdAt: { gte: start, lte: end } },
       select: { createdAt: true, status: true },
     }),
-    prisma.crmCustomer.findMany({
-      where: { userId, createdAt: { gte: start, lte: end } },
-      select: { createdAt: true },
-    }),
     prisma.recruitmentResume.findMany({
       where: { userId, createdAt: { gte: start, lte: end } },
       select: { createdAt: true },
-    }),
-    prisma.publishedContent.findMany({
-      where: { userId, publishedAt: { gte: start, lte: end } },
-      select: { publishedAt: true },
     }),
   ]);
 
@@ -254,11 +227,6 @@ export async function getDashboardTrend(userId: string, days: number = 30): Prom
       dateMap[key].leads++;
       if (lead.status === 'converted') dateMap[key].conversions++;
     }
-  });
-
-  dailyCustomers.forEach(c => {
-    const key = c.createdAt.toISOString().split('T')[0];
-    if (dateMap[key]) dateMap[key].customers++;
   });
 
   dailyCandidates.forEach(c => {
@@ -286,8 +254,7 @@ export async function getDashboardDistribution(userId: string): Promise<Dashboar
 
   const [
     leadsBySource, leadsByQuality,
-    customersByStatus, candidatesByStage,
-    contentByPlatform,
+    candidatesByStage,
   ] = await Promise.all([
     prisma.acquisitionLead.groupBy({
       by: ['source'], where: { userId }, _count: true,
@@ -295,14 +262,8 @@ export async function getDashboardDistribution(userId: string): Promise<Dashboar
     prisma.acquisitionLead.groupBy({
       by: ['aiQuality'], where: { userId, aiQuality: { not: null } }, _count: true,
     }),
-    prisma.crmCustomer.groupBy({
-      by: ['status'], where: { userId }, _count: true,
-    }),
     prisma.recruitmentResume.groupBy({
       by: ['status'], where: { userId }, _count: true,
-    }),
-    prisma.publishedContent.groupBy({
-      by: ['platform'], where: { userId }, _count: true,
     }),
   ]);
 
@@ -316,9 +277,7 @@ export async function getDashboardDistribution(userId: string): Promise<Dashboar
 
   leadsBySource.forEach(s => { result.leadsBySource[s.source || 'unknown'] = s._count; });
   leadsByQuality.forEach(s => { if (s.aiQuality) result.leadsByQuality[s.aiQuality] = s._count; });
-  customersByStatus.forEach(s => { result.customersByStatus[s.status] = s._count; });
   candidatesByStage.forEach(s => { result.candidatesByStage[s.status] = s._count; });
-  contentByPlatform.forEach(s => { result.contentByPlatform[s.platform] = s._count; });
 
   setCache(cacheKey, result);
   return result;
@@ -483,9 +442,9 @@ export async function getRecruitmentStats(userId: string) {
     prisma.recruitmentPost.count({ where: { userId, status: 'active' } }),
     prisma.recruitmentResume.count({ where: { userId } }),
     prisma.recruitmentResume.count({ where: { userId, status: 'new' } }),
-    prisma.recruitmentInterview.count({ where: { userId, status: 'scheduled' } }),
-    prisma.recruitmentInterview.count({ where: { userId, status: 'completed' } }),
-    prisma.recruitmentInterview.count({ where: { userId, status: 'offered' } }),
+    prisma.recruitmentProcess.count({ where: { userId, stage: 'interview_scheduled' } }),
+    prisma.recruitmentProcess.count({ where: { userId, stage: 'interview_completed' } }),
+    prisma.recruitmentProcess.count({ where: { userId, stage: 'offered' } }),
     prisma.recruitmentResume.count({ where: { userId, status: 'hired' } }),
     prisma.recruitmentResume.count({ where: { userId, status: 'rejected' } }),
   ]);
@@ -507,42 +466,15 @@ export async function getRecruitmentStats(userId: string) {
  * 获取 CRM 统计详情
  */
 export async function getCRMStats(userId: string) {
-  const today = getToday();
-  const thirtyDaysAgo = getDateRange(30).start;
-
-  const [
-    totalCustomers, activeCustomers, newThisMonth,
-    statusDistribution, levelDistribution,
-    needFollowUp,
-  ] = await Promise.all([
-    prisma.crmCustomer.count({ where: { userId } }),
-    prisma.crmCustomer.count({ where: { userId, status: 'active' } }),
-    prisma.crmCustomer.count({ where: { userId, createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.crmCustomer.groupBy({ by: ['status'], where: { userId }, _count: true }),
-    prisma.crmCustomer.groupBy({ by: ['level'], where: { userId, level: { not: null } }, _count: true }),
-    // 超过7天未跟进的客户
-    prisma.crmCustomer.count({
-      where: {
-        userId,
-        lastContact: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      },
-    }),
-  ]);
-
-  const statusMap: Record<string, number> = {};
-  statusDistribution.forEach(s => { statusMap[s.status] = s._count; });
-
-  const levelMap: Record<string, number> = {};
-  levelDistribution.forEach(l => { if (l.level) levelMap[l.level] = l._count; });
-
+  // CRM model removed, return empty report
   return {
-    total: totalCustomers,
-    active: activeCustomers,
-    newThisMonth,
-    needFollowUp,
-    churnRisk: Math.round(totalCustomers > 0 ? (needFollowUp / totalCustomers) * 100 : 0),
-    byStatus: statusMap,
-    byLevel: levelMap,
+    total: 0,
+    active: 0,
+    newThisMonth: 0,
+    needFollowUp: 0,
+    churnRisk: 0,
+    byStatus: {},
+    byLevel: {},
   };
 }
 

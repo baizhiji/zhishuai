@@ -90,7 +90,7 @@ const TENCENT_TEXT_MODELS: Record<string, ModelDefinition> = {
     fallbackKey: 'deepseek-v4-pro-tc',
   },
   'hy3-preview': {
-    key: 'hy3-preview', modelId: 'hy3-preview', name: '混元 Hy3 预览',
+    key: 'hy3-preview', modelId: 'hy3', name: '混元 Hy3 预览',
     provider: 'tencent', capability: 'reasoning',
     secondaryCapabilities: ['chat', 'creative'],
     priority: 1, cost: 'premium', maxContext: 128000, maxOutput: 32768,
@@ -329,13 +329,69 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     fallbackKey: 'hy-video-1.5',
   },
   'yt-video-humanactor': {
-    key: 'yt-video-humanactor', modelId: 'yt-video-humanactor', name: '数字人数人',
+    key: 'yt-video-humanactor', modelId: 'yt-video-humanactor', name: '数字人播报',
     provider: 'tencent', capability: 'digital_human',
     priority: 1, cost: 'high', maxContext: 2000, maxOutput: 0,
     recommendedTemp: { min: 0, max: 0 },
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['数字人口播', '动态人像', '虚拟主播'],
     fallbackKey: null as any,
+  },
+
+  // === Vidu 视频系列 (TokenHub) ===
+  'vd-video-q3-pro': {
+    key: 'vd-video-q3-pro', modelId: 'Vidu-Video-q3-pro', name: 'Vidu Q3 Pro',
+    provider: 'tencent', capability: 'video',
+    priority: 1, cost: 'premium', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['电影级视频', '高质量长视频', '复杂场景叙事'],
+    fallbackKey: 'kling-video-v3',
+  },
+  'vd-video-q3-turbo': {
+    key: 'vd-video-q3-turbo', modelId: 'Vidu-Video-q3-turbo', name: 'Vidu Q3 Turbo',
+    provider: 'tencent', capability: 'video',
+    priority: 2, cost: 'premium', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['快速高质量视频', '商业广告', '产品展示'],
+    fallbackKey: 'vd-video-q3-pro',
+  },
+  'vd-video-q2-pro': {
+    key: 'vd-video-q2-pro', modelId: 'Vidu-Video-q2-pro', name: 'Vidu Q2 Pro',
+    provider: 'tencent', capability: 'video',
+    priority: 3, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['日常视频创作', '社交媒体内容', '短视频'],
+    fallbackKey: 'vd-video-q2-turbo',
+  },
+  'vd-video-q2-pro-fast': {
+    key: 'vd-video-q2-pro-fast', modelId: 'Vidu-Video-q2-pro-fast', name: 'Vidu Q2 Pro Fast',
+    provider: 'tencent', capability: 'video',
+    priority: 4, cost: 'medium', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['快速预览', '批量生成', '低成本视频'],
+    fallbackKey: 'vd-video-q2',
+  },
+  'vd-video-q2-turbo': {
+    key: 'vd-video-q2-turbo', modelId: 'Vidu-Video-q2-turbo', name: 'Vidu Q2 Turbo',
+    provider: 'tencent', capability: 'video',
+    priority: 3, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['创意短视频', '概念预览', '多风格视频'],
+    fallbackKey: 'vd-video-q2-pro',
+  },
+  'vd-video-q2': {
+    key: 'vd-video-q2', modelId: 'Vidu-Video-q2', name: 'Vidu Q2',
+    provider: 'tencent', capability: 'video',
+    priority: 5, cost: 'low', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['轻量视频', '简易动画', '低成本内容'],
+    fallbackKey: 'hy-video-1.5',
   },
 
   // 多模态理解
@@ -414,11 +470,22 @@ const TENCENT_EMBEDDING_MODELS: Record<string, ModelDefinition> = {
 // ─── 阿里云百炼 文本模型 ──────────────────────
 const ALIYUN_TEXT_MODELS: Record<string, ModelDefinition> = {
   // === 千问旗舰 ===
+  'qwen3.8-max': {
+    key: 'qwen3.8-max', modelId: 'qwen3.8-max', name: 'Qwen 3.8 Max',
+    provider: 'aliyun', capability: 'creative',
+    secondaryCapabilities: ['chat', 'reasoning', 'vision', 'vision_video'],
+    priority: 1, cost: 'premium', maxContext: 128000, maxOutput: 32768,
+    recommendedTemp: { min: 0.3, max: 1.0 },
+    supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
+    bestFor: ['高质量创作', '复杂分析', '视觉理解', '多模态任务', '沉浸编程'],
+    fallbackKey: 'qwen3.7-max',
+    crossProviderFallback: 'hy3',
+  },
   'qwen3.7-max': {
     key: 'qwen3.7-max', modelId: 'qwen3.7-max', name: 'Qwen 3.7 Max',
     provider: 'aliyun', capability: 'creative',
     secondaryCapabilities: ['chat', 'reasoning', 'vision', 'vision_video'],
-    priority: 1, cost: 'premium', maxContext: 128000, maxOutput: 32768,
+    priority: 2, cost: 'premium', maxContext: 128000, maxOutput: 32768,
     recommendedTemp: { min: 0.3, max: 1.0 },
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
     bestFor: ['高质量创作', '复杂分析', '视觉理解', '多模态任务'],
@@ -531,13 +598,62 @@ const ALIYUN_MULTIMODAL_MODELS: Record<string, ModelDefinition> = {
 
   // 音频
   'qwen-audio-3.0-tts-plus': {
-    key: 'qwen-audio-3.0-tts-plus', modelId: 'qwen-audio-3.0-tts-plus', name: '千问 TTS Plus',
+    key: 'qwen-audio-3.0-tts-plus', modelId: 'qwen-tts', name: '千问 TTS Plus',
     provider: 'aliyun', capability: 'audio_tts',
     priority: 1, cost: 'medium', maxContext: 4000, maxOutput: 0,
     recommendedTemp: { min: 0, max: 0 },
     supportsStream: true, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['语音合成', '流式TTS', '配音'],
     fallbackKey: null as any,
+  },
+  'minimax-speech-2.8-hd': {
+    key: 'minimax-speech-2.8-hd', modelId: 'MiniMax/speech-2.8-hd', name: 'MiniMax 语音 2.8 HD',
+    provider: 'aliyun', capability: 'audio_tts',
+    priority: 1, cost: 'medium', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: true, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['高保真语音合成', '数字人配音', '有声书', '多情感语音'],
+    fallbackKey: 'qwen-audio-3.0-tts-plus',
+  },
+
+  // === HappyHorse 视频系列 (阿里云百炼) ===
+  'happyhorse-1.1-t2v': {
+    key: 'happyhorse-1.1-t2v', modelId: 'happyhorse-1.1-t2v', name: 'HappyHorse 1.1 T2V',
+    provider: 'aliyun', capability: 'video',
+    priority: 2, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['文生视频', '图生视频', '参考生视频'],
+    fallbackKey: 'happyhorse-1.1-i2v',
+    crossProviderFallback: 'vd-video-q3-pro',
+  },
+  'happyhorse-1.1-i2v': {
+    key: 'happyhorse-1.1-i2v', modelId: 'happyhorse-1.1-i2v', name: 'HappyHorse 1.1 I2V',
+    provider: 'aliyun', capability: 'video',
+    priority: 3, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['图生视频', '图片动起来', '动画效果'],
+    fallbackKey: 'happyhorse-1.1-t2v',
+  },
+  'happyhorse-1.1-r2v': {
+    key: 'happyhorse-1.1-r2v', modelId: 'happyhorse-1.1-r2v', name: 'HappyHorse 1.1 R2V',
+    provider: 'aliyun', capability: 'video',
+    priority: 4, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['参考生视频', '风格迁移视频', '创意视频'],
+    fallbackKey: 'happyhorse-1.1-t2v',
+  },
+  'happyhorse-1.0-video-edit': {
+    key: 'happyhorse-1.0-video-edit', modelId: 'happyhorse-1.0-video-edit', name: 'HappyHorse 1.0 VideoEdit',
+    provider: 'aliyun', capability: 'video',
+    priority: 2, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['视频编辑', '消物修复', '局部替换', '风格化编辑'],
+    fallbackKey: null as any,
+    crossProviderFallback: 'vd-video-q3-pro',
   },
 
   // 全模态

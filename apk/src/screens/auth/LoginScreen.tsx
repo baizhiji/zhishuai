@@ -36,8 +36,14 @@ export default function LoginScreen() {
       Alert.alert('错误', '请输入正确的手机号');
       return;
     }
+
+    try {
+      await authService.sendCode(phone);
+    } catch {
+      Alert.alert('错误', '发送验证码失败，请稍后重试');
+      return;
+    }
     
-    // TODO: 调用发送验证码API
     Alert.alert('提示', '验证码已发送');
     
     // 开始倒计时

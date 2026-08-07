@@ -1,17 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Card, Breadcrumb, Button, Typography, Table, Tag } from 'antd';
+import { Card, Breadcrumb, Button, Typography, Table, Tag, Spin, Empty } from 'antd';
 import { ArrowLeftOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useReferral } from '@/lib/hooks/useReferral';
 
 const { Title, Text } = Typography;
-
-const mockReferrals = [
-  { id: '1', referredUser: '用户A', status: 'registered', date: '2024-03-15' },
-  { id: '2', referredUser: '用户B', status: 'active', date: '2024-03-14' },
-  { id: '3', referredUser: '用户C', status: 'pending', date: '2024-03-13' },
-];
 
 export default function IntroductionPage() {
   const router = useRouter();
@@ -67,7 +61,9 @@ export default function IntroductionPage() {
         <Card title="推荐列表" loading={loading}>
           <Table
             columns={columns}
-            dataSource={referrals || mockReferrals}
+            dataSource={referrals}
+            loading={loading}
+            locale={{ emptyText: <Empty description="暂无推荐记录" /> }}
             rowKey="id"
             pagination={{ pageSize: 10 }}
           />

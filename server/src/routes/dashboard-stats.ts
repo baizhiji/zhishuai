@@ -1,5 +1,4 @@
 import { Router, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest, authMiddleware } from '../middleware/auth';
 import {
   getDashboardOverview,
@@ -9,9 +8,10 @@ import {
   getHotTopics,
 } from '../services/dashboard-service';
 import { getCustomerDashboardSummary } from '../services/customer-dashboard';
+import { getBusinessLinesSummary, getAgentBusinessLinesSummary } from '../services/dashboard-business-lines';
 import { chatCompletion } from '../services/ai-client';
+import { prisma } from '../utils/db';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 // ============================================
@@ -129,28 +129,6 @@ router.get('/acquisition', authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
-// 获取内容发布统计
-router.get('/content', authMiddleware, async (req: AuthRequest, res) => {
-  try {
-    const userId = req.userId!;
-    const [totalPosts, postsByPlatform, recentPosts] = await Promise.all([
-      prisma.publishedContent.count({ where: { userId } }),
-      prisma.publishedContent.groupBy({ by: ['platform'], where: { userId }, _count: true }),
-      prisma.publishedContent.findMany({ where: { userId }, orderBy: { publishedAt: 'desc' }, take: 10 }),
-    ]);
-    res.json({
-      success: true,
-      data: {
-        total: totalPosts,
-        byPlatform: postsByPlatform.map(p => ({ platform: p.platform, count: p._count })),
-        recent: recentPosts,
-      },
-    });
-  } catch (error: unknown) {
-    handleError(res, error, '获取内容统计');
-  }
-});
-
 // 获取素材统计
 router.get('/materials', authMiddleware, async (req: AuthRequest, res) => {
   try {
@@ -171,28 +149,6 @@ router.get('/materials', authMiddleware, async (req: AuthRequest, res) => {
   }
 });
 
-// 获取客户统计
-router.get('/customers', authMiddleware, async (req: AuthRequest, res) => {
-  try {
-    const userId = req.userId!;
-    const [total, statusStats, recentCustomers] = await Promise.all([
-      prisma.crmCustomer.count({ where: { userId } }),
-      prisma.crmCustomer.groupBy({ by: ['status'], where: { userId }, _count: true }),
-      prisma.crmCustomer.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 10 }),
-    ]);
-    res.json({
-      success: true,
-      data: {
-        total,
-        byStatus: statusStats.map(s => ({ status: s.status, count: s._count })),
-        recent: recentCustomers,
-      },
-    });
-  } catch (error: unknown) {
-    handleError(res, error, '获取客户统计');
-  }
-});
-
 // 客户工作台综合摘要（一次请求聚合所有数据，避免前端多次调用）
 router.get('/customer-summary', authMiddleware, async (req: AuthRequest, res) => {
   try {
@@ -200,6 +156,28 @@ router.get('/customer-summary', authMiddleware, async (req: AuthRequest, res) =>
     res.json({ success: true, data: summary });
   } catch (error: unknown) {
     handleError(res, error, '获取客户工作台摘要');
+  }
+});
+
+// ==================== 四条业务线聚合 KPI ====================
+
+// 客户端业务线概览
+router.get('/business-lines', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const data = await getBusinessLinesSummary(req.userId!);
+    res.json({ success: true, data });
+  } catch (error: unknown) {
+    handleError(res, error, '获取业务线概览');
+  }
+});
+
+// Agent端业务线概览（名下所有客户聚合）
+router.get('/agent/business-lines', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const data = await getAgentBusinessLinesSummary(req.userId!);
+    res.json({ success: true, data });
+  } catch (error: unknown) {
+    handleError(res, error, '获取代理业务线概览');
   }
 });
 

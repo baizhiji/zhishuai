@@ -18,8 +18,6 @@ export const useNavigationStore = create<NavigationStore>()(
         const menuMapping: Record<string, string> = {
           // 自媒体运营
           '/media/factory': 'media',
-          '/media/matrix': 'media',
-          '/media/publish': 'media',
           '/media/report': 'media',
           // 招聘助手
           '/recruitment/publish': 'recruitment',
@@ -40,9 +38,7 @@ export const useNavigationStore = create<NavigationStore>()(
           '/account/knowledge': 'account',
           '/account/log': 'account',
           // 系统设置
-          '/settings/company': 'settings',
           '/settings/security': 'settings',
-          '/settings/theme': 'settings',
         }
 
         // 精确匹配路径

@@ -1,10 +1,26 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 import { authMiddleware } from '../middleware/auth';
+import { prisma } from '../utils/db';
 
 const router = Router();
+
+// 获取可用数字人形象列表（系统预设 + 用户自建）
+router.get('/avatars', authMiddleware, (req: Request, res: Response) => {
+  try {
+    const avatars = [
+      { id: 'av_2d_f_1', name: 'ZhiQin', type: '2d', gender: 'female', suitable: ['education', 'business'] },
+      { id: 'av_2d_f_2', name: 'YaTing', type: '2d', gender: 'female', suitable: ['lifestyle', 'beauty'] },
+      { id: 'av_2d_m_1', name: 'YunFan', type: '2d', gender: 'male', suitable: ['tech', 'finance'] },
+      { id: 'av_2d_m_2', name: 'HaoRan', type: '2d', gender: 'male', suitable: ['sports', 'gaming'] },
+      { id: 'av_3d_f_1', name: 'SuYa', type: '3d', gender: 'female', suitable: ['premium', 'branding'] },
+      { id: 'av_3d_m_1', name: 'LingFeng', type: '3d', gender: 'male', suitable: ['business', 'training'] },
+    ];
+    res.json({ code: 200, message: 'success', data: avatars });
+  } catch (error) {
+    console.error('获取数字人形象列表失败:', error);
+    res.status(500).json({ error: '获取数字人形象列表失败' });
+  }
+});
 
 // 获取数字人列表
 router.get('/humans', authMiddleware, async (req: Request, res: Response) => {

@@ -8,10 +8,8 @@
  * 3. 密钥加密存储
  */
 
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // 加密密钥（生产环境应从环境变量读取）
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'zhishuai-default-key-32chars!!';

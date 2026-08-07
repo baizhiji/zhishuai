@@ -99,6 +99,13 @@ export default function AdminLogsPage() {
 
   return (
     <div style={{ padding: 24 }}>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>操作日志</h3>
+          <p style={{ margin: '4px 0 0', color: '#8c8c8c', fontSize: 14 }}>记录所有管理员、代理商、客户的关键操作行为</p>
+        </div>
+      </div>
+
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card bordered={false}>
@@ -120,7 +127,7 @@ export default function AdminLogsPage() {
         </Col>
       </Row>
 
-      <Card title="操作日志">
+      <Card>
         <Space style={{ marginBottom: 16 }} wrap>
           <Input
             placeholder="搜索关键词"

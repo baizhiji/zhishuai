@@ -19,9 +19,7 @@
  * 即使客户某模块数据为 0 也返回完整结构，便于前端无空态渲染。
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ==================== 类型定义 ====================
 
@@ -51,11 +49,9 @@ export interface CustomerDashboardSummary {
   // 多维分布
   distribution: {
     materialsByType: Record<string, number>;
-    contentByPlatform: Record<string, { count: number; views: number; likes: number; comments: number; shares: number }>;
     leadsBySource: Record<string, number>;
     leadsByStatus: Record<string, number>;
     leadsByQuality: Record<string, number>;
-    crmByStatus: Record<string, number>;
     candidatesByStage: Record<string, number>;
   };
 
@@ -64,18 +60,6 @@ export interface CustomerDashboardSummary {
 
   // 详细数据表格
   tables: {
-    publishedContent: Array<{
-      id: string;
-      title: string;
-      platform: string;
-      accountName?: string | null;
-      views: number;
-      likes: number;
-      comments: number;
-      shares: number;
-      publishedAt?: Date | null;
-      createdAt: Date;
-    }>;
     recentLeads: Array<{
       id: string;
       name?: string | null;
@@ -108,7 +92,7 @@ export interface CustomerDashboardSummary {
   // 今日活动
   recentActivities: Array<{
     time: string;
-    type: 'material' | 'publish' | 'lead' | 'share' | 'crm' | 'candidate';
+    type: 'material' | 'lead' | 'share' | 'candidate';
     content: string;
     status?: string;
   }>;
@@ -162,18 +146,12 @@ export async function getCustomerDashboardSummary(
   const [
     // 素材
     totalMaterials, weekMaterials,
-    // 已发布内容
-    totalPublished, weekPublished, contentAgg,
     // 获客线索
     totalLeads, weekLeads, lastMonthLeads, convertedLeads,
     // 推荐分享
     totalShareCodes, shareScanAgg, shareConvertedAgg, topShares,
-    // CRM
-    totalCrm, activeCrm, newCrmMonth,
     // 招聘
     totalResumes, weekResumes, hiredResumes,
-    // 矩阵账号
-    matrixAccountsCount,
     // 工单
     pendingTickets,
     // AI 使用（与 7 天 token）
@@ -181,13 +159,6 @@ export async function getCustomerDashboardSummary(
   ] = await Promise.all([
     safeQuery('totalMaterials', () => prisma.material.count({ where: { userId } }), 0),
     safeQuery('weekMaterials', () => prisma.material.count({ where: { userId, createdAt: { gte: weekStart } } }), 0),
-
-    safeQuery('totalPublished', () => prisma.publishedContent.count({ where: { userId } }), 0),
-    safeQuery('weekPublished', () => prisma.publishedContent.count({ where: { userId, publishedAt: { gte: weekStart } } }), 0),
-    safeQuery('contentAgg', () => prisma.publishedContent.aggregate({
-      where: { userId },
-      _sum: { views: true, likes: true, comments: true, shares: true },
-    }), { _sum: { views: 0, likes: 0, comments: 0, shares: 0 } }),
 
     safeQuery('totalLeads', () => prisma.acquisitionLead.count({ where: { userId } }), 0),
     safeQuery('weekLeads', () => prisma.acquisitionLead.count({ where: { userId, createdAt: { gte: weekStart } } }), 0),
@@ -210,15 +181,9 @@ export async function getCustomerDashboardSummary(
       select: { id: true, title: true, scanCount: true, publishCount: true, activeCount: true, createdAt: true },
     }), []),
 
-    safeQuery('totalCrm', () => prisma.crmCustomer.count({ where: { userId } }), 0),
-    safeQuery('activeCrm', () => prisma.crmCustomer.count({ where: { userId, status: 'active' } }), 0),
-    safeQuery('newCrmMonth', () => prisma.crmCustomer.count({ where: { userId, createdAt: { gte: monthStart } } }), 0),
-
     safeQuery('totalResumes', () => prisma.recruitmentResume.count({ where: { userId } }), 0),
     safeQuery('weekResumes', () => prisma.recruitmentResume.count({ where: { userId, createdAt: { gte: weekStart } } }), 0),
     safeQuery('hiredResumes', () => prisma.recruitmentResume.count({ where: { userId, status: 'hired' } }), 0),
-
-    safeQuery('matrixAccounts', () => prisma.matrixAccount.count({ where: { userId, status: 'active' } }), 0),
 
     safeQuery('pendingTickets', () => prisma.ticket.count({ where: { userId, status: { in: ['pending', 'processing'] } } }), 0),
 
@@ -254,14 +219,10 @@ export async function getCustomerDashboardSummary(
   }
 
   // 一次性查 7 天的素材/发布/获客/分享
-  const [dayMaterials, dayPublished, dayLeads, dayShares] = await Promise.all([
+  const [dayMaterials, dayLeads, dayShares] = await Promise.all([
     safeQuery('dayMaterials', () => prisma.material.findMany({
       where: { userId, createdAt: { gte: weekStart, lte: now } },
       select: { createdAt: true },
-    }), []),
-    safeQuery('dayPublished', () => prisma.publishedContent.findMany({
-      where: { userId, publishedAt: { gte: weekStart, lte: now } },
-      select: { publishedAt: true },
     }), []),
     safeQuery('dayLeads', () => prisma.acquisitionLead.findMany({
       where: { userId, createdAt: { gte: weekStart, lte: now } },
@@ -279,12 +240,6 @@ export async function getCustomerDashboardSummary(
     const item = trendMap.get(k);
     if (item) item.materials += 1;
   }
-  for (const p of dayPublished as Array<{ publishedAt: Date | null }>) {
-    if (!p.publishedAt) continue;
-    const k = isoDate(p.publishedAt);
-    const item = trendMap.get(k);
-    if (item) item.published += 1;
-  }
   for (const l of dayLeads as Array<{ createdAt: Date }>) {
     const k = isoDate(l.createdAt);
     const item = trendMap.get(k);
@@ -299,20 +254,13 @@ export async function getCustomerDashboardSummary(
   // ─── 分布数据 ───
   const [
     materialsByTypeRaw,
-    contentByPlatformRaw,
     leadsBySourceRaw,
     leadsByStatusRaw,
     leadsByQualityRaw,
-    crmByStatusRaw,
     candidatesByStageRaw,
   ] = await Promise.all([
     safeQuery('materialsByType', () => prisma.material.groupBy({
       by: ['type'], where: { userId }, _count: true,
-    }), []),
-    safeQuery('contentByPlatform', () => prisma.publishedContent.groupBy({
-      by: ['platform'], where: { userId },
-      _count: true,
-      _sum: { views: true, likes: true, comments: true, shares: true },
     }), []),
     safeQuery('leadsBySource', () => prisma.acquisitionLead.groupBy({
       by: ['source'], where: { userId }, _count: true,
@@ -323,9 +271,6 @@ export async function getCustomerDashboardSummary(
     safeQuery('leadsByQuality', () => prisma.acquisitionLead.groupBy({
       by: ['aiQuality'], where: { userId, aiQuality: { not: null } }, _count: true,
     }), []),
-    safeQuery('crmByStatus', () => prisma.crmCustomer.groupBy({
-      by: ['status'], where: { userId }, _count: true,
-    }), []),
     safeQuery('candidatesByStage', () => prisma.recruitmentResume.groupBy({
       by: ['status'], where: { userId }, _count: true,
     }), []),
@@ -334,17 +279,6 @@ export async function getCustomerDashboardSummary(
   const materialsByType: Record<string, number> = {};
   for (const r of materialsByTypeRaw as Array<{ type: string; _count: number }>) {
     materialsByType[r.type] = r._count;
-  }
-
-  const contentByPlatform: Record<string, { count: number; views: number; likes: number; comments: number; shares: number }> = {};
-  for (const r of contentByPlatformRaw as Array<{ platform: string; _count: number; _sum: { views: number | null; likes: number | null; comments: number | null; shares: number | null } }>) {
-    contentByPlatform[r.platform] = {
-      count: r._count,
-      views: r._sum.views || 0,
-      likes: r._sum.likes || 0,
-      comments: r._sum.comments || 0,
-      shares: r._sum.shares || 0,
-    };
   }
 
   const leadsBySource: Record<string, number> = {};
@@ -362,15 +296,15 @@ export async function getCustomerDashboardSummary(
     if (r.aiQuality) leadsByQuality[r.aiQuality] = r._count;
   }
 
-  const crmByStatus: Record<string, number> = {};
-  for (const r of crmByStatusRaw as Array<{ status: string; _count: number }>) {
-    crmByStatus[r.status] = r._count;
-  }
-
   const candidatesByStage: Record<string, number> = {};
   for (const r of candidatesByStageRaw as Array<{ status: string; _count: number }>) {
     candidatesByStage[r.status] = r._count;
   }
+
+  // funnel: publish model removed, always 0
+  const totalPublished = 0;
+  const totalCrm = 0, activeCrm = 0, newCrmMonth = 0;
+  const matrixAccountsCount = 0;
 
   // ─── 转化漏斗 ───
   const funnelBase = totalMaterials || 0;
@@ -382,17 +316,7 @@ export async function getCustomerDashboardSummary(
   ];
 
   // ─── 详细表格数据 ───
-  const [publishedContent, recentLeads, recentMaterials] = await Promise.all([
-    safeQuery('publishedContentList', () => prisma.publishedContent.findMany({
-      where: { userId },
-      orderBy: { publishedAt: 'desc' },
-      take: 10,
-      select: {
-        id: true, title: true, platform: true, accountName: true,
-        views: true, likes: true, comments: true, shares: true,
-        publishedAt: true, createdAt: true,
-      },
-    }), []),
+  const [recentLeads, recentMaterials] = await Promise.all([
     safeQuery('recentLeadsList', () => prisma.acquisitionLead.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -419,10 +343,6 @@ export async function getCustomerDashboardSummary(
     where: { userId, createdAt: { gte: today } },
     select: { id: true, name: true, source: true, createdAt: true },
   }), []);
-  const todayPublished = await safeQuery('todayPublished', () => prisma.publishedContent.findMany({
-    where: { userId, publishedAt: { gte: today } },
-    select: { id: true, title: true, platform: true, publishedAt: true },
-  }), []);
 
   const activities: CustomerDashboardSummary['recentActivities'] = [];
   for (const m of todayMaterials as Array<{ id: string; type: string; title: string | null; createdAt: Date }>) {
@@ -440,15 +360,6 @@ export async function getCustomerDashboardSummary(
       status: '已获取',
     });
   }
-  for (const p of todayPublished as Array<{ id: string; title: string; platform: string; publishedAt: Date | null }>) {
-    if (!p.publishedAt) continue;
-    activities.push({
-      time: isoDate(p.publishedAt),
-      type: 'publish',
-      content: `发布到${platformLabel(p.platform)}「${p.title}」`,
-      status: '已发布',
-    });
-  }
   activities.sort((a, b) => (a.time < b.time ? 1 : -1));
 
   return {
@@ -459,10 +370,10 @@ export async function getCustomerDashboardSummary(
         trend: weekMaterials > 0 ? 100 : 0,
       },
       published: {
-        total: totalPublished,
-        weekNew: weekPublished,
-        views: contentAgg._sum.views || 0,
-        likes: contentAgg._sum.likes || 0,
+        total: 0,
+        weekNew: 0,
+        views: 0,
+        likes: 0,
       },
       leads: {
         total: totalLeads,
@@ -495,16 +406,13 @@ export async function getCustomerDashboardSummary(
     trend,
     distribution: {
       materialsByType,
-      contentByPlatform,
       leadsBySource,
       leadsByStatus,
       leadsByQuality,
-      crmByStatus,
       candidatesByStage,
     },
     funnel,
     tables: {
-      publishedContent: publishedContent as CustomerDashboardSummary['tables']['publishedContent'],
       recentLeads: recentLeads as CustomerDashboardSummary['tables']['recentLeads'],
       recentMaterials: recentMaterials as CustomerDashboardSummary['tables']['recentMaterials'],
       topShares: (topShares as Array<{

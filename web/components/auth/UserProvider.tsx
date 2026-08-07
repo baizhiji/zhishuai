@@ -47,7 +47,6 @@ const defaultFeatureToggles: FeatureToggles = {
   acquisition: true,
   share: true,
   ecommerce: false,
-  crm: false,
   marketing: false,
 };
 

@@ -5,13 +5,11 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { body, validationResult } from 'express-validator';
 import { authMiddleware, agentMiddleware, hashPassword } from '../middleware/auth';
+import { prisma } from '../utils/db';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 代理商路由需要认证 + 角色检查
 router.use(authMiddleware);
 router.use(agentMiddleware);
@@ -20,6 +18,7 @@ router.use(agentMiddleware);
 router.get('/statistics', async (req: Request, res: Response) => {
   try {
     const agentId = (req as any).userId;
+    const period = (req.query.period as string) || 'all';
 
     // 验证代理商
     const agent = await prisma.user.findFirst({
@@ -32,6 +31,26 @@ router.get('/statistics', async (req: Request, res: Response) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    // 计算 period 起始时间
+    const getPeriodStart = (): Date | null => {
+      switch (period) {
+        case 'today': {
+          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          return d;
+        }
+        case 'week': {
+          const dow = now.getDay() || 7;
+          const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + 1);
+          return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate());
+        }
+        case 'month':
+          return startOfMonth;
+        default:
+          return null;
+      }
+    };
+    const periodStart = getPeriodStart();
+
     // 客户总数
     const totalCustomers = await prisma.user.count({
       where: { agentRelation: { agentId } },
@@ -42,9 +61,9 @@ router.get('/statistics', async (req: Request, res: Response) => {
       where: { agentRelation: { agentId }, status: 'active' },
     });
 
-    // 冻结客户
+    // 冻结客户（toggle-status 将客户状态设为 'frozen'，与前端筛选保持一致）
     const disabledCustomers = await prisma.user.count({
-      where: { agentRelation: { agentId }, status: 'disabled' },
+      where: { agentRelation: { agentId }, status: 'frozen' },
     });
 
     // 本月新增
@@ -68,10 +87,23 @@ router.get('/statistics', async (req: Request, res: Response) => {
       where: { user: { agentRelation: { agentId } } },
     });
 
-    // 名下客户的发布总量
-    const totalPublished = await prisma.publishedContent.count({
-      where: { user: { agentRelation: { agentId } } },
-    });
+    // period 筛选下的增量数据
+    let periodNewCustomers = 0;
+    let periodNewTickets = 0;
+    if (periodStart) {
+      periodNewCustomers = await prisma.user.count({
+        where: {
+          agentRelation: { agentId },
+          createdAt: { gte: periodStart },
+        },
+      });
+      periodNewTickets = await prisma.ticket.count({
+        where: {
+          user: { agentRelation: { agentId } },
+          createdAt: { gte: periodStart },
+        },
+      });
+    }
 
     res.json({
       success: true,
@@ -82,7 +114,8 @@ router.get('/statistics', async (req: Request, res: Response) => {
         newCustomersThisMonth,
         pendingTickets,
         totalMaterials,
-        totalPublished,
+        periodNewCustomers,
+        periodNewTickets,
       },
     });
   } catch (error: any) {
@@ -106,9 +139,9 @@ router.get('/customers', async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: '非代理商账号' });
     }
 
-    // 构建查询条件
+    // 构建查询条件 — 通过 UserAgentRelation 关联表查询
     const where: any = {
-      agentId: agentId,
+      agentRelation: { agentId: agentId },
     };
 
     if (keyword) {
@@ -147,17 +180,13 @@ router.get('/customers', async (req: Request, res: Response) => {
     // 获取每个客户的统计数据
     const customersWithStats = await Promise.all(
       customers.map(async (customer) => {
-        const [materialCount, accountCount, publishCount] = await Promise.all([
+        const [materialCount] = await Promise.all([
           prisma.material.count({ where: { userId: customer.id } }),
-          prisma.matrixAccount.count({ where: { userId: customer.id } }),
-          prisma.publishedContent.count({ where: { userId: customer.id } }),
         ]);
 
         return {
           ...customer,
           materialCount,
-          accountCount,
-          publishCount,
         };
       })
     );
@@ -186,7 +215,16 @@ router.get('/customers/:id', async (req: Request, res: Response) => {
     // 验证客户属于该代理商
     const customer = await prisma.user.findFirst({
       where: { id: customerId, agentRelation: { agentId: agentId } },
-      include: {
+      select: {
+        id: true,
+        phone: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        agentId: true,
         featureSwitches: true,
       },
     });
@@ -196,11 +234,8 @@ router.get('/customers/:id', async (req: Request, res: Response) => {
     }
 
     // 获取统计数据
-    const [materialCount, accountCount, publishCount, referralCount] = await Promise.all([
+    const [materialCount, referralCount] = await Promise.all([
       prisma.material.count({ where: { userId: customerId } }),
-      prisma.matrixAccount.count({ where: { userId: customerId } }),
-      prisma.publishedContent.count({ where: { userId: customerId } }),
-      // referral count placeholder
       Promise.resolve(0),
     ]);
 
@@ -209,8 +244,6 @@ router.get('/customers/:id', async (req: Request, res: Response) => {
       data: {
         ...customer,
         materialCount,
-        accountCount,
-        publishCount,
       },
     });
   } catch (error: any) {
@@ -266,6 +299,16 @@ router.post(
           agentRelation: { create: { agentId: agentId } },
           status: 'active',
         },
+        select: {
+          id: true,
+          phone: true,
+          name: true,
+          avatar: true,
+          role: true,
+          status: true,
+          createdAt: true,
+          agentId: true,
+        },
       });
 
       res.json({
@@ -299,6 +342,17 @@ router.put('/customers/:id', async (req: Request, res: Response) => {
     const customer = await prisma.user.update({
       where: { id: customerId },
       data: { name, avatar },
+      select: {
+        id: true,
+        phone: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        agentId: true,
+      },
     });
 
     res.json({
@@ -332,6 +386,17 @@ router.post('/customers/:id/toggle-status', async (req: Request, res: Response) 
     const customer = await prisma.user.update({
       where: { id: customerId },
       data: { status: newStatus },
+      select: {
+        id: true,
+        phone: true,
+        name: true,
+        avatar: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        agentId: true,
+      },
     });
 
     res.json({
@@ -512,22 +577,294 @@ router.get('/customers/:id/stats', async (req: Request, res: Response) => {
       ...(Object.keys(dateFilter).length ? { createdAt: dateFilter } : {}),
     };
 
-    const [materialCount, accountCount, publishCount] = await Promise.all([
+    const [materialCount] = await Promise.all([
       prisma.material.count({ where }),
-      prisma.matrixAccount.count({ where }),
-      prisma.publishedContent.count({ where }),
     ]);
 
     res.json({
       success: true,
       data: {
         materialCount,
-        accountCount,
-        publishCount,
       },
     });
   } catch (error: any) {
     console.error('获取统计数据失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// ============================================================
+// 获取我的客户获客统计数据
+// ============================================================
+router.get('/acquisition/stats', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+    const customerIds = await prisma.userAgentRelation.findMany({
+      where: { agentId },
+      select: { userId: true },
+    });
+    const ids = customerIds.map(r => r.userId);
+
+    const [leadCount, taskCount, leadsWithStatus] = await Promise.all([
+      prisma.acquisitionLead.count({ where: { userId: { in: ids } } }),
+      prisma.acquisitionTask.count({ where: { userId: { in: ids } } }),
+      prisma.acquisitionLead.groupBy({ by: ['status'], where: { userId: { in: ids } }, _count: true }),
+    ]);
+
+    const statusCounts: Record<string, number> = {};
+    leadsWithStatus.forEach(g => { statusCounts[g.status] = g._count; });
+
+    res.json({
+      success: true,
+      data: { leadCount, taskCount, statusCounts },
+    });
+  } catch (error: any) {
+    console.error('获取获客统计失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// 获取客户获客潜客列表
+router.get('/acquisition/leads', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+    const { page = '1', pageSize = '20', search, status } = req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(pageSize as string);
+    const take = parseInt(pageSize as string);
+
+    const customerIds = await prisma.userAgentRelation.findMany({
+      where: { agentId },
+      select: { userId: true },
+    });
+    const ids = customerIds.map(r => r.userId);
+
+    const where: any = { userId: { in: ids } };
+    if (status && status !== 'all') where.status = status;
+    if (search) where.name = { contains: search as string };
+
+    const [leads, total] = await Promise.all([
+      prisma.acquisitionLead.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }),
+      prisma.acquisitionLead.count({ where }),
+    ]);
+
+    res.json({
+      success: true,
+      data: { list: leads, total, page: parseInt(page as string), pageSize: take },
+    });
+  } catch (error: any) {
+    console.error('获取获客潜客列表失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// ============================================================
+// API 密钥管理
+// ============================================================
+router.get('/api-keys', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+    const apiKeys = await prisma.agentApiConfig.findMany({
+      where: { agentId },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json({
+      success: true,
+      data: apiKeys.map(k => ({
+        id: k.id,
+        providerId: k.providerId,
+        apiKey: `${(k.apiKey || '').slice(0, 8)}****`,
+        enabled: k.enabled,
+        createdAt: k.createdAt,
+      })),
+    });
+  } catch (error: any) {
+    console.error('获取API密钥失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.post('/api-keys', [
+  body('providerId').notEmpty().withMessage('服务商不能为空'),
+  body('apiKey').notEmpty().withMessage('API密钥不能为空'),
+], async (req: Request, res: Response) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, message: errors.array()[0].msg });
+  }
+  try {
+    const agentId = (req as any).userId;
+    const { providerId, apiKey } = req.body;
+
+    const created = await prisma.agentApiConfig.create({
+      data: { agentId, providerId, apiKey, enabled: true },
+    });
+
+    res.json({
+      success: true,
+      message: 'API密钥已添加',
+      data: { id: created.id, providerId: created.providerId, apiKey: `${apiKey.slice(0, 8)}****`, enabled: true, createdAt: created.createdAt },
+    });
+  } catch (error: any) {
+    console.error('添加API密钥失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// ============================================================
+// 内容素材管理
+// ============================================================
+router.get('/materials', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+    const { page = '1', pageSize = '20', type } = req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(pageSize as string);
+    const take = parseInt(pageSize as string);
+
+    const customerIds = await prisma.userAgentRelation.findMany({
+      where: { agentId },
+      select: { userId: true },
+    });
+    const ids = [agentId, ...customerIds.map(r => r.customerId)];
+
+    const where: any = { userId: { in: ids } };
+    if (type && type !== 'all') where.type = type;
+
+    const [materials, total] = await Promise.all([
+      prisma.material.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }),
+      prisma.material.count({ where }),
+    ]);
+
+    res.json({
+      success: true,
+      data: { list: materials, total, page: parseInt(page as string), pageSize: take },
+    });
+  } catch (error: any) {
+    console.error('获取素材列表失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// ============================================================
+// 分享统计数据
+// ============================================================
+router.get('/share/stats', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+    const customerIds = await prisma.userAgentRelation.findMany({
+      where: { agentId },
+      select: { userId: true },
+    });
+    const ids = customerIds.map(r => r.userId);
+
+    const [qrCount, recordCount, scanCount, uniqueScanCount] = await Promise.all([
+      prisma.shareQrCode.count({ where: { userId: { in: ids } } }),
+      prisma.shareRecord.count({ where: { userId: { in: ids } } }),
+      prisma.shareRecord.count({ where: { userId: { in: ids }, status: 'scanned' } }),
+      prisma.shareRecord.groupBy({ by: ['visitorId'], where: { userId: { in: ids }, visitorId: { not: null } }, _count: true }),
+    ]);
+
+    res.json({
+      success: true,
+      data: { qrCount, recordCount, scanCount, uniqueVisitorCount: uniqueScanCount.length },
+    });
+  } catch (error: any) {
+    console.error('获取分享统计失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.get('/share/records', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+    const { page = '1', pageSize = '20' } = req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(pageSize as string);
+    const take = parseInt(pageSize as string);
+
+    const customerIds = await prisma.userAgentRelation.findMany({
+      where: { agentId },
+      select: { userId: true },
+    });
+    const ids = customerIds.map(r => r.userId);
+
+    const [records, total] = await Promise.all([
+      prisma.shareRecord.findMany({
+        where: { userId: { in: ids } },
+        skip, take,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.shareRecord.count({ where: { userId: { in: ids } } }),
+    ]);
+
+    res.json({
+      success: true,
+      data: { list: records, total, page: parseInt(page as string), pageSize: take },
+    });
+  } catch (error: any) {
+    console.error('获取分享记录失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// ============================================================
+// 用量统计
+// ============================================================
+router.get('/usage', async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).userId;
+    const { range = '30d' } = req.query;
+    const days = parseInt(range as string) || 30;
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const customerIds = await prisma.userAgentRelation.findMany({
+      where: { agentId },
+      select: { userId: true },
+    });
+    const ids = [agentId, ...customerIds.map(r => r.customerId)];
+
+    const logs = await prisma.apiUsageLog.findMany({
+      where: { userId: { in: ids }, createdAt: { gte: since } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const totalCalls = logs.length;
+    const totalTokens = logs.reduce((s, l) => s + (l.requestTokens || 0) + (l.responseTokens || 0), 0);
+    const totalCost = logs.reduce((s, l) => s + Number(l.cost || 0), 0);
+
+    // 按客户分组
+    const customerMap = new Map<string, { calls: number; tokens: number; cost: number }>();
+    for (const log of logs) {
+      const uid = log.userId;
+      const entry = customerMap.get(uid) || { calls: 0, tokens: 0, cost: 0 };
+      entry.calls++;
+      entry.tokens += (log.requestTokens || 0) + (log.responseTokens || 0);
+      entry.cost += Number(log.cost || 0);
+      customerMap.set(uid, entry);
+    }
+
+    // 按日期趋势
+    const trendMap = new Map<string, { calls: number; tokens: number; cost: number }>();
+    for (const log of logs) {
+      const d = log.createdAt.toISOString().slice(0, 10);
+      const t = trendMap.get(d) || { calls: 0, tokens: 0, cost: 0 };
+      t.calls++;
+      t.tokens += (log.requestTokens || 0) + (log.responseTokens || 0);
+      t.cost += Number(log.cost || 0);
+      trendMap.set(d, t);
+    }
+    const trendData = Array.from(trendMap.entries()).map(([date, v]) => ({ date, calls: v.calls, tokens: v.tokens, cost: parseFloat(v.cost.toFixed(4)) }));
+
+    res.json({
+      success: true,
+      data: {
+        totalCalls, totalTokens, totalCost: parseFloat(totalCost.toFixed(4)),
+        customerCount: customerMap.size,
+        trendData,
+        customerDetails: Array.from(customerMap.entries()).map(([userId, v]) => ({ userId, ...v, cost: parseFloat(v.cost.toFixed(4)) })),
+      },
+    });
+  } catch (error: any) {
+    console.error('获取用量统计失败:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });

@@ -26,9 +26,6 @@ export enum Permission {
 
   // 媒体矩阵
   MEDIA_FACTORY = 'media.factory',
-  MEDIA_MATRIX = 'media.matrix',
-  MEDIA_REPORT = 'media.report',
-  MEDIA_DIGITAL_HUMAN = 'media.digital-human',
   MATERIALS = 'materials',
 
   // 招聘助手
@@ -59,7 +56,6 @@ export enum Permission {
   ADMIN_CONFIG = 'admin.config',
   ADMIN_BRANDING = 'admin.branding',
   ADMIN_ANALYTICS = 'admin.analytics',
-  ADMIN_CRM = 'admin.crm',
   SYSTEM_SETTINGS = 'system.settings',
   SYSTEM_USERS = 'system.users',
 

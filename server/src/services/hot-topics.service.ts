@@ -10,10 +10,8 @@
  * - 趋势数据分析
  */
 
-import { PrismaClient } from '@prisma/client';
 import { chatCompletion } from './ai-client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 
 // ==================== 类型定义 ====================
 

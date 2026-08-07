@@ -17,7 +17,6 @@ import {
 import {
   FileTextOutlined,
   RobotOutlined,
-  TeamOutlined,
   CustomerServiceOutlined,
   RedoOutlined,
   LineChartOutlined,
@@ -46,7 +45,6 @@ const { Title, Text } = Typography;
 interface CustomerSummary {
   kpi: {
     materials: { total: number; weekNew: number; trend: number };
-    crmCustomers: { total: number; active: number; newMonth: number };
     pendingTickets: number;
     aiUsage: { total: number; weekTokens: number };
   };
@@ -65,7 +63,6 @@ interface TokenStats {
 const EMPTY_SUMMARY: CustomerSummary = {
   kpi: {
     materials: { total: 0, weekNew: 0, trend: 0 },
-    crmCustomers: { total: 0, active: 0, newMonth: 0 },
     pendingTickets: 0,
     aiUsage: { total: 0, weekTokens: 0 },
   },
@@ -104,7 +101,6 @@ const ACTIVITY_LABEL: Record<string, string> = {
   material: '素材',
   ai: 'AI创作',
   ticket: '工单',
-  crm: '客户',
   login: '登录',
 };
 
@@ -112,7 +108,6 @@ const ACTIVITY_COLOR: Record<string, string> = {
   material: 'blue',
   ai: 'purple',
   ticket: 'gold',
-  crm: 'cyan',
   login: 'default',
 };
 
@@ -236,8 +231,7 @@ export default function CustomerDashboard() {
 
   const isFirstTimeUser = !loading &&
     data.kpi.materials.total === 0 &&
-    data.kpi.aiUsage.total === 0 &&
-    data.kpi.crmCustomers.total === 0;
+    data.kpi.aiUsage.total === 0;
 
   return (
     <div style={{ padding: '16px 24px 32px', background: '#f5f7fa', minHeight: '100vh' }}>
@@ -278,17 +272,6 @@ export default function CustomerDashboard() {
             value={data.kpi.aiUsage.total}
             extra={data.kpi.aiUsage.weekTokens > 0 ? `本周消耗 ${formatTokens(data.kpi.aiUsage.weekTokens)} tokens` : '点击进入 AI 创作工厂'}
             onClick={() => router.push('/customer/ai-factory')}
-          />
-        </Col>
-        <Col xs={12} sm={12} md={6} lg={6} xl={6}>
-          <KpiCard
-            loading={loading}
-            icon={<TeamOutlined />}
-            color={COLORS.cyan}
-            label="CRM 客户"
-            value={data.kpi.crmCustomers.total}
-            extra={data.kpi.crmCustomers.newMonth > 0 ? `本月新增 ${data.kpi.crmCustomers.newMonth}` : '进入客户管理'}
-            onClick={() => router.push('/customer/crm')}
           />
         </Col>
         <Col xs={12} sm={12} md={6} lg={6} xl={6}>

@@ -12,46 +12,6 @@ interface ExportOptions {
 }
 
 /**
- * 导出客户数据为 Excel/CSV
- */
-export async function exportCustomers(
-  customers: any[],
-  options: ExportOptions,
-  res: Response
-): Promise<void> {
-  const { format, filename } = options;
-
-  if (format === 'csv') {
-    await exportToCSV(customers, filename, res, [
-      { header: '姓名', key: 'name' },
-      { header: '手机', key: 'phone' },
-      { header: '公司', key: 'company' },
-      { header: '职位', key: 'position' },
-      { header: '等级', key: 'level' },
-      { header: '意向度', key: 'intentLevel' },
-      { header: '状态', key: 'status' },
-      { header: '来源', key: 'source' },
-      { header: '创建时间', key: 'createdAt' }
-    ]);
-  } else if (format === 'xlsx') {
-    // 使用 JSON 导出作为备选（实际项目应安装 xlsx 库）
-    await exportToCSV(customers, filename, res, [
-      { header: '姓名', key: 'name' },
-      { header: '手机', key: 'phone' },
-      { header: '公司', key: 'company' },
-      { header: '职位', key: 'position' },
-      { header: '等级', key: 'level' },
-      { header: '意向度', key: 'intentLevel' },
-      { header: '状态', key: 'status' },
-      { header: '来源', key: 'source' },
-      { header: '创建时间', key: 'createdAt' }
-    ]);
-  } else {
-    res.json({ success: true, data: customers });
-  }
-}
-
-/**
  * 导出获客数据
  */
 export async function exportAcquisitionData(
@@ -77,33 +37,6 @@ export async function exportAcquisitionData(
     ]);
   } else {
     res.json({ success: true, data });
-  }
-}
-
-/**
- * 导出发布记录
- */
-export async function exportPublishRecords(
-  records: any[],
-  options: ExportOptions,
-  res: Response
-): Promise<void> {
-  const { format, filename } = options;
-
-  if (format === 'csv') {
-    await exportToCSV(records, filename, res, [
-      { header: '标题', key: 'title' },
-      { header: '平台', key: 'platform' },
-      { header: '账号', key: 'accountName' },
-      { header: '类型', key: 'contentType' },
-      { header: '状态', key: 'status' },
-      { header: '播放量', key: 'views' },
-      { header: '点赞数', key: 'likes' },
-      { header: '评论数', key: 'comments' },
-      { header: '发布时间', key: 'publishedAt' }
-    ]);
-  } else {
-    res.json({ success: true, data: records });
   }
 }
 

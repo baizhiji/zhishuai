@@ -19,8 +19,10 @@ interface User {
   phone: string;
   email?: string;
   avatar?: string;
+  company?: string;
   role: 'admin' | 'agent' | 'customer';
   status: 'active' | 'inactive' | 'banned';
+  createdAt?: string;
 }
 
 interface AuthContextType {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   Table,
@@ -12,6 +12,7 @@ import {
   Button,
   Modal,
   Descriptions,
+  Alert,
 } from 'antd';
 import {
   LoginOutlined,
@@ -19,8 +20,10 @@ import {
   DesktopOutlined,
   MobileOutlined,
   EnvironmentOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { request } from '@/utils/request';
+import PageContainer from '@/components/customer/PageContainer';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -30,7 +33,6 @@ interface LoginLog {
   id: string;
   userId: string;
   userName: string;
-  userType: 'admin' | 'agent' | 'customer' | 'employee';
   action: 'login' | 'logout';
   device: 'desktop' | 'mobile' | 'tablet';
   browser: string;
@@ -48,7 +50,6 @@ export default function LoginLogsPage() {
   const [selectedLog, setSelectedLog] = useState<LoginLog | null>(null);
   const [detailVisible, setDetailVisible] = useState(false);
   const [filters, setFilters] = useState({
-    userType: undefined as string | undefined,
     action: undefined as string | undefined,
     status: undefined as string | undefined,
     dateRange: undefined as [dayjs.Dayjs, dayjs.Dayjs] | undefined,
@@ -68,71 +69,20 @@ export default function LoginLogsPage() {
     setLoading(true);
     try {
       const params: Record<string, string | number | boolean> = { userId };
-      if (filters.userType) params.userType = filters.userType;
       if (filters.action) params.action = filters.action;
       if (filters.status) params.status = filters.status;
       const res = await request.get('/api/auth/login-logs', params);
-      setLogs(res.data?.logs || generateMockData());
+      setLogs(res.data?.logs || []);
     } catch (error) {
-      setLogs(generateMockData());
+      setLogs([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateMockData = () => {
-    const logs: LoginLog[] = [];
-    const users = ['张三', '李四', '王五', '赵六', '孙七'];
-    const actions = ['login', 'logout'];
-    const devices = ['desktop', 'mobile', 'tablet'];
-    const browsers = ['Chrome 120', 'Firefox 121', 'Safari 17', 'Edge 120'];
-    const osList = ['Windows 11', 'macOS 14', 'iOS 17', 'Android 14'];
-    const locations = ['北京市', '上海市', '广州市', '深圳市', '杭州市'];
-
-    for (let i = 0; i < 30; i++) {
-      const action = actions[Math.floor(Math.random() * actions.length)];
-      logs.push({
-        id: `log-${i}`,
-        userId: `user-${i % 5}`,
-        userName: users[i % 5],
-        userType: ['admin', 'agent', 'customer', 'employee'][i % 4] as any,
-        action: action as any,
-        device: devices[Math.floor(Math.random() * devices.length)] as any,
-        browser: browsers[Math.floor(Math.random() * browsers.length)],
-        os: osList[Math.floor(Math.random() * osList.length)],
-        ip: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        location: locations[Math.floor(Math.random() * locations.length)],
-        status: Math.random() > 0.1 ? 'success' : 'failed',
-        failReason: Math.random() > 0.9 ? '密码错误' : undefined,
-        createdAt: dayjs().subtract(i, 'hour').format('YYYY-MM-DD HH:mm:ss'),
-      });
-    }
-    return logs;
-  };
-
   const showDetail = (log: LoginLog) => {
     setSelectedLog(log);
     setDetailVisible(true);
-  };
-
-  const getUserTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      admin: 'red',
-      agent: 'blue',
-      customer: 'green',
-      employee: 'purple',
-    };
-    return colors[type] || 'default';
-  };
-
-  const getUserTypeText = (type: string) => {
-    const texts: Record<string, string> = {
-      admin: '管理员',
-      agent: '代理商',
-      customer: '客户',
-      employee: '员工',
-    };
-    return texts[type] || type;
   };
 
   const getDeviceIcon = (device: string) => {
@@ -144,25 +94,17 @@ export default function LoginLogsPage() {
     return icons[device] || <DesktopOutlined />;
   };
 
+  // 检测异常登录：查找是否存在非本地位置的登录
+  const anomalyLogs = useMemo(() => {
+    return logs.filter(l => l.status === 'failed' || (l.location && !l.location.includes('本地')));
+  }, [logs]);
+
   const columns = [
-    {
-      title: '用户',
-      key: 'user',
-      render: (_: any, record: LoginLog) => (
-        <Space>
-          <div>
-            <div className="font-medium">{record.userName}</div>
-            <Tag color={getUserTypeColor(record.userType)} className="mt-1">
-              {getUserTypeText(record.userType)}
-            </Tag>
-          </div>
-        </Space>
-      ),
-    },
     {
       title: '操作',
       dataIndex: 'action',
       key: 'action',
+      width: 100,
       render: (action: string) => (
         <Tag
           color={action === 'login' ? 'green' : 'orange'}
@@ -175,7 +117,8 @@ export default function LoginLogsPage() {
     {
       title: '设备',
       key: 'device',
-      render: (_: any, record: LoginLog) => (
+      width: 200,
+      render: (_: unknown, record: LoginLog) => (
         <Space direction="vertical" size={0}>
           <Space>
             {getDeviceIcon(record.device)}
@@ -187,8 +130,8 @@ export default function LoginLogsPage() {
                   : '平板'}
             </Text>
           </Space>
-          <Text type="secondary" className="text-xs">
-            {record.browser}
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {record.browser} / {record.os}
           </Text>
         </Space>
       ),
@@ -196,11 +139,12 @@ export default function LoginLogsPage() {
     {
       title: 'IP / 位置',
       key: 'location',
-      render: (_: any, record: LoginLog) => (
+      width: 180,
+      render: (_: unknown, record: LoginLog) => (
         <Space direction="vertical" size={0}>
           <Text code>{record.ip}</Text>
-          <Text type="secondary" className="text-xs">
-            <EnvironmentOutlined /> {record.location}
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            <EnvironmentOutlined /> {record.location || '未知'}
           </Text>
         </Space>
       ),
@@ -209,13 +153,14 @@ export default function LoginLogsPage() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
+      width: 100,
       render: (status: string, record: LoginLog) => (
         <Space direction="vertical" size={0}>
           <Tag color={status === 'success' ? 'green' : 'red'}>
             {status === 'success' ? '成功' : '失败'}
           </Tag>
           {record.failReason && (
-            <Text type="danger" className="text-xs">
+            <Text type="danger" style={{ fontSize: 12 }}>
               {record.failReason}
             </Text>
           )}
@@ -226,12 +171,16 @@ export default function LoginLogsPage() {
       title: '时间',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 180,
+      sorter: (a: LoginLog, b: LoginLog) => dayjs(a.createdAt).unix() - dayjs(b.createdAt).unix(),
+      defaultSortOrder: 'descend' as const,
       render: (time: string) => dayjs(time).format('YYYY-MM-DD HH:mm:ss'),
     },
     {
       title: '操作',
-      key: 'action',
-      render: (_: any, record: LoginLog) => (
+      key: 'action_col',
+      width: 80,
+      render: (_: unknown, record: LoginLog) => (
         <Button type="link" size="small" onClick={() => showDetail(record)}>
           详情
         </Button>
@@ -240,27 +189,31 @@ export default function LoginLogsPage() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">登录日志</h1>
-        <p className="text-gray-500">查看账号的登录和操作记录</p>
-      </div>
+    <PageContainer
+      title="登录日志"
+      description="查看您的账号登录记录，守护账号安全"
+      breadcrumb={[
+        { title: '首页', href: '/customer/dashboard' },
+        { title: '登录日志' },
+      ]}
+      loading={false}
+      skeletonType="table"
+    >
+      {/* 异常登录提醒 */}
+      {anomalyLogs.length > 0 && (
+        <Alert
+          type="warning"
+          showIcon
+          icon={<WarningOutlined />}
+          message={`检测到 ${anomalyLogs.length} 条异常登录记录`}
+          description="请检查以下登录记录，如非本人操作请立即修改密码"
+          style={{ marginBottom: 16, borderRadius: 8 }}
+        />
+      )}
 
       {/* 筛选 */}
-      <Card className="mb-6">
+      <Card style={{ marginBottom: 16 }}>
         <Space wrap>
-          <Select
-            placeholder="用户类型"
-            allowClear
-            style={{ width: 120 }}
-            value={filters.userType}
-            onChange={val => setFilters({ ...filters, userType: val })}
-          >
-            <Select.Option value="admin">管理员</Select.Option>
-            <Select.Option value="agent">代理商</Select.Option>
-            <Select.Option value="customer">客户</Select.Option>
-            <Select.Option value="employee">员工</Select.Option>
-          </Select>
           <Select
             placeholder="操作类型"
             allowClear
@@ -283,7 +236,7 @@ export default function LoginLogsPage() {
           </Select>
           <RangePicker
             onChange={dates =>
-              setFilters({ ...filters, dateRange: (dates as [any, any]) || undefined })
+              setFilters({ ...filters, dateRange: (dates as [dayjs.Dayjs, dayjs.Dayjs]) || undefined })
             }
           />
           <Button type="primary" onClick={fetchLogs}>
@@ -293,13 +246,14 @@ export default function LoginLogsPage() {
       </Card>
 
       {/* 日志列表 */}
-      <Card title="登录记录">
+      <Card>
         <Table
           columns={columns}
           dataSource={logs}
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 10 }}
+          locale={{ emptyText: '暂无登录记录' }}
         />
       </Card>
 
@@ -311,13 +265,7 @@ export default function LoginLogsPage() {
         footer={null}
       >
         {selectedLog && (
-          <Descriptions column={2} bordered>
-            <Descriptions.Item label="用户姓名">{selectedLog.userName}</Descriptions.Item>
-            <Descriptions.Item label="用户类型">
-              <Tag color={getUserTypeColor(selectedLog.userType)}>
-                {getUserTypeText(selectedLog.userType)}
-              </Tag>
-            </Descriptions.Item>
+          <Descriptions column={2} bordered size="small">
             <Descriptions.Item label="操作">
               <Tag color={selectedLog.action === 'login' ? 'green' : 'orange'}>
                 {selectedLog.action === 'login' ? '登录' : '登出'}
@@ -339,7 +287,7 @@ export default function LoginLogsPage() {
             <Descriptions.Item label="操作系统">{selectedLog.os}</Descriptions.Item>
             <Descriptions.Item label="IP地址">{selectedLog.ip}</Descriptions.Item>
             <Descriptions.Item label="登录地点" span={2}>
-              <EnvironmentOutlined /> {selectedLog.location}
+              <EnvironmentOutlined /> {selectedLog.location || '未知'}
             </Descriptions.Item>
             {selectedLog.failReason && (
               <Descriptions.Item label="失败原因" span={2}>
@@ -347,11 +295,11 @@ export default function LoginLogsPage() {
               </Descriptions.Item>
             )}
             <Descriptions.Item label="时间" span={2}>
-              {selectedLog.createdAt}
+              {dayjs(selectedLog.createdAt).format('YYYY-MM-DD HH:mm:ss')}
             </Descriptions.Item>
           </Descriptions>
         )}
       </Modal>
-    </div>
+    </PageContainer>
   );
 }

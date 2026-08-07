@@ -7,16 +7,16 @@ import { useTheme } from '../context/ThemeContext';
 
 // 页面标题配置
 const SCREEN_TITLES: Record<string, string> = {
-  Recruitment: '招聘助手',
+  Recruitment: '智能招聘',
   Acquisition: '智能获客',
-  MediaOperation: '自媒体运营',
   AICreateCenter: 'AI创作中心',
-  MatrixAccount: '矩阵账号',
-  DataList: '数据列表',
-  Materials: '素材库',
+  Materials: '内容中心',
   Statistics: '数据统计',
   Settings: '设置',
   Share: '推荐分享',
+  MediaOperation: 'AI创作工厂',
+
+  Referral: '转介绍',
 };
 
 interface PageHeaderProps {

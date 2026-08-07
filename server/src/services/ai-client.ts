@@ -40,6 +40,10 @@ export interface ChatCompletionParams {
   platform?: 'douyin' | 'kuaishou' | 'xiaohongshu' | 'bilibili' | 'weibo';
   /** 创意等级 0-1，越高越有创意 */
   creativity?: number;
+  /** 指定 provider，优先于自动选择 */
+  provider?: 'tencent' | 'alibaba';
+  /** 显式传入 API Key，覆盖默认解析 */
+  apiKey?: string;
 }
 
 /** 聊天补全响应 */
@@ -137,7 +141,7 @@ interface DecryptedApiKey {
 
 /** 服务商基础 URL 映射 */
 const PROVIDER_BASE_URLS: Record<string, string> = {
-  tencent: 'https://tokenhub.cloud.tencent.com',
+  tencent: 'https://tokenhub.tencentmaas.com/v1',
   alibaba: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
 };
 
@@ -345,6 +349,20 @@ export class AIClient {
         const baseUrl = sysProvider.baseUrl || PROVIDER_BASE_URLS[provider];
         return {
           apiKey: sysProvider.apiKey,
+          baseUrl: `${baseUrl}/chat/completions`.replace('/chat/completions/chat/completions', '/chat/completions'),
+          provider,
+          keyId: null,
+        };
+      }
+
+      // 最后 fallback 到环境变量（用于测试或默认兜底）
+      const envKey = provider === 'tencent'
+        ? process.env.TENCENT_API_KEY
+        : process.env.ALIYUN_DASHSCOPE_API_KEY;
+      if (envKey) {
+        const baseUrl = PROVIDER_BASE_URLS[provider];
+        return {
+          apiKey: envKey,
           baseUrl: `${baseUrl}/chat/completions`.replace('/chat/completions/chat/completions', '/chat/completions'),
           provider,
           keyId: null,
@@ -576,13 +594,32 @@ export class AIClient {
     // 1. 分析任务并选择模型
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
     const userInput = lastUserMsg?.content || '';
-    const taskAnalysis = analyzeAndSelectModel(userInput);
+
+    // 如果显式指定了 provider 或可从 model 推断 provider，优先使用
+    let explicitProvider: 'tencent' | 'alibaba' | undefined = params.provider;
+    if (!explicitProvider && params.model) {
+      const m = params.model.toLowerCase();
+      if (m.includes('qwen') || m.includes('wan')) explicitProvider = 'alibaba';
+      else if (m.includes('hunyuan') || m.includes('hy') || m.includes('deepseek')) explicitProvider = 'tencent';
+    }
+    const taskAnalysis = analyzeAndSelectModel(userInput, explicitProvider);
 
     // 2. 获取 API 凭证
-    const credentials = await this.resolveApiCredentials(
-      userId,
-      taskAnalysis.provider as 'tencent' | 'alibaba'
-    );
+    let credentials: { apiKey: string; provider: string; baseUrl: string; keyId: string | null };
+    if (params.apiKey && explicitProvider) {
+      const baseUrl = PROVIDER_BASE_URLS[explicitProvider];
+      credentials = {
+        apiKey: params.apiKey,
+        provider: explicitProvider,
+        baseUrl: `${baseUrl}/chat/completions`.replace('/chat/completions/chat/completions', '/chat/completions'),
+        keyId: null,
+      };
+    } else {
+      credentials = await this.resolveApiCredentials(
+        userId,
+        taskAnalysis.provider as 'tencent' | 'alibaba'
+      );
+    }
 
     // 3. 增强系统提示词
     let enhancedMessages = [...messages];
@@ -736,7 +773,7 @@ export class AIClient {
 
   /**
    * 图像生成
-   * 腾讯云使用 HY-Image-V3.0，阿里云使用 wan2.7
+   * 腾讯云使用 HY-Image-V3.0，阿里云使用 wan2.7 / qwen-image 系列
    */
   async generateImage(
     userId: string,
@@ -759,14 +796,9 @@ export class AIClient {
       const credentials = await this.resolveApiCredentials(userId, 'tencent');
       const baseUrl = this.getProviderBaseUrl('tencent');
 
-      // 使用 HY-Image-V3.0 通过 chat completions（图像生成走专用端点可能不同）
-      // 实际上腾讯云 TokenHub 的图像生成可能通过 chat/completions 带特殊参数
-      const axiosInstance = this.getAxiosInstance(baseUrl);
-
-      // 尝试使用 images/generations 端点（OpenAI 兼容）
-      let response;
       try {
-        response = await axiosInstance.post('/images/generations', {
+        const axiosInstance = this.getAxiosInstance(baseUrl);
+        const response = await axiosInstance.post('/images/generations', {
           model: 'HY-Image-V3.0',
           prompt: enhancedPrompt,
           n,
@@ -775,90 +807,115 @@ export class AIClient {
         }, {
           headers: { 'Authorization': `Bearer ${credentials.apiKey}` },
         });
-      } catch {
-        // 降级：通过 chat/completions 生成图像提示词，返回占位图
-        console.log('[AIClient] 图像生成端点不可用，使用文本生成替代');
-        const textResult = await this.chatCompletion(userId, {
-          messages: [
-            { role: 'system', content: '你是一个AI绘画提示词专家，根据用户描述生成详细的英文图像生成提示词。只输出提示词，不要其他内容。' },
-            { role: 'user', content: enhancedPrompt },
-          ],
-          temperature: 0.8,
-          max_tokens: 200,
-          platform,
-        });
 
-        const duration = Date.now() - startTime;
+        const data = response.data;
+
         await this.logUsage({
           userId,
           providerId: credentials.provider,
           providerName: '腾讯云TokenHub',
           endpoint: '/images/generations',
           model: 'HY-Image-V3.0',
-          duration,
+          duration: Date.now() - startTime,
           status: 'success',
         });
+        await this.updateKeyStats(credentials.keyId, true);
 
         return {
-          url: `https://via.placeholder.com/${size.replace('x', 'x')}.png?text=${encodeURIComponent('AI生成中...')}`,
-          revised_prompt: textResult,
+          url: data.data?.[0]?.url || '',
+          urls: data.data?.map((d: any) => d.url),
+          revised_prompt: data.data?.[0]?.revised_prompt,
         };
+      } catch (tencentImgErr: any) {
+        // 降级：通过 chat/completions 生成图像提示词，返回占位图
+        console.log('[AIClient] 腾讯云图像生成端点不可用，使用文本生成替代:', tencentImgErr.message);
+
+        await this.logUsage({
+          userId,
+          providerId: credentials.provider,
+          providerName: '腾讯云TokenHub',
+          endpoint: '/images/generations',
+          model: 'HY-Image-V3.0',
+          duration: Date.now() - startTime,
+          status: 'failed',
+          errorMsg: tencentImgErr.message,
+        });
+
+        throw tencentImgErr; // 触发外层降级到阿里云
       }
-
-      const data = response.data;
-      const duration = Date.now() - startTime;
-
-      await this.logUsage({
-        userId,
-        providerId: credentials.provider,
-        providerName: '腾讯云TokenHub',
-        endpoint: '/images/generations',
-        model: 'HY-Image-V3.0',
-        duration,
-        status: 'success',
-      });
-      await this.updateKeyStats(credentials.keyId, true);
-
-      return {
-        url: data.data?.[0]?.url || '',
-        urls: data.data?.map((d: any) => d.url),
-        revised_prompt: data.data?.[0]?.revised_prompt,
-      };
-
     } catch (error: any) {
-      // 降级到阿里云
+      // 降级到阿里云百炼
       console.log('[AIClient] 腾讯云图像生成失败，尝试阿里云:', error.message);
       try {
         const aliCredentials = await this.resolveApiCredentials(userId, 'alibaba');
-        const baseUrl = this.getProviderBaseUrl('alibaba');
-        const axiosInstance = this.getAxiosInstance(baseUrl);
+        // 阿里云百炼使用原生域名（非compatible-mode），单独创建 axios
+        const aliBaseUrl = 'https://dashscope.aliyuncs.com';
+        const axiosInstance = this.getAxiosInstance(aliBaseUrl);
 
-        const response = await axiosInstance.post('/images/generations', {
+        // 尝试 wan2.7 图像生成（异步模式）
+        const response = await axiosInstance.post('/api/v1/services/aigc/image-generation/generation', {
           model: 'wan2.7',
-          prompt: enhancedPrompt,
-          n,
-          size,
+          input: { prompt: enhancedPrompt },
+          parameters: { size: size.replace('x', '*'), n },
         }, {
-          headers: { 'Authorization': `Bearer ${aliCredentials.apiKey}` },
+          headers: {
+            'Authorization': `Bearer ${aliCredentials.apiKey}`,
+            'Content-Type': 'application/json',
+            'X-DashScope-Async': 'enable',
+          },
         });
 
         const data = response.data;
         const duration = Date.now() - startTime;
 
+        // 百炼异步模式返回 task_id，需要轮询
+        const taskId = data.output?.task_id || data.request_id;
+        if (taskId) {
+          // 轮询等待任务完成
+          for (let i = 0; i < 30; i++) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const pollResp = await axiosInstance.get(`/api/v1/tasks/${taskId}`, {
+              headers: { 'Authorization': `Bearer ${aliCredentials.apiKey}` },
+            });
+            const pollData = pollResp.data;
+            const taskStatus = pollData.output?.task_status;
+            if (taskStatus === 'SUCCEEDED') {
+              const results = pollData.output?.results || [];
+              const urls = results.map((r: any) => r.url).filter(Boolean);
+              await this.logUsage({
+                userId,
+                providerId: 'alibaba',
+                providerName: '阿里云百炼',
+                endpoint: '/api/v1/services/aigc/image-generation/generation',
+                model: 'wan2.7',
+                duration: Date.now() - startTime,
+                status: 'success',
+              });
+              await this.updateKeyStats(aliCredentials.keyId, true);
+              return { url: urls[0] || '', urls, revised_prompt: data.output?.revised_prompt };
+            }
+            if (taskStatus === 'FAILED') {
+              throw new Error(`百炼图像任务失败: ${pollData.output?.message || 'Unknown'}`);
+            }
+          }
+          throw new Error('百炼图像生成超时（60秒）');
+        }
+
         await this.logUsage({
           userId,
           providerId: 'alibaba',
           providerName: '阿里云百炼',
-          endpoint: '/images/generations',
+          endpoint: '/api/v1/services/aigc/image-generation/generation',
           model: 'wan2.7',
           duration,
           status: 'success',
         });
         await this.updateKeyStats(aliCredentials.keyId, true);
 
+        const results = data.output?.results || [];
         return {
-          url: data.data?.[0]?.url || '',
-          urls: data.data?.map((d: any) => d.url),
+          url: results[0]?.url || '',
+          urls: results.map((r: any) => r.url),
         };
       } catch (aliError: any) {
         const duration = Date.now() - startTime;
@@ -880,6 +937,8 @@ export class AIClient {
 
   /**
    * 文本转语音 (TTS)
+   * 阿里云百炼：multimodal-generation + qwen-tts（input.text 格式，同步返回 audio URL）
+   * 腾讯云 TokenHub：/audio/speech（OpenAI 兼容）
    */
   async textToSpeech(
     userId: string,
@@ -888,59 +947,56 @@ export class AIClient {
     const startTime = Date.now();
     const { text, voice = 'default', speed = 1.0, format = 'mp3' } = params;
 
-    // 优先尝试腾讯云
+    // 优先尝试阿里云百炼 TTS（使用 multimodal-generation 端点 + qwen-tts）
     try {
-      const credentials = await this.resolveApiCredentials(userId, 'tencent');
-      const baseUrl = this.getProviderBaseUrl('tencent');
-      const axiosInstance = this.getAxiosInstance(baseUrl);
+      const aliCredentials = await this.resolveApiCredentials(userId, 'alibaba');
+      const aliBaseUrl = 'https://dashscope.aliyuncs.com';
+      const axiosInstance = this.getAxiosInstance(aliBaseUrl);
 
-      // OpenAI 兼容 TTS 端点
-      const response = await axiosInstance.post('/audio/speech', {
-        model: 'hunyuan-tts',
-        input: text,
-        voice,
-        speed,
-        response_format: format,
+      const response = await axiosInstance.post('/api/v1/services/aigc/multimodal-generation/generation', {
+        model: 'qwen-tts',
+        input: { text },
+        parameters: { voice, format },
       }, {
-        headers: { 'Authorization': `Bearer ${credentials.apiKey}` },
-        responseType: 'arraybuffer',
+        headers: { 'Authorization': `Bearer ${aliCredentials.apiKey}`, 'Content-Type': 'application/json' },
       });
 
-      // TTS 返回的是二进制音频数据
-      // 在实际部署中，应该保存到文件系统或对象存储
-      const audioBase64 = Buffer.from(response.data).toString('base64');
-      const dataUrl = `data:audio/${format};base64,${audioBase64}`;
+      const data = response.data;
+      const audioUrl = data.output?.audio?.url || data.output?.audio_url || data.output?.url || '';
 
       const duration = Date.now() - startTime;
       await this.logUsage({
         userId,
-        providerId: credentials.provider,
-        providerName: '腾讯云TokenHub',
-        endpoint: '/audio/speech',
-        model: 'hunyuan-tts',
+        providerId: 'alibaba',
+        providerName: '阿里云百炼',
+        endpoint: '/api/v1/services/aigc/multimodal-generation/generation',
+        model: 'qwen-tts',
         duration,
         status: 'success',
       });
-      await this.updateKeyStats(credentials.keyId, true);
+      await this.updateKeyStats(aliCredentials.keyId, true);
 
-      return { url: dataUrl, format };
+      if (audioUrl) {
+        return { url: audioUrl, format };
+      }
+      throw new Error('百炼 TTS 未返回音频URL');
+    } catch (aliError: any) {
+      console.log('[AIClient] 阿里云百炼TTS失败，尝试腾讯云:', aliError.message);
 
-    } catch (error: any) {
-      console.log('[AIClient] 腾讯云TTS失败，尝试阿里云:', error.message);
-
+      // 降级到腾讯云
       try {
-        const aliCredentials = await this.resolveApiCredentials(userId, 'alibaba');
-        const baseUrl = this.getProviderBaseUrl('alibaba');
+        const txCredentials = await this.resolveApiCredentials(userId, 'tencent');
+        const baseUrl = this.getProviderBaseUrl('tencent');
         const axiosInstance = this.getAxiosInstance(baseUrl);
 
         const response = await axiosInstance.post('/audio/speech', {
-          model: 'cosyvoice-v1',
+          model: 'hunyuan-tts',
           input: text,
           voice,
           speed,
           response_format: format,
         }, {
-          headers: { 'Authorization': `Bearer ${aliCredentials.apiKey}` },
+          headers: { 'Authorization': `Bearer ${txCredentials.apiKey}` },
           responseType: 'arraybuffer',
         });
 
@@ -950,31 +1006,30 @@ export class AIClient {
         const duration = Date.now() - startTime;
         await this.logUsage({
           userId,
-          providerId: 'alibaba',
-          providerName: '阿里云百炼',
+          providerId: txCredentials.provider,
+          providerName: '腾讯云TokenHub',
           endpoint: '/audio/speech',
-          model: 'cosyvoice-v1',
+          model: 'hunyuan-tts',
           duration,
           status: 'success',
         });
-        await this.updateKeyStats(aliCredentials.keyId, true);
+        await this.updateKeyStats(txCredentials.keyId, true);
 
         return { url: dataUrl, format };
-
-      } catch (aliError: any) {
+      } catch (txError: any) {
         const duration = Date.now() - startTime;
         await this.logUsage({
           userId,
-          providerId: 'alibaba',
-          providerName: '阿里云百炼',
+          providerId: 'tencent',
+          providerName: '腾讯云TokenHub',
           endpoint: '/audio/speech',
-          model: 'cosyvoice-v1',
+          model: 'hunyuan-tts',
           duration,
           status: 'failed',
-          errorMsg: aliError.message,
+          errorMsg: txError.message,
         });
 
-        throw new Error(`TTS 失败: ${aliError.message}`);
+        throw new Error(`TTS 失败: 阿里云(${aliError.message}), 腾讯云(${txError.message})`);
       }
     }
   }

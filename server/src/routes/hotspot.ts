@@ -3,11 +3,12 @@
  */
 import { Router } from 'express';
 import { getHotspots, searchHotspots } from '../services/hotspot.service';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 // Get hotspots
-router.get('/aggregated', async (req, res) => {
+router.get('/aggregated', authMiddleware, async (req, res) => {
   try {
     const { platform, category } = req.query;
     const hotspots = await getHotspots(platform as string, category as string);
@@ -18,7 +19,7 @@ router.get('/aggregated', async (req, res) => {
 });
 
 // Search hotspots
-router.get('/search', async (req, res) => {
+router.get('/search', authMiddleware, async (req, res) => {
   try {
     const { keyword } = req.query;
     const hotspots = await searchHotspots(keyword as string);
@@ -29,7 +30,7 @@ router.get('/search', async (req, res) => {
 });
 
 // Get industry hotspots
-router.get('/industry', async (req, res) => {
+router.get('/industry', authMiddleware, async (req, res) => {
   try {
     const { industry } = req.query;
     const hotspots = await getHotspots(undefined, industry as string);

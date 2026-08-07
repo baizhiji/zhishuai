@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { Layout, Result, Spin, Popover, Tag, Empty } from 'antd';
-import { NotificationOutlined, ClockCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { NotificationOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminNavbar from './layout/Navbar';
+import AnnouncementBar from '@/components/AnnouncementBar';
 
 const { Header, Content } = Layout;
 
@@ -26,28 +27,12 @@ const TYPE_META: Record<Announcement['type'], { color: string; label: string }> 
   important: { color: 'red', label: '重要' },
 };
 
-function formatTime(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-}
-
-function formatDate(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
 
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [announcementsLoading, setAnnouncementsLoading] = useState(false);
-  const [now, setNow] = useState<Date>(new Date());
-
-  // 时钟
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // 拉取系统公告
   const fetchAnnouncements = useCallback(async () => {
@@ -95,7 +80,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  const latest = announcements[0];
   const popoverContent = (
     <div style={{ width: 360, maxHeight: 400, overflowY: 'auto' }}>
       {announcementsLoading ? (
@@ -144,69 +128,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             borderBottom: '1px solid #f0f0f0',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
             gap: 16,
           }}
         >
-          {/* 左侧：系统公告 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-            <NotificationOutlined style={{ color: '#1677ff', fontSize: 16 }} />
-            <span style={{ color: '#8c8c8c', fontSize: 12, whiteSpace: 'nowrap' }}>系统公告</span>
-            {latest ? (
-              <Popover
-                content={popoverContent}
-                title={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <NotificationOutlined />
-                    <span>系统公告</span>
-                  </div>
-                }
-                trigger="click"
-                placement="bottomLeft"
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    cursor: 'pointer',
-                    minWidth: 0,
-                    flex: 1,
-                  }}
-                >
-                  {latest.type === 'important' && (
-                    <Tag color="red" style={{ margin: 0 }}>重要</Tag>
-                  )}
-                  <span
-                    style={{
-                      fontSize: 13,
-                      color: '#262626',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: 480,
-                    }}
-                  >
-                    {latest.title}
-                  </span>
-                </div>
-              </Popover>
-            ) : (
-              <span style={{ fontSize: 12, color: '#bfbfbf' }}>暂无系统公告</span>
-            )}
-          </div>
+          {/* 公告滚动栏：填充铃铛左侧全部空间 */}
+          <AnnouncementBar />
 
-          {/* 右侧：时间 + 欢迎语 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, whiteSpace: 'nowrap' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#595959', fontSize: 13 }}>
-              <ClockCircleOutlined />
-              {formatDate(now)} {formatTime(now)}
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#262626', fontSize: 13 }}>
-              <UserOutlined />
-              欢迎，{user.name || '管理员'}
-            </span>
-          </div>
+          {/* 右侧：系统公告铃铛 */}
+          <Popover
+            content={popoverContent}
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <NotificationOutlined />
+                <span>系统公告</span>
+              </div>
+            }
+            trigger="click"
+            placement="bottomRight"
+          >
+            <div style={{ position: 'relative', cursor: 'pointer', padding: '4px 8px' }}>
+              <NotificationOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+              {announcements.length > 0 && (
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 2,
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: announcements.some(a => a.type === 'important') ? '#ff4d4f' : '#1677ff',
+                    border: '1px solid #fff',
+                  }}
+                />
+              )}
+            </div>
+          </Popover>
         </Header>
         <Content
           style={{

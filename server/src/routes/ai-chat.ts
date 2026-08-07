@@ -5,10 +5,8 @@
  */
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
-import { PrismaClient } from '@prisma/client';
 import { getPrimaryApiKey } from '../services/user-api-key.service';
-
-const prisma = new PrismaClient();
+import { prisma } from '../utils/db';
 import { 
   aiModelRouter, 
   analyzeAndSelectModel, 
@@ -18,7 +16,7 @@ import {
 const router = Router();
 
 // ============ 全行业诊断分析系统提示词 ============
-export const DIAGNOSIS_SYSTEM_PROMPT = `你是【智枢AI诊断专家】，拥有全行业、全方位的商业诊断与分析能力。
+const DIAGNOSIS_SYSTEM_PROMPT = `你是【智枢AI诊断专家】，拥有全行业、全方位的商业诊断与分析能力。
 
 ## 核心能力矩阵
 
@@ -78,14 +76,14 @@ export const DIAGNOSIS_SYSTEM_PROMPT = `你是【智枢AI诊断专家】，拥�
 
 请以专业诊断顾问的身份，为用户提供全面、深入、可执行的诊断分析。`;
 
-export const DIAGNOSIS_MODEL_CONFIG = {
+const DIAGNOSIS_MODEL_CONFIG = {
   deepAnalysis: 'deepseek-r1-0528',
   longReport: 'kimi-k2.6',
-  quickDiagnosis: 'hunyuan-2.0-instruct-20251111',
+  quickDiagnosis: 'hy3',
 };
 
 // 模型配置
-export const MODEL_CONFIG = {
+const MODEL_CONFIG = {
   aliyun: {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     models: {
@@ -96,16 +94,17 @@ export const MODEL_CONFIG = {
     }
   },
   tencent: {
-    baseUrl: 'https://tokenhub.cloud.tencent.com',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     models: {
-      daily: { id: 'hunyuan-2.0-instruct-20251111', name: 'hunyuan-instruct', type: 'text' },
-      thinking: { id: 'hunyuan-2.0-thinking-20251109', name: 'hunyuan-thinking', type: 'reasoning' },
-      longText: { id: 'kimi-k2.6', name: 'kimi-k2.6', type: 'text' },
-      agent: { id: 'glm-5', name: 'glm-5', type: 'agent' },
-      vision: { id: 'glm-5v-turbo', name: 'glm-5v-turbo', type: 'vision' },
-      video: { id: 'youtu-vita', name: 'youtu-vita', type: 'video' },
-      image: { id: 'HY-Image-V3.0', name: 'hy-image-v3', type: 'image' },
-      digitalHuman: { id: 'YT-Video-HumanActor', name: 'yt-video-humanactor', type: 'digital_human' },
+      // 蓝皮书v3.0质量优先配置：每个类型用最适合的TokenHub模型
+      daily: { id: 'hy3', name: '混元 Hy3', type: 'text' },                    // 日常对话
+      thinking: { id: 'hy3', name: '混元 Hy3 推理', type: 'reasoning' },       // 复杂推理/深度分析
+      longText: { id: 'kimi-k3', name: 'Kimi K3', type: 'text' },              // 长篇文本处理
+      agent: { id: 'glm-5.2', name: 'GLM-5.2', type: 'agent' },                // Agent/超长上下文(1M)
+      vision: { id: 'hy-vision-2.0-instruct', name: '混元视觉2.0', type: 'vision' },  // 图像理解
+      video: { id: 'youtu-vita', name: '优图VITA', type: 'video' },            // 视频理解
+      image: { id: 'hy-image-v3.0', name: '混元图像V3.0', type: 'image' },     // 文生图
+      digitalHuman: { id: 'yt-video-humanactor', name: '有道数字人', type: 'digital_human' }, // 数字人口播
     }
   }
 };

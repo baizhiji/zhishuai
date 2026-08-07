@@ -6,11 +6,12 @@ import { enhanceVideo, generateVideoCover, adaptForPlatform } from '../services/
 import { getVoiceList } from '../services/voice-clone';
 import { getAvatarList, getAvatarById } from '../services/digital-human';
 import { getRealtimeAnalytics, analyzeData } from '../services/realtime-analytics';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 // Video Enhancement
-router.post('/video/enhance', async (req, res) => {
+router.post('/video/enhance', authMiddleware, async (req, res) => {
   try {
     const { videoUrl, options } = req.body;
     const result = await enhanceVideo(videoUrl, options);
@@ -20,7 +21,7 @@ router.post('/video/enhance', async (req, res) => {
   }
 });
 
-router.post('/video/cover', async (req, res) => {
+router.post('/video/cover', authMiddleware, async (req, res) => {
   try {
     const { videoUrl } = req.body;
     const coverUrl = await generateVideoCover(videoUrl);
@@ -30,7 +31,7 @@ router.post('/video/cover', async (req, res) => {
   }
 });
 
-router.post('/video/adapt', async (req, res) => {
+router.post('/video/adapt', authMiddleware, async (req, res) => {
   try {
     const { videoUrl, platform } = req.body;
     const result = adaptForPlatform(videoUrl, platform);
@@ -41,18 +42,18 @@ router.post('/video/adapt', async (req, res) => {
 });
 
 // Voice
-router.get('/voice/list', async (req, res) => {
+router.get('/voice/list', authMiddleware, async (req, res) => {
   const voices = getVoiceList();
   res.json({ code: 200, message: 'success', data: voices });
 });
 
 // Digital Human
-router.get('/digital-human/avatars', async (req, res) => {
+router.get('/digital-human/avatars', authMiddleware, async (req, res) => {
   const avatars = getAvatarList();
   res.json({ code: 200, message: 'success', data: avatars });
 });
 
-router.get('/digital-human/:id', async (req, res) => {
+router.get('/digital-human/:id', authMiddleware, async (req, res) => {
   const avatar = getAvatarById(req.params.id);
   if (!avatar) {
     return res.status(404).json({ code: 404, message: 'Avatar not found', data: null });
@@ -61,7 +62,7 @@ router.get('/digital-human/:id', async (req, res) => {
 });
 
 // Analytics
-router.post('/analytics/aggregate', async (req, res) => {
+router.post('/analytics/aggregate', authMiddleware, async (req, res) => {
   try {
     const { platforms } = req.body;
     const data = await getRealtimeAnalytics(platforms);
@@ -71,7 +72,7 @@ router.post('/analytics/aggregate', async (req, res) => {
   }
 });
 
-router.post('/analytics/analyze', async (req, res) => {
+router.post('/analytics/analyze', authMiddleware, async (req, res) => {
   try {
     const { data } = req.body;
     const analysis = await analyzeData(data);

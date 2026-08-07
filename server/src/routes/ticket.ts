@@ -1,10 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '../utils/db';
+import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
-const prisma = new PrismaClient();
-
 // 生成工单编号
 function generateTicketNo() {
   const date = new Date();
@@ -14,22 +13,22 @@ function generateTicketNo() {
 }
 
 // 获取工单列表
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { userId, agentId, status, category, priority, page = 1, pageSize = 20 } = req.query;
+    const r = req as any;
+    const userId = r.userId;
+    const userRole = r.userRole;
+    const { status, category, priority, page = 1, pageSize = 20 } = req.query;
     
     const where: any = {};
     
     // 根据角色筛选
-    const role = req.headers['x-user-role'] as string;
-    
-    if (role === 'customer') {
+    if (userRole === 'customer') {
       where.userId = userId;
-    } else if (role === 'agent') {
-      where.agentId = agentId;
-    } else if (role === 'admin') {
-      // Admin 可以看所有
+    } else if (userRole === 'agent') {
+      where.agentId = userId;
     }
+    // Admin 可以看所有
     
     if (status) where.status = status;
     if (category) where.category = category;
@@ -40,12 +39,6 @@ router.get('/', async (req: Request, res: Response) => {
     const [tickets, total] = await Promise.all([
       prisma.ticket.findMany({
         where,
-        include: {
-          responses: {
-            orderBy: { createdAt: 'desc' },
-            take: 1
-          }
-        },
         orderBy: { createdAt: 'desc' },
         skip,
         take: Number(pageSize),
@@ -67,18 +60,32 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// 获取当前用户的工单列表（简写路径 — 必须在 /:id 之前）
+router.get('/my', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const r = req as any;
+    const userId = r.userId;
+    const { status, page = '1', pageSize = '20' } = req.query;
+    const where: any = { userId };
+    if (status) where.status = status;
+    const skip = (Number(page) - 1) * Number(pageSize);
+    const [tickets, total] = await Promise.all([
+      prisma.ticket.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: Number(pageSize) }),
+      prisma.ticket.count({ where }),
+    ]);
+    res.json({ code: 200, message: 'ok', data: tickets, total, page: Number(page), pageSize: Number(pageSize) });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
 // 获取单个工单详情
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
     const ticket = await prisma.ticket.findUnique({
       where: { id },
-      include: {
-        responses: {
-          orderBy: { createdAt: 'asc' }
-        }
-      }
     });
 
     if (!ticket) {
@@ -92,11 +99,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // 创建工单
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { userId, agentId, category, priority, title, content, attachments } = req.body;
+    const r = req as any;
+    const userId = r.userId;
+    const { agentId, category, priority, title, content, attachments } = req.body;
 
-    if (!userId || !title || !content) {
+    if (!title || !content) {
       return res.status(400).json({ error: '请填写完整信息' });
     }
 
@@ -121,10 +130,14 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // 回复工单
-router.post('/:id/responses', async (req: Request, res: Response) => {
+router.post('/:id/responses', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { userId, userName, userRole, content, attachments, isInternal = false } = req.body;
+    const r = req as any;
+    const userId = r.userId;
+    const userName = r.userName || req.body.userName;
+    const userRole = r.userRole;
+    const { content, attachments, isInternal = false } = req.body;
 
     if (!content) {
       return res.status(400).json({ error: '请填写回复内容' });
@@ -166,7 +179,7 @@ router.post('/:id/responses', async (req: Request, res: Response) => {
 });
 
 // 更新工单状态
-router.put('/:id/status', async (req: Request, res: Response) => {
+router.put('/:id/status', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status, assigneeId, assigneeName } = req.body;
@@ -192,14 +205,17 @@ router.put('/:id/status', async (req: Request, res: Response) => {
 });
 
 // 获取工单统计
-router.get('/stats/summary', async (req: Request, res: Response) => {
+router.get('/stats/summary', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { agentId } = req.query;
-    const role = req.headers['x-user-role'] as string;
+    const r = req as any;
+    const userRole = r.userRole;
+    const userId = r.userId;
     
     const where: any = {};
-    if (role === 'agent' && agentId) {
-      where.agentId = agentId;
+    if (userRole === 'agent') {
+      where.agentId = userId;
+    } else if (userRole === 'customer') {
+      where.userId = userId;
     }
 
     const [total, pending, processing, resolved] = await Promise.all([

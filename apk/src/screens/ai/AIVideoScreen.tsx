@@ -1,6 +1,6 @@
 /**
  * AI视频生成页面
- * 支持：短视频、视频解析、数字人视频
+ * 支持：短视频、视频解析、AI数字人视频
  */
 import React, { useState } from 'react'
 import {
@@ -25,6 +25,7 @@ import {
   subtitleOptions,
   voiceoverOptions,
   bgmOptions,
+  bannerOverlayOptions,
   digitalHumanOptions,
   analysisDimensionOptions,
   viralElementOptions,
@@ -49,6 +50,7 @@ export default function AIVideoScreen({ navigation, route }: Props) {
   const [subtitle, setSubtitle] = useState('chinese')
   const [voiceover, setVoiceover] = useState('female-mandarin')
   const [bgm, setBgm] = useState('dynamic')
+  const [overlayBanners, setOverlayBanners] = useState<string[]>(['none'])
 
   // 视频解析专用
   const [videoUrl, setVideoUrl] = useState('')
@@ -126,6 +128,7 @@ export default function AIVideoScreen({ navigation, route }: Props) {
           subtitle,
           voiceover,
           bgm,
+          overlayBanners,
         })
       } else {
         response = await generateVideo({
@@ -137,6 +140,7 @@ export default function AIVideoScreen({ navigation, route }: Props) {
           subtitle,
           voiceover,
           bgm,
+          overlayBanners,
         })
       }
 
@@ -157,6 +161,7 @@ export default function AIVideoScreen({ navigation, route }: Props) {
           subtitle,
           voiceover,
           bgm,
+          overlayBanners,
           videoUrl,
           analysisDimensions,
           viralElements,
@@ -179,7 +184,7 @@ export default function AIVideoScreen({ navigation, route }: Props) {
       case ContentCategory.VIDEO_ANALYSIS:
         return '视频解析'
       case ContentCategory.DIGITAL_HUMAN:
-        return '数字人视频'
+        return 'AI数字人视频'
       default:
         return '短视频'
     }
@@ -458,6 +463,37 @@ export default function AIVideoScreen({ navigation, route }: Props) {
                 </Text>
               </TouchableOpacity>
             ))}
+          </View>
+        </View>
+
+        {/* 横幅/贴片 */}
+        <View style={styles.section}>
+          <Text style={styles.label}>横幅/贴片</Text>
+          <View style={styles.chipContainer}>
+            {bannerOverlayOptions.map((option) => {
+              const isSelected = overlayBanners.includes(option.value)
+              const isNone = option.value === 'none'
+              return (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[styles.chipButton, isSelected && styles.chipButtonActive]}
+                  onPress={() => {
+                    if (isNone) {
+                      setOverlayBanners(['none'])
+                    } else {
+                      const next = isSelected
+                        ? overlayBanners.filter((b) => b !== option.value)
+                        : [...overlayBanners.filter((b) => b !== 'none'), option.value]
+                      setOverlayBanners(next.length === 0 ? ['none'] : next)
+                    }
+                  }}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              )
+            })}
           </View>
         </View>
 

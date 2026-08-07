@@ -1,13 +1,15 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { processWorkflow } from '../services/ai-workflow';
+import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
 // 执行 AI 工作流
-router.post('/execute', async (req, res) => {
+router.post('/execute', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { workflowType, params } = req.body;
-    
+    const { workflowType, params, options } = req.body;
+    const userId = req.userId!;
+
     if (!workflowType) {
       return res.status(400).json({
         code: 400,
@@ -16,13 +18,8 @@ router.post('/execute', async (req, res) => {
       });
     }
 
-    const result = await processWorkflow(workflowType, params || {});
-    
-    res.json({
-      code: 200,
-      message: 'success',
-      data: result
-    });
+    const result = await processWorkflow(userId, workflowType, params || {}, options);
+    res.json({ code: 200, message: 'success', data: result });
   } catch (error: any) {
     console.error('Workflow error:', error);
     res.status(500).json({
@@ -34,7 +31,7 @@ router.post('/execute', async (req, res) => {
 });
 
 // 获取工作流列表
-router.get('/list', (req, res) => {
+router.get('/list', authMiddleware, (req: AuthRequest, res: Response) => {
   res.json({
     code: 200,
     message: 'success',

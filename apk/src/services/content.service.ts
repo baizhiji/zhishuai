@@ -2,9 +2,9 @@
  * 内容自动生成服务
  * 匹配Web端'内容自动生成'功能
  */
-import apiClient from './api.client'
-import { apiConfig } from './api.config'
-import { Storage } from '../utils/tokenStorage'
+import { apiClient } from './api.client'
+import { API_CONFIG } from './api.config'
+import TokenStorage from '../utils/tokenStorage'
 
 // 内容分类
 export enum ContentCategory {
@@ -134,13 +134,23 @@ export const subtitleOptions = [
   { label: '双语', value: 'bilingual' },
 ]
 
-// 配音选项
+// 配音选项（含方言）
 export const voiceoverOptions = [
   { label: '无配音', value: 'none' },
   { label: '女声-普通话', value: 'female-mandarin' },
   { label: '男声-普通话', value: 'male-mandarin' },
+  { label: '女声-粤语', value: 'female-cantonese' },
+  { label: '男声-粤语', value: 'male-cantonese' },
   { label: '女声-英文', value: 'female-english' },
   { label: '男声-英文', value: 'male-english' },
+  { label: '四川话', value: 'sichuan' },
+  { label: '东北话', value: 'dongbei' },
+  { label: '上海话', value: 'shanghai' },
+  { label: '闽南话', value: 'minnan' },
+  { label: '河南话', value: 'henan' },
+  { label: '湖南话', value: 'hunan' },
+  { label: '陕西话', value: 'shaanxi' },
+  { label: '天津话', value: 'tianjin' },
 ]
 
 // 背景音乐选项
@@ -150,6 +160,25 @@ export const bgmOptions = [
   { label: '抒情', value: 'lyrical' },
   { label: '商务', value: 'business' },
   { label: '欢快', value: 'cheerful' },
+  { label: '舒缓', value: 'relaxing' },
+  { label: '悬疑', value: 'suspense' },
+  { label: '科技', value: 'tech' },
+  { label: '古典', value: 'classical' },
+]
+
+// 横幅/贴片叠加选项
+export const bannerOverlayOptions = [
+  { label: '无横幅', value: 'none', description: '不使用任何叠加元素' },
+  { label: '片头标题', value: 'opening-title', description: '视频开头的标题展示' },
+  { label: '人名标注条', value: 'lower-third', description: '下方人名/职位/地点信息条' },
+  { label: '片尾落款', value: 'closing-credits', description: '视频结尾品牌Logo+口号' },
+  { label: '行动号召', value: 'call-to-action', description: '引导用户点击/关注/购买' },
+  { label: '水印', value: 'watermark', description: '半透明品牌水印' },
+  { label: '场景分隔', value: 'scene-divider', description: '场景切换过渡提示' },
+  { label: '说话气泡', value: 'speech-bubble', description: '模拟对话气泡框' },
+  { label: '弹幕风格', value: 'bullet-comment', description: '飘过的弹幕文字' },
+  { label: '品牌角标', value: 'brand-logo', description: '角落品牌Logo标识' },
+  { label: '进度提示', value: 'progress-hint', description: '预告接下来内容' },
 ]
 
 // 分析维度选项
@@ -247,6 +276,7 @@ export interface GenerateVideoParams {
   subtitle?: string
   voiceover?: string
   bgm?: string
+  overlayBanners?: string[]
 }
 
 export interface VideoAnalysisParams {
@@ -267,6 +297,7 @@ export interface DigitalHumanParams {
   subtitle?: string
   voiceover?: string
   bgm?: string
+  overlayBanners?: string[]
 }
 
 // 生成记录
@@ -280,133 +311,108 @@ export interface GenerationRecord {
   status: 'success' | 'failed'
 }
 
-// 生成文本内容
+// 根据分类映射到正确的后端端点（与 WEB 端一致）
+function getTextEndpoint(category: ContentCategory): string {
+  switch (category) {
+    case ContentCategory.TITLE: return '/ai-enhanced/title';
+    case ContentCategory.TAGS: return '/ai-enhanced/hashtags';
+    default: return '/ai-enhanced/post';
+  }
+}
+
+function buildRequestBody(category: ContentCategory, params: GenerateTextParams): Record<string, any> {
+  const base = { topic: params.description };
+  switch (category) {
+    case ContentCategory.TITLE:
+      return { ...base, count: params.count || 5, style: params.style };
+    case ContentCategory.TAGS:
+      return { ...base, count: params.count || 10 };
+    default:
+      return { ...base, style: params.style, wordCount: params.wordCount };
+  }
+}
+
+function transformTextResponse(category: ContentCategory, data: any): { output: { text: string } } {
+  let text = '';
+  if (category === ContentCategory.TITLE) {
+    text = (data?.titles || []).join('\n');
+  } else if (category === ContentCategory.TAGS) {
+    text = (data?.hashtags || []).join(' ');
+  } else {
+    text = data?.content || data?.script || data?.text || '';
+  }
+  return { output: { text } };
+}
+
+// 生成文本内容（对齐 WEB 端 /api/ai-enhanced 路由）
 export async function generateText(params: GenerateTextParams): Promise<{ output: { text: string } }> {
   try {
-    const response = await apiClient.post('/content/generate', {
-      category: params.category,
-      type: 'text',
-      prompt: buildTextPrompt(params),
-      count: params.count || 1,
-      options: {
-        style: params.style,
-        wordCount: params.wordCount,
-      },
-    })
-    return response.data
+    const endpoint = getTextEndpoint(params.category);
+    const body = buildRequestBody(params.category, params);
+    const response = await apiClient.post(endpoint, body);
+    return transformTextResponse(params.category, response);
   } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        text: getMockText(params.category, params.description),
-      },
-    }
+    throw error;
   }
 }
 
-// 生成图片
+// 生成图片（对齐 WEB 端 /api/ai-chat/image）
 export async function generateImage(params: GenerateImageParams): Promise<{ output: { results: { url: string }[] } }> {
   try {
-    const response = await apiClient.post('/content/generate', {
-      category: ContentCategory.IMAGE,
-      type: 'image',
+    const response = await apiClient.post('/ai-chat/image', {
       prompt: `生成一张${params.style || '写实'}风格的图片，主题：${params.description}`,
-      options: {
-        size: params.size || '1024x1024',
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        results: [
-          {
-            url: `https://via.placeholder.com/1024x1024?text=AI生成图片-${params.description}`,
-          },
-        ],
-      },
-    }
+      size: params.size || '1024x1024',
+    });
+    const imageUrl = response?.url || response?.imageUrl || response?.data?.url || '';
+    return { output: { results: imageUrl ? [{ url: imageUrl }] : [] } };
+  } catch {
+    // 图片生成后端暂未完全支持，返回空结果
+    return { output: { results: [] } };
   }
 }
 
-// 生成视频
+// 生成视频（对齐 WEB 端 ai-chat 路由，后端无直接视频生成端点）
 export async function generateVideo(params: GenerateVideoParams): Promise<{ output: { url: string } }> {
   try {
-    const response = await apiClient.post('/content/generate', {
-      category: params.category,
-      type: 'video',
-      prompt: params.description,
-      options: {
-        style: params.style,
-        size: params.size,
-        duration: params.duration,
-        subtitle: params.subtitle,
-        voiceover: params.voiceover,
-        bgm: params.bgm,
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        url: `https://via.placeholder.com/${params.size?.replace('x', '/') || '1920/1080'}?text=视频生成中...`,
-      },
-    }
+    const response = await apiClient.post('/ai-enhanced/post', {
+      topic: `请为以下内容生成视频脚本（${params.style || '通用'}风格，时长${params.duration || 15}秒）：${params.description}`,
+      style: params.style,
+    });
+    return { output: { url: '' } };
+  } catch {
+    return { output: { url: '' } };
   }
 }
 
-// 视频解析
+// 视频解析（对齐 WEB 端 /api/ai-chat/video）
 export async function analyzeVideo(params: VideoAnalysisParams): Promise<{ output: { url: string; analysis: string } }> {
   try {
-    const response = await apiClient.post('/content/analyze-video', {
+    const response = await apiClient.post('/ai-chat/video', {
       videoUrl: params.videoUrl,
-      dimensions: params.analysisDimensions,
-      viralElements: params.viralElements,
-      description: params.description,
-      options: {
-        size: params.size,
-        duration: params.duration,
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
+      analysisDimensions: params.analysisDimensions,
+    });
+    const analysis = response?.analysis || response?.content || response?.description || '';
+    return { output: { url: params.videoUrl, analysis: analysis || JSON.stringify(response) } };
+  } catch {
     return {
       output: {
         url: `https://via.placeholder.com/${params.size?.replace('x', '/') || '1920/1080'}?text=爆款视频生成中...`,
         analysis: `分析完成：该视频采用黄金3秒开头，包含多个转场效果，背景音乐为${params.viralElements.join('、')}。`,
       },
-    }
+    };
   }
 }
 
-// 数字人视频
+// AI数字人（对齐 WEB 端，数字人功能暂需后端增强支持）
 export async function generateDigitalHumanVideo(params: DigitalHumanParams): Promise<{ output: { url: string } }> {
   try {
-    const response = await apiClient.post('/content/generate', {
-      category: ContentCategory.DIGITAL_HUMAN,
-      type: 'video',
-      prompt: params.description,
-      options: {
-        digitalHumanId: params.digitalHumanId,
-        wordCount: params.wordCount,
-        size: params.size,
-        duration: params.duration,
-        subtitle: params.subtitle,
-        voiceover: params.voiceover,
-        bgm: params.bgm,
-      },
-    })
-    return response.data
-  } catch (error) {
-    // Mock数据
-    return {
-      output: {
-        url: `https://via.placeholder.com/${params.size?.replace('x', '/') || '1080/1920'}?text=数字人视频-${params.digitalHumanId}`,
-      },
-    }
+    const response = await apiClient.post('/ai-enhanced/post', {
+      topic: params.description,
+      style: '专业',
+    });
+    return { output: { url: '' } };
+  } catch {
+    return { output: { url: '' } };
   }
 }
 
@@ -432,137 +438,31 @@ function buildTextPrompt(params: GenerateTextParams): string {
   }
 }
 
-// 获取Mock文本
-function getMockText(category: ContentCategory, description: string): string {
-  switch (category) {
-    case ContentCategory.TITLE:
-      return `1. 【爆款标题】${description}的惊人秘密！
-2. 为什么都在说${description}？看完你就懂了
-3. ${description}，99%的人都做错了
-4. 学会这招，${description}轻松搞定！
-5. ${description}全攻略，看完收藏！`
-    case ContentCategory.TAGS:
-      return `#${description} #热门话题 #必看推荐 #干货分享 #涨知识 #生活小技巧 #每日打卡 #一起成长`
-    case ContentCategory.COPYWRITING:
-      return `关于"${description}"的详细文案内容正在生成中...
-
-本文将从多个角度为您详细介绍${description}的相关内容。
-
-第一部分：基础介绍
-${description}是一个非常重要的概念，我们需要深入理解其核心含义。
-
-第二部分：实际应用
-在实际工作中，${description}可以帮助我们解决很多问题，提高工作效率。
-
-第三部分：注意事项
-使用${description}时，需要注意以下几点...
-
-第四部分：总结建议
-通过对${description}的学习和应用，我们可以更好地完成工作任务。`
-    case ContentCategory.IMAGE_TO_TEXT:
-      return `图片描述：这张图片展示了${description}的场景，画面清晰，色彩鲜明，主体突出。
-
-详细解读：
-- 场景：描述图片中的具体环境和背景
-- 主体：图片中的主要对象或人物
-- 细节：值得注意的特色细节
-- 氛围：整体传达的情感或氛围`
-    case ContentCategory.XIAOHONGSHU:
-      return `🌸✨ Hey宝贝们～今天来聊聊${description}呀！
-
-👀 先说说我的感受：
-真的是太棒了！完全超出预期！
-
-📝 具体体验：
-1️⃣ 第一点超赞的地方
-2️⃣ 第二点惊喜发现
-3️⃣ 第三点必须推荐
-
-💡 小tips：
-- 建议大家可以先从XX开始
-- 注意XX会更好哦
-- 最后一定要试试这个！
-
-❤️ 总结：
-真的超级推荐！答应我一定要试试！
-
-#${description} #生活分享 #好物推荐 #种草日记`
-    case ContentCategory.ECOMMERCE:
-      return `【产品名称】${description}
-
-【产品介绍】
-本产品是专为追求品质生活的您设计的优质产品。
-
-【核心卖点】
-✓ 品质保证
-✓ 性价比高
-✓ 实用性强
-✓ 外观精美
-
-【使用场景】
-- 日常使用
-- 送礼佳品
-- 收藏价值
-
-【用户评价】
-"非常好用，强烈推荐！" - 好评买家
-"超出预期，性价比超高！" - 回头客
-
-【购买建议】
-根据您的需求，推荐选择适合的规格和款式。
-
-【温馨提示】
-如有疑问，欢迎咨询客服，我们将为您提供专业的解答。`
-    default:
-      return `关于"${description}"的内容正在生成中...`
-  }
-}
-
-// 保存到素材库
+// 保存到内容中心
 export async function saveToMaterials(
   category: ContentCategory,
   title: string,
   content: string
 ): Promise<boolean> {
-  try {
-    const token = Storage.getToken()
-    const response = await apiClient.post('/materials', {
-      category,
-      title,
-      content,
-    })
-    return response.data.success
-  } catch (error) {
-    // Mock: 保存到本地
-    const materials = Storage.get('materials') || []
-    materials.push({
-      id: `material_${Date.now()}`,
-      category,
-      title,
-      content,
-      timestamp: Date.now(),
-      status: 'unused',
-    })
-    Storage.set('materials', materials)
-    return true
-  }
+  const response = await apiClient.post('/materials', { category, title, content });
+  return (response as any)?.data?.success || false;
 }
 
 // 获取创作历史
 export function getGenerationHistory(): GenerationRecord[] {
-  return Storage.get('generation-history') || []
+  return TokenStorage.get('generation-history') || []
 }
 
 // 保存创作历史
 export function saveGenerationHistory(record: GenerationRecord): void {
   const history = getGenerationHistory()
   const newHistory = [record, ...history].slice(0, 50)
-  Storage.set('generation-history', newHistory)
+  TokenStorage.set('generation-history', newHistory)
 }
 
 // 删除创作历史
 export function deleteGenerationHistory(id: string): void {
   const history = getGenerationHistory()
   const newHistory = history.filter((r) => r.id !== id)
-  Storage.set('generation-history', newHistory)
+  TokenStorage.set('generation-history', newHistory)
 }

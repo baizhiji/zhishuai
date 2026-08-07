@@ -11,7 +11,6 @@ const API_ENDPOINTS = [
   { label: 'POST /api/auth/login', value: '/api/auth/login' },
   { label: 'POST /api/auth/register', value: '/api/auth/register' },
   { label: 'GET /api/agent/customers', value: '/api/agent/customers' },
-  { label: 'GET /api/crm/list', value: '/api/crm/list' },
 ];
 
 export default function ApiTestPage() {

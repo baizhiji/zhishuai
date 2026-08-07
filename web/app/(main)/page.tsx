@@ -29,8 +29,8 @@ const features = [
   },
   {
     icon: <PlayCircleOutlined />,
-    title: '矩阵管理',
-    description: '一键授权抖音、快手、小红书等多平台账号，统一管理多账号发布',
+    title: '数字人平台',
+    description: 'AI数字人克隆与视频生成，支持形象定制、语音合成、智能互动',
     color: '#52c41a',
   },
   {
@@ -101,7 +101,7 @@ export default function HomePage() {
             <span className={styles.highlight}>企业智能化运营一站式解决方案</span>
           </Title>
           <Paragraph className={styles.heroDesc}>
-            集成 AI 内容生成、矩阵账号管理、智能招聘、智能获客等核心功能，
+            集成 AI 内容生成、数字人平台、智能招聘、智能获客等核心功能，
             <br />
             帮助企业实现智能化运营，降低人力成本，提升运营效率。
           </Paragraph>

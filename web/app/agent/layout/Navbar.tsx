@@ -5,7 +5,6 @@ import { Layout, Menu, Modal, Form, Input, App, Avatar } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
-  DollarOutlined,
   WarningOutlined,
   CustomerServiceOutlined,
   SettingOutlined,
@@ -13,10 +12,8 @@ import {
   SwapOutlined,
   LogoutOutlined,
   UserOutlined,
-  RobotOutlined,
-  AppstoreOutlined,
   BarChartOutlined,
-  KeyOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,13 +47,10 @@ const AgentNavbar: React.FC = () => {
   const menuItems: MenuItemDef[] = [
     { key: 'dashboard', label: '数据总览', path: '/agent/dashboard' },
     { key: 'customers', label: '客户管理', path: '/agent/customers' },
-    { key: 'ai-factory', label: 'AI创作工厂', path: '/agent/ai-factory' },
-    { key: 'materials', label: '内容中心', path: '/agent/materials' },
     { key: 'usage', label: '用量统计', path: '/agent/usage' },
-    { key: 'settlement', label: '分成结算', path: '/agent/settlement' },
     { key: 'tickets', label: '工单处理', path: '/agent/tickets' },
     { key: 'support', label: '客服中心', path: '/agent/support' },
-    { key: 'api-keys', label: 'API管理', path: '/agent/api-keys' },
+    { key: 'settlement', label: '分成结算', path: '/agent/settlement' },
   ];
 
   useEffect(() => {
@@ -88,8 +82,8 @@ const AgentNavbar: React.FC = () => {
   // 退出登录（带二次确认）
   const handleLogout = useCallback(() => {
     modal.confirm({
-      title: '确认退出登录？',
-      content: '退出后需要重新登录才能继续使用',
+      title: '退出登录',
+      content: '确定要退出当前账号吗？',
       okText: '确认退出',
       cancelText: '取消',
       okButtonProps: { danger: true },
@@ -115,7 +109,7 @@ const AgentNavbar: React.FC = () => {
     setPasswordLoading(true);
     try {
       const request = (await import('@/lib/request')).default;
-      const res = (await request.put('/auth/password', {
+      const res = (await request.put('/account/password', {
         oldPassword: values.oldPassword,
         newPassword: values.newPassword,
       })) as unknown as { success: boolean; message?: string };
@@ -197,24 +191,9 @@ const AgentNavbar: React.FC = () => {
               label: '客户管理',
             },
             {
-              key: 'ai-factory',
-              icon: <RobotOutlined />,
-              label: 'AI创作工厂',
-            },
-            {
-              key: 'materials',
-              icon: <AppstoreOutlined />,
-              label: '内容中心',
-            },
-            {
               key: 'usage',
               icon: <BarChartOutlined />,
               label: '用量统计',
-            },
-            {
-              key: 'settlement',
-              icon: <DollarOutlined />,
-              label: '分成结算',
             },
             {
               key: 'tickets',
@@ -227,9 +206,9 @@ const AgentNavbar: React.FC = () => {
               label: '客服中心',
             },
             {
-              key: 'api-keys',
-              icon: <KeyOutlined />,
-              label: 'API管理',
+              key: 'settlement',
+              icon: <DollarOutlined />,
+              label: '分成结算',
             },
             {
               key: 'settings',

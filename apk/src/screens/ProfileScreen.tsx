@@ -94,7 +94,7 @@ export default function ProfileScreen() {
     Alert.alert('退出登录', '确定要退出当前账号吗？', [
       { text: '取消', style: 'cancel' },
       {
-        text: '确定',
+        text: '确认退出',
         style: 'destructive',
         onPress: async () => {
           setLoggingOut(true);
@@ -120,7 +120,7 @@ export default function ProfileScreen() {
           `新版本: v${result.latestVersion}\n更新内容:\n${result.releaseNotes || '暂无更新说明'}\n\n是否立即更新?`,
           [
             { text: '稍后', style: 'cancel' },
-            { text: '立即更新', onPress: () => updateService.downloadUpdate() }
+            { text: '立即更新', onPress: () => updateService.downloadAndInstall(result.versionInfo!.downloadUrl) }
           ]
         );
       } else {
@@ -177,10 +177,10 @@ export default function ProfileScreen() {
         </View>
         <Text style={[styles.nickname, { color: theme.text }]}>{displayName}</Text>
         <Text style={[styles.phone, { color: theme.textSecondary }]}>{displayPhone}</Text>
-        <TouchableOpacity style={[styles.expiryBadge, { backgroundColor: theme.card }]} onPress={() => navigate?.('Subscription')}>
+        <View style={[styles.expiryBadge, { backgroundColor: theme.card }]}>
           <Ionicons name="time-outline" size={14} color={theme.primary} />
           <Text style={[styles.expiryText, { color: theme.primary }]}>服务到期：{expiryDate}</Text>
-        </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -198,12 +198,10 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>账号管理</Text>
+          <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>业务</Text>
           <View style={[styles.menuGroup, { backgroundColor: theme.card }]}>
-            <MenuItem icon="browsers-outline" iconColor="#3B82F6" title="账号总览" subtitle="套餐信息、用量统计" onPress={() => navigate?.('AccountOverview')} />
-            <MenuItem icon="card-outline" iconColor="#F59E0B" title="订阅管理" subtitle="套餐升级、续费" onPress={() => navigate?.('Subscription')} />
-            <MenuItem icon="people-outline" iconColor="#22C55E" title="员工管理" subtitle="添加员工、角色权限" onPress={() => navigate?.('StaffManagement')} />
-            <MenuItem icon="link-outline" iconColor="#8B5CF6" title="账号绑定" subtitle="微信、抖音、小红书" onPress={() => navigate?.('AccountManagement')} />
+            <MenuItem icon="gift-outline" iconColor="#F59E0B" title="转介绍" subtitle={`已邀请 ${referralStats?.totalInvites || 0} 人`} onPress={() => navigate?.('Referral')} />
+            <MenuItem icon="qr-code-outline" iconColor="#3B82F6" title="在线客服" subtitle="扫码添加企业微信咨询" onPress={() => navigate?.('SupportQR')} />
           </View>
         </View>
 
@@ -212,10 +210,10 @@ export default function ProfileScreen() {
           <View style={[styles.menuGroup, { backgroundColor: theme.card }]}>
             <MenuItem icon="moon-outline" iconColor="#3B82F6" title="深色模式" subtitle={getThemeModeText()} onPress={() => setDarkModeModalVisible(true)} showArrow={false} />
             <MenuItem icon="cloud-download-outline" iconColor="#06B6D4" title="检查更新" subtitle="当前版本 v1.0.0" onPress={handleCheckUpdate} />
-            <MenuItem icon="help-circle-outline" iconColor="#64748B" title="帮助与反馈" subtitle="帮助文档、联系客服" onPress={() => {
+            <MenuItem icon="help-circle-outline" iconColor="#64748B" title="帮助与反馈" subtitle="帮助文档、意见反馈" onPress={() => {
               Alert.alert('帮助与反馈', '请选择：', [
                 { text: '帮助文档', onPress: () => Linking.openURL('https://help.zhishuai.com') },
-                { text: '联系客服', onPress: () => Alert.alert('客服热线', '400-xxx-xxxx') },
+                { text: '意见反馈', onPress: () => Alert.alert('意见反馈', '请通过在线客服提交反馈') },
                 { text: '取消', style: 'cancel' }
               ]);
             }} />

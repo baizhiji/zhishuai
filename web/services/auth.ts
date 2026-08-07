@@ -57,15 +57,15 @@ export const AuthAPI = {
 
   // 更新用户信息
   updateProfile: (data: any) => {
-    return request.put<any>('/api/auth/profile', data);
+    return request.put<any>('/api/auth/me', data);
   },
 
   // 修改密码
   changePassword: (data: { oldPassword: string; newPassword: string }) => {
-    return request.post<any>('/api/auth/change-password', data);
+    return request.put<any>('/api/auth/password', data);
   },
 
-  // 登出
+  // 登出（清除服务端 session）
   logout: () => {
     return request.post<any>('/api/auth/logout', {});
   },
