@@ -88,7 +88,7 @@ export default function AdminAnnouncementPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter);
 
       const res = (await request.get<{ success: boolean; data: { list: Announcement[]; total: number } }>(
-        `/api/admin/announcements/list?${params.toString()}`
+        `/admin/announcements/list?${params.toString()}`
       )) as unknown as { success: boolean; data: { list: Announcement[]; total: number } };
 
       if (res.success) {
@@ -152,12 +152,12 @@ export default function AdminAnnouncementPage() {
       let res: any;
       if (editing) {
         res = (await request.put<{ success: boolean; message?: string }>(
-          `/api/admin/announcements/${editing.id}`,
+          `/admin/announcements/${editing.id}`,
           payload
         )) as unknown as { success: boolean; message?: string };
       } else {
         res = (await request.post<{ success: boolean; message?: string }>(
-          '/api/admin/announcements/create',
+          '/admin/announcements/create',
           payload
         )) as unknown as { success: boolean; message?: string };
       }
@@ -178,7 +178,7 @@ export default function AdminAnnouncementPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.delete<{ success: boolean; message?: string }>(
-        `/api/admin/announcements/${id}`
+        `/admin/announcements/${id}`
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {
         message.success('已删除');
@@ -196,7 +196,7 @@ export default function AdminAnnouncementPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.put<{ success: boolean; message?: string }>(
-        `/api/admin/announcements/${item.id}`,
+        `/admin/announcements/${item.id}`,
         { status: nextStatus }
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {

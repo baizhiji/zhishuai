@@ -108,7 +108,7 @@ export default function AdminAgentsPage() {
       params.set('pageSize', '50');
 
       const res = (await request.get<{ data: Agent[]; pagination: { total: number } }>(
-        `/api/admin/agents?${params.toString()}`
+        `/admin/agents?${params.toString()}`
       )) as unknown as { data: Agent[]; pagination: { total: number } };
 
       if (res && Array.isArray(res.data)) {
@@ -132,7 +132,7 @@ export default function AdminAgentsPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: { totalAgents: number; activeAgents: number } }>(
-        '/api/admin/dashboard'
+        '/admin/dashboard'
       )) as unknown as { success: boolean; data: { totalAgents: number; activeAgents: number } };
       if (res.success && res.data) {
         setStats(prev => ({
@@ -159,7 +159,7 @@ export default function AdminAgentsPage() {
     setDetailLoading(true);
     try {
       const request = (await import('@/lib/request')).default;
-      const res = (await request.get<{ data: Agent }>(`/api/admin/agents/${agent.id}`)) as unknown as { data: Agent };
+      const res = (await request.get<{ data: Agent }>(`/admin/agents/${agent.id}`)) as unknown as { data: Agent };
       if (res?.data) {
         setDetailAgent(res.data);
       }
@@ -176,7 +176,7 @@ export default function AdminAgentsPage() {
       const request = (await import('@/lib/request')).default;
       const nextStatus = agent.status === 'active' ? 'frozen' : 'active';
       const res = (await request.patch<{ error?: string }>(
-        `/api/admin/agents/${agent.id}/status`,
+        `/admin/agents/${agent.id}/status`,
         { status: nextStatus }
       )) as unknown as { error?: string };
       if (!res?.error) {
@@ -198,7 +198,7 @@ export default function AdminAgentsPage() {
       setCreateLoading(true);
       const request = (await import('@/lib/request')).default;
       const res = (await request.post<{ error?: string }>(
-        '/api/admin/agents',
+        '/admin/agents',
         values
       )) as unknown as { error?: string };
       if (!res?.error) {

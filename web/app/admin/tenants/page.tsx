@@ -107,7 +107,7 @@ export default function AdminCustomersPage() {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       params.set('pageSize', '50');
       const res = (await request.get<{ success: boolean; data: { list: Customer[]; total: number } }>(
-        `/api/admin/customers?${params.toString()}`
+        `/admin/customers?${params.toString()}`
       )) as unknown as { success: boolean; data: { list: Customer[]; total: number } };
       if (res.success) {
         setCustomers(res.data?.list || []);
@@ -127,7 +127,7 @@ export default function AdminCustomersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: { totalCustomers: number; activeCustomers: number; disabledCustomers: number; newCustomersThisMonth: number } }>(
-        '/api/admin/dashboard'
+        '/admin/dashboard'
       )) as unknown as { success: boolean; data: { totalCustomers: number; activeCustomers: number; disabledCustomers: number; newCustomersThisMonth: number } };
       if (res.success && res.data) {
         setStatistics({
@@ -147,7 +147,7 @@ export default function AdminCustomersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: { list: any[] } }>(
-        '/api/admin/agents?pageSize=100'
+        '/admin/agents?pageSize=100'
       )) as unknown as { success: boolean; data: { list: any[] } };
       if (res.success) {
         setAgents((res.data?.list || []).map((a: any) => ({
@@ -165,7 +165,7 @@ export default function AdminCustomersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: CustomerFeature[] }>(
-        '/api/admin/features'
+        '/admin/features'
       )) as unknown as { success: boolean; data: CustomerFeature[] };
       if (res.success) {
         const map = new Map<string, { name: string; color: string }>();
@@ -192,7 +192,7 @@ export default function AdminCustomersPage() {
       const request = (await import('@/lib/request')).default;
       const nextStatus = customer.status === 'active' ? 'disabled' : 'active';
       const res = (await request.patch<{ success: boolean; message?: string }>(
-        `/api/admin/customers/${customer.id}/status`,
+        `/admin/customers/${customer.id}/status`,
         { status: nextStatus }
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {
@@ -212,7 +212,7 @@ export default function AdminCustomersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.post<{ success: boolean; data?: { newPassword?: string }; message?: string }>(
-        `/api/admin/customers/${customer.id}/reset-password`
+        `/admin/customers/${customer.id}/reset-password`
       )) as unknown as { success: boolean; data?: { newPassword?: string }; message?: string };
       if (res.success) {
         const pwd = res.data?.newPassword || '123456';
@@ -241,7 +241,7 @@ export default function AdminCustomersPage() {
       setCreateLoading(true);
       const request = (await import('@/lib/request')).default;
       const res = (await request.post<{ success: boolean; message?: string }>(
-        '/api/admin/customers',
+        '/admin/customers',
         values
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {
@@ -269,7 +269,7 @@ export default function AdminCustomersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: CustomerFeature[] }>(
-        `/api/admin/customers/${customer.id}/features`
+        `/admin/customers/${customer.id}/features`
       )) as unknown as { success: boolean; data: CustomerFeature[] };
       if (res.success) {
         setCustomerFeatures(res.data || []);
@@ -324,7 +324,7 @@ export default function AdminCustomersPage() {
       const request = (await import('@/lib/request')).default;
       const features = customerFeatures.map(f => ({ code: f.code, enabled: f.enabled }));
       const res = (await request.put<{ success: boolean; message?: string }>(
-        `/api/admin/customers/${detailCustomer.id}/features`,
+        `/admin/customers/${detailCustomer.id}/features`,
         { features }
       )) as unknown as { success: boolean; message?: string };
       if (res.success) {

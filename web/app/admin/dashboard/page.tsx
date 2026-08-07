@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: AdminStatistics }>(
-        '/api/admin/dashboard'
+        '/admin/dashboard'
       )) as unknown as { success: boolean; data: AdminStatistics };
       if (res.success && res.data) {
         setStatistics(res.data);

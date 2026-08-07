@@ -141,7 +141,7 @@ export default function AdminApiProvidersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: CategoryInfo[] }>(
-        '/api/admin/api-providers/categories-list'
+        '/admin/api-providers/categories-list'
       )) as unknown as { success: boolean; data: CategoryInfo[] };
       if (res.success) {
         setCategories(res.data || []);
@@ -157,7 +157,7 @@ export default function AdminApiProvidersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: ApiProvider[] }>(
-        '/api/admin/api-providers/providers'
+        '/admin/api-providers/providers'
       )) as unknown as { success: boolean; data: ApiProvider[] };
       if (res.success) {
         setProviders(res.data || []);
@@ -182,7 +182,7 @@ export default function AdminApiProvidersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.patch<{ success: boolean; data: ApiProvider }>(
-        `/api/admin/api-providers/providers/${provider.id}/toggle`
+        `/admin/api-providers/providers/${provider.id}/toggle`
       )) as unknown as { success: boolean; data: ApiProvider };
       if (res.success) {
         message.success(`${provider.name} 已${provider.enabled ? '停用' : '启用'}`);
@@ -200,7 +200,7 @@ export default function AdminApiProvidersPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.delete<{ success: boolean }>(
-        `/api/admin/api-providers/providers/${id}`
+        `/admin/api-providers/providers/${id}`
       )) as unknown as { success: boolean };
       if (res.success) {
         message.success('已删除');
@@ -250,12 +250,12 @@ export default function AdminApiProvidersPage() {
         const payload: any = { ...values };
         if (!payload.apiKey) delete payload.apiKey;
         res = (await request.put<{ success: boolean; message?: string }>(
-          `/api/admin/api-providers/providers/${editing.id}`,
+          `/admin/api-providers/providers/${editing.id}`,
           payload
         )) as unknown as { success: boolean; message?: string };
       } else {
         res = (await request.post<{ success: boolean; message?: string }>(
-          '/api/admin/api-providers/providers',
+          '/admin/api-providers/providers',
           values
         )) as unknown as { success: boolean; message?: string };
       }
