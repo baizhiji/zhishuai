@@ -56,6 +56,23 @@ export interface LoginSession {
   status: 'pending' | 'logged_in' | 'failed' | 'cancelled';
   message?: string;
   createdAt: number;
+  cookies?: any[];
+  accountInfo?: { name?: string; avatar?: string; accountId?: string };
+}
+
+/** 评论发布结果 */
+export interface CommentPublishResult {
+  success: boolean;
+  message: string;
+  deliveryId?: string;
+}
+
+/** 评论发布配置 */
+export interface CommentPublishConfig {
+  targetUrl: string;      // 目标内容页 URL
+  content: string;        // 评论内容
+  cookies?: any[];        // 已登录账号的 cookies（优先于文件 cookie）
+  accountName?: string;   // 账号昵称（日志用）
 }
 
 interface CookieData {
@@ -70,6 +87,13 @@ interface PublishSelectors {
   desc?: string;
   tags?: string;
   submit?: string;
+}
+
+/** 评论发布选择器 */
+interface CommentSelectors {
+  input: string;          // 评论区输入框
+  submit: string;         // 发表/发布按钮
+  accountName: string;    // 登录后账号昵称选择器（提取账号信息用）
 }
 
 // ─── 平台配置 ────────────────────────────────
@@ -157,6 +181,30 @@ const PUBLISH_SELECTORS: Record<string, PublishSelectors> = {
     title: '[placeholder*="标题"], input[class*="title"]',
     desc: '[placeholder*="描述"], [placeholder*="简介"]',
     submit: 'button:has-text("发表"), button:has-text("发布")',
+  },
+};
+
+/** 平台评论选择器（跟评发送） */
+const COMMENT_SELECTORS: Record<string, CommentSelectors> = {
+  douyin: {
+    input: '[data-e2e="comment-input"], .comment-input textarea, textarea[placeholder*="评论"]',
+    submit: '[data-e2e="comment-post"], button:has-text("发布"), button:has-text("发表")',
+    accountName: '.creator-avatar, .account-info, .nickname',
+  },
+  kuaishou: {
+    input: '.comment-input textarea, textarea[placeholder*="评论"], textarea[placeholder*="说点什么"]',
+    submit: 'button:has-text("发布"), button:has-text("发表")',
+    accountName: '.user-info, .avatar-wrap, .nickname',
+  },
+  xiaohongshu: {
+    input: '.comment-input textarea, #comment-input, textarea[placeholder*="评论"]',
+    submit: '.comment-submit, button:has-text("发布"), button:has-text("发送")',
+    accountName: '.creator-name, .user-center, .nickname',
+  },
+  shipinhao: {
+    input: '.comment-input textarea, textarea[placeholder*="评论"], [contenteditable="true"]',
+    submit: 'button:has-text("发表"), button:has-text("发送"), button:has-text("评论")',
+    accountName: '.account-info, .nickname, .creator-name',
   },
 };
 
@@ -269,7 +317,13 @@ class PlaywrightService {
   /**
    * 查询登录会话状态(双重检测：后台轮询 + 主动检查)
    */
-  async getLoginStatus(sessionId: string): Promise<{ status: string; message?: string; platform: string }> {
+  async getLoginStatus(sessionId: string): Promise<{
+    status: string;
+    message?: string;
+    platform: string;
+    cookies?: any[];
+    accountInfo?: { name?: string; avatar?: string; accountId?: string };
+  }> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error('登录会话不存在或已过期');
@@ -279,19 +333,37 @@ class PlaywrightService {
       const config = PLATFORM_LOGIN_CONFIGS[session.platform];
       const el = await session.page.$(config.waitForSelector).catch(() => null);
       if (el) {
-        const cookies = await session.context.cookies();
-        this.saveCookies(config.cookieFileName, cookies);
-        session.status = 'logged_in';
-        session.message = '登录成功';
+        await this.finalizeLogin(session);
       }
     }
 
+    const result = {
+      status: session.status,
+      message: session.message,
+      platform: session.platform,
+      cookies: session.cookies,
+      accountInfo: session.accountInfo,
+    };
+
     if (session.status === 'logged_in' || session.status === 'failed' || session.status === 'cancelled') {
-      await session.context.close().catch(() => {});
-      this.sessions.delete(sessionId);
+      // 保留 logged_in 会话一小段时间供路由读取 cookies 后由路由调用 finishLogin 清理
+      if (session.status !== 'logged_in') {
+        await session.context.close().catch(() => {});
+        this.sessions.delete(sessionId);
+      }
     }
 
-    return { status: session.status, message: session.message, platform: session.platform };
+    return result;
+  }
+
+  /**
+   * 登录成功后清理会话（路由绑定账号到数据库后调用）
+   */
+  async finishLogin(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+    await session.context.close().catch(() => {});
+    this.sessions.delete(sessionId);
   }
 
   /**
@@ -321,15 +393,52 @@ class PlaywrightService {
         if (session.status !== 'pending') return;
         const el = await session.page.$(config.waitForSelector).catch(() => null);
         if (el) {
-          const cookies = await session.context.cookies();
-          this.saveCookies(config.cookieFileName, cookies);
-          session.status = 'logged_in';
-          session.message = '登录成功';
+          await this.finalizeLogin(session);
           return;
         }
       }
       session.status = 'failed';
       session.message = '登录超时，请重试';
+    } catch (error: any) {
+      session.status = 'failed';
+      session.message = `登录失败: ${error.message}`;
+    }
+  }
+
+  /**
+   * 登录成功收尾：保存 cookies + 提取账号信息
+   */
+  private async finalizeLogin(session: LoginSession): Promise<void> {
+    const config = PLATFORM_LOGIN_CONFIGS[session.platform];
+    try {
+      const cookies = await session.context.cookies();
+      session.cookies = cookies;
+      this.saveCookies(config.cookieFileName, cookies);
+
+      // 提取账号昵称/头像
+      const accountNameSel = COMMENT_SELECTORS[session.platform]?.accountName || config.waitForSelector;
+      let name: string | undefined;
+      let avatar: string | undefined;
+      try {
+        if (accountNameSel) {
+          const el = await session.page.$(accountNameSel).catch(() => null);
+          if (el) {
+            name = (await el.textContent().catch(() => ''))?.trim() || undefined;
+            const img = await el.$('img').catch(() => null);
+            if (img) avatar = (await img.getAttribute('src').catch(() => undefined)) || undefined;
+          }
+        }
+        if (!name) {
+          const avatarEl = await session.page.$('img.creator-avatar, .avatar-wrap img, .avatar img, .user-avatar').catch(() => null);
+          if (avatarEl) avatar = (await avatarEl.getAttribute('src').catch(() => undefined)) || undefined;
+        }
+      } catch {
+        // 账号信息提取失败不阻塞登录
+      }
+      session.accountInfo = { name, avatar, accountId: name };
+
+      session.status = 'logged_in';
+      session.message = '登录成功';
     } catch (error: any) {
       session.status = 'failed';
       session.message = `登录失败: ${error.message}`;
@@ -433,6 +542,86 @@ class PlaywrightService {
       return { success: false, message: `发布失败: ${error.message}` };
     } finally {
       await page.close().catch(() => {});
+    }
+  }
+
+  /**
+   * 发布评论（跟评核心能力）
+   * 打开目标内容页 → 定位评论区 → 输入话术 → 发布
+   */
+  async postComment(platform: string, config: CommentPublishConfig): Promise<CommentPublishResult> {
+    const loginConfig = PLATFORM_LOGIN_CONFIGS[platform];
+    if (!loginConfig) {
+      return { success: false, message: `未知平台: ${platform}` };
+    }
+
+    await this.init();
+    const context = await this.browser!.newContext({
+      viewport: { width: 1440, height: 900 },
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    });
+
+    // 优先注入账号 cookies（来自数据库授权），无则回退文件 cookie
+    const cookies = config.cookies && config.cookies.length > 0
+      ? config.cookies
+      : this.loadCookies(loginConfig.cookieFileName);
+    if (cookies.length > 0) {
+      await context.addCookies(cookies).catch(() => {});
+    }
+
+    const page = await context.newPage();
+    try {
+      await page.goto(config.targetUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForTimeout(4000); // 等待评论区渲染
+
+      const selectors = COMMENT_SELECTORS[platform] || COMMENT_SELECTORS.douyin;
+
+      // 定位评论区输入框
+      const input = await page.$(selectors.input).catch(() => null);
+      if (!input) {
+        // 部分平台需先点击"评论"展开输入框
+        const openBtn = await page.$('button:has-text("评论"), [data-e2e*="comment"]').catch(() => null);
+        if (openBtn) {
+          await openBtn.click().catch(() => {});
+          await page.waitForTimeout(1500);
+        }
+      }
+      const finalInput = await page.$(selectors.input).catch(() => null);
+      if (!finalInput) {
+        return { success: false, message: '未找到评论输入框，页面结构可能已变更' };
+      }
+
+      await finalInput.click().catch(() => {});
+      await page.waitForTimeout(500);
+      await finalInput.fill(config.content).catch(() => {});
+      await page.waitForTimeout(800);
+
+      // 点击发布
+      const submit = await page.$(selectors.submit).catch(() => null);
+      if (!submit) {
+        await page.keyboard.press('Enter').catch(() => {});
+        await page.waitForTimeout(2000);
+      } else {
+        await submit.click().catch(() => {});
+        await page.waitForTimeout(2000);
+      }
+
+      // 校验评论是否发布成功（输入框清空 or 评论列表中出现了内容）
+      const inputValue = await finalInput.inputValue().catch(() => '');
+      const cleared = inputValue.length === 0;
+      const inList = await page
+        .$(`.comment-item:has-text("${config.content.slice(0, 10)}"), .comment-list :text("${config.content.slice(0, 10)}")`)
+        .catch(() => null);
+
+      if (cleared || inList) {
+        return { success: true, message: '评论发布成功' };
+      }
+      return { success: false, message: '评论可能未发布成功，请人工检查' };
+    } catch (error: any) {
+      return { success: false, message: `评论发布失败: ${error.message}` };
+    } finally {
+      await page.close().catch(() => {});
+      await context.close().catch(() => {});
     }
   }
 
@@ -650,6 +839,10 @@ export function getAdapter(platform: string): any {
     waitForSelector: config.waitForSelector,
     login: () => playwrightService.ensureLogin(platform),
     publish: (cfg: any) => playwrightService.publishContent(platform, cfg),
+    postComment: (cfg: any) => playwrightService.postComment(platform, cfg),
+    startLogin: () => playwrightService.startLogin(platform),
+    getLoginStatus: (sessionId: string) => playwrightService.getLoginStatus(sessionId),
+    cancelLogin: (sessionId: string) => playwrightService.cancelLogin(sessionId),
     getPage: () => playwrightService.getPage(platform),
     close: () => playwrightService.closeContext(platform),
   };

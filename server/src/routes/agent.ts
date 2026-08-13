@@ -229,6 +229,7 @@ router.get('/customers/:id([0-9a-fA-F-]{36})', async (req: Request, res: Respons
       customerWhere.UserAgentRelation = { agentId: agentId };
     }
     const customer = await prisma.user.findFirst({
+      where: customerWhere,
       select: {
         id: true,
         phone: true,
@@ -238,6 +239,9 @@ router.get('/customers/:id([0-9a-fA-F-]{36})', async (req: Request, res: Respons
         status: true,
         createdAt: true,
         updatedAt: true,
+        package: true,
+        expireAt: true,
+        fee: true,
 
         UserFeatureSwitch: true,
       },
@@ -611,6 +615,76 @@ router.put('/customers/:id/features', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('更新功能开关失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// 设置客户套餐订阅（线下收款后手动开通，仅统计不涉及线上支付）
+router.put('/customers/:id([0-9a-fA-F-]{36})/subscription', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const customerId = req.params.id;
+    const { plan, expireMonths, expireAt, fee } = req.body;
+
+    // 验证客户属于该代理商
+    const agentId = await resolveAgentId(userId);
+    const customer = await prisma.user.findFirst({
+      where: { id: customerId, UserAgentRelation: { agentId: agentId } },
+    });
+
+    if (!customer) {
+      return res.status(404).json({ success: false, message: '客户不存在' });
+    }
+
+    // 计算到期时间：优先使用 expireAt，否则用 expireMonths 从当前时间推算
+    let finalExpire: Date;
+    if (expireAt) {
+      finalExpire = new Date(expireAt);
+    } else if (expireMonths) {
+      finalExpire = new Date();
+      finalExpire.setMonth(finalExpire.getMonth() + Number(expireMonths));
+    } else {
+      return res.status(400).json({ success: false, message: '请提供 expireAt 或 expireMonths' });
+    }
+
+    const finalFee = fee !== undefined && fee !== null ? Number(fee) : 0;
+    if (finalFee < 0) {
+      return res.status(400).json({ success: false, message: '费用不能为负数' });
+    }
+
+    // 更新客户套餐信息
+    await prisma.user.update({
+      where: { id: customerId },
+      data: {
+        package: plan || '基础版',
+        expireAt: finalExpire,
+        fee: finalFee,
+        lastPaidAt: new Date(),
+      },
+    });
+
+    // 创建线下支付记录（用于结算统计与订阅历史，不涉及真实支付）
+    await prisma.payment.create({
+      data: {
+        id: genUUID(),
+        userId: customerId,
+        agentId: agentId,
+        type: 'customer_fee',
+        amount: finalFee,
+        status: 'paid',
+        paidAt: new Date(),
+        description: `线下开通 ${plan || '套餐'}`,
+        period: expireMonths ? `${expireMonths}个月` : '一次性',
+      },
+    });
+
+    res.json({
+      success: true,
+      message: '套餐已开通',
+      data: { expireAt: finalExpire.toISOString() },
+    });
+  } catch (error: any) {
+    console.error('设置客户套餐失败:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });

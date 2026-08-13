@@ -99,5 +99,5 @@ jobs:
             cd /var/www/zhishuai
             git pull origin main
             cd web && npm ci && npm run build && pm2 restart zhishuai-web
-            cd ../server && npm ci && npm run build && pm2 restart zhishuai-api
+            cd ../server && npm ci && npx prisma generate && npx prisma db push --skip-generate && npm run build && pm2 restart zhishuai-api
             cd ../scripts && bash verify-login.sh

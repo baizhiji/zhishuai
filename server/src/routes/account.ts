@@ -6,6 +6,14 @@ import { validate } from '../utils/validate';
 import { changePasswordSchema, updateProfileSchema, paginationSchema } from '../validators/schemas';
 import { ok, badRequest, internalError } from '../utils/api-response';
 
+function formatDate(date: Date | string): string {
+  const d = new Date(date);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 const router = Router();
 // 获取账户信息
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
@@ -129,6 +137,81 @@ router.get('/packages', async (req: Request, res: Response) => {
     ];
 
     ok(res, packages);
+  } catch (error: any) {
+    internalError(res, error.message);
+  }
+});
+
+// 获取订阅信息（套餐/有效期/已开通功能）
+router.get('/subscription', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    const [user, features, payments] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          package: true,
+          expireAt: true,
+          fee: true,
+          lastPaidAt: true,
+          totalPaid: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+      prisma.userFeatureSwitch.findMany({
+        where: { userId, enabled: true },
+        select: { featureCode: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.payment.findMany({
+        where: { userId, type: 'customer_fee' },
+        orderBy: { paidAt: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          amount: true,
+          status: true,
+          description: true,
+          paidAt: true,
+          period: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    if (!user) {
+      return badRequest(res, '用户不存在');
+    }
+
+    const now = new Date();
+    const expired = user.expireAt ? user.expireAt.getTime() < now.getTime() : false;
+
+    const current = user.expireAt
+      ? {
+          plan: user.package || '基础版',
+          status: expired ? 'expired' : 'active',
+          startDate: user.lastPaidAt ? formatDate(user.lastPaidAt) : formatDate(user.createdAt),
+          expireDate: formatDate(user.expireAt),
+          fee: Number(user.fee || 0),
+        }
+      : null;
+
+    ok(res, {
+      current,
+      features: features.map(f => f.featureCode),
+      history: payments.map(p => ({
+        id: p.id,
+        plan: p.description || p.period || '套餐',
+        period: p.period || '—',
+        status: p.status === 'paid' ? 'active' : 'expired',
+        date: p.paidAt ? formatDate(p.paidAt) : formatDate(p.createdAt),
+        amount: Number(p.amount || 0),
+      })),
+    });
   } catch (error: any) {
     internalError(res, error.message);
   }

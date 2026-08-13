@@ -43,6 +43,18 @@ class Request {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
+      // 服务端路由（social-account / comment-delivery 等）通过 x-user-id 头识别当前用户
+      try {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user?.id) {
+            headers['x-user-id'] = String(user.id);
+          }
+        }
+      } catch {
+        // 忽略解析失败，由路由自行兜底
+      }
     }
 
     return headers;

@@ -243,11 +243,13 @@ export async function getAvailableAccounts(
 /**
  * 获取平台显示名称
  */
-function getPlatformName(platform: string): string {
+export function getPlatformName(platform: string): string {
   const names: Record<string, string> = {
     douyin: '抖音',
     kuaishou: '快手',
     xiaohongshu: '小红书',
+    shipinhao: '视频号',
+    channels: '视频号',
     weibo: '微博',
     boss: 'BOSS直聘',
     lagou: '拉勾网',

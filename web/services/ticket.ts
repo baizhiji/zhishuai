@@ -100,6 +100,7 @@ export const ticketCategories = [
 
 // 客户端（客户后台）工单类别：与客户端 4 大功能统一
 export const customerTicketCategories = [
+  { value: 'subscription', label: '套餐订阅', description: '套餐开通、续费、升级申请' },
   { value: 'media', label: 'AI创作工厂', description: 'AI图文、图片、视频创作' },
   { value: 'customer_service', label: '智能客服', description: '客服机器人、常见问题、自动回复' },
   { value: 'acquisition', label: '智能获客', description: '获客任务、获客看板、数据统计' },

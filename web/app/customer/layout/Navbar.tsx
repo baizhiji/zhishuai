@@ -142,6 +142,12 @@ function getNavigationItems(
           featureKey: 'leads',
           children: [
             {
+              key: 'acquisition-accounts',
+              label: '平台账号授权',
+              icon: <QrcodeOutlined />,
+              path: '/customer/acquisition/accounts',
+            },
+            {
               key: 'acquisition-board',
               label: '获客看板',
               icon: <PieChartOutlined />,
@@ -158,6 +164,12 @@ function getNavigationItems(
               label: '获客任务',
               icon: <ClockCircleOutlined />,
               path: '/customer/acquisition/task',
+            },
+            {
+              key: 'acquisition-comment',
+              label: '跟评中心',
+              icon: <CommentOutlined />,
+              path: '/customer/acquisition/comment',
             },
           ],
         },

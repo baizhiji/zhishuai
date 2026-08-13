@@ -36,11 +36,13 @@ import {
   CheckCircleOutlined,
   StopOutlined,
   UserAddOutlined,
+  CrownOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import {
   getCustomers,
+  getCustomer,
   createCustomer,
   updateCustomer,
   toggleCustomerStatus,
@@ -48,6 +50,7 @@ import {
   getCustomerFeatures,
   updateCustomerFeatures,
   getCustomerStats,
+  setCustomerSubscription,
   Customer,
   CustomerFeature,
 } from '@/services/customer';
@@ -83,6 +86,9 @@ export default function CustomerManagementPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [features, setFeatures] = useState<CustomerFeature[]>([]);
   const [featuresLoading, setFeaturesLoading] = useState(false);
+  const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
+  const [subscriptionSaving, setSubscriptionSaving] = useState(false);
+  const [subscriptionForm] = Form.useForm();
   const [statistics, setStatistics] = useState<AgentStatistics>({
     totalCustomers: 0,
     activeCustomers: 0,
@@ -204,10 +210,43 @@ export default function CustomerManagementPage() {
 
   const fetchCustomerDetail = async (id: string) => {
     try {
-      const res = await getCustomerStats(id);
+      const res = await getCustomer(id);
       setSelectedCustomer(prev => (prev ? { ...prev, ...res } : null));
     } catch (error) {
       console.error('获取客户详情失败');
+    }
+  };
+
+  const handleOpenSubscription = () => {
+    subscriptionForm.resetFields();
+    if (selectedCustomer?.package) {
+      subscriptionForm.setFieldsValue({
+        plan: selectedCustomer.package,
+        fee: selectedCustomer.fee,
+      });
+    }
+    setSubscriptionModalVisible(true);
+  };
+
+  const handleSaveSubscription = async () => {
+    try {
+      const values = await subscriptionForm.validateFields();
+      setSubscriptionSaving(true);
+      await setCustomerSubscription(selectedCustomer!.id, {
+        plan: values.plan,
+        expireMonths: values.expireMonths,
+        fee: values.fee,
+      });
+      message.success('套餐已开通，线下收款请自行登记');
+      setSubscriptionModalVisible(false);
+      fetchCustomerDetail(selectedCustomer!.id);
+      fetchStatistics();
+    } catch (error: any) {
+      if (!error.errorFields) {
+        message.error(error.message || '操作失败');
+      }
+    } finally {
+      setSubscriptionSaving(false);
     }
   };
 
@@ -539,6 +578,64 @@ export default function CustomerManagementPage() {
 
             <Divider />
 
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 12,
+              }}
+            >
+              <Title level={5} style={{ margin: 0 }}>
+                套餐订阅
+              </Title>
+              <Button
+                type="primary"
+                size="small"
+                icon={<CrownOutlined />}
+                onClick={handleOpenSubscription}
+              >
+                开通/续费套餐
+              </Button>
+            </div>
+            <Card size="small" style={{ marginBottom: 16 }}>
+              <Descriptions column={1} size="small">
+                <Descriptions.Item label="当前套餐">
+                  {selectedCustomer.package || '未开通'}
+                </Descriptions.Item>
+                <Descriptions.Item label="有效期至">
+                  {selectedCustomer.expireAt
+                    ? dayjs(selectedCustomer.expireAt).format('YYYY-MM-DD')
+                    : '未设置'}
+                </Descriptions.Item>
+                <Descriptions.Item label="套餐费用">
+                  {selectedCustomer.fee != null && Number(selectedCustomer.fee) > 0
+                    ? `¥${Number(selectedCustomer.fee).toFixed(2)}`
+                    : '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label="状态">
+                  {selectedCustomer.expireAt ? (
+                    <Tag
+                      color={
+                        new Date(selectedCustomer.expireAt).getTime() > Date.now()
+                          ? 'success'
+                          : 'error'
+                      }
+                    >
+                      {new Date(selectedCustomer.expireAt).getTime() > Date.now()
+                        ? '正常'
+                        : '已过期'}
+                    </Tag>
+                  ) : (
+                    <Tag>未开通</Tag>
+                  )}
+                </Descriptions.Item>
+              </Descriptions>
+              <div style={{ color: '#8c8c8c', fontSize: 12, marginTop: 8 }}>
+                本模块仅记录套餐状态用于统计展示，收款请线下完成。
+              </div>
+            </Card>
+
             <Title level={5} style={{ marginTop: 0 }}>
               数据统计
             </Title>
@@ -592,6 +689,68 @@ export default function CustomerManagementPage() {
           </>
         )}
       </Drawer>
+
+      {/* 开通/续费套餐弹窗 */}
+      <Modal
+        title="开通/续费套餐"
+        open={subscriptionModalVisible}
+        onOk={handleSaveSubscription}
+        onCancel={() => setSubscriptionModalVisible(false)}
+        confirmLoading={subscriptionSaving}
+        okText="确认开通"
+        width={480}
+      >
+        <div
+          style={{
+            background: '#fff7e6',
+            border: '1px solid #ffd591',
+            borderRadius: 6,
+            padding: '8px 12px',
+            color: '#ad6800',
+            fontSize: 13,
+            marginBottom: 16,
+          }}
+        >
+          开通后套餐有效期与费用将记录用于展示统计，实际收款请与客户线下完成。
+        </div>
+        <Form form={subscriptionForm} layout="vertical">
+          <Form.Item
+            name="plan"
+            label="套餐名称"
+            rules={[{ required: true, message: '请选择套餐' }]}
+          >
+            <Select
+              placeholder="请选择套餐"
+              options={[
+                { label: '基础版', value: '基础版' },
+                { label: '月度会员', value: '月度会员' },
+                { label: '季度会员', value: '季度会员' },
+                { label: '年度会员', value: '年度会员' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item
+            name="expireMonths"
+            label="时长（月）"
+            rules={[{ required: true, message: '请输入时长' }]}
+            extra="从当前时间起算"
+          >
+            <InputNumber min={1} max={36} style={{ width: '100%' }} placeholder="如 12" />
+          </Form.Item>
+          <Form.Item
+            name="fee"
+            label="套餐费用（元）"
+            rules={[{ required: true, message: '请输入费用' }]}
+          >
+            <InputNumber
+              min={0}
+              precision={2}
+              style={{ width: '100%' }}
+              placeholder="如 2980"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 }

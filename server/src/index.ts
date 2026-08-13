@@ -17,6 +17,7 @@ import userFeaturesRoutes from './routes/user-features';
 import adminApiProvidersRoutes, { adminApiProvidersAdminRouter } from './routes/admin-api-providers';
 import oauthRoutes from './routes/oauth';
 import socialAccountRoutes from './routes/social-account';
+import commentDeliveryRoutes from './routes/comment-delivery';
 import agentRoutes from './routes/agent';
 import hotTopicsRoutes from './routes/hot-topics';
 import versionRoutes from './routes/version';
@@ -138,6 +139,9 @@ app.use('/api/oauth', oauthRoutes);
 
 // 社交账号授权
 app.use('/api/social', socialAccountRoutes);
+
+// 智能获客跟评
+app.use('/api/comment-delivery', commentDeliveryRoutes);
 
 // 工单系统
 app.use('/api/tickets', ticketRoutes);

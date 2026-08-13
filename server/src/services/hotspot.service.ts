@@ -1,5 +1,9 @@
 /**
  * 热点话题服务
+ *
+ * 注意：本服务为「预留接口」。真实热点数据源（微博/抖音/小红书等公开热搜 API）
+ * 尚未接入，统一返回空数组，绝不返回编造数据。
+ * 前端热点功能请使用 hot-topics 路由（/api/hot-topics）。
  */
 
 export interface Hotspot {
@@ -14,20 +18,19 @@ export interface Hotspot {
 
 /**
  * 获取热点话题
+ * TODO: 接入真实热点 API（待数据源就绪后实现，当前返回空数组）
  */
 export async function getHotspots(platform?: string, category?: string): Promise<Hotspot[]> {
-  // TODO: 接入真实热点 API
-  return [
-    { id: '1', platform: 'weibo', keyword: 'AI人工智能', heat: 9856, label: '科技', timestamp: new Date() },
-    { id: '2', platform: 'douyin', keyword: '短视频', heat: 8542, label: '娱乐', timestamp: new Date() },
-    { id: '3', platform: 'xiaohongshu', keyword: '种草', heat: 7231, label: '生活', timestamp: new Date() },
-  ];
+  void platform;
+  void category;
+  return [];
 }
 
 /**
  * 搜索相关热点
  */
 export async function searchHotspots(keyword: string): Promise<Hotspot[]> {
+  void keyword;
   const all = await getHotspots();
   return all.filter(h => h.keyword.includes(keyword));
 }

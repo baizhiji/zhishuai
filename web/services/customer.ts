@@ -12,6 +12,9 @@ export interface Customer {
   materialCount?: number;
   accountCount?: number;
   publishCount?: number;
+  package?: string;         // 套餐名称
+  expireAt?: string;        // 套餐到期时间
+  fee?: number;             // 套餐费用
   createdAt: string;
   updatedAt: string;
 }
@@ -83,4 +86,22 @@ export function getCustomerStats(id: string, params?: {
     accountCount: number;
     publishCount: number;
   }>(`/api/agent/customers/${id}/stats`, { params });
+}
+
+export interface CustomerSubscription {
+  plan: string;
+  expireAt: string;
+  fee: number;
+}
+
+export function setCustomerSubscription(id: string, data: {
+  plan?: string;
+  expireMonths?: number;
+  expireAt?: string;
+  fee?: number;
+}) {
+  return request.put<{ expireAt: string }>(
+    `/api/agent/customers/${id}/subscription`,
+    data
+  );
 }

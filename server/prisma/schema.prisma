@@ -1014,9 +1014,47 @@ model SocialAccount {
   syncError     String?
   tokenExpiry   DateTime?
   isConnected   Boolean         @default(false)
+  CommentDelivery CommentDelivery[]
 
   @@index([agentId])
   @@index([userId, platform])
+}
+
+// 跟评发送记录（失败反馈闭环）
+model CommentDelivery {
+  id          String   @id @default(uuid())
+  userId      String
+  agentId     String?
+  accountId   String?
+  platform    String   // douyin/kuaishou/xiaohongshu/shipinhao
+  targetUrl   String
+  targetTitle String?
+  content     String   @db.Text
+  status      String   @default("success") // success/deleted/limited/folded/failed
+  failReason  String?
+  createdAt   DateTime @default(now())
+  SocialAccount SocialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform, createdAt])
+  @@index([accountId])
+  @@index([createdAt])
+}
+
+// 话术模板库（话术去重用）
+model CommentTemplate {
+  id        String   @id @default(uuid())
+  userId    String
+  platform  String   // douyin/kuaishou/xiaohongshu/shipinhao
+  content   String   @db.Text
+  hash      String   // 内容指纹，用于去重
+  type      String   @default("ai") // ai/manual/template
+  usedCount Int      @default(0)
+  lastUsedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, platform])
+  @@index([hash])
 }
 
 model Ticket {
@@ -1109,6 +1147,7 @@ model User {
   ShareRecord         ShareRecord[]
   UserAgentRelation   UserAgentRelation?
   UserFeatureSwitch   UserFeatureSwitch[]
+  CommentDelivery     CommentDelivery[]
   VideoClone          VideoClone[]
   VideoTask           VideoTask[]
   VoiceClone          VoiceClone[]

@@ -1,10 +1,24 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-13 (商用就绪改造第1-7组全部完成) | 提交数：535+ | 项目启动：2026-04-25
+> 最后更新：2026-08-14 (智能获客 4 平台真实扫码授权改造) | 提交数：535+ | 项目启动：2026-04-25
 
-## 2026-08-13 本次会话关键更新
+## 2026-08-14 本次会话关键更新
 
 ### 已完成
+10. **智能获客升级：抖音/快手/小红书/视频号 4 平台真实扫码授权 + 智能跟评（本次，按用户要求「账号授权就能使用」执行）**：
+   - **核心改造**：废弃旧伪二维码授权链路（`/session/create` 伪造二维码、`/session/login` 调用 adapter 不存在方法，确诊彻底损坏），改为 **Playwright 真实扫码登录**：`server/src/services/playwright.service.ts` 扩展 `LoginSession`（cookies/accountInfo）、新增 `COMMENT_SELECTORS`（4 平台评论输入框/发布按钮选择器）、`finalizeLogin`（登录成功保存 cookies+提取昵称头像）、`finishLogin`（入库后清理会话）、`postComment(platform,{targetUrl,content,cookies})`（打开目标页→定位评论框→填话术→发布→校验）；平台 key 统一 `douyin/kuaishou/xiaohongshu/shipinhao`。
+   - **授权 API（`server/src/routes/social-account.ts` 重写）**：`POST /session/create` 返回真实登录页二维码截图 base64+sessionId；`GET /session/:sessionId/status` 轮询（`logged_in` 时自动 `bindSocialAccount`+`finishLogin`）；`POST /session/:sessionId/cancel`；`GET /platforms` 仅返回 4 平台；保留 list/accounts/stats/unbind/refresh。
+   - **智能跟评新链路**：`server/src/services/comment-safety.service.ts`（三段式话术组合+违禁词 content-safety 过滤+近7天 Jaccard≥70% 去重+CommentTemplate 入库）；`server/src/services/comment-delivery.service.ts`（平台差异化限额：抖音/快手 4/时16/天、小红书 6/时24/天、视频号 2/时8/天；随机抖动±50%~60%；账号分级配额新号7天30%/5条；24h 删评/限流率≥20% 且发送>5条 → 平台熔断）；`server/src/routes/comment-delivery.ts`（/limits /send /preview-script /records /records/:id/status /risk /quota）；挂载 `/api/comment-delivery`。
+   - **Prisma**：新增 `CommentDelivery`、`CommentTemplate` 模型（修复 User 缺反向关系 P1012 后 `prisma generate` 成功）。
+   - **前端**：`web/utils/request.ts` 注入 `x-user-id` 请求头（服务端所有新路由靠该头识别用户，此前缺失会导致全部 401）；`web/services/social-account.ts`+`comment-delivery.ts` 重写（修正缺 `/api` 前缀 + request 工具自动解包 `data` 导致的双重解包 bug）；新建 **平台账号授权页** `web/app/customer/acquisition/accounts/page.tsx`（4 平台彩色卡片+真实二维码弹窗+3s 轮询+账号列表/解绑/重新授权+统计卡）与 **跟评中心页** `web/app/customer/acquisition/comment/page.tsx`（发送表单+话术预览+今日额度进度+风控状态+发送记录+反馈上报）；`web/app/customer/layout/Navbar.tsx` 智能获客子菜单新增「平台账号授权」（QrcodeOutlined，置首）与「跟评中心」（CommentOutlined，置尾）。
+   - **编译验证**：web `tsc --noEmit` 零错误（修复 previewScript 返回类型缺 deduped）、server `tsc --noEmit` 零错误、lint 零告警。
+   - **下一步（待部署）**：`npx prisma db push`（迁移 CommentDelivery/CommentTemplate 到生产库）→ scp 上传 server+web 变更 → 远端构建 → pm2 restart → `bash scripts/verify-login.sh` 三角色 200 验证。
+9. **线下付费商用模式确认落地（本次，按用户 6 项决策执行）**：
+   - **6 项决策确认**：① 收费模式=线下付费；② 客户不可自助在线充值；③ 客户通过工单申请订阅（`category=subscription`），代理商手动开通功能开关，仍线下付费；④ 代理商分成结算仅计算展示，不涉任何支付，所有支付线下完成；⑤ 服务器稳定性加监控告警（已配置 crontab）；⑥ 智能获客/热点数据源 TODO 处理意见=「消灭假数据 + 保守真实数据接入」，商用起步以真实业务链路为主。
+   - **代码改动**：① `server/src/routes/account.ts` 新增 `GET /subscription`（authMiddleware，返回 current{plan,status,startDate,expireDate,fee} + features[] + payment history[]，新增 formatDate 工具）；② `web/app/account/subscribe/page.tsx` 重写（移除整页硬编码假数据"年度会员 2024-01-01"，改真实数据，无套餐时引导"联系代理商/提交工单"，套餐卡片+申请开通跳转 `/customer/tickets?category=subscription`）；③ `server/src/routes/agent.ts` 新增 `PUT /customers/:id/subscription`（归属校验→计算 expireAt→更新 user.package/expireAt/fee/lastPaidAt→创建 payment(customer_fee,status:paid,description:"线下开通 X")）+ **修复预存 bug：`GET /customers/:id` 的 `customerWhere` 未传给 `findFirst`，导致返回表内第一条用户（代理商本人）**；④ `web/services/customer.ts` Customer 接口新增 package/expireAt/fee + `setCustomerSubscription`；⑤ `web/app/agent/customers/page.tsx` 详情抽屉新增"套餐订阅"区块 + 开通/续费 Modal（plan/expireMonths/fee + 线下收款提示条）；⑥ `web/services/ticket.ts` customerTicketCategories 新增 `{value:'subscription',label:'套餐订阅',description:'套餐开通、续费、升级申请'}`；⑦ `scripts/monitor.sh` 增强（--alert 模式 + MONITOR_WEBHOOK_URL 企业微信/钉钉推送，检查 API health/ready、PM2、磁盘>85%、内存>85%、Swap>50%、负载>核数；**探测路径修正 `/api/health`→`/health`、`/api/ready`→`/ready`**，修正前 404 误报）；⑧ `server/src/services/hotspot.service.ts` 重写（移除硬编码假数据，getHotspots/searchHotspots 返回空数组，注释"预留接口"+TODO）；⑨ `server/src/services/realtime-analytics.ts` 重写（getRealtimeAnalytics 返回空数组；analyzeData 空数据返回"暂无数据"）；⑩ `web/app/agent/settlement/page.tsx` 新建（调用 `/api/agent/settlement/overview` 与 `/records`，6 张统计卡 + 近6月 CSS 柱状趋势图 + 结算记录表，顶部 Alert 声明"仅统计展示，收款线下完成"）。
+   - **部署验证（150.109.60.130）**：scp `agent.ts`+`monitor.sh`+`verify-new-apis.sh` → `pm2 restart zhishuai-api` → `bash /tmp/verify-new-apis.sh`：`GET /customers/:id` 正确返回目标客户 13899999999（基础版/2026-09-13/¥100，bug 修复生效）；`GET /api/account/subscription`（客户 13800000001）返回 `current:null / features:["factory"] / history:[]`（真实数据，无假数据）；`GET /api/agent/settlement/overview` 返回 `totalEarnings:100 / monthEarnings:100(8月) / commissionRate:0.3 / customerCount:1`，`/records` 含 `amount:100, status:paid, description:"线下开通 基础版"`（与开通操作闭环一致）；`verify-login.sh` 三角色登录全部 200；`monitor.sh` 修正后 0 告警（API 200/DB connected/磁盘43%/内存19%/Swap 4%/负载0.08）。
+   - **crontab 更新**：替换失效的 `health-monitor.sh`（文件已空）→ `*/5 * * * * bash /var/www/zhishuai/scripts/monitor.sh --alert >> /var/log/zhishuai-monitor.log 2>&1`；`db-backup.sh` 每日 2 点保留。企业微信/钉钉 webhook 告警需用户提供 `MONITOR_WEBHOOK_URL` 后启用。
+   - **数据源问题处理意见（用户第6项）**：采纳「先灭假数据、真实数据接入列迭代」——hotspot/realtime-analytics 返回空数组+预留注释，避免向客户展示编造内容；真实数据源（天眼查/高德/直播间采集等）接入列入后续迭代，由用户确认数据供应商后再接入。
 7. **商用就绪改造第1-7组全部完成（本次，按用户 7 项要求执行）**：
    - **第1组 全系统 mock 数据清除**：删除 6 个死代码文件（`ai-service.ts`/`humanization.service.ts`/`recruitment-service.ts`/`acquisition-service.ts`/`hot-topics.service.ts`/`content-creativity.service.ts`，均为零引用、含编造数据）；生产路径改真实/空：`video-enhancer.ts` 三个函数改显式 throw（禁止假成功）、`dashboard-service.ts` 删除 getFallbackHotTopics 静态假热点、`web/app/api/ai/generate-script/route.ts` 删除 mock 话术分支（无 Key 返回 AI_KEY_NOT_CONFIGURED）、`apk/content.service.ts` analyzeVideo 删除 catch 假数据分支。
    - **第2组 Playwright 桥接商用化**：`server/src/routes/playwright-bridge.ts` 接口落地为真实实现（发布/沟通/采集能力），配套数据采集服务注释清理。
@@ -16,6 +30,7 @@
      - **已达标（报告误报/已修）**：1.3 API Key（Route Handler 服务端执行，无 NEXT_PUBLIC 泄漏）、1.4 tsc（两端清零）、1.5 健康检查（/health /ready /live /metrics 存在且 monitor.sh 指向 /api/health 正确）、2.1 Zod（auth/account 全路由覆盖）、2.2 Prisma 关系名（schema 中 UserAgentRelation 与代码一致，实为一致）、3.2 Rate Limiting（helmet + express-rate-limit 全局+登录/AI/扫码限流）、3.3 错误页面（not-found 已有）、3.4 自动化测试（jest 5/5 通过，报告"不可运行"判断过时）、3.5 package-lock（web+server 均有）。
      - **本轮新修复**：① 新建 `web/middleware.ts`（P0-1.1 前端路由服务端鉴权：保护 /admin /agent /customer /account /profile /notifications，未登录重定向 /login；公开路径与 AuthGuard 一致）；② `web/lib/request.ts` setAuthToken/removeAuthToken 同步 `auth_token` cookie（生命周期与 localStorage token 一致，middleware 依赖）；③ `web/next.config.js` 添加 6 项安全响应头（X-Frame-Options / X-Content-Type-Options / Referrer-Policy / HSTS / Permissions-Policy / CSP，P0-1.2+P2-3.1）；④ 新建 `web/app/error.tsx`（500 全局错误页）；⑤ `server/src/index.ts` 添加 unhandledRejection/uncaughtException 全局处理器（P1-2.3，uncaughtException 退出让 PM2 重启，避免半损坏状态继续服务）。
      - **决策说明**：2.4 viewing_role localStorage 不改（后端 authMiddleware 已兜底，仅 UI 展示层，改动会触碰三角色登录协议有回归风险）；2.3 PM2 频繁重启的服务器内存/swap 侧留待运维。
+8. **部署完成 + 部署期发现并修复历史遗留 schema bug（2026-08-13）**：远端 pull 前先用 `git stash -u`（stash@{0}: pre-deploy-20260813-commercial-ready 保留可恢复）暂存历史 scp 残留；部署构建时发现 `server/prisma/schema.prisma:1089` User model 存在指向不存在 model 的残留反向关系字段 `AcquisitionAutomation[]`（历史遗留，导致 prisma generate 失败 P1012、远端构建报 SocialAccountCreateInput/ApiKeyCreateInput 类型错误、本地 tsc 假通过系旧 Prisma Client 侥幸）——已删除该字段（commit 1790ff4，本地提交，因 GitHub 网络不可达暂未 push，远端已通过 scp 上传生效）；远端 prisma generate + server tsc 构建 + web next build（含新 middleware）全部成功，pm2 restart zhishuai-api/zhishuai-web 后 `bash scripts/verify-login.sh` 三种角色登录全部 200。
 6. **全部修改已部署到生产（150.109.60.130，2026-08-13）**：
    - 打包上传 75 个文件（server 全部改动 + web 全部改动 + `scripts/verify-login.sh`）到 `/var/www/zhishuai/` 解压覆盖。
    - server：`npm install`（新增 exceljs）→ `pm2 restart zhishuai-api`（tsx 直跑源码，无需 tsc build）。
@@ -70,8 +85,10 @@
 ### 已知仍需处理的问题
 - 待办：「AI 生成话术 → 一键填入沟通模板」链路产品化（当前 Web/APK 两处入口分离），使自动沟通内容真正贴合岗位。
 - 待办：APK 端 AI 助手"对话+图片理解"组合输入链路待完善（当前模型切换为全量 10 模型，组合输入支持不完整）。
-- 待办（第7组决策）：viewing_role 存 localStorage 暂不改服务端（后端 authMiddleware 兜底）；PM2 频繁重启的服务器内存/swap 侧优化留待运维。
-- ~~AIGC 标识仅文档级~~ 已落地（第5组，见上方第 7 条）；~~mock 数据依赖~~ 已清除（第1组）；~~tsc 大量历史错误~~ 已清零（第3组）。
+- 待办（第9组）：真实数据源接入列迭代——hotspot/realtime-analytics 现返回空数组，待用户确认数据供应商后接入真实热点/获客数据。
+- 待办（第9组）：企业微信/钉钉告警推送待用户提供 `MONITOR_WEBHOOK_URL` 后启用（crontab 已配置 monitor.sh --alert，无 webhook 时仅记录日志）。
+- 待办（第7组决策）：viewing_role 存 localStorage 暂不改服务端（后端 authMiddleware 兜底）；PM2 频繁重启的服务器内存/swap 侧优化留待运维（本次 monitor.sh 已覆盖内存/Swap/负载告警）。
+- ~~AIGC 标识仅文档级~~ 已落地（第5组）；~~mock 数据依赖~~ 已清除（第1组+第9组）；~~tsc 大量历史错误~~ 已清零（第3组）；~~监控告警缺失~~ 已配置（第9组 crontab）；~~智能获客/热点假数据~~ 已清除（第9组）。
 - 其余同 2026-08-12 记录。
 
 ---
@@ -535,22 +552,18 @@
 ## 八、当前 Git 未提交变更
 
 ```
-modified: docs/SESSION_MEMORY.md（P0+P1+P2三轮变更）
-modified: web/app/customer/dashboard/page.tsx（P2:四条业务线KPI+详情卡片）
-modified: web/app/agent/dashboard/page.tsx（P2:客户业务线概览）
-modified: web/app/customer/layout/Navbar.tsx（P0:菜单重排序）
-modified: web/app/agent/layout/Navbar.tsx（P1:补全客户招聘/获客/分享三个入口）
-modified: web/app/admin/tenants/page.tsx（P0:命名更新）
-modified: web/app/about/page.tsx, features/page.tsx, pricing/page.tsx, help/page.tsx
-modified: web/app/account/page.tsx, /recharge/page.tsx, /subscribe/page.tsx
-modified: web/lib/permissions.ts, permissions/index.ts
-modified: web/services/ticket.ts, stores/navigationStore.ts
-modified: server/prisma/schema.prisma（P2:预留模块标记+ShareEffect/ShareCommission新模型）
-modified: server/src/routes/share.ts（P2:效果追踪/佣金结算/发布记录API）
-modified: server/src/routes/dashboard-stats.ts（P2:business-lines + agent/business-lines端点）
-modified: server/src/routes/statistics.ts, admin-features.ts（P0:命名更新）
-modified: server/src/index.ts（P2:playwright-bridge路由注册）
-modified: apk/src/navigation/AppNavigator.tsx, apk/src/constants/index.ts, apk/src/services/*.ts, apk/src/screens/*.tsx, apk/src/components/PageHeader.tsx（P0:APK全量清理）
+modified: docs/SESSION_MEMORY.md（P0+P1+P2三轮变更 + 第9组线下付费商用改造）
+modified: scripts/monitor.sh（第9组：--alert/webhook 增强 + 探测路径 /api/health→/health 修正）
+modified: server/src/routes/account.ts（第9组：GET /subscription 客户订阅信息）
+modified: server/src/routes/agent.ts（第9组：PUT /customers/:id/subscription + GET /customers/:id where 修复）
+modified: server/src/services/hotspot.service.ts（第9组：假数据清除，返回空数组+预留）
+modified: server/src/services/realtime-analytics.ts（第9组：假数据清除，返回空数组）
+modified: web/app/account/subscribe/page.tsx（第9组：重写为真实数据）
+modified: web/app/agent/customers/page.tsx（第9组：套餐订阅区块+开通/续费Modal）
+modified: web/app/agent/settlement/page.tsx（第9组：新建结算页面，真实统计+线下收款声明）
+modified: web/services/customer.ts（第9组：Customer 接口 + setCustomerSubscription）
+modified: web/services/ticket.ts（第9组：customerTicketCategories 新增 subscription）
+new: scripts/verify-new-apis.sh（第9组：新 API 闭环验证脚本，scp 至远端 /tmp 执行）
 new: server/src/routes/playwright-bridge.ts（P2:Playwright桥接路由）
 new: server/src/services/dashboard-business-lines.ts（P2:业务线聚合服务）
 new: web/app/agent/recruitment/page.tsx, /acquisition/page.tsx, /share/page.tsx（P1:Agent业务入口）
