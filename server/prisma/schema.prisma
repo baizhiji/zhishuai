@@ -1086,7 +1086,6 @@ model User {
   package             String                  @default("pro") @db.VarChar(50)
   lastLoginAt         DateTime?
   email               String?
-  AcquisitionAutomation AcquisitionAutomation[]
   AcquisitionData     AcquisitionData[]
   AcquisitionLead     AcquisitionLead[]
   AcquisitionSource   AcquisitionSource[]
