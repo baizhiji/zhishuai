@@ -386,21 +386,15 @@ export async function generateVideo(params: GenerateVideoParams): Promise<{ outp
 
 // 视频解析（对齐 WEB 端 /api/ai-chat/video）
 export async function analyzeVideo(params: VideoAnalysisParams): Promise<{ output: { url: string; analysis: string } }> {
-  try {
-    const response = await apiClient.post('/ai-chat/video', {
-      videoUrl: params.videoUrl,
-      analysisDimensions: params.analysisDimensions,
-    });
-    const analysis = response?.analysis || response?.content || response?.description || '';
-    return { output: { url: params.videoUrl, analysis: analysis || JSON.stringify(response) } };
-  } catch {
-    return {
-      output: {
-        url: `https://via.placeholder.com/${params.size?.replace('x', '/') || '1920/1080'}?text=爆款视频生成中...`,
-        analysis: `分析完成：该视频采用黄金3秒开头，包含多个转场效果，背景音乐为${params.viralElements.join('、')}。`,
-      },
-    };
+  const response = await apiClient.post('/ai-chat/video', {
+    videoUrl: params.videoUrl,
+    analysisDimensions: params.analysisDimensions,
+  });
+  const analysis = response?.analysis || response?.content || response?.description || '';
+  if (!analysis) {
+    throw new Error('视频解析失败：服务未返回分析结果');
   }
+  return { output: { url: params.videoUrl, analysis } };
 }
 
 // AI数字人（对齐 WEB 端，数字人功能暂需后端增强支持）

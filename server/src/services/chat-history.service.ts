@@ -118,7 +118,7 @@ export async function getConversationDetail(conversationId: string, userId: stri
       userId,
     },
     include: {
-      messages: {
+      ChatMessage: {
         orderBy: { createdAt: 'asc' },
         select: {
           id: true,

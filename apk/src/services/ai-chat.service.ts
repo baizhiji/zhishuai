@@ -26,7 +26,7 @@ export interface ModelInfo {
   name: string;
   provider: 'aliyun' | 'tencent';
   providerName: string;
-  type: 'text' | 'vision' | 'video' | 'image' | 'reasoning' | 'agent' | 'digital_human';
+  type: 'text' | 'vision' | 'video' | 'reasoning' | 'agent';
   description: string;
 }
 
@@ -42,13 +42,6 @@ export interface ChatResponse {
 export interface VisionRequest {
   imageUrl: string;
   question?: string;
-}
-
-// 图像生成请求
-export interface ImageGenerateRequest {
-  prompt: string;
-  size?: '1024x1024' | '1024x1792' | '1792x1024';
-  quality?: 'standard' | 'hd';
 }
 
 // 视频理解请求
@@ -194,18 +187,6 @@ class AIChatService {
   }
 
   /**
-   * 图像生成
-   */
-  async generateImage(request: ImageGenerateRequest): Promise<{ imageUrl: string; revisedPrompt?: string }> {
-    const response = await apiClient.post<{ success: boolean; data: { imageUrl: string; revisedPrompt?: string } }>('/ai-chat/image', {
-      prompt: request.prompt,
-      size: request.size || '1024x1024',
-      quality: request.quality || 'standard',
-    });
-    return response.data;
-  }
-
-  /**
    * 视频理解
    */
   async videoUnderstand(request: VideoUnderstandRequest): Promise<{ analysis: string }> {
@@ -264,20 +245,6 @@ export const RECOMMENDED_MODELS = {
     provider: 'tencent',
     name: '视频解析',
     description: '视频理解、内容提取',
-  },
-  // 图像生成 - 腾讯云
-  image: {
-    model: 'HY-Image-V3.0',
-    provider: 'tencent',
-    name: 'HY-Image-V3.0',
-    description: '高质量图像生成',
-  },
-  // 数字人 - 腾讯云
-  digitalHuman: {
-    model: 'YT-Video-HumanActor',
-    provider: 'tencent',
-    name: 'AI数字人',
-    description: 'AI数字人口播视频',
   },
 };
 
@@ -361,21 +328,5 @@ export const ALL_MODELS: ModelInfo[] = [
     providerName: '腾讯云TokenHub',
     type: 'video',
     description: '视频理解、视频分析',
-  },
-  {
-    id: 'HY-Image-V3.0',
-    name: 'HY-Image-V3.0',
-    provider: 'tencent',
-    providerName: '腾讯云TokenHub',
-    type: 'image',
-    description: '高质量图像生成',
-  },
-  {
-    id: 'YT-Video-HumanActor',
-    name: 'AI数字人',
-    provider: 'tencent',
-    providerName: '腾讯云TokenHub',
-    type: 'digital_human',
-    description: '数字人口播视频',
   },
 ];

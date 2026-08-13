@@ -40,7 +40,7 @@ export default function ShareTrackPage() {
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
-      const res: Record<string, unknown> = await apiClient.get('/api/share/records');
+      const res: Record<string, unknown> = await apiClient.get('/share/records');
       const list = (res.list as any[]) || [];
       setRecords(list.map((r: any) => ({
         id: r.id,

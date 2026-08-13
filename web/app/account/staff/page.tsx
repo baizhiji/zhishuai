@@ -64,7 +64,7 @@ export default function StaffManagementPage() {
   const fetchStaff = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/api/employees', {
+      const res = await apiClient.get('/employees', {
         params: { keyword: searchText || undefined, status: statusFilter },
       });
       const apiData = res.data.data || [];
@@ -194,7 +194,7 @@ export default function StaffManagementPage() {
         await apiClient.put(`/api/employees/${editingStaff.id}`, values);
         message.success('编辑成功');
       } else {
-        await apiClient.post('/api/employees', values);
+        await apiClient.post('/employees', values);
         message.success('添加成功');
       }
       setIsModalOpen(false);

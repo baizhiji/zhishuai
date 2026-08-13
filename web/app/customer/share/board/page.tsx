@@ -31,21 +31,30 @@ export default function ShareBoardPage() {
     setLoading(true);
     try {
       const res: Record<string, unknown> = await apiClient.get('/share/dashboard', { params: { period } });
-      setData(res as ShareDashboardData);
+      const payload = (res.data as unknown as ShareDashboardData) || (res as unknown as ShareDashboardData) || {};
+      setData({
+        totalLinks: payload.totalLinks ?? 0,
+        totalViews: payload.totalViews ?? 0,
+        uniqueVisitors: payload.uniqueVisitors ?? 0,
+        conversionRate: payload.conversionRate ?? 0,
+        trend: payload.trend ?? [],
+        topLinks: payload.topLinks ?? [],
+        deviceBreakdown: payload.deviceBreakdown ?? [],
+      });
     } catch { setData(null); } finally { setLoading(false); }
   }, [period]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  if (!loading && !data) {
+  if (!data) {
     return (
-      <PageContainer title="分享看板" description="数据获取失败，请稍后重试" breadcrumb={[{ title: '首页', href: '/customer/dashboard' }, { title: '分享裂变' }, { title: '分享看板' }]} skeletonType="card" extra={<Button icon={<ReloadOutlined />} onClick={fetchData}>刷新</Button>}>
+      <PageContainer title="分享看板" description={loading ? '数据加载中…' : '数据获取失败，请稍后重试'} breadcrumb={[{ title: '首页', href: '/customer/dashboard' }, { title: '分享裂变' }, { title: '分享看板' }]} skeletonType="card" extra={<Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>刷新</Button>}>
         <div />
       </PageContainer>
     );
   }
 
-  const d = data!;
+  const d = data;
   const maxTrend = Math.max(...d.trend.map(v => Math.max(v.views, v.visitors)));
   const maxLink = Math.max(...d.topLinks.map(l => l.views));
   const maxDevice = Math.max(...d.deviceBreakdown.map(dd => dd.count));

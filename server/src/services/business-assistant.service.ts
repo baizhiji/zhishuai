@@ -11,10 +11,12 @@
 
 import { prisma } from '../utils/db';
 import { getPrimaryApiKey, PROVIDER_CONFIG } from './user-api-key.service';
+import { appendAIGCLabel } from './aigc-label.service';
 import axios from 'axios';
 import PptxGenJS from 'pptxgenjs';
 import PDFDocument from 'pdfkit';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } from 'docx';
+import ExcelJS from 'exceljs';
 
 // ==================== 类型定义 ====================
 
@@ -348,7 +350,8 @@ async function callAI(
     }
   );
 
-  return response.data.choices[0].message.content;
+  const raw = response.data.choices[0].message.content;
+  return appendAIGCLabel(raw);
 }
 
 // ==================== 方案生成与解析 ====================
@@ -453,7 +456,7 @@ export const businessAssistantService = {
     const summary = generateSummary(content);
 
     // 保存到数据库
-    const plan = await prisma.businessPlan.create({
+    const plan = await (prisma as any).businessPlan.create({
       data: {
         userId: request.userId,
         scenarioId: request.scenarioId,
@@ -486,7 +489,7 @@ export const businessAssistantService = {
     const scenario = BUSINESS_SCENARIOS.find(s => s.id === request.scenarioId);
     if (!scenario) throw new Error(`未找到场景: ${request.scenarioId}`);
 
-    const plan = await prisma.businessPlan.findFirst({
+    const plan = await (prisma as any).businessPlan.findFirst({
       where: { id: request.planId, userId: request.userId },
     });
     if (!plan) throw new Error('方案未找到');
@@ -509,7 +512,7 @@ export const businessAssistantService = {
 
   /** 获取用户方案列表 */
   async getUserPlans(userId: string): Promise<BusinessPlan[]> {
-    const plans = await prisma.businessPlan.findMany({
+    const plans = await (prisma as any).businessPlan.findMany({
       where: { userId, status: 'completed' },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -531,7 +534,7 @@ export const businessAssistantService = {
 
   /** 获取方案详情 */
   async getPlanDetail(planId: string, userId: string): Promise<BusinessPlan & { fullContent: string }> {
-    const plan = await prisma.businessPlan.findFirst({
+    const plan = await (prisma as any).businessPlan.findFirst({
       where: { id: planId, userId },
     });
     if (!plan) throw new Error('方案未找到');
@@ -555,7 +558,7 @@ export const businessAssistantService = {
     const plan = await this.getPlanDetail(planId, userId);
 
     const pptx = new PptxGenJS();
-    pptx.defineLayout({ name: 'A4', width: '13.333', height: '7.5' });
+    pptx.defineLayout({ name: 'A4', width: 13.333, height: 7.5 });
     pptx.layout = 'A4';
 
     // 封面页
@@ -714,6 +717,93 @@ export const businessAssistantService = {
     });
 
     return Buffer.from(await Packer.toBuffer(doc));
+  },
+
+  /** 导出方案为 Excel */
+  async exportXLSX(planId: string, userId: string): Promise<Buffer> {
+    const plan = await this.getPlanDetail(planId, userId);
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = '智枢AI商业助手';
+    workbook.created = new Date();
+    workbook.modified = new Date();
+
+    this.buildXlsxOverview(workbook, plan);
+    this.buildXlsxDetail(workbook, plan);
+
+    return Buffer.from(await workbook.xlsx.writeBuffer());
+  },
+
+  /** 构建方案概览 Sheet */
+  buildXlsxOverview(workbook: ExcelJS.Workbook, plan: BusinessPlan): void {
+    const ws = workbook.addWorksheet('方案概览');
+    ws.mergeCells('A1:B1');
+    ws.columns = [{ width: 16 }, { width: 90 }];
+
+    const title = ws.getCell('A1');
+    title.value = plan.businessName;
+    title.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    title.alignment = { horizontal: 'center', vertical: 'middle' };
+    title.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+    ws.getRow(1).height = 34;
+
+    const meta: [string, string][] = [
+      ['方案类型', plan.scenarioName],
+      ['企业名称', plan.businessName],
+      ['生成日期', new Date(plan.createdAt).toLocaleDateString('zh-CN')],
+      ['方案摘要', plan.summary],
+    ];
+
+    meta.forEach(([item, value], i) => {
+      const row = ws.getRow(i + 3);
+      row.getCell(1).value = item;
+      row.getCell(1).font = { bold: true };
+      row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+      row.getCell(1).border = this.xlsxBorder();
+      row.getCell(2).value = value;
+      row.getCell(2).alignment = { wrapText: true, vertical: 'top' };
+      row.getCell(2).border = this.xlsxBorder();
+    });
+  },
+
+  /** 构建方案详情 Sheet */
+  buildXlsxDetail(workbook: ExcelJS.Workbook, plan: BusinessPlan): void {
+    const ws = workbook.addWorksheet('方案详情');
+    ws.columns = [
+      { header: '序号', width: 8 },
+      { header: '章节', width: 28 },
+      { header: '内容', width: 90 },
+    ];
+
+    const headerRow = ws.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+    headerRow.height = 22;
+
+    for (const section of plan.sections) {
+      const row = ws.addRow([section.order + 1, section.title, section.content]);
+      row.getCell(1).alignment = { horizontal: 'center', vertical: 'top' };
+      row.getCell(2).font = { bold: true };
+      row.getCell(2).alignment = { wrapText: true, vertical: 'top' };
+      row.getCell(3).font = { size: 10 };
+      row.getCell(3).alignment = { wrapText: true, vertical: 'top' };
+      row.eachCell((cell) => {
+        cell.border = this.xlsxBorder();
+      });
+      row.height = Math.min(90, Math.max(20, Math.ceil(section.content.length / 40) * 15));
+    }
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+  },
+
+  /** Excel 单元格边框 */
+  xlsxBorder(): Partial<ExcelJS.Borders> {
+    return {
+      top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+      left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+      bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+      right: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+    };
   },
 
   /** 聊天问答（自由模式） */

@@ -52,8 +52,9 @@ export default function AcquisitionTaskPage() {
       const res: Record<string, unknown> = await apiClient.get('/acquisition/tasks', {
         params: { page: pagination.page, pageSize: pagination.pageSize },
       });
-      setTasks((res.tasks as Task[]) || []);
-      setPagination(prev => ({ ...prev, total: (res.total as number) || 0 }));
+      const payload = (res.data as Record<string, unknown>) || res;
+      setTasks((payload.tasks as Task[]) || []);
+      setPagination(prev => ({ ...prev, total: (payload.total as number) || 0 }));
     } catch (error: unknown) {
       message.error((error as Error).message || '获取任务列表失败');
     } finally { setLoading(false); }

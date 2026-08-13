@@ -119,31 +119,3 @@ export const getNotificationsByType = (type: Notification['type']): Notification
   const list = getNotifications();
   return list.filter(n => n.type === type);
 };
-
-// 模拟收到新订单通知
-export const simulateNewOrderNotification = () => {
-  sendLocalNotification(
-    '新订单通知',
-    '您有一笔新订单，请及时处理',
-    'order',
-    { orderId: 'ORD' + Date.now() }
-  );
-};
-
-// 模拟系统通知
-export const simulateSystemNotification = () => {
-  sendLocalNotification(
-    '系统消息',
-    '您的账号已通过审核，可以正常使用全部功能',
-    'system'
-  );
-};
-
-// 模拟活动通知
-export const simulateActivityNotification = () => {
-  sendLocalNotification(
-    '活动提醒',
-    '智枢AI限时优惠活动火热进行中，点击查看详情',
-    'activity'
-  );
-};

@@ -25,6 +25,7 @@ export const loginSchema = z.object({
   body: z.object({
     phone: phoneSchema,
     password: z.string().min(1, '请输入密码'),
+    loginType: z.enum(['admin', 'agent', 'user']).optional(),
   }),
 });
 

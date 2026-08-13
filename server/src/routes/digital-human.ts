@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { prisma } from '../utils/db';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -83,6 +84,7 @@ router.post('/humans', authMiddleware, async (req: Request, res: Response) => {
 
     const human = await prisma.digitalHuman.create({
       data: {
+        id: randomUUID(),
         userId,
         name,
         gender: gender || 'female',
@@ -225,6 +227,7 @@ router.post('/tasks', authMiddleware, async (req: Request, res: Response) => {
 
     const task = await prisma.videoTask.create({
       data: {
+        id: randomUUID(),
         userId,
         humanId,
         templateId,
@@ -252,10 +255,10 @@ router.post('/tasks', authMiddleware, async (req: Request, res: Response) => {
       });
     }
 
-    res.json(task);
+    res.json({ code: 200, message: 'success', data: task });
   } catch (error) {
     console.error('创建视频任务失败:', error);
-    res.status(500).json({ error: '创建视频任务失败' });
+    res.status(500).json({ code: 500, message: '创建视频任务失败', data: null });
   }
 });
 

@@ -135,7 +135,7 @@ export default function AgentTicketPage() {
   const handleAssign = async (ticketId: string) => {
     try {
       await TicketAPI.updateStatus(ticketId, {
-        status: 'in_progress',
+        status: 'processing',
         assigneeId: user?.id,
         assigneeName: user?.name || user?.phone || '代理商',
       });
@@ -199,8 +199,8 @@ export default function AgentTicketPage() {
   const getStatusTag = (status: string) => {
     const s = ticketStatuses.find(t => t.value === status);
     const icons: Record<string, React.ReactNode> = {
-      open: <ClockCircleOutlined />,
-      in_progress: <SyncOutlined spin />,
+      pending: <ClockCircleOutlined />,
+      processing: <SyncOutlined spin />,
       resolved: <CheckCircleOutlined />,
       closed: <CloseCircleOutlined />,
     };
@@ -231,7 +231,7 @@ export default function AgentTicketPage() {
 
   // 统计数据
   const stats = useMemo(() => {
-    const counts: Record<string, number> = { open: 0, in_progress: 0, resolved: 0, closed: 0 };
+    const counts: Record<string, number> = { pending: 0, processing: 0, resolved: 0, closed: 0 };
     tickets.forEach(t => { if (t.status in counts) counts[t.status]++; });
     return counts;
   }, [tickets]);
@@ -316,7 +316,7 @@ export default function AgentTicketPage() {
           <Button type="link" size="small" onClick={() => handleViewDetail(record)}>
             查看
           </Button>
-          {record.status === 'open' && (
+          {record.status === 'pending' && (
             <Button
               type="primary"
               size="small"
@@ -377,7 +377,7 @@ export default function AgentTicketPage() {
           <Card style={{ ...cardBase, borderTop: '3px solid #1677ff' }} styles={{ body: { padding: '16px 24px' } }}>
             <Statistic
               title="待处理"
-              value={stats.open}
+              value={stats.pending}
               prefix={<ClockCircleOutlined style={{ color: '#1677ff' }} />}
               valueStyle={{ color: '#1677ff' }}
             />
@@ -387,7 +387,7 @@ export default function AgentTicketPage() {
           <Card style={{ ...cardBase, borderTop: '3px solid #fa8c16' }} styles={{ body: { padding: '16px 24px' } }}>
             <Statistic
               title="处理中"
-              value={stats.in_progress}
+              value={stats.processing}
               prefix={<SyncOutlined style={{ color: '#fa8c16' }} />}
               valueStyle={{ color: '#fa8c16' }}
             />
@@ -492,12 +492,12 @@ export default function AgentTicketPage() {
             {/* 操作按钮 */}
             <div style={{ marginBottom: 20 }}>
               <Space>
-                {selectedTicket.status === 'open' && (
+                {selectedTicket.status === 'pending' && (
                   <Button type="primary" onClick={() => handleAssign(selectedTicket.id)}>
                     接单处理
                   </Button>
                 )}
-                {(selectedTicket.status === 'open' || selectedTicket.status === 'in_progress') && (
+                {(selectedTicket.status === 'pending' || selectedTicket.status === 'processing') && (
                   <>
                     <Button
                       type="primary"

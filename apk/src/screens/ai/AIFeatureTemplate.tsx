@@ -64,15 +64,7 @@ export default function AIFeatureTemplate({
       });
       setResult(generated);
     } catch (error: any) {
-      // 如果API不可用，使用模拟数据
-      setResult({
-        id: Date.now().toString(),
-        type: contentType,
-        content: `${inputText}\n\n[AI生成内容 - API集成后可获取真实结果]\n\n这里是由AI生成的${title}内容示例。您可以复制、分享或保存到内容中心。`,
-        createdAt: new Date().toISOString(),
-        status: 'completed',
-      });
-      console.log('使用模拟数据:', error?.message);
+      Alert.alert('生成失败', error?.message || 'AI 服务调用失败，请检查网络或 API 配置后重试');
     } finally {
       setGenerating(false);
     }
@@ -115,11 +107,7 @@ export default function AIFeatureTemplate({
       setSaveTitle('');
       Alert.alert('成功', '已保存到内容中心');
     } catch (error: any) {
-      // 模拟保存成功
-      Alert.alert('成功', '已保存到内容中心');
-      setShowSaveModal(false);
-      setSaveTitle('');
-      console.log('保存模拟:', error?.message);
+      Alert.alert('保存失败', error?.message || '保存到内容中心失败，请稍后重试');
     }
   };
 

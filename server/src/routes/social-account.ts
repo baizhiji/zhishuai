@@ -53,7 +53,7 @@ setInterval(() => {
 router.get('/platforms', (req: Request, res: Response) => {
   const platforms = Object.entries(PLATFORM_CONFIGS).map(([key, config]) => ({
     id: key,
-    name: config.name,
+    name: (config as any).platform,
     icon: getPlatformIcon(key)
   }));
   
@@ -140,59 +140,13 @@ router.get('/session/:sessionId/status', async (req: Request, res: Response) => 
       data: {
         status: session.status,
         platform: session.platform,
-        platformName: PLATFORM_CONFIGS[session.platform]?.name
+        platformName: PLATFORM_CONFIGS[session.platform]?.platform
       }
     });
     
   } catch (error: any) {
     console.error('获取会话状态失败:', error);
     res.json({ code: 500, message: '获取会话状态失败' });
-  }
-});
-
-/**
- * 模拟扫码（前端调用，模拟用户扫码确认）
- */
-router.post('/session/:sessionId/scan', async (req: Request, res: Response) => {
-  try {
-    const { sessionId } = req.params;
-    const session = loginSessions.get(sessionId);
-    
-    if (!session) {
-      return res.json({ code: 404, message: '会话不存在' });
-    }
-    
-    session.status = 'scanning';
-    
-    res.json({ code: 0, message: '扫码成功，等待确认' });
-    
-  } catch (error: any) {
-    res.json({ code: 500, message: '操作失败' });
-  }
-});
-
-/**
- * 模拟确认（前端调用，模拟用户确认登录）
- */
-router.post('/session/:sessionId/confirm', async (req: Request, res: Response) => {
-  try {
-    const { sessionId } = req.params;
-    const session = loginSessions.get(sessionId);
-    
-    if (!session) {
-      return res.json({ code: 404, message: '会话不存在' });
-    }
-    
-    if (session.status !== 'scanning') {
-      return res.json({ code: 400, message: '请先扫码' });
-    }
-    
-    session.status = 'confirmed';
-    
-    res.json({ code: 0, message: '确认成功，正在登录...' });
-    
-  } catch (error: any) {
-    res.json({ code: 500, message: '操作失败' });
   }
 });
 
@@ -211,8 +165,8 @@ router.post('/session/:sessionId/login', async (req: Request, res: Response) => 
     }
     
     // 启动浏览器
-    browser = await createBrowser(session.userId);
-    const context = await createContext(browser, session.userId);
+    browser = await createBrowser();
+    const context = await createContext(session.platform);
     const page = await context.newPage();
     
     // 获取平台适配器
@@ -439,8 +393,8 @@ router.post('/accounts/:accountId/refresh', async (req: Request, res: Response) 
     }
     
     // 启动浏览器
-    browser = await createBrowser(account.userId);
-    const context = await createContext(browser, account.userId);
+    browser = await createBrowser();
+    const context = await createContext(account.platform);
     const page = await context.newPage();
     
     // 设置旧cookies

@@ -25,7 +25,7 @@ export default function SecuritySettingsPage() {
   const [passwordForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
 
-  const handleChangePassword = async () => {
+  const handlePasswordChange = async () => {
     try {
       const values = await passwordForm.validateFields();
       if (values.newPassword !== values.confirmPassword) {

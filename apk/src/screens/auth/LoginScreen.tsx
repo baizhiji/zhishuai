@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -299,9 +300,19 @@ export default function LoginScreen() {
         {/* 协议 */}
         <Text style={styles.agreement}>
           登录即表示同意
-          <Text style={styles.agreementLink}>《用户协议》</Text>
+          <Text
+            style={styles.agreementLink}
+            onPress={() => Linking.openURL('https://baizhiji.net/terms')}
+          >
+            《用户协议》
+          </Text>
           和
-          <Text style={styles.agreementLink}>《隐私政策》</Text>
+          <Text
+            style={styles.agreementLink}
+            onPress={() => Linking.openURL('https://baizhiji.net/privacy')}
+          >
+            《隐私政策》
+          </Text>
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

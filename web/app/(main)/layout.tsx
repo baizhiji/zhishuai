@@ -134,6 +134,17 @@ export default function MainLayout({ children }: MainLayoutProps) {
             </ul>
           </div>
           <div className={styles.footerSection}>
+            <h4>法律条款</h4>
+            <ul>
+              <li>
+                <Link href="/privacy">隐私政策</Link>
+              </li>
+              <li>
+                <Link href="/terms">服务条款</Link>
+              </li>
+            </ul>
+          </div>
+          <div className={styles.footerSection}>
             <h4>联系我们</h4>
             <ul>
               <li>客服电话：400-888-8888</li>

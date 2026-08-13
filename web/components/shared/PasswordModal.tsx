@@ -2,7 +2,7 @@
 
 import { Modal, Form, Input, App } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
-import { post } from '@/lib/request';
+import request from '@/lib/request';
 
 interface PasswordModalProps {
   open: boolean;
@@ -16,7 +16,7 @@ export default function PasswordModal({ open, onClose }: PasswordModalProps) {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      await post('/account/password', values);
+      await request.post('/account/password', values);
       message.success('密码修改成功');
       form.resetFields();
       onClose();

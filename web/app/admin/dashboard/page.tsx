@@ -44,6 +44,7 @@ interface AdminStatistics {
   totalApiProviders: number;
   enabledApiProviders: number;
   topAgents: Array<{ id: string; name: string; totalCustomers: number; totalCommission: number }>;
+  agentRegionDistribution: Array<{ name: string; value: number }>;
 }
 
 const EMPTY_STATISTICS: AdminStatistics = {
@@ -62,6 +63,7 @@ const EMPTY_STATISTICS: AdminStatistics = {
   totalApiProviders: 0,
   enabledApiProviders: 0,
   topAgents: [],
+  agentRegionDistribution: [],
 };
 
 function calcGrowth(thisMonth: number, lastMonth: number): { text: string; color: string } {
@@ -278,6 +280,55 @@ export default function AdminDashboardPage() {
             </Card>
           </Col>
         </Row>
+
+        {/* 代理商区域分布 */}
+        <Typography.Title level={5} style={{ marginTop: 24 }}>
+          代理商区域分布
+        </Typography.Title>
+        <Card>
+          {statistics.agentRegionDistribution.length > 0 ? (
+            <div>
+              {statistics.agentRegionDistribution.map((item, idx) => {
+                const total = statistics.totalAgents || 1;
+                const pct = Math.round((item.value / total) * 100);
+                return (
+                  <div key={item.name} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>
+                        <Tag color={idx < 3 ? 'blue' : 'default'}>{idx + 1}</Tag>
+                        {item.name}
+                      </span>
+                      <span style={{ fontWeight: 500 }}>
+                        {item.value} 家 ({pct}%)
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        width: '100%',
+                        height: 8,
+                        background: '#f0f0f0',
+                        borderRadius: 4,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: idx < 3 ? '#1677ff' : '#8c8c8c',
+                          borderRadius: 4,
+                          transition: 'width 0.3s ease',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <Empty description="暂无代理商区域数据" />
+          )}
+        </Card>
 
         {/* 代理商排行榜 */}
         <Typography.Title level={5} style={{ marginTop: 24 }}>

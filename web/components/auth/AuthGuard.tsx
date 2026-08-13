@@ -6,7 +6,7 @@ import { Spin } from 'antd';
 import { useAuth } from '@/contexts/AuthContext';
 
 // 公开页面列表（不需要认证即可访问）
-const publicPaths = ['/login', '/register'];
+const publicPaths = ['/login', '/register', '/privacy', '/terms', '/about', '/help', '/features', '/pricing'];
 
 // 获取用户应跳转的角色页面
 function getRoleHome(role: string, viewingRole?: string | null): string {

@@ -68,8 +68,11 @@ export default function DigitalHumanScreen({ navigation }: { navigation: any }) 
           style: h.style || 'professional',
         })));
       }
-      if (voicesRes && Array.isArray(voicesRes)) {
-        setVoices(voicesRes.map((v: any) => ({
+      if (voicesRes) {
+        const voiceList: any[] = Array.isArray(voicesRes)
+          ? voicesRes
+          : [...(voicesRes.cloned || []), ...(voicesRes.presets || [])];
+        setVoices(voiceList.map((v: any) => ({
           id: v.id || v._id,
           name: v.name || '声音',
           gender: v.gender || 'female',
@@ -110,17 +113,28 @@ export default function DigitalHumanScreen({ navigation }: { navigation: any }) 
     }
 
     setGenerating(true);
-    // 模拟生成过程
-    setTimeout(() => {
+    try {
+      const task: any = await apiClient.post('/digital-human/tasks', {
+        humanId: selectedHuman.id,
+        title: script.trim().slice(0, 30),
+        script: script.trim(),
+      });
       setGenerating(false);
       Alert.alert(
-        '视频生成中',
-        '您的AI数字人视频正在生成中，预计需要3-5分钟。',
-        [
-          { text: '知道了', style: 'cancel' },
-        ]
+        '视频任务已提交',
+        task?.id
+          ? '任务已进入生成队列，可在视频任务列表中查看进度。'
+          : '任务已提交，预计需要3-5分钟完成。',
+        [{ text: '知道了', style: 'cancel' }]
       );
-    }, 2000);
+    } catch (e: any) {
+      setGenerating(false);
+      Alert.alert(
+        '提交失败',
+        e?.message || '创建视频任务失败，请稍后重试。',
+        [{ text: '知道了', style: 'cancel' }]
+      );
+    }
   };
 
   const renderHumanItem = ({ item }: { item: DigitalHuman }) => (

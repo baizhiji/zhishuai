@@ -113,21 +113,12 @@ export async function sendTencentSms(params: {
     
     // 腾讯云短信需要先拼接完整的手机号（中国大陆+86）
     const phoneNumberWithCountryCode = phone.startsWith('86') ? `+${phone}` : `+86${phone}`;
-    
-    // 这里简化处理，实际项目中需要使用腾讯云SDK
-    // 推荐使用 qcloudsms-js 或直接调用腾讯云API
-    
-    // 模拟成功返回（实际使用时需要安装腾讯云SDK）
-    console.log('腾讯云短信参数:', {
-      appId,
-      signName,
-      templateId,
-      phoneNumber: phoneNumberWithCountryCode,
-      templateParams,
-    });
-    
-    // 实际使用时替换为真实的腾讯云短信发送逻辑
-    return { success: true, messageId: `tencent_${Date.now()}` };
+
+    // 腾讯云短信需通过官方 SDK（qcloudsms_js）或 HTTP API 发送。
+    // 未接入官方 SDK 前明确返回失败，禁止返回模拟成功。
+    console.error('腾讯云短信发送未接入官方 SDK，请安装 qcloudsms_js 后配置发送逻辑。参数:',
+      { appId, signName, templateId, phoneNumber: phoneNumberWithCountryCode });
+    return { success: false, error: '腾讯云短信服务未接入，请联系管理员配置' };
   } catch (error: any) {
     console.error('腾讯云短信发送失败:', error.message);
     return { success: false, error: error.message };

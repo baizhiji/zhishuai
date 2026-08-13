@@ -24,6 +24,9 @@ import {
   PlusOutlined,
   ArrowRightOutlined,
   ClockCircleOutlined,
+  AimOutlined,
+  ShareAltOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import {
@@ -47,6 +50,9 @@ interface CustomerSummary {
     materials: { total: number; weekNew: number; trend: number };
     pendingTickets: number;
     aiUsage: { total: number; weekTokens: number };
+    leads: { total: number; weekNew: number; converted: number; trend: number };
+    shares: { total: number; scans: number; conversions: number };
+    candidates: { total: number; weekNew: number; hired: number };
   };
   trend: Array<{ date: string; materials: number }>;
   recentActivities: Array<{ time: string; type: string; content: string; status?: string }>;
@@ -65,6 +71,9 @@ const EMPTY_SUMMARY: CustomerSummary = {
     materials: { total: 0, weekNew: 0, trend: 0 },
     pendingTickets: 0,
     aiUsage: { total: 0, weekTokens: 0 },
+    leads: { total: 0, weekNew: 0, converted: 0, trend: 0 },
+    shares: { total: 0, scans: 0, conversions: 0 },
+    candidates: { total: 0, weekNew: 0, hired: 0 },
   },
   trend: [],
   recentActivities: [],
@@ -250,9 +259,9 @@ export default function CustomerDashboard() {
         </Space>
       </div>
 
-      {/* ====== 4 个核心 KPI ====== */}
+      {/* ====== 6 个核心 KPI ====== */}
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-        <Col xs={12} sm={12} md={6} lg={6} xl={6}>
+        <Col xs={12} sm={12} md={8} lg={8} xl={8}>
           <KpiCard
             loading={loading}
             icon={<FileTextOutlined />}
@@ -263,7 +272,7 @@ export default function CustomerDashboard() {
             onClick={() => router.push('/customer/materials')}
           />
         </Col>
-        <Col xs={12} sm={12} md={6} lg={6} xl={6}>
+        <Col xs={12} sm={12} md={8} lg={8} xl={8}>
           <KpiCard
             loading={loading}
             icon={<RobotOutlined />}
@@ -274,7 +283,7 @@ export default function CustomerDashboard() {
             onClick={() => router.push('/customer/ai-factory')}
           />
         </Col>
-        <Col xs={12} sm={12} md={6} lg={6} xl={6}>
+        <Col xs={12} sm={12} md={8} lg={8} xl={8}>
           <KpiCard
             loading={loading}
             icon={<CustomerServiceOutlined />}
@@ -283,6 +292,39 @@ export default function CustomerDashboard() {
             value={data.kpi.pendingTickets}
             extra={data.kpi.pendingTickets > 0 ? '点击处理' : '一切正常'}
             onClick={() => router.push('/customer/tickets')}
+          />
+        </Col>
+        <Col xs={12} sm={12} md={8} lg={8} xl={8}>
+          <KpiCard
+            loading={loading}
+            icon={<AimOutlined />}
+            color={COLORS.success}
+            label="获客线索"
+            value={data.kpi.leads.total}
+            extra={<span>{data.kpi.leads.weekNew > 0 ? <><RiseOutlined style={{ color: COLORS.success }} /> 本周新增 {data.kpi.leads.weekNew} </> : ''}{data.kpi.leads.converted > 0 ? `已转化 ${data.kpi.leads.converted}` : '点击进入智能获客'}</span>}
+            onClick={() => router.push('/customer/acquisition/board')}
+          />
+        </Col>
+        <Col xs={12} sm={12} md={8} lg={8} xl={8}>
+          <KpiCard
+            loading={loading}
+            icon={<ShareAltOutlined />}
+            color={COLORS.cyan}
+            label="推荐分享"
+            value={data.kpi.shares.total}
+            extra={data.kpi.shares.scans > 0 ? `扫码 ${data.kpi.shares.scans} 次` + (data.kpi.shares.conversions > 0 ? ` · 转化 ${data.kpi.shares.conversions}` : '') : '点击进入推荐分享'}
+            onClick={() => router.push('/customer/share/board')}
+          />
+        </Col>
+        <Col xs={12} sm={12} md={8} lg={8} xl={8}>
+          <KpiCard
+            loading={loading}
+            icon={<TeamOutlined />}
+            color={COLORS.warning}
+            label="招聘候选人"
+            value={data.kpi.candidates.total}
+            extra={data.kpi.candidates.weekNew > 0 ? <span><RiseOutlined style={{ color: COLORS.success }} /> 本周新增 {data.kpi.candidates.weekNew}{data.kpi.candidates.hired > 0 ? ` · 已录用 ${data.kpi.candidates.hired}` : ''}</span> : '点击进入智能招聘'}
+            onClick={() => router.push('/customer/recruitment')}
           />
         </Col>
       </Row>

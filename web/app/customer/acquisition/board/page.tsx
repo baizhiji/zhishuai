@@ -15,7 +15,7 @@ interface DashboardData {
   newLeads: number;
   conversionRate: number;
   totalTasks: number;
-  revenue: number;
+  convertedLeads: number;
   trend: { label: string; leads: number; conversions: number }[];
   channelBreakdown: { channel: string; count: number }[];
   aiScoreDist: { range: string; count: number }[];
@@ -38,25 +38,46 @@ export default function AcquisitionBoardPage() {
     setLoading(true);
     try {
       const res: Record<string, unknown> = await apiClient.get('/acquisition/dashboard', { params: { period } });
-      setData(res as DashboardData);
-    } catch { setData(null); }
-    finally { setLoading(false); }
+      const payload = (res.data as unknown as DashboardData) || (res as unknown as DashboardData) || {};
+      setData({
+        totalLeads: payload.totalLeads ?? 0,
+        newLeads: payload.newLeads ?? 0,
+        conversionRate: payload.conversionRate ?? 0,
+        totalTasks: payload.totalTasks ?? 0,
+        convertedLeads: payload.convertedLeads ?? 0,
+        trend: payload.trend ?? [],
+        channelBreakdown: payload.channelBreakdown ?? [],
+        aiScoreDist: payload.aiScoreDist ?? [],
+      });
+    } catch (err) {
+      console.error('[AcquisitionBoard] 加载看板数据失败:', err);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
   }, [period]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  if (!loading && !data) {
+  if (!data) {
     return (
-      <PageContainer title="获客看板" description="数据获取失败，请稍后重试" breadcrumb={[{ title: '首页', href: '/customer/dashboard' }, { title: '获客看板' }]} skeletonType="card" extra={<Button icon={<ReloadOutlined />} onClick={fetchData}>刷新</Button>}>
+      <PageContainer
+        title="获客看板"
+        description={loading ? '数据加载中…' : '数据获取失败，请稍后重试'}
+        breadcrumb={[{ title: '首页', href: '/customer/dashboard' }, { title: '获客看板' }]}
+        loading={loading}
+        skeletonType="card"
+        extra={<Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>刷新</Button>}
+      >
         <div />
       </PageContainer>
     );
   }
 
-  const d = data!;
-  const maxTrend = Math.max(...d.trend.map(v => Math.max(v.leads, v.conversions)));
-  const maxChannel = Math.max(...d.channelBreakdown.map(c => c.count));
-  const maxScore = Math.max(...d.aiScoreDist.map(s => s.count));
+  const d = data;
+  const maxTrend = Math.max(1, ...d.trend.map(v => Math.max(v.leads ?? 0, v.conversions ?? 0)));
+  const maxChannel = Math.max(1, ...d.channelBreakdown.map(c => c.count ?? 0));
+  const maxScore = Math.max(1, ...d.aiScoreDist.map(s => s.count ?? 0));
 
   return (
     <PageContainer
@@ -88,9 +109,9 @@ export default function AcquisitionBoardPage() {
       <Row gutter={[16, 16]}>
         {[
           { title: '总潜客数', value: d.totalLeads.toLocaleString(), icon: <UserOutlined />, color: '#1677ff' },
-          { title: '新增潜客', value: d.newLeads.toLocaleString(), icon: <TeamOutlined />, color: '#52c41a', trend: `↑ ${Math.round(d.newLeads / d.totalLeads * 100)}%` },
+          { title: '新增潜客', value: d.newLeads.toLocaleString(), icon: <TeamOutlined />, color: '#52c41a', trend: d.totalLeads > 0 ? `↑ ${Math.round((d.newLeads / d.totalLeads) * 100)}%` : '—' },
           { title: '转化率', value: `${d.conversionRate}%`, icon: <RiseOutlined />, color: '#722ed1' },
-          { title: '预估收入', value: `¥${(d.revenue / 10000).toFixed(1)}万`, icon: <DollarOutlined />, color: '#fa8c16' },
+          { title: '转化客户', value: d.convertedLeads.toLocaleString(), icon: <DollarOutlined />, color: '#fa8c16' },
         ].map(k => (
           <Col xs={12} sm={6} key={k.title}>
             <Card size="small" style={{ borderRadius: 12 }} loading={loading && !data}>

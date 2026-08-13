@@ -1,6 +1,6 @@
 /**
  * 数据采集服务层
- * 封装数据源管理、采集任务执行、模拟数据生成的业务逻辑
+ * 封装数据源管理、采集任务执行的业务逻辑
  */
 import { searchCompanies } from './tianyancha.service';
 import { searchPOIByKeyword } from './amap.service';
@@ -40,6 +40,28 @@ export interface CreateTaskInput {
   centerLng?: number;
 }
 
+/** 采集到的线索数据项（对应 AcquisitionData 模型字段） */
+export interface CollectedLeadItem {
+  source: string;
+  sourceType: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  wechat?: string;
+  company?: string;
+  position?: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  business?: string;
+  intentScore?: number;
+  intentLevel?: string;
+  intentTags?: string;
+  status?: string;
+  platform?: string;
+  roomId?: string;
+}
+
 // ─── 数据源管理 ───
 export async function getSourceConfig(userId: string) {
   const sources = await prisma.acquisitionSource.findMany({
@@ -60,7 +82,7 @@ export async function saveSourceConfig(userId: string, sources: SourceConfig[]) 
     if (existing) {
       await prisma.acquisitionSource.update({
         where: { id: existing.id },
-        data: { config: (source.config as Record<string, unknown>) || {}, enabled: source.enabled ?? true },
+        data: { config: (source.config as any) || {}, enabled: source.enabled ?? true },
       });
     } else {
       await prisma.acquisitionSource.create({
@@ -68,7 +90,7 @@ export async function saveSourceConfig(userId: string, sources: SourceConfig[]) 
           userId,
           name: source.name || source.type,
           type: source.type,
-          config: (source.config as Record<string, unknown>) || {},
+          config: (source.config as any) || {},
           enabled: source.enabled ?? true,
         },
       });
@@ -92,12 +114,12 @@ export async function upsertSource(userId: string, input: SourceConfig) {
   if (existing) {
     return prisma.acquisitionSource.update({
       where: { id: existing.id },
-      data: { name, config: (config as Record<string, unknown>), enabled },
+      data: { name, config: (config as any), enabled },
     });
   }
 
   return prisma.acquisitionSource.create({
-    data: { userId, name, type, config: (config as Record<string, unknown>), enabled: enabled ?? true },
+    data: { userId, name, type, config: (config as any), enabled: enabled ?? true },
   });
 }
 
@@ -193,7 +215,7 @@ export async function updateDataItem(id: string, userId: string, updates: Record
 }
 
 export async function deleteDataItem(id: string, userId: string) {
-  await prisma.acquisitionData.delete({ where: { id, userId } });
+  await (prisma as any).acquisitionData.delete({ where: { id, userId } });
   return true;
 }
 
@@ -236,28 +258,108 @@ async function executeCollectionTask(
       data: { status: 'running', startedAt: new Date() },
     });
 
-    const mockData = generateMockCollectionData(source, keywords, industry);
+    // 按数据源类型调用真实采集服务
+    let collected: CollectedLeadItem[] = [];
 
-    if (mockData.length > 0) {
-      const items = mockData.map(item => ({ userId, ...item }));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await prisma.acquisitionData.createMany({ data: items as any[] });
-
-      await prisma.dataCollectionTask.update({
-        where: { id: taskId },
-        data: {
-          status: 'completed',
-          totalCount: mockData.length,
-          collectedCount: mockData.length,
-          completedAt: new Date(),
-        },
+    if (source === 'tianyancha') {
+      const sourceCfg = await prisma.acquisitionSource.findUnique({
+        where: { userId_type: { userId, type: 'tianyancha' } },
       });
-    } else {
-      await prisma.dataCollectionTask.update({
-        where: { id: taskId },
-        data: { status: 'completed', completedAt: new Date() },
+      const cfg = sourceCfg?.config as { apiKey?: string } | null;
+      const result = await searchCompanies(
+        { keyword: keywords || '', industry, page: 1, pageSize: 20 },
+        cfg?.apiKey ? { apiKey: cfg.apiKey } : undefined,
+      );
+      collected = result.list.map(company => ({
+        source: 'tianyancha' as const,
+        sourceType: 'enterprise' as const,
+        company: company.name,
+        business: company.business,
+        address: company.address,
+        phone: company.phone,
+        latitude: 0,
+        longitude: 0,
+        intentScore: company.score,
+        intentLevel: company.score >= 80 ? '高' as const : company.score >= 60 ? '中' as const : '低' as const,
+        status: 'new' as const,
+      }));
+    } else if (source === 'amap') {
+      const sourceCfg = await prisma.acquisitionSource.findUnique({
+        where: { userId_type: { userId, type: 'amap' } },
+      });
+      const cfg = sourceCfg?.config as { apiKey?: string } | null;
+      const result = await searchPOIByKeyword(
+        { keyword: keywords || '', offset: 20, page: 1 },
+        cfg?.apiKey ? { apiKey: cfg.apiKey } : undefined,
+      );
+      collected = result.pois.map(poi => ({
+        source: 'amap' as const,
+        sourceType: 'merchant' as const,
+        name: poi.name,
+        business: poi.type,
+        address: poi.address,
+        phone: poi.tel,
+        latitude: poi.location.lat,
+        longitude: poi.location.lng,
+        intentScore: 50,
+        intentLevel: '中' as const,
+        status: 'new' as const,
+      }));
+    } else if (source === 'douyin_live' || source === 'kuaishou_live') {
+      const sourceCfg = await prisma.acquisitionSource.findUnique({
+        where: { userId_type: { userId, type: source } },
+      });
+      const cfg = sourceCfg?.config as { apiKey?: string } | null;
+      const platform = source === 'douyin_live' ? 'douyin' : 'kuaishou';
+      const roomId = (sourceCfg?.config as any)?.roomId || '';
+      const danmuResult = await getDanmu({
+        platform: platform as any,
+        roomId: roomId || '',
+        apiKey: cfg?.apiKey,
+      });
+      collected = danmuResult.newLeads.map(d => ({
+        source,
+        sourceType: 'live_audience' as const,
+        platform,
+        roomId: roomId || '',
+        name: d.nickname,
+        latitude: 0,
+        longitude: 0,
+        intentScore: calculateIntentScore(d),
+        intentLevel: (d.intentScore ?? 0) >= 80 ? '高' as const : (d.intentScore ?? 0) >= 60 ? '中' as const : '低' as const,
+        intentTags: d.content,
+        status: 'new' as const,
+      }));
+    }
+
+    // 已存在数据去重
+    const existing = await prisma.acquisitionData.findMany({
+      where: { userId, source },
+      select: { company: true, name: true },
+    });
+    const existingKeys = new Set(
+      existing.map(e => e.company || e.name || '').filter(Boolean)
+    );
+    const newItems = collected.filter(item => {
+      const key = String(item.company || item.name || '');
+      return key ? !existingKeys.has(key) : true;
+    });
+
+    if (newItems.length > 0) {
+      await prisma.acquisitionData.createMany({
+        data: newItems.map(item => ({ userId, ...item })),
       });
     }
+
+    await prisma.dataCollectionTask.update({
+      where: { id: taskId },
+      data: {
+        status: 'completed',
+        totalCount: newItems.length,
+        collectedCount: newItems.length,
+        completedAt: new Date(),
+      },
+    });
   } catch (error) {
     const errMsg = error instanceof Error ? error.message : '未知错误';
     await prisma.dataCollectionTask.update({
@@ -265,70 +367,6 @@ async function executeCollectionTask(
       data: { status: 'failed', error: errMsg },
     });
   }
-}
-
-// ─── 模拟数据生成（内部） ───
-function generateMockCollectionData(
-  source: string,
-  keywords?: string,
-  industry?: string
-): Record<string, unknown>[] {
-  const data: Record<string, unknown>[] = [];
-  const count = Math.floor(Math.random() * 10) + 5;
-  const platforms = ['douyin', 'kuaishou', 'xiaohongshu', 'weibo'];
-  const tags = ['行业咨询', '产品询价', '合作意向', '价格对比', '品牌了解', '竞品对比'];
-
-  for (let i = 0; i < count; i++) {
-    const intentScore = Math.floor(Math.random() * 40) + 60;
-    const intentLevel = intentScore >= 80 ? '高' : intentScore >= 60 ? '中' : '低';
-
-    if (source === 'douyin_live' || source === 'kuaishou_live') {
-      data.push({
-        source,
-        sourceType: 'live_audience',
-        platform: platforms[Math.floor(Math.random() * platforms.length)],
-        roomId: `room_${Date.now()}_${i}`,
-        roomName: keywords || '热门直播间',
-        name: `用户${1000 + i}`,
-        intentScore,
-        intentLevel,
-        intentTags: tags.slice(0, Math.floor(Math.random() * 3) + 1).join(','),
-        status: 'new',
-      });
-    } else if (source === 'tianyancha') {
-      data.push({
-        source,
-        sourceType: 'enterprise',
-        company: keywords ? `${keywords}科技公司` : `示例公司${i}`,
-        business: industry || '互联网服务',
-        address: `北京市朝阳区建国路${88 + i}号`,
-        latitude: 39.9 + Math.random() * 0.1,
-        longitude: 116.4 + Math.random() * 0.1,
-        employeeCount: ['50-100人', '100-500人', '500-1000人'][Math.floor(Math.random() * 3)],
-        intentScore,
-        intentLevel,
-        intentTags: tags.slice(0, Math.floor(Math.random() * 3) + 1).join(','),
-        status: 'new',
-      });
-    } else if (source === 'amap') {
-      data.push({
-        source,
-        sourceType: 'merchant',
-        name: `商家${1000 + i}`,
-        phone: `138${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-        address: keywords || `商业街${i}号`,
-        latitude: 39.9 + Math.random() * 0.1,
-        longitude: 116.4 + Math.random() * 0.1,
-        business: industry || '零售服务',
-        intentScore,
-        intentLevel,
-        intentTags: tags.slice(0, Math.floor(Math.random() * 3) + 1).join(','),
-        status: 'new',
-      });
-    }
-  }
-
-  return data;
 }
 
 // ─── 外部搜索集成 ───
@@ -363,8 +401,8 @@ export async function searchTianyancha(
         business: company.business,
         address: company.address,
         phone: company.phone,
-        latitude: 39.9 + Math.random() * 0.2,
-        longitude: 116.4 + Math.random() * 0.2,
+        latitude: 0,
+        longitude: 0,
         intentScore: company.score,
         intentLevel: company.score >= 80 ? '高' : company.score >= 60 ? '中' : '低',
         status: 'new' as const,
@@ -411,7 +449,7 @@ export async function searchAmapPOI(
         phone: poi.tel,
         latitude: poi.location.lat,
         longitude: poi.location.lng,
-        intentScore: 60 + Math.floor(Math.random() * 30),
+        intentScore: 50,
         intentLevel: '中' as const,
         status: 'new' as const,
       }));
@@ -435,10 +473,10 @@ export async function searchLiveAudience(
   const config = source?.config as { apiKey?: string } | null;
 
   const [danmuResult, viewersResult, stats] = await Promise.all([
-    getDanmu({ platform: platform || 'douyin', roomId: roomId || '', apiKey: config?.apiKey }),
-    getLiveViewers({ platform: platform || 'douyin', roomId: roomId || '', apiKey: config?.apiKey }),
-    getLiveStats({ platform: platform || 'douyin', roomId: roomId || '', apiKey: config?.apiKey }),
-  ]);
+    getDanmu({ platform: (platform || 'douyin') as any, roomId: roomId || '', apiKey: config?.apiKey }),
+    getLiveViewers({ platform: (platform || 'douyin') as any, roomId: roomId || '', apiKey: config?.apiKey }),
+    getLiveStats({ platform: (platform || 'douyin') as any, roomId: roomId || '', apiKey: config?.apiKey }),
+  ] as any);
 
   if (danmuResult.newLeads.length > 0) {
     const newData = danmuResult.newLeads.map(d => ({

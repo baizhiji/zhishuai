@@ -45,7 +45,7 @@ export default function AppDownloadPage() {
   useEffect(() => {
     const fetchVersion = async () => {
       try {
-        const res = await request.get('/api/version');
+        const res = await request.get('/api/version/latest');
         if (res?.data) {
           setVersion({
             version: res.data.version || DEFAULT_VERSION.version,

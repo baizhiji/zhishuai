@@ -161,7 +161,7 @@ export default function RecruitmentPage() {
 
   return (
     <PageContainer
-      title="智能招聘"
+      title="招聘看板"
       description="AI 驱动的智能招聘系统，自动匹配、自动沟通、全流程管理"
       breadcrumb={[{ title: '首页', href: '/customer/dashboard' }, { title: '智能招聘' }]}
       loading={false}

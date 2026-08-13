@@ -256,8 +256,8 @@ export class AIPipelineRunner {
         // 使用注入的AI调用函数
         output = await this.aiCallFn(modelKey, task.systemPrompt, task.userPrompt);
       } else {
-        // 降级：构造模拟响应
-        output = this.generateMockResponse(task);
+        // 未注入 AI 调用函数时明确报错，禁止生成模拟响应
+        throw new Error('AI 调用函数未配置（aiCallFn 为空），请检查系统配置');
       }
 
       // 减少并发计数
@@ -320,149 +320,6 @@ export class AIPipelineRunner {
 
     return summary;
   }
-
-  private generateMockResponse(task: PipelineTask): string {
-    // 无实际AI调用时的高质量模板
-    const outLine = [
-      '【内容大纲】',
-      '1. 目标受众：25-35岁都市白领女性',
-      '2. 核心卖点：高性价比、使用便捷、场景丰富',
-      '3. 内容结构：痛点引入 → 产品展示 → 效果验证 → 行动号召',
-      '4. 情感基调：温暖治愈+专业可信',
-    ].join('\n');
-
-    const titleJson = JSON.stringify({titles: [
-      '\uD83D\uDD25绝了！这款神仙好物我只花了100块',
-      '姐妹们冲！用过的都说好\u2728',
-      '这谁发明的？也太好用了吧\uD83D\uDE2D',
-    ]});
-
-    const body = [
-      '哈喽姐妹们\uD83D\uDC4B 今天给大家安利一个我最近疯狂爱上好东西！',
-      '',
-      '说实话一开始我也犹豫，但用了一周后发现...也太香了吧！',
-      '',
-      '首先质感真的没话说，拿在手里就很高级\u2728',
-      '其次实用性也满分，每天都会用上～',
-      '',
-      '就这个价格来说，性价比真的绝了\uD83D\uDC4D',
-      '',
-      '宝子们还在犹豫什么？冲就对了！',
-      '',
-      '#好物分享 #种草 #性价比 #生活好物',
-    ].join('\n');
-
-    const imagePromptJson = JSON.stringify({
-      prompts: [
-        'Minimalist aesthetic product photography, soft natural lighting, white marble background, lifestyle shot, 8K',
-        'Close-up product detail shot, macro photography, bokeh effect, professional lighting setup',
-        'Flat lay composition with lifestyle props, warm tone, Instagram style, editorial photography',
-      ],
-      style: 'minimalist modern',
-    });
-
-    const creativeJson = JSON.stringify({
-      directions: [
-        {concept: '反转剧情', hook: '你以为它是XX，其实...', keyMessage: '打破常规认知'},
-        {concept: '对比实验', hook: '左边VS右边，结果惊人', keyMessage: '效果立竿见影'},
-        {concept: '情感共鸣', hook: '每个打工人都懂', keyMessage: '真实体验分享'},
-      ],
-    });
-
-    const script = [
-      '【短视频脚本】',
-      '时长：15秒',
-      'BGM：轻快电子风',
-      '',
-      '[0-3s] 特写开头：产品亮相',
-      '"这也太好用了吧！"',
-      '',
-      '[3-8s] 中景展示：使用过程',
-      '"每天上班前只要30秒，整天的状态都不一样"',
-      '',
-      '[8-12s] 切换场景：3个使用场景',
-      '居家/办公/出行，轻松应对',
-      '',
-      '[12-15s] 结尾+CTA',
-      '"点击左下角，限时特惠中"',
-    ].join('\n');
-
-    const voiceoverJson = JSON.stringify({
-      voiceover: '这也太好用了吧！每天上班前只要30秒，整天的状态都不一样。居家办公出行，轻松应对。点击左下角，限时特惠中',
-      subtitles: [
-        {time: '0-3s', text: '这也太好用了吧！'},
-        {time: '3-8s', text: '每天上班前只要30秒，整天的状态都不一样'},
-        {time: '8-12s', text: '居家、办公、出行，轻松应对'},
-        {time: '12-15s', text: '点击左下角，限时特惠中'},
-      ],
-    });
-
-    const sellingPointsJson = JSON.stringify({
-      points: [
-        {title: '极致性价比', description: '同等品质下价格仅为竞品60%', importance: 10},
-        {title: '多场景适用', description: '从日常到专业，一个产品搞定', importance: 9},
-        {title: '售后无忧', description: '30天无理由退换+1年质保', importance: 8},
-      ],
-    });
-
-    const competitorJson = JSON.stringify({
-      strengths: [],
-      weaknesses: ['竞品价格偏高20-50%', '竞品功能冗余，学习成本高', '竞品售后服务响应慢'],
-      strategy: '主打性价比+简单易用+快速售后',
-    });
-
-    const detailPage = [
-      '【商品详情页文案】',
-      '',
-      '\uD83D\uDD25 限时特惠 立享8折',
-      '',
-      '【产品名称】智枢AI创作助手',
-      '',
-      '\uD83D\uDC8E 为什么选择我们？',
-      '→ 极致性价比：同等品质，价格仅为竞品60%',
-      '→ 多场景适用：日常办公到专业创作，一机搞定',
-      '→ 30天无理由退换+1年质保，购物零风险',
-      '',
-      '\uD83D\uDCD0 详细参数',
-      '尺寸：200×150×50mm',
-      '重量：仅350g',
-      '续航：8小时超长待机',
-      '',
-      '\uD83C\uDFAF 使用场景',
-      '\uD83C\uDFE0 居家：轻松处理日常任务',
-      '\uD83C\uDFE2 办公：高效完成专业工作',
-      '\uD83D\uDE97 出行：轻薄便携，随时随地',
-      '',
-      '\u2705 售后保障',
-      '• 30天无理由退换',
-      '• 1年免费质保',
-      '• 7×24小时在线客服',
-    ].join('\n');
-
-    const imageDesignJson = JSON.stringify({
-      images: [
-        {name: '主图', description: '产品45度角展示，纯白背景，专业影棚灯光', size: '800×800', elements: ['产品主体', '品牌logo', '角标促销标签']},
-        {name: '卖点图', description: '卖点可视化图标+简短文案，蓝色渐变背景', size: '750×1500', elements: ['图标', '卖点文字', '数据可视化']},
-        {name: '场景图', description: '3个使用场景拼接，居家/办公/出行，暖色调', size: '750×1500', elements: ['场景照片', '场景标签', '产品叠加']},
-        {name: '售后图', description: '售后保障信息可视化，绿色安全色调', size: '750×800', elements: ['质保图标', '退换说明', '客服二维码']},
-      ],
-    });
-
-    switch (task.id) {
-      case 'outline': return outLine;
-      case 'title': return titleJson;
-      case 'body': return body;
-      case 'image_prompt': return imagePromptJson;
-      case 'creative': return creativeJson;
-      case 'script': return script;
-      case 'voiceover_text': return voiceoverJson;
-      case 'selling_points': return sellingPointsJson;
-      case 'competitor_analysis': return competitorJson;
-      case 'detail_page': return detailPage;
-      case 'image_design': return imageDesignJson;
-      default: return '【' + task.description + '】\n模型将会根据您的输入生成专业内容。连接API Key后即可使用真实AI生成。';
-    }
-  }
 }
 
 // ─── 导出单例 ────────────────────────────────
@@ -497,7 +354,7 @@ export function getPipelineForContentType(contentType: string): PipelineTask[] |
       {
         id: 'creativity_directions',
         description: '创意方向构思',
-        modelType: 'creative',
+        modelType: 'creative' as any,
         systemPrompt: '基于分析结果，提出3个差异化创意方向。每个方向包含核心概念、目标受众、预期传播路径。',
         userPrompt: '',
         parallel: true,
@@ -505,7 +362,7 @@ export function getPipelineForContentType(contentType: string): PipelineTask[] |
       {
         id: 'creativity_content',
         description: '完整内容蓝图',
-        modelType: 'creative',
+        modelType: 'creative' as any,
         systemPrompt: '基于最佳创意方向，生成完整内容蓝图。包含标题方案、钩子设计、正文框架、CTA策略、平台适配建议。',
         userPrompt: '',
       },
@@ -522,7 +379,7 @@ export function getPipelineForContentType(contentType: string): PipelineTask[] |
       {
         id: 'sketch_storyboard',
         description: '分镜脚本',
-        modelType: 'creative',
+        modelType: 'creative' as any,
         systemPrompt: '根据剧本生成详细分镜脚本。每镜包含画面描述、运镜方式、时长、特效。',
         userPrompt: '',
       },
@@ -531,7 +388,7 @@ export function getPipelineForContentType(contentType: string): PipelineTask[] |
       {
         id: 'comic_script',
         description: '漫画分镜脚本',
-        modelType: 'creative',
+        modelType: 'creative' as any,
         systemPrompt: '你是漫画编剧。根据主题创作漫画分镜脚本。包含每格画面、对话气泡、情绪表达。',
         userPrompt: '',
         parallel: true,
@@ -539,7 +396,7 @@ export function getPipelineForContentType(contentType: string): PipelineTask[] |
       {
         id: 'comic_prompts',
         description: '漫画图提示词',
-        modelType: 'creative',
+        modelType: 'creative' as any,
         systemPrompt: '根据分镜脚本生成每格漫画的AI绘图提示词。包含角色描述、场景、风格、色调。输出JSON格式。',
         userPrompt: '',
       },

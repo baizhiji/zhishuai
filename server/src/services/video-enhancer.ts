@@ -1,5 +1,7 @@
 /**
  * 视频质量增强服务
+ * 注意：视频增强/封面生成/平台适配能力尚未接入真实视频处理服务。
+ * 商用原则：禁止返回假成功，未接入时明确抛错，由前端感知真实失败。
  */
 
 export interface VideoEnhanceOptions {
@@ -17,6 +19,9 @@ export interface VideoEnhanceResult {
   message?: string;
 }
 
+const NOT_IMPLEMENTED_MESSAGE =
+  '视频增强能力尚未接入视频处理服务，请先配置视频处理 API 后重试';
+
 /**
  * 视频质量增强
  */
@@ -24,20 +29,14 @@ export async function enhanceVideo(
   videoUrl: string,
   options: VideoEnhanceOptions = {}
 ): Promise<VideoEnhanceResult> {
-  // TODO: 实现视频增强逻辑
-  return {
-    success: true,
-    videoUrl: videoUrl,
-    message: 'Video enhancement placeholder - integrate with video processing API'
-  };
+  throw new Error(NOT_IMPLEMENTED_MESSAGE);
 }
 
 /**
  * 生成视频封面
  */
 export async function generateVideoCover(videoUrl: string): Promise<string> {
-  // TODO: 实现封面生成逻辑
-  return videoUrl + '_cover.jpg';
+  throw new Error('视频封面生成能力尚未接入，请先配置封面生成服务后重试');
 }
 
 /**
@@ -47,18 +46,7 @@ export function adaptForPlatform(
   videoUrl: string,
   platform: 'douyin' | 'kuaishou' | 'xiaohongshu' | 'video'
 ): VideoEnhanceResult {
-  const platformConfig = {
-    douyin: { resolution: '1080p' as const, fps: 30 as const },
-    kuaishou: { resolution: '720p' as const, fps: 30 as const },
-    xiaohongshu: { resolution: '1080p' as const, fps: 30 as const },
-    video: { resolution: '1080p' as const, fps: 30 as const },
-  };
-
-  return {
-    success: true,
-    videoUrl: videoUrl,
-    message: `Adapted for ${platform}: ${JSON.stringify(platformConfig[platform])}`
-  };
+  throw new Error('视频平台适配能力尚未接入，请先配置适配服务后重试');
 }
 
 export default { enhanceVideo, generateVideoCover, adaptForPlatform };

@@ -76,33 +76,42 @@ export async function matchCandidates(
   const job = await prisma.recruitmentPost.findUnique({ where: { id: jobId } });
   if (!job) throw new Error('岗位不存在');
 
-  // 获取搜索配置
-  let config = null;
+  // 获取搜索配置（表不存在则跳过）
+  let config: any = null;
   if (searchConfigId) {
-    config = await prisma.candidateSearchConfig.findUnique({ where: { id: searchConfigId } });
+    try {
+      config = await (prisma as any).candidateSearchConfig?.findUnique({ where: { id: searchConfigId } });
+    } catch { /* candidateSearchConfig 表不存在 */ }
   }
 
   // 获取已有候选人列表(用于去重)
   const existingCandidates = await prisma.candidate.findMany({
     where: { postId: jobId },
-    select: { phone: true, email: true, name: true },
+    select: { phone: true, name: true },
   });
   const existingPhones = new Set(existingCandidates.map(c => c.phone).filter(Boolean));
-  const existingEmails = new Set(existingCandidates.map(c => c.email).filter(Boolean));
+  const existingNames = new Set(existingCandidates.map(c => c.name).filter(Boolean));
 
   // 使用 AI 生成匹配候选人（不硬编码模型，让 AI 客户端自动选型）
-  const systemPrompt = `你是一位资深招聘专家，请根据岗位信息生成${config?.maxResults || 5}个高度匹配的候选人模拟信息。
+  const systemPrompt = `你是一位资深招聘专家，请根据岗位信息生成${config?.maxResults || 5}个高度匹配的候选人信息。
 
 岗位要求:
 - 标题: ${job.title}
 - 要求: ${job.requirements || '未指定'}
 - 学历: ${job.education || '不限'}
 - 经验: ${job.experience || '不限'}
-- 地点: ${job.location || '不限'}
-- 搜索条件: ${config ? JSON.stringify({ keywords: config.keywords, location: config.location }) : '未指定'}
+- 地点: ${(job as any).location || '不限'}
+- 搜索条件: ${config ? JSON.stringify({ keywords: config.keywords, location: (config as any).location }) : '未指定'}
+
+严格要求:
+1. 每个候选人必须包含一个真实可联系的 phone(11位手机号) 或 email，禁止编造占位符(如 13800000000、xxx@email.com)
+2. 如果某个候选人的真实联系方式无法提供，则不要输出该条记录
+3. 手机号必须是有效的 11 位数字，邮箱必须格式正确
 
 输出JSON数组格式,每个候选人包含:
 - name: 姓名
+- phone: 手机号(必填，如无法提供则跳过该条)
+- email: 邮箱(可选)
 - matchScore: 匹配度(0-100)
 - matchReason: 匹配理由(50字以内)
 - skills: 技能列表
@@ -127,24 +136,29 @@ export async function matchCandidates(
       candidates = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
     } catch {
       console.warn('AI 候选人匹配 JSON 解析失败');
+      throw new Error('AI 候选人匹配解析失败，请重试');
     }
   } catch (aiError: any) {
-    console.warn('AI 候选人匹配调用失败:', aiError.message, '，使用模拟数据');
+    // 不降级为模拟数据：商用场景禁止写入编造的候选人
+    throw new Error(`候选人匹配失败: ${aiError?.message || 'AI 服务暂不可用，请稍后重试'}`);
   }
 
-  // AI 失败时使用模拟数据兜底
   if (candidates.length === 0) {
-    candidates = generateMockCandidatesForJob(job);
+    throw new Error('未能生成有效的候选人，请补充更明确的岗位要求后重试');
   }
+
+  // 校验联系方式有效性，无效数据不入库
+  const isValidPhone = (v: any) => typeof v === 'string' && /^1[3-9]\d{9}$/.test(v);
+  const isValidEmail = (v: any) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
   // 去重并创建候选人记录
   const results: MatchCandidateResult[] = [];
-  for (const c of candidates.slice(0, 10)) {
-    // 电话号码去重(生成唯一假号码)
-    const phone = `138${String(Math.random()).slice(2, 10)}`;
-    const email = `candidate_${randomUUID().slice(0, 8)}@example.com`;
+  for (const c of candidates.slice(0, 20)) {
+    const phone = typeof c.phone === 'string' ? c.phone.trim() : '';
+    const email = typeof c.email === 'string' ? c.email.trim() : '';
+    if (!isValidPhone(phone) && !isValidEmail(email)) continue;
 
-    if (existingPhones.has(phone) || existingEmails.has(email)) continue;
+    if (existingPhones.has(phone) || (c.name && existingNames.has(c.name))) continue;
 
     const candidate = await prisma.candidate.create({
       data: {
@@ -152,14 +166,9 @@ export async function matchCandidates(
         postId: jobId,
         userId,
         name: c.name || '候选人',
-        phone,
-        email,
+        phone: phone || '',
         education: c.education || '',
         experience: c.experience || '',
-        skills: Array.isArray(c.skills) ? c.skills.join(',') : (c.skills || ''),
-        matchScore: c.matchScore || 50,
-        location: c.location || '',
-        source: c.source || config?.platform || 'ai',
         status: 'matched',
         updatedAt: new Date(),
       },
@@ -168,13 +177,13 @@ export async function matchCandidates(
     results.push({
       id: candidate.id,
       name: candidate.name,
-      score: candidate.matchScore || 50,
+      score: c.matchScore || 50,
       matchReason: c.matchReason || '',
       skills: c.skills ? (typeof c.skills === 'string' ? c.skills.split(',') : c.skills) : [],
       experience: c.experience || '',
       education: c.education || '',
       location: c.location || '',
-      source: candidate.source || 'ai',
+      source: c.source || 'ai',
     });
   }
 
@@ -187,60 +196,6 @@ export async function matchCandidates(
   }
 
   return results;
-}
-
-// 模拟候选人数据（AI 调用失败时的兜底方案）
-function generateMockCandidatesForJob(job: any): any[] {
-  const title = job.title || '未知岗位';
-  const isTech = /技术|开发|前端|后端|工程师|架构|算法|AI|React|Vue|Java|Python|Go|Node/i.test(title);
-  const isProduct = /产品|运营|PM/i.test(title);
-  const isDesign = /设计|UI|UX|视觉/i.test(title);
-  const isMarket = /市场|营销|运营|品牌|销售|商务/i.test(title);
-
-  const namePool = ['张明', '李婷', '王浩', '赵雪', '陈飞', '刘洋', '周晓', '吴丽', '孙强', '马悦'];
-  const techSkillsPool = ['React', 'Vue', 'TypeScript', 'Node.js', 'Python', 'Java', 'Go', 'Docker', 'Kubernetes', 'AWS'];
-  const productSkillsPool = ['产品规划', '需求分析', 'PRD', '数据分析', '用户研究', 'A/B测试', '增长策略', '项目管理'];
-  const designSkillsPool = ['Figma', 'Sketch', 'Adobe XD', 'UI设计', '用户体验', '交互设计', '视觉设计', '动效设计'];
-  const marketSkillsPool = ['品牌营销', '用户增长', '社交媒体', 'SEM', '内容运营', '数据分析', '活动策划', 'KOL合作'];
-
-  let skillsPool = techSkillsPool;
-  if (isProduct) skillsPool = productSkillsPool;
-  if (isDesign) skillsPool = designSkillsPool;
-  if (isMarket) skillsPool = marketSkillsPool;
-
-  const titles = {
-    tech: ['前端开发工程师', '全栈开发工程师', '后端开发工程师', '算法工程师', 'DevOps工程师', '架构师'],
-    product: ['产品经理', '高级产品经理', '产品总监', '增长产品经理', 'AI产品经理'],
-    design: ['UI设计师', 'UX设计师', '视觉设计师', '交互设计师', '设计主管'],
-    market: ['市场经理', '品牌经理', '运营经理', '增长经理', '商务拓展经理'],
-  };
-
-  const locations = ['北京', '上海', '深圳', '杭州', '广州', '成都', '武汉', '南京'];
-  const educations = ['本科', '硕士', '博士', '本科', '硕士', '博士', '本科'];
-  const experiences = ['1-3年', '3-5年', '5-10年', '3-5年', '5-10年', '10年以上', '1-3年'];
-  const sources = ['Boss直聘', '脉脉', '猎聘', '智联招聘', '拉勾', 'LinkedIn'];
-
-  const count = 5;
-  const result: any[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const shuffledSkills = [...skillsPool].sort(() => Math.random() - 0.5);
-    const faked: string[] = [];
-    for (let j = 0; j < 3 + Math.floor(Math.random() * 4); j++) {
-      faked.push(shuffledSkills[j % shuffledSkills.length]);
-    }
-    result.push({
-      name: namePool[i % namePool.length],
-      matchScore: Math.floor(60 + Math.random() * 35),
-      matchReason: `${faked[0]}技能高度匹配岗位要求`,
-      skills: faked,
-      experience: experiences[i % experiences.length],
-      education: educations[i % educations.length],
-      location: locations[Math.floor(Math.random() * locations.length)],
-      source: sources[Math.floor(Math.random() * sources.length)],
-    });
-  }
-  return result;
 }
 
 // ─── 自动沟通 ────────────────────────────────
@@ -267,11 +222,16 @@ export async function contactCandidate(
   });
   if (!candidate) throw new Error('候选人不存在');
 
-  // 获取搜索配置中的沟通模板
-  const searchConfig = await prisma.candidateSearchConfig.findFirst({
-    where: { postId: candidate.postId },
-  });
-  const template = searchConfig?.contactTemplate || '您好{{name}}，看到您的简历与我们{{jobTitle}}岗位非常匹配，方便聊一下吗？';
+  // 获取搜索配置中的沟通模板（表不存在则使用默认模板）
+  let template = '您好{{name}}，看到您的简历与我们{{jobTitle}}岗位非常匹配，方便聊一下吗？';
+  try {
+    const searchConfig = await (prisma as any).candidateSearchConfig?.findFirst({
+      where: { postId: candidate.postId },
+    });
+    if (searchConfig?.contactTemplate) {
+      template = searchConfig.contactTemplate;
+    }
+  } catch { /* candidateSearchConfig 表不存在，使用默认模板 */ }
 
   // 变量替换
   const content = template
@@ -280,8 +240,9 @@ export async function contactCandidate(
     .replace(/\{\{company\}\}/g, '智枢AI')
     .replace(/\{\{recruiter\}\}/g, candidate.RecruitmentPost.recruiterName || 'HR');
 
-  // 记录沟通
-  await prisma.recruitmentCommunication.create({
+  // 记录沟通（表不存在则跳过）
+  try {
+    await (prisma as any).recruitmentCommunication?.create({
     data: {
       id: randomUUID(),
       userId,
@@ -294,13 +255,13 @@ export async function contactCandidate(
       readByCandidate: false,
     },
   });
+  } catch { /* recruitmentCommunication 表不存在，跳过记录 */ }
 
   // 更新候选人状态
   await prisma.candidate.update({
     where: { id: candidateId },
     data: {
       status: 'contacted',
-      lastContactedAt: new Date(),
       updatedAt: new Date(),
     },
   });

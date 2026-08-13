@@ -2,8 +2,9 @@
  * 全量模型注册表 (Complete Model Registry)
  * 智枢 AI SaaS 系统
  *
- * 覆盖腾讯云 TokenHub + 阿里云百炼 全部模型
- * 总计 70+ 模型，按能力类型分组，支持自动 Provider 检测
+ * 覆盖腾讯云 TokenHub + 阿里云百炼 + 火山方舟 全部模型
+ * 总计 80+ 模型，按能力类型分组，支持自动 Provider 检测
+ * 下线预警：TokenHub 旧命名 kl- 与 vd- 前缀及 hy-image-v3.0 将于 2026-09-15 统一下线（deprecationDate 标记 + replacementKey 迁移路径）
  */
 
 // ─── 模型能力类型 ────────────────────────
@@ -31,7 +32,8 @@ export type ModelCapability =
   | 'embedding_vl'   // 多模态向量
   | 'rerank'         // 重排序
   | 'digital_human'  // 数字人
-  | '3d';            // 3D 生成
+  | '3d'             // 3D 生成
+  | 'professional';   // 专业领域
 
 // ─── 成本等级 ────────────────────────────
 export type CostTier = 'free' | 'low' | 'medium' | 'high' | 'premium';
@@ -45,7 +47,7 @@ export interface ModelDefinition {
   /** 显示名称 */
   name: string;
   /** 所属 Provider */
-  provider: 'tencent' | 'aliyun';
+  provider: 'tencent' | 'aliyun' | 'volcano';
   /** 能力类型 */
   capability: ModelCapability;
   /** 也支持的次要能力 */
@@ -74,6 +76,10 @@ export interface ModelDefinition {
   sameProviderFallback?: string;
   /** 跨 Provider 备用 */
   crossProviderFallback?: string;
+  /** 下线预警日期 (ISO 格式)，到此后触发自动迁移 */
+  deprecationDate?: string;
+  /** 下线后迁移目标模型 key */
+  replacementKey?: string;
 }
 
 // ─── 腾讯云 TokenHub 文本模型 ─────────────────
@@ -97,7 +103,7 @@ const TENCENT_TEXT_MODELS: Record<string, ModelDefinition> = {
     recommendedTemp: { min: 0.3, max: 0.9 },
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
     bestFor: ['实验性任务', '前沿探索'],
-    fallbackKey: 'hy3',
+    fallbackKey: 'deepseek-v4-pro-tc',
   },
 
   // === DeepSeek 系列 ===
@@ -289,6 +295,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['高质量图像生成', '文字嵌入图片', '漫画/表情包', '创意设计'],
     fallbackKey: 'wan2.7-image-pro-aly',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'doubao-seedream-5-0-pro',
   },
   'hy-image-lite': {
     key: 'hy-image-lite', modelId: 'hy-image-lite', name: '混元图像 Lite',
@@ -298,6 +306,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['快速出图', '电商素材', '批量生成'],
     fallbackKey: 'hy-image-v3',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'doubao-seedream-5-0-lite',
   },
 
   // 视频生成
@@ -318,6 +328,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['智能分镜', '15秒长视频', '连续叙事'],
     fallbackKey: 'hy-video-1.5',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'doubao-seedance-2-5',
   },
   'yt-video-2.0': {
     key: 'yt-video-2.0', modelId: 'yt-video-2.0', name: '优图视频 2.0',
@@ -347,6 +359,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['电影级视频', '高质量长视频', '复杂场景叙事'],
     fallbackKey: 'kling-video-v3',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'kling-video-v3',
   },
   'vd-video-q3-turbo': {
     key: 'vd-video-q3-turbo', modelId: 'Vidu-Video-q3-turbo', name: 'Vidu Q3 Turbo',
@@ -356,6 +370,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['快速高质量视频', '商业广告', '产品展示'],
     fallbackKey: 'vd-video-q3-pro',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'kling-video-v3',
   },
   'vd-video-q2-pro': {
     key: 'vd-video-q2-pro', modelId: 'Vidu-Video-q2-pro', name: 'Vidu Q2 Pro',
@@ -365,6 +381,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['日常视频创作', '社交媒体内容', '短视频'],
     fallbackKey: 'vd-video-q2-turbo',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'kling-video-v3',
   },
   'vd-video-q2-pro-fast': {
     key: 'vd-video-q2-pro-fast', modelId: 'Vidu-Video-q2-pro-fast', name: 'Vidu Q2 Pro Fast',
@@ -374,6 +392,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['快速预览', '批量生成', '低成本视频'],
     fallbackKey: 'vd-video-q2',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'kling-video-v3',
   },
   'vd-video-q2-turbo': {
     key: 'vd-video-q2-turbo', modelId: 'Vidu-Video-q2-turbo', name: 'Vidu Q2 Turbo',
@@ -383,6 +403,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['创意短视频', '概念预览', '多风格视频'],
     fallbackKey: 'vd-video-q2-pro',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'kling-video-v3',
   },
   'vd-video-q2': {
     key: 'vd-video-q2', modelId: 'Vidu-Video-q2', name: 'Vidu Q2',
@@ -392,6 +414,8 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['轻量视频', '简易动画', '低成本内容'],
     fallbackKey: 'hy-video-1.5',
+    deprecationDate: '2026-09-15',
+    replacementKey: 'kling-video-v3',
   },
 
   // 多模态理解
@@ -490,7 +514,7 @@ const ALIYUN_TEXT_MODELS: Record<string, ModelDefinition> = {
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
     bestFor: ['高质量创作', '复杂分析', '视觉理解', '多模态任务'],
     fallbackKey: 'qwen3.7-plus',
-    crossProviderFallback: 'hy3',
+    crossProviderFallback: 'deepseek-v4-pro-tc',
   },
   'qwen3.7-plus': {
     key: 'qwen3.7-plus', modelId: 'qwen3.7-plus', name: 'Qwen 3.7 Plus',
@@ -593,6 +617,38 @@ const ALIYUN_MULTIMODAL_MODELS: Record<string, ModelDefinition> = {
     supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['旗舰文生图', '高分辨率输出', '电商设计'],
     fallbackKey: 'qwen-image-3.0-pro',
+    crossProviderFallback: 'hy-image-v3',
+  },
+  'qwen-image-max': {
+    key: 'qwen-image-max', modelId: 'qwen-image-max', name: '千问图像 Max',
+    provider: 'aliyun', capability: 'image',
+    priority: 1, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['创意图像主力', 'MV视觉', '卡通素材', '小红书配图', '电商详情图'],
+    fallbackKey: 'wan2.7-image-pro-aly',
+    crossProviderFallback: 'hy-image-v3',
+  },
+  'z-image-turbo': {
+    key: 'z-image-turbo', modelId: 'z-image-turbo', name: 'Z-Image Turbo',
+    provider: 'aliyun', capability: 'image',
+    priority: 3, cost: 'low', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['图像备用引擎', '快速出图', '多产线兜底图像'],
+    fallbackKey: 'qwen-image-3.0-pro',
+    crossProviderFallback: 'hy-image-v3',
+  },
+
+  // 图像编辑
+  'qwen-image-edit': {
+    key: 'qwen-image-edit', modelId: 'qwen-image-edit', name: '千问图像编辑',
+    provider: 'aliyun', capability: 'image_edit',
+    priority: 1, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['图片质量增强', '去AI伪影', '细节锐化', '超分', '色彩校准', '图像编辑'],
+    fallbackKey: 'z-image-turbo',
     crossProviderFallback: 'hy-image-v3',
   },
 
@@ -710,6 +766,119 @@ const ALIYUN_EMBEDDING_MODELS: Record<string, ModelDefinition> = {
   },
 };
 
+// ─── 火山方舟 文本模型 ───────────────────────
+const VOLCANO_TEXT_MODELS: Record<string, ModelDefinition> = {
+  'doubao-seed-2-1-pro': {
+    key: 'doubao-seed-2-1-pro', modelId: 'doubao-seed-2-1-pro-260628', name: '豆包 Seed 2.1 Pro',
+    provider: 'volcano', capability: 'reasoning',
+    secondaryCapabilities: ['chat', 'agent', 'code', 'creative'],
+    priority: 1, cost: 'high', maxContext: 256000, maxOutput: 32768,
+    recommendedTemp: { min: 0.2, max: 0.7 },
+    supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
+    bestFor: ['复杂推理', '智能体协同', '长文本处理', '多轮对话'],
+    fallbackKey: 'doubao-seed-2-1-turbo',
+    sameProviderFallback: 'doubao-seed-2-1-turbo',
+    crossProviderFallback: 'hunyuan-instruct',
+  },
+  'doubao-seed-2-1-turbo': {
+    key: 'doubao-seed-2-1-turbo', modelId: 'doubao-seed-2-1-turbo-260628', name: '豆包 Seed 2.1 Turbo',
+    provider: 'volcano', capability: 'chat',
+    secondaryCapabilities: ['creative', 'code'],
+    priority: 2, cost: 'medium', maxContext: 256000, maxOutput: 32768,
+    recommendedTemp: { min: 0.3, max: 0.8 },
+    supportsStream: true, supportsFunctionCalling: true, supportsThinking: false,
+    bestFor: ['高频生产', '文案创作', '代码生成'],
+    fallbackKey: 'doubao-seed-1-6-lite',
+    sameProviderFallback: 'doubao-seed-1-6-lite',
+    crossProviderFallback: 'hunyuan-instruct',
+  },
+  'doubao-seed-1-6-lite': {
+    key: 'doubao-seed-1-6-lite', modelId: 'doubao-seed-1-6-lite-251015', name: '豆包 Seed 1.6 Lite',
+    provider: 'volcano', capability: 'chat',
+    secondaryCapabilities: ['creative'],
+    priority: 3, cost: 'low', maxContext: 128000, maxOutput: 8192,
+    recommendedTemp: { min: 0.3, max: 0.8 },
+    supportsStream: true, supportsFunctionCalling: true, supportsThinking: false,
+    bestFor: ['低成本批处理', '简单问答', '摘要'],
+    fallbackKey: 'doubao-seed-2-1-turbo',
+    crossProviderFallback: 'qwen3.5-flash-tc',
+  },
+  'doubao-seed-1-6-thinking': {
+    key: 'doubao-seed-1-6-thinking', modelId: 'doubao-seed-1-6-thinking-251015', name: '豆包 Seed 1.6 Thinking',
+    provider: 'volcano', capability: 'reasoning',
+    secondaryCapabilities: ['chat', 'code'],
+    priority: 2, cost: 'medium', maxContext: 128000, maxOutput: 32768,
+    recommendedTemp: { min: 0.2, max: 0.7 },
+    supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
+    bestFor: ['深度思考', '数学推理', '逻辑分析'],
+    fallbackKey: 'doubao-seed-2-1-pro',
+    sameProviderFallback: 'doubao-seed-2-1-pro',
+    crossProviderFallback: 'hunyuan-thinking',
+  },
+};
+
+// ─── 火山方舟 多模态模型 ──────────────────────
+const VOLCANO_MULTIMODAL_MODELS: Record<string, ModelDefinition> = {
+  // 图像生成（Seedream 5.0 第一梯队）
+  'doubao-seedream-5-0-pro': {
+    key: 'doubao-seedream-5-0-pro', modelId: 'doubao-seedream-5-0-pro-260628', name: '豆包 Seedream 5.0 Pro',
+    provider: 'volcano', capability: 'image',
+    secondaryCapabilities: ['image_edit'],
+    priority: 1, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['通用商业图片', '电商素材', '精准文字渲染', '创意海报'],
+    fallbackKey: 'qwen-image-3.0-pro',
+    sameProviderFallback: 'doubao-seedream-5-0-lite',
+    crossProviderFallback: 'qwen-image-3.0-pro',
+  },
+  'doubao-seedream-5-0-lite': {
+    key: 'doubao-seedream-5-0-lite', modelId: 'doubao-seedream-5-0-lite', name: '豆包 Seedream 5.0 Lite',
+    provider: 'volcano', capability: 'image',
+    priority: 2, cost: 'medium', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['快速出图', '组图', '流式预览', '缩略图'],
+    fallbackKey: 'doubao-seedream-5-0-pro',
+    sameProviderFallback: 'doubao-seedream-5-0-pro',
+    crossProviderFallback: 'qwen-image-3.0-pro',
+  },
+  'doubao-seededit-3-0': {
+    key: 'doubao-seededit-3-0', modelId: 'doubao-seededit-3-0-i2i-250628', name: '豆包 Seededit 3.0',
+    provider: 'volcano', capability: 'image_edit',
+    priority: 1, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['图生图编辑', '局部重绘', '去伪影'],
+    fallbackKey: 'qwen-image-edit',
+    sameProviderFallback: 'doubao-seedream-5-0-pro',
+    crossProviderFallback: 'qwen-image-edit',
+  },
+  // 视频生成（Seedance 2.5 第一梯队）
+  'doubao-seedance-2-5': {
+    key: 'doubao-seedance-2-5', modelId: 'doubao-seedance-2-5', name: '豆包 Seedance 2.5',
+    provider: 'volcano', capability: 'video',
+    secondaryCapabilities: ['video_edit'],
+    priority: 1, cost: 'high', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: false, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['通用视频创作', '30秒原生直出', '产品形态保持', '一致性'],
+    fallbackKey: 'kling-video-v3',
+    crossProviderFallback: 'kling-video-v3',
+  },
+  // 语音合成（TTS）
+  'doubao-seed-audio-1.0': {
+    key: 'doubao-seed-audio-1.0', modelId: 'doubao-seed-audio-1.0', name: '豆包 Seed Audio 1.0',
+    provider: 'volcano', capability: 'audio_tts',
+    priority: 1, cost: 'medium', maxContext: 4000, maxOutput: 0,
+    recommendedTemp: { min: 0, max: 0 },
+    supportsStream: true, supportsFunctionCalling: false, supportsThinking: false,
+    bestFor: ['高保真配音', '中文口播', '有声内容'],
+    fallbackKey: 'minimax-speech-2.8-hd',
+    crossProviderFallback: 'minimax-speech-2.8-hd',
+  },
+};
+
 // ─── 合并所有模型 ────────────────────────────
 export const ALL_MODELS: Record<string, ModelDefinition> = {
   ...TENCENT_TEXT_MODELS,
@@ -718,6 +887,8 @@ export const ALL_MODELS: Record<string, ModelDefinition> = {
   ...ALIYUN_TEXT_MODELS,
   ...ALIYUN_MULTIMODAL_MODELS,
   ...ALIYUN_EMBEDDING_MODELS,
+  ...VOLCANO_TEXT_MODELS,
+  ...VOLCANO_MULTIMODAL_MODELS,
 };
 
 // ─── 按能力类型分组的模型索引 ────────────────
@@ -740,6 +911,7 @@ export const MODELS_BY_CAPABILITY: Record<ModelCapability, string[]> = (() => {
 export const MODELS_BY_PROVIDER: Record<string, string[]> = {
   tencent: Object.keys({ ...TENCENT_TEXT_MODELS, ...TENCENT_VISION_MODELS, ...TENCENT_EMBEDDING_MODELS }),
   aliyun: Object.keys({ ...ALIYUN_TEXT_MODELS, ...ALIYUN_MULTIMODAL_MODELS, ...ALIYUN_EMBEDDING_MODELS }),
+  volcano: Object.keys({ ...VOLCANO_TEXT_MODELS, ...VOLCANO_MULTIMODAL_MODELS }),
 };
 
 // ─── 辅助函数 ────────────────────────────────
@@ -752,7 +924,7 @@ export function getModelsByCapability(capability: ModelCapability): ModelDefinit
   return keys.map(k => ALL_MODELS[k]).filter(Boolean);
 }
 
-export function getModelsByProvider(provider: 'tencent' | 'aliyun'): ModelDefinition[] {
+export function getModelsByProvider(provider: 'tencent' | 'aliyun' | 'volcano'): ModelDefinition[] {
   const keys = MODELS_BY_PROVIDER[provider] || [];
   return keys.map(k => ALL_MODELS[k]).filter(Boolean);
 }
@@ -760,7 +932,7 @@ export function getModelsByProvider(provider: 'tencent' | 'aliyun'): ModelDefini
 export function getBestModelForTask(
   capability: ModelCapability,
   availableModels: Set<string>,
-  preferProvider?: 'tencent' | 'aliyun'
+  preferProvider?: 'tencent' | 'aliyun' | 'volcano'
 ): ModelDefinition | null {
   const candidates = getModelsByCapability(capability)
     .filter(m => availableModels.has(m.key))
@@ -795,7 +967,7 @@ export function getTopKModelsForTask(
 export function getModelStats() {
   const stats = {
     total: Object.keys(ALL_MODELS).length,
-    byProvider: { tencent: 0, aliyun: 0 } as Record<string, number>,
+    byProvider: { tencent: 0, aliyun: 0, volcano: 0 } as Record<string, number>,
     byCapability: {} as Record<string, number>,
     byCost: { free: 0, low: 0, medium: 0, high: 0, premium: 0 } as Record<string, number>,
   };

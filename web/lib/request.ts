@@ -94,6 +94,8 @@ export function getAuthToken(): string | null {
 export function setAuthToken(token: string): void {
   if (typeof window !== 'undefined') {
     localStorage.setItem('token', token);
+    // 同步写入 cookie，供服务端 middleware 鉴权使用
+    document.cookie = `auth_token=${encodeURIComponent(token)}; path=/; max-age=604800; SameSite=Lax`;
   }
 }
 
@@ -101,6 +103,8 @@ export function removeAuthToken(): void {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // 同步清除 cookie
+    document.cookie = 'auth_token=; path=/; max-age=0';
   }
 }
 

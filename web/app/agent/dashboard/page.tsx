@@ -64,7 +64,7 @@ export default function AgentDashboardPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: any }>(
-        `/api/agent/statistics?period=${period}`
+        `/agent/statistics?period=${period}`
       )) as unknown as { success: boolean; data: any };
       if (res.success && res.data) {
         setStatistics(res.data);
@@ -89,7 +89,7 @@ export default function AgentDashboardPage() {
   const fetchBusinessLines = async () => {
     try {
       const request = (await import('@/lib/request')).default;
-      const res = await request.get<any>('/api/dashboard-stats/agent/business-lines');
+      const res = await request.get<any>('/dashboard-stats/agent/business-lines');
       if (res?.data?.success) setBusinessLines(res.data.data);
     } catch { /* 非关键 */ }
   };

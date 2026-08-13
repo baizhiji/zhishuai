@@ -143,6 +143,7 @@ interface DecryptedApiKey {
 const PROVIDER_BASE_URLS: Record<string, string> = {
   tencent: 'https://tokenhub.tencentmaas.com/v1',
   alibaba: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  volcano: 'https://ark.cn-beijing.volces.com/api/v3',
 };
 
 /** 平台配置 - 用于内容创意增强 */
@@ -246,7 +247,7 @@ export class AIClient {
   /**
    * 从数据库获取服务商配置
    */
-  private async getProviderConfig(providerType: 'tencent' | 'alibaba'): Promise<ProviderConfig | null> {
+  private async getProviderConfig(providerType: 'tencent' | 'alibaba' | 'volcano'): Promise<ProviderConfig | null> {
     const providers = await prisma.apiProvider.findMany({
       where: { enabled: true },
       orderBy: { priority: 'asc' },
@@ -323,12 +324,12 @@ export class AIClient {
    */
   private async resolveApiCredentials(
     userId: string,
-    preferProvider?: 'tencent' | 'alibaba'
+    preferProvider?: 'tencent' | 'alibaba' | 'volcano'
   ): Promise<{ apiKey: string; baseUrl: string; provider: string; keyId: string | null }> {
-    // 按优先级尝试：用户指定的 > tencent > alibaba
+    // 按优先级尝试：用户指定的 > tencent > alibaba > volcano
     const providerOrder = preferProvider
       ? [preferProvider]
-      : ['tencent', 'alibaba'] as const;
+      : ['tencent', 'alibaba', 'volcano'] as const;
 
     for (const provider of providerOrder) {
       // 先查用户自己的 Key
@@ -358,7 +359,9 @@ export class AIClient {
       // 最后 fallback 到环境变量（用于测试或默认兜底）
       const envKey = provider === 'tencent'
         ? process.env.TENCENT_API_KEY
-        : process.env.ALIYUN_DASHSCOPE_API_KEY;
+        : provider === 'volcano'
+          ? process.env.ARK_API_KEY
+          : process.env.ALIYUN_DASHSCOPE_API_KEY;
       if (envKey) {
         const baseUrl = PROVIDER_BASE_URLS[provider];
         return {
@@ -370,7 +373,7 @@ export class AIClient {
       }
     }
 
-    throw new Error('没有可用的 API 密钥。请在设置中配置腾讯云 TokenHub 或阿里云百炼的 API Key。');
+    throw new Error('没有可用的 API 密钥。请在设置中配置腾讯云 TokenHub、阿里云百炼或火山方舟的 API Key。');
   }
 
   /**
@@ -602,7 +605,8 @@ export class AIClient {
       if (m.includes('qwen') || m.includes('wan')) explicitProvider = 'alibaba';
       else if (m.includes('hunyuan') || m.includes('hy') || m.includes('deepseek')) explicitProvider = 'tencent';
     }
-    const taskAnalysis = analyzeAndSelectModel(userInput, explicitProvider);
+    const refinedProvider = explicitProvider === 'alibaba' ? 'aliyun' : explicitProvider;
+    const taskAnalysis = analyzeAndSelectModel(userInput, refinedProvider);
 
     // 2. 获取 API 凭证
     let credentials: { apiKey: string; provider: string; baseUrl: string; keyId: string | null };
@@ -721,7 +725,7 @@ export class AIClient {
           );
 
           const fallbackModelInfo = aiModelRouter.getModelInfo(fallback.modelKey);
-          const fallbackBody = { ...requestBody, model: fallbackModelInfo?.modelId || aiModelRouter.getModelId(fallback.modelKey) };
+          const fallbackBody = { ...requestBody, model: fallbackModelInfo?.id || fallback.modelKey };
 
           const fallbackResponse = await fallbackAxios.post('/chat/completions', fallbackBody, {
             headers: { 'Authorization': `Bearer ${fallbackCredentials.apiKey}` },
@@ -737,7 +741,7 @@ export class AIClient {
             providerId: fallback.provider,
             providerName: fallback.provider === 'tencent' ? '腾讯云TokenHub' : '阿里云百炼',
             endpoint: '/chat/completions',
-            model: fallbackModel?.id || modelId,
+            model: fallbackModelInfo?.id || fallback.modelKey,
             requestTokens: fallbackData.usage?.prompt_tokens,
             responseTokens: fallbackData.usage?.completion_tokens,
             duration: Date.now() - startTime,
@@ -791,7 +795,46 @@ export class AIClient {
       }
     }
 
-    // 优先使用腾讯云的图像生成模型
+    // 优先使用火山方舟 Seedream 5.0（蓝皮书图像路由首选，OpenAI 兼容）
+    try {
+      const arkCredentials = await this.resolveApiCredentials(userId, 'volcano');
+      const arkBaseUrl = this.getProviderBaseUrl('volcano');
+      const arkAxios = this.getAxiosInstance(arkBaseUrl);
+
+      const arkResponse = await arkAxios.post('/images/generations', {
+        model: 'doubao-seedream-5-0-pro-260628',
+        prompt: enhancedPrompt,
+        n,
+        size,
+        response_format: 'url',
+      }, {
+        headers: { 'Authorization': `Bearer ${arkCredentials.apiKey}` },
+      });
+
+      const arkData = arkResponse.data;
+
+      await this.logUsage({
+        userId,
+        providerId: 'volcano',
+        providerName: '火山方舟',
+        endpoint: '/images/generations',
+        model: 'doubao-seedream-5-0-pro-260628',
+        duration: Date.now() - startTime,
+        status: 'success',
+      });
+      await this.updateKeyStats(arkCredentials.keyId, true);
+
+      return {
+        url: arkData.data?.[0]?.url || '',
+        urls: arkData.data?.map((d: any) => d.url),
+        revised_prompt: arkData.data?.[0]?.revised_prompt,
+      };
+    } catch (arkError: any) {
+      // 方舟不可用（未配置 Key / 未开通模型 / 调用失败）时回退腾讯云
+      console.log('[AIClient] 火山方舟图像生成不可用，回退腾讯云:', arkError.message);
+    }
+
+    // 其次使用腾讯云 TokenHub（HY-Image-V3.0，2026-09-15 下线前兜底）
     try {
       const credentials = await this.resolveApiCredentials(userId, 'tencent');
       const baseUrl = this.getProviderBaseUrl('tencent');

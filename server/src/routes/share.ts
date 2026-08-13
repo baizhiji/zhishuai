@@ -53,7 +53,7 @@ async function buildReferralChain(scannerId: string, maxDepth = MAX_CHAIN_DEPTH)
   let currentUserId = scannerId;
   
   for (let level = 1; level <= maxDepth; level++) {
-    const track = await prisma.referralTrack.findFirst({
+    const track = await (prisma as any).referralTrack.findFirst({
       where: { userId: currentUserId, type: 'scan' },
       orderBy: { createdAt: 'desc' },
     });
@@ -78,7 +78,7 @@ async function distributeCommission(
   const shareRate = type === 'scan' ? 0.3 : type === 'publish' ? 0.5 : 0.4;
   const directAmount = Math.round(amount * shareRate * 100) / 100;
   
-  await prisma.shareCommission.create({
+  await (prisma as any).shareCommission.create({
     data: {
       id: randomUUID(),
       userId: scannerId,
@@ -97,7 +97,7 @@ async function distributeCommission(
       const levelAmount = Math.round(sharedAmount / (link.level * chain.length) * 100) / 100;
       if (levelAmount <= 0) continue;
       
-      await prisma.shareCommission.create({
+      await (prisma as any).shareCommission.create({
         data: {
           id: randomUUID(),
           userId: link.userId,
@@ -114,14 +114,14 @@ async function distributeCommission(
 }
 
 async function countDownline(codeId: string): Promise<number> {
-  const directTracks = await prisma.referralTrack.findMany({
+  const directTracks = await (prisma as any).referralTrack.findMany({
     where: { codeId, type: 'scan' },
     select: { userId: true },
   });
 
   let count = directTracks.length;
   for (const t of directTracks) {
-    const userCodes = await prisma.shareQrCode.findMany({
+    const userCodes = await (prisma as any).shareQrCode.findMany({
       where: { userId: t.userId },
       select: { id: true },
     });
@@ -141,18 +141,18 @@ router.get('/codes', authMiddleware, async (req: Request, res: Response) => {
     const { page = 1, pageSize = 10 } = req.query;
 
     const [codes, total] = await Promise.all([
-      prisma.shareQrCode.findMany({
+      (prisma as any).shareQrCode.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         skip: (Number(page) - 1) * Number(pageSize),
         take: Number(pageSize),
       }),
-      prisma.shareQrCode.count({ where: { userId } }),
+      (prisma as any).shareQrCode.count({ where: { userId } }),
     ]);
 
     const codesWithChainInfo = await Promise.all(
       codes.map(async (code) => {
-        const directScans = await prisma.referralTrack.count({
+        const directScans = await (prisma as any).referralTrack.count({
           where: { codeId: code.id, type: 'scan' },
         });
         return {
@@ -175,7 +175,7 @@ router.get('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    const code = await prisma.shareQrCode.findUnique({ where: { id } });
+    const code = await (prisma as any).shareQrCode.findUnique({ where: { id } });
     if (!code) {
       return err(res, 404, '分享码不存在');
     }
@@ -183,7 +183,7 @@ router.get('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
       return err(res, 403, '无权查看此分享码');
     }
 
-    const directScans = await prisma.referralTrack.count({
+    const directScans = await (prisma as any).referralTrack.count({
       where: { codeId: id, type: 'scan' },
     });
 
@@ -206,7 +206,7 @@ router.post('/codes', authMiddleware, async (req: Request, res: Response) => {
     const platforms = req.body.platforms || (req.body.type ? [req.body.type] : ['douyin']);
     const sourceQrCodeId = req.body.sourceQrCodeId;
 
-    const shareCode = await prisma.shareQrCode.create({
+    const shareCode = await (prisma as any).shareQrCode.create({
       data: {
         id: randomUUID(),
         userId,
@@ -220,7 +220,7 @@ router.post('/codes', authMiddleware, async (req: Request, res: Response) => {
       },
     });
 
-    await prisma.referralCode.create({
+    await (prisma as any).referralCode.create({
       data: {
         id: shareCode.id,
         userId,
@@ -237,16 +237,16 @@ router.post('/codes', authMiddleware, async (req: Request, res: Response) => {
     });
 
     if (sourceQrCodeId) {
-      const sourceCode = await prisma.shareQrCode.findUnique({ where: { id: sourceQrCodeId } });
+      const sourceCode = await (prisma as any).shareQrCode.findUnique({ where: { id: sourceQrCodeId } });
       if (sourceCode) {
-        await prisma.referralTrack.updateMany({
+        await (prisma as any).referralTrack.updateMany({
           where: { codeId: sourceQrCodeId, userId, type: 'scan' },
           data: { converted: true, convertedAt: new Date() },
         });
       }
     }
 
-    const scanUrl = `${process.env.WEB_URL || 'https://zhishuai.cc'}/share/scan?code_id=${shareCode.id}&inviter_id=${userId}`;
+    const scanUrl = `${process.env.WEB_URL || 'https://baizhiji.net'}/share/scan?code_id=${shareCode.id}&inviter_id=${userId}`;
 
     ok(res, {
       ...shareCode,
@@ -268,7 +268,7 @@ router.put('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
     const videoUrl = req.body.videoUrl || req.body.targetUrl || req.body.description || '';
     const platforms = req.body.platforms || (req.body.type ? [req.body.type] : ['douyin']);
 
-    const existing = await prisma.shareQrCode.findUnique({ where: { id } });
+    const existing = await (prisma as any).shareQrCode.findUnique({ where: { id } });
     if (!existing) {
       return err(res, 404, '分享码不存在');
     }
@@ -276,7 +276,7 @@ router.put('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
       return err(res, 403, '无权修改此分享码');
     }
 
-    const shareCode = await prisma.shareQrCode.update({
+    const shareCode = await (prisma as any).shareQrCode.update({
       where: { id },
       data: {
         title,
@@ -286,7 +286,7 @@ router.put('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
       },
     });
 
-    await prisma.referralCode.updateMany({
+    await (prisma as any).referralCode.updateMany({
       where: { id },
       data: {
         title: `${title} (推荐码)`,
@@ -308,7 +308,7 @@ router.delete('/codes/:id', authMiddleware, async (req: Request, res: Response) 
     const { id } = req.params;
     const userId = (req as any).userId;
 
-    const existing = await prisma.shareQrCode.findUnique({ where: { id } });
+    const existing = await (prisma as any).shareQrCode.findUnique({ where: { id } });
     if (!existing) {
       return err(res, 404, '分享码不存在');
     }
@@ -316,8 +316,8 @@ router.delete('/codes/:id', authMiddleware, async (req: Request, res: Response) 
       return err(res, 403, '无权删除此分享码');
     }
 
-    await prisma.shareQrCode.delete({ where: { id } });
-    await prisma.referralCode.deleteMany({ where: { id } });
+    await (prisma as any).shareQrCode.delete({ where: { id } });
+    await (prisma as any).referralCode.deleteMany({ where: { id } });
 
     ok(res, { message: '删除成功' });
   } catch (error: any) {
@@ -331,7 +331,7 @@ router.post('/scan/:codeId', authMiddleware, async (req: Request, res: Response)
     const scannerId = (req as any).userId;
     const { codeId } = req.params;
 
-    const shareCode = await prisma.shareQrCode.findUnique({ where: { id: codeId } });
+    const shareCode = await (prisma as any).shareQrCode.findUnique({ where: { id: codeId } });
     if (!shareCode) {
       return err(res, 404, '分享码不存在');
     }
@@ -347,7 +347,7 @@ router.post('/scan/:codeId', authMiddleware, async (req: Request, res: Response)
       return ok(res, { alreadyScanned: true, record: existingRecord });
     }
 
-    await prisma.shareQrCode.update({
+    await (prisma as any).shareQrCode.update({
       where: { id: codeId },
       data: { scanCount: { increment: 1 } },
     });
@@ -365,7 +365,7 @@ router.post('/scan/:codeId', authMiddleware, async (req: Request, res: Response)
       },
     });
 
-    await prisma.referralTrack.create({
+    await (prisma as any).referralTrack.create({
       data: {
         id: randomUUID(),
         codeId,
@@ -383,7 +383,7 @@ router.post('/scan/:codeId', authMiddleware, async (req: Request, res: Response)
       },
     });
 
-    await prisma.referralCode.update({
+    await (prisma as any).referralCode.update({
       where: { id: codeId },
       data: { scanCount: { increment: 1 } },
     });
@@ -417,7 +417,7 @@ router.get('/records', authMiddleware, async (req: Request, res: Response) => {
         orderBy: { createdAt: 'desc' },
         skip: (Number(page) - 1) * Number(pageSize),
         take: Number(pageSize),
-        include: { ShareQrCode: { select: { title: true, id: true } } },
+        include: { ShareQrCode: { select: { title: true, id: true } } } as any,
       }),
       prisma.shareRecord.count({ where }),
     ]);
@@ -434,25 +434,25 @@ router.get('/chain/:codeId', authMiddleware, async (req: Request, res: Response)
     const userId = (req as any).userId;
     const { codeId } = req.params;
 
-    const code = await prisma.shareQrCode.findUnique({ where: { id: codeId } });
+    const code = await (prisma as any).shareQrCode.findUnique({ where: { id: codeId } });
     if (!code || code.userId !== userId) {
       return err(res, 403, '无权查看');
     }
 
-    const directTracks = await prisma.referralTrack.findMany({
+    const directTracks = await (prisma as any).referralTrack.findMany({
       where: { codeId, type: 'scan' },
       orderBy: { createdAt: 'desc' },
     });
 
     async function buildNode(track: any): Promise<any> {
-      const userCodes = await prisma.shareQrCode.findMany({
+      const userCodes = await (prisma as any).shareQrCode.findMany({
         where: { userId: track.userId },
         select: { id: true, title: true },
       });
 
       let subTracks: any[] = [];
       for (const uc of userCodes) {
-        const children = await prisma.referralTrack.findMany({
+        const children = await (prisma as any).referralTrack.findMany({
           where: { codeId: uc.id, type: 'scan' },
           orderBy: { createdAt: 'desc' },
         });
@@ -492,7 +492,7 @@ router.get('/dashboard', authMiddleware, async (req: Request, res: Response) => 
     else if (period === 'quarter') daysBack = 90;
     else if (period === 'all') daysBack = 365;
 
-    const codes = await prisma.shareQrCode.findMany({
+    const codes = await (prisma as any).shareQrCode.findMany({
       where: { userId },
       select: { id: true, title: true, scanCount: true },
     });
@@ -534,23 +534,23 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
 
-    const codeCount = await prisma.shareQrCode.count({ where: { userId } });
+    const codeCount = await (prisma as any).shareQrCode.count({ where: { userId } });
 
-    const totalScans = await prisma.shareQrCode.aggregate({
+    const totalScans = await (prisma as any).shareQrCode.aggregate({
       where: { userId },
       _sum: { scanCount: true },
     });
-    const totalPublishes = await prisma.shareQrCode.aggregate({
+    const totalPublishes = await (prisma as any).shareQrCode.aggregate({
       where: { userId },
       _sum: { publishCount: true },
     });
 
-    const qrCodeIds = (await prisma.shareQrCode.findMany({
+    const qrCodeIds = (await (prisma as any).shareQrCode.findMany({
       where: { userId },
       select: { id: true },
     })).map(q => q.id);
 
-    const effects = await prisma.shareEffect.aggregate({
+    const effects = await (prisma as any).shareEffect.aggregate({
       where: { qrCodeId: { in: qrCodeIds } },
       _sum: {
         viewCount: true, likeCount: true, commentCount: true,
@@ -559,16 +559,16 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
     });
 
     const [commission, pendingCommission, settledCommission] = await Promise.all([
-      prisma.shareCommission.groupBy({
+      (prisma as any).shareCommission.groupBy({
         by: ['type'],
         where: { userId },
         _sum: { amount: true },
       }),
-      prisma.shareCommission.aggregate({
+      (prisma as any).shareCommission.aggregate({
         where: { userId, status: 'pending' },
         _sum: { amount: true },
       }),
-      prisma.shareCommission.aggregate({
+      (prisma as any).shareCommission.aggregate({
         where: { userId, status: 'settled' },
         _sum: { amount: true },
       }),
@@ -609,17 +609,17 @@ router.get('/effects/:qrCodeId', authMiddleware, async (req: Request, res: Respo
     const userId = (req as any).userId;
     const { qrCodeId } = req.params;
 
-    const code = await prisma.shareQrCode.findUnique({ where: { id: qrCodeId } });
+    const code = await (prisma as any).shareQrCode.findUnique({ where: { id: qrCodeId } });
     if (!code || code.userId !== userId) {
       return err(res, 403, '无权查看');
     }
 
-    const effects = await prisma.shareEffect.findMany({
+    const effects = await (prisma as any).shareEffect.findMany({
       where: { qrCodeId },
       orderBy: { date: 'desc' },
     });
 
-    const byPlatform = await prisma.shareEffect.groupBy({
+    const byPlatform = await (prisma as any).shareEffect.groupBy({
       by: ['platform'],
       where: { qrCodeId },
       _sum: {
@@ -656,17 +656,17 @@ router.get('/commission', authMiddleware, async (req: Request, res: Response) =>
     if (status && status !== 'all') where.status = status;
 
     const [commissions, total] = await Promise.all([
-      prisma.shareCommission.findMany({
+      (prisma as any).shareCommission.findMany({
         where,
         orderBy: { createdAt: 'desc' },
         skip: (Number(page) - 1) * Number(pageSize),
         take: Number(pageSize),
         include: { ShareRecord: { select: { platform: true, scannedAt: true } } },
       }),
-      prisma.shareCommission.count({ where }),
+      (prisma as any).shareCommission.count({ where }),
     ]);
 
-    const summary = await prisma.shareCommission.groupBy({
+    const summary = await (prisma as any).shareCommission.groupBy({
       by: ['status'],
       where: { userId },
       _sum: { amount: true },
@@ -691,12 +691,12 @@ router.post('/publish-record', authMiddleware, async (req: Request, res: Respons
     const userId = (req as any).userId;
     const { qrCodeId, platform, postUrl } = req.body;
 
-    const code = await prisma.shareQrCode.findUnique({ where: { id: qrCodeId } });
+    const code = await (prisma as any).shareQrCode.findUnique({ where: { id: qrCodeId } });
     if (!code) {
       return err(res, 404, '分享码不存在');
     }
 
-    await prisma.shareQrCode.update({
+    await (prisma as any).shareQrCode.update({
       where: { id: qrCodeId },
       data: { publishCount: { increment: 1 }, activeCount: { increment: 1 } },
     });
@@ -734,7 +734,7 @@ router.post('/publish-record', authMiddleware, async (req: Request, res: Respons
       `发布视频: ${code.title} (${platform || '未知平台'})`
     );
 
-    await prisma.referralTrack.updateMany({
+    await (prisma as any).referralTrack.updateMany({
       where: { codeId: qrCodeId, userId, type: 'scan' },
       data: { converted: true, convertedAt: new Date() },
     });
@@ -754,7 +754,7 @@ router.post('/effects/sync', authMiddleware, async (req: Request, res: Response)
     const userId = (req as any).userId;
     const { qrCodeId, platform, data } = req.body;
 
-    const code = await prisma.shareQrCode.findUnique({ where: { id: qrCodeId } });
+    const code = await (prisma as any).shareQrCode.findUnique({ where: { id: qrCodeId } });
     if (!code || code.userId !== userId) {
       return err(res, 403, '无权操作');
     }
@@ -764,7 +764,7 @@ router.post('/effects/sync', authMiddleware, async (req: Request, res: Response)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const effect = await prisma.shareEffect.upsert({
+    const effect = await (prisma as any).shareEffect.upsert({
       where: {
         qrCodeId_platform_date: { qrCodeId, platform: platform || 'unknown', date: today },
       },
@@ -786,7 +786,7 @@ router.post('/effects/sync', authMiddleware, async (req: Request, res: Response)
       },
     });
 
-    const totalViews = await prisma.shareEffect.aggregate({
+    const totalViews = await (prisma as any).shareEffect.aggregate({
       where: { qrCodeId },
       _sum: { viewCount: true },
     });
@@ -806,7 +806,7 @@ router.post('/effects/sync', authMiddleware, async (req: Request, res: Response)
         }
       }
 
-      await prisma.shareEffect.update({ where: { id: effect.id }, data: { convertCount: 1 } });
+      await (prisma as any).shareEffect.update({ where: { id: effect.id }, data: { convertCount: 1 } });
     }
 
     ok(res, effect);
@@ -820,7 +820,7 @@ router.get('/statistics', authMiddleware, async (req: Request, res: Response) =>
   try {
     const userId = (req as any).userId;
 
-    const codes = await prisma.shareQrCode.findMany({ where: { userId } });
+    const codes = await (prisma as any).shareQrCode.findMany({ where: { userId } });
     const totalScans = codes.reduce((sum, c) => sum + c.scanCount, 0);
     const totalPublish = codes.reduce((sum, c) => sum + c.publishCount, 0);
     const activeCodes = codes.filter(c => c.scanCount > 0).length;
@@ -840,14 +840,14 @@ router.get('/my-code', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
 
-    let refCode = await prisma.referralCode.findFirst({
+    let refCode = await (prisma as any).referralCode.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
 
     if (!refCode) {
       const codeId = randomUUID();
-      refCode = await prisma.referralCode.create({
+      refCode = await (prisma as any).referralCode.create({
         data: {
           id: codeId,
           userId,

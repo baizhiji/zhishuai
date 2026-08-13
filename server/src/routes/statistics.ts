@@ -67,9 +67,9 @@ adminRouter.get('/trend', async (_req, res) => {
 adminRouter.get('/platforms', async (_req, res) => {
   try {
     const [media, rec, acq] = await Promise.all([
-      prisma.user.count({ where: { featureSwitches: { some: { featureCode: 'media', enabled: true } } } }),
-      prisma.user.count({ where: { featureSwitches: { some: { featureCode: 'recruitment', enabled: true } } } }),
-      prisma.user.count({ where: { featureSwitches: { some: { featureCode: 'acquisition', enabled: true } } } }),
+      prisma.user.count({ where: { UserFeatureSwitch: { some: { featureCode: 'media', enabled: true } } } }),
+      prisma.user.count({ where: { UserFeatureSwitch: { some: { featureCode: 'recruitment', enabled: true } } } }),
+      prisma.user.count({ where: { UserFeatureSwitch: { some: { featureCode: 'acquisition', enabled: true } } } }),
     ]);
     res.json({ code: 200, message: 'ok', data: [
       { name: 'AI创作工厂', count: media },

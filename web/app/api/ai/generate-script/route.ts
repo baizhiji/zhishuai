@@ -122,47 +122,18 @@ export async function POST(request: NextRequest) {
       apiKey,
     } = body
 
-    // 如果没有提供 API Key，返回模拟数据
+    // 没有提供 API Key 时禁止返回模拟数据：明确报错，要求先配置 AI 服务
     if (!apiKey) {
-      const styleConfig = STYLE_PROMPTS[style as keyof typeof STYLE_PROMPTS] || STYLE_PROMPTS.friendly
-      
-      // 根据场景生成模拟话术
-      const mockScripts: Record<string, string[]> = {
-        greeting: [
-          '您好！看到您的简历，非常感兴趣。我们公司正在招聘[职位名]，觉得您很适合，想和您聊聊。您方便吗？',
-          '嗨～很高兴联系您！您的经历让我眼前一亮，特别是[亮点描述]，感觉和我们的团队非常契合！',
-        ],
-        job_intro: [
-          '我们正在招聘[职位名]，主要负责[职责描述]。公司提供[福利待遇]，团队氛围很好，期待您的加入！',
-        ],
-        interview_invite: [
-          '恭喜您通过了简历筛选！我们想邀请您参加面试，时间：[时间]，地点：[地点]。请确认是否方便？',
-        ],
-        follow_up: [
-          '您好，想跟进一下之前的沟通。您对我们公司和职位还有什么疑问吗？期待您的回复～',
-        ],
-        rejection: [
-          '感谢您投递[职位名]，很遗憾这次未能入选。您的简历已存入人才库，有合适的机会会再联系您。保重！',
-        ],
-        offer: [
-          '恭喜您通过面试！我们正式向您发放offer：[职位]、[薪资]、[入职时间]。请在[日期]前回复确认。',
-        ],
-      }
-      
-      const scripts = mockScripts[scene] || ['您好，很高兴与您沟通...']
-      const randomScript = scripts[Math.floor(Math.random() * scripts.length)]
-      
-      return NextResponse.json({
-        success: true,
-        data: {
-          script: randomScript,
-          scene,
-          sceneName,
-          style,
-          model: 'mock',
-          mock: true,
-        }
-      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'AI_KEY_NOT_CONFIGURED',
+            message: 'AI 话术生成服务未配置 API Key，请联系管理员配置后再使用',
+          },
+        },
+        { status: 400 }
+      )
     }
 
     // 调用真实的 AI API
@@ -223,7 +194,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        script: generatedScript,
+        script: generatedScript ? `${generatedScript}\n\n— — — — —\n本内容由【智枢AI生成】，请注意甄别。` : '',
         scene,
         sceneName,
         style,

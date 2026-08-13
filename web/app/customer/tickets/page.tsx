@@ -4,32 +4,20 @@ import { useState, useEffect, useMemo } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Tag, message, Drawer, Space, Tooltip, Badge } from 'antd';
 import { PlusOutlined, SendOutlined, FilterOutlined, SearchOutlined, ClockCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
-import { TicketAPI, ticketCategories, ticketPriorities, ticketStatuses } from '@/services/ticket';
+import {
+  TicketAPI,
+  ticketCategories,
+  customerTicketCategories,
+  ticketPriorities,
+  ticketStatuses,
+  type Ticket,
+  type TicketResponse as TicketReply,
+} from '@/services/ticket';
 import PageContainer from '@/components/customer/PageContainer';
+import type { TablePaginationConfig } from 'antd';
+import type { FilterValue, SorterResult } from 'antd/es/table/interface';
 
 const { TextArea } = Input;
-
-interface TicketReply {
-  id: string;
-  userId: string;
-  userName: string;
-  userRole: string;
-  content: string;
-  createdAt: string;
-}
-
-interface Ticket {
-  id: string;
-  ticketNo: string;
-  title: string;
-  content: string;
-  category: string;
-  priority: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  responses?: TicketReply[];
-}
 
 interface TicketFormValues {
   category: string;
@@ -274,13 +262,18 @@ export default function CustomerTicketsPage() {
     },
   ];
 
-  const handleTableChange = (_pagination: unknown, _filters: unknown, sorter: { field?: string; order?: string }) => {
-    if (sorter.field) setSortField(sorter.field as string);
-    if (sorter.order) setSortOrder(sorter.order as 'ascend' | 'descend');
+  const handleTableChange = (
+    _pagination: TablePaginationConfig,
+    _filters: Record<string, FilterValue | null>,
+    sorter: SorterResult<Ticket> | SorterResult<Ticket>[]
+  ) => {
+    const sort = Array.isArray(sorter) ? sorter[0] : sorter;
+    if (sort?.field) setSortField(sort.field as string);
+    if (sort?.order) setSortOrder(sort.order);
   };
 
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { open: 0, processing: 0, resolved: 0, closed: 0 };
+    const counts: Record<string, number> = { pending: 0, processing: 0, resolved: 0, closed: 0 };
     tickets.forEach(t => { if (t.status in counts) counts[t.status]++; });
     return counts;
   }, [tickets]);
@@ -321,7 +314,7 @@ export default function CustomerTicketsPage() {
       {/* Status Summary */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         {[
-          { label: '待处理', count: statusCounts.open, color: '#1677ff' },
+          { label: '待处理', count: statusCounts.pending, color: '#1677ff' },
           { label: '处理中', count: statusCounts.processing, color: '#fa8c16' },
           { label: '已解决', count: statusCounts.resolved, color: '#52c41a' },
           { label: '已关闭', count: statusCounts.closed, color: '#8c8c8c' },
@@ -377,7 +370,7 @@ export default function CustomerTicketsPage() {
       >
         <Form form={form} layout="vertical" onFinish={handleCreateTicket}>
           <Form.Item name="category" label="工单类别" rules={[{ required: true, message: '请选择类别' }]}>
-            <Select placeholder="请选择类别" options={ticketCategories.map(cat => ({ label: cat.label, value: cat.value }))} />
+            <Select placeholder="请选择类别" options={customerTicketCategories.map(cat => ({ label: cat.label, value: cat.value }))} />
           </Form.Item>
           <Form.Item name="priority" label="优先级" rules={[{ required: true, message: '请选择优先级' }]}>
             <Select placeholder="请选择优先级" options={ticketPriorities.map(p => ({ label: p.label, value: p.value }))} />

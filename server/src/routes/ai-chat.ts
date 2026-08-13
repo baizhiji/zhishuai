@@ -12,6 +12,7 @@ import {
   analyzeAndSelectModel, 
   getAllModelsList 
 } from '../services/ai-model-router';
+import { appendAIGCLabel, AIGC_LABEL } from '../services/aigc-label.service';
 
 const router = Router();
 
@@ -79,7 +80,7 @@ const DIAGNOSIS_SYSTEM_PROMPT = `你是【智枢AI诊断专家】，拥有全行
 const DIAGNOSIS_MODEL_CONFIG = {
   deepAnalysis: 'deepseek-r1-0528',
   longReport: 'kimi-k2.6',
-  quickDiagnosis: 'hy3',
+  quickDiagnosis: 'hunyuan-2.0-instruct-20251111',
 };
 
 // 模型配置
@@ -96,15 +97,13 @@ const MODEL_CONFIG = {
   tencent: {
     baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     models: {
-      // 蓝皮书v3.0质量优先配置：每个类型用最适合的TokenHub模型
-      daily: { id: 'hy3', name: '混元 Hy3', type: 'text' },                    // 日常对话
-      thinking: { id: 'hy3', name: '混元 Hy3 推理', type: 'reasoning' },       // 复杂推理/深度分析
-      longText: { id: 'kimi-k3', name: 'Kimi K3', type: 'text' },              // 长篇文本处理
-      agent: { id: 'glm-5.2', name: 'GLM-5.2', type: 'agent' },                // Agent/超长上下文(1M)
-      vision: { id: 'hy-vision-2.0-instruct', name: '混元视觉2.0', type: 'vision' },  // 图像理解
-      video: { id: 'youtu-vita', name: '优图VITA', type: 'video' },            // 视频理解
-      image: { id: 'hy-image-v3.0', name: '混元图像V3.0', type: 'image' },     // 文生图
-      digitalHuman: { id: 'yt-video-humanactor', name: '有道数字人', type: 'digital_human' }, // 数字人口播
+      daily: { id: 'hunyuan-2.0-instruct-20251111', name: 'hunyuan-instruct', type: 'text' },
+      thinking: { id: 'hunyuan-2.0-thinking-20251109', name: 'hunyuan-thinking', type: 'reasoning' },
+      longText: { id: 'kimi-k2.6', name: 'Kimi K2', type: 'text' },
+      agent: { id: 'glm-5', name: 'GLM-5', type: 'agent' },
+      vision: { id: 'glm-5v-turbo', name: 'GLM视觉', type: 'vision' },
+      video: { id: 'youtu-vita', name: '优图VITA', type: 'video' },
+      image: { id: 'hy-image-v3.0', name: '混元图像V3.0', type: 'image' },
     }
   }
 };
@@ -112,9 +111,9 @@ const MODEL_CONFIG = {
 /**
  * 获取用户API Key（优先用用户自行配置的，否则用系统环境变量）
  */
-async function resolveApiKey(userId: string, provider: 'aliyun' | 'tencent'): Promise<string | null> {
+async function resolveApiKey(userId: string, provider: 'aliyun' | 'tencent' | 'volcano'): Promise<string | null> {
   // 1. 尝试从数据库读取用户自己的Key
-  const dbProvider = provider === 'aliyun' ? 'dashscope' : 'tokenhub';
+  const dbProvider = provider === 'aliyun' ? 'dashscope' : provider === 'volcano' ? 'ark' : 'tokenhub';
   
   try {
     const userKey = await getPrimaryApiKey(userId, dbProvider);
@@ -129,6 +128,8 @@ async function resolveApiKey(userId: string, provider: 'aliyun' | 'tencent'): Pr
   // 2. 如果用户没有配置，使用系统环境变量
   const envKey = provider === 'aliyun'
     ? process.env.DASHSCOPE_API_KEY
+    : provider === 'volcano'
+      ? process.env.ARK_API_KEY
     : process.env.TENCENT_TOKENHUB_API_KEY;
 
   if (envKey) {
@@ -209,13 +210,15 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
         for await (const chunk of response as AsyncIterable<string>) {
           res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
         }
+        // AIGC 标识：流式末尾注入标识提示
+        res.write(`data: ${JSON.stringify({ content: AIGC_LABEL, aigcLabel: true })}\n\n`);
         res.write('data: [DONE]\n\n');
         res.end();
       } else {
         res.json({
           success: true,
           data: {
-            message: response,
+            message: appendAIGCLabel(typeof response === 'string' ? response : ''),
             modelKey: selectedModelKey,
             modelId: modelId,
             modelName: selection.modelName,
@@ -254,13 +257,14 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
               for await (const chunk of fallbackResponse as AsyncIterable<string>) {
                 res.write(`data: ${JSON.stringify({ content: chunk, fallback: true })}\n\n`);
               }
+              res.write(`data: ${JSON.stringify({ content: AIGC_LABEL, aigcLabel: true })}\n\n`);
               res.write('data: [DONE]\n\n');
               res.end();
             } else {
               res.json({
                 success: true,
                 data: {
-                  message: fallbackResponse,
+                  message: appendAIGCLabel(typeof fallbackResponse === 'string' ? fallbackResponse : ''),
                   modelKey: fallback.modelKey,
                   modelId: aiModelRouter.getModelInfo(fallback.modelKey)?.id,
                   provider: fallback.provider,
@@ -661,7 +665,7 @@ router.get('/conversations/:id', authMiddleware, async (req: Request, res: Respo
 
     const conversation = await prisma.chatConversation.findFirst({
       where: { id, userId },
-      include: { messages: { orderBy: { createdAt: 'asc' } } },
+      include: { ChatMessage: { orderBy: { createdAt: 'asc' } } },
     });
 
     if (!conversation) {
@@ -740,7 +744,7 @@ router.post('/messages', authMiddleware, async (req: Request, res: Response) => 
     }
 
     const message = await prisma.chatMessage.create({
-      data: { userId, conversationId, role, content },
+      data: { conversationId, role, content },
     });
 
     // 更新会话的updatedAt

@@ -1,121 +1,96 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import { BrowserRouter } from 'react-router-dom';
 import LoginPage from '@/app/login/page';
 
-// Mock API adapter
-jest.mock('@/services/apiAdapter', () => ({
+const mockLogin = jest.fn();
+const mockPush = jest.fn();
+
+jest.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ login: mockLogin }),
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
+jest.mock('@/lib/request', () => ({
+  __esModule: true,
   default: {
-    auth: {
-      login: jest.fn().mockResolvedValue({
+    post: jest.fn().mockResolvedValue({
+      data: {
         token: 'test-token',
         user: {
           id: '1',
           name: 'Test User',
           phone: '13800138000',
-          role: 'customer'
-        }
-      })
-    }
-  }
-}));
-
-// Mock router
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn()
-  })
+          role: 'customer',
+        },
+      },
+    }),
+  },
 }));
 
 describe('LoginPage Integration', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     localStorage.clear();
   });
 
-  const renderLoginPage = () => {
-    return render(
-      <BrowserRouter>
-        <LoginPage />
-      </BrowserRouter>
-    );
-  };
+  const renderLoginPage = () => render(<LoginPage />);
 
   it('should render login page', () => {
     renderLoginPage();
 
     expect(screen.getByText('智枢AI')).toBeInTheDocument();
-    expect(screen.getByText('密码登录')).toBeInTheDocument();
-    expect(screen.getByText('验证码登录')).toBeInTheDocument();
+    expect(screen.getByText('账号类型')).toBeInTheDocument();
+    expect(screen.getByText('终端客户')).toBeInTheDocument();
+    expect(screen.getByText('区域代理')).toBeInTheDocument();
+    expect(screen.getByText('管理员')).toBeInTheDocument();
   });
 
-  it('should switch between password and code login', () => {
+  it('should switch account role', async () => {
+    const user = userEvent.setup();
     renderLoginPage();
 
-    const passwordTab = screen.getByText('密码登录');
-    const codeTab = screen.getByText('验证码登录');
+    await user.click(screen.getByText('区域代理'));
 
-    expect(passwordTab).toBeInTheDocument();
-    expect(codeTab).toBeInTheDocument();
-
-    fireEvent.click(codeTab);
-
-    expect(screen.getByPlaceholderText('请输入验证码')).toBeInTheDocument();
+    expect(screen.getByText('区域代理').style.background).toBe('rgb(255, 255, 255)');
   });
 
-  it('should show validation error for invalid phone', async () => {
+  it('should not call login API when phone is invalid', async () => {
+    const user = userEvent.setup();
     renderLoginPage();
 
-    const phoneInput = screen.getByPlaceholderText('请输入手机号');
-    const loginButton = screen.getByRole('button', { name: /登录/i });
+    const phoneInput = screen.getByPlaceholderText('请输入手机号') as HTMLInputElement;
+    await user.type(phoneInput, '123');
+    await user.type(screen.getByPlaceholderText('请输入密码'), '123456');
+    await user.click(screen.getByRole('button', { name: /登\s*录|登录/i }));
 
-    fireEvent.change(phoneInput, { target: { value: '123' } });
-    fireEvent.click(loginButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('手机号格式不正确')).toBeInTheDocument();
-    });
-  });
-
-  it('should show validation error for missing password', async () => {
-    renderLoginPage();
-
-    const phoneInput = screen.getByPlaceholderText('请输入手机号');
-    const passwordInput = screen.getByPlaceholderText('请输入密码');
-    const loginButton = screen.getByRole('button', { name: /登录/i });
-
-    fireEvent.change(phoneInput, { target: { value: '13800138000' } });
-    fireEvent.click(loginButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('请输入密码')).toBeInTheDocument();
-    });
+    // antd 校验失败：登录请求不应被调用
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    expect(phoneInput.value).toBe('123');
+    expect(mockLogin).not.toHaveBeenCalled();
   });
 
   it('should handle successful login', async () => {
-    const { push } = require('next/navigation').useRouter();
-    const apiAdapter = require('@/services/apiAdapter').default;
-
+    const user = userEvent.setup();
     renderLoginPage();
 
-    const phoneInput = screen.getByPlaceholderText('请输入手机号');
-    const passwordInput = screen.getByPlaceholderText('请输入密码');
-    const loginButton = screen.getByRole('button', { name: /登录/i });
-
-    fireEvent.change(phoneInput, { target: { value: '13800138000' } });
-    fireEvent.change(passwordInput, { target: { value: '123456' } });
-    fireEvent.click(loginButton);
+    await user.type(screen.getByPlaceholderText('请输入手机号'), '13800138000');
+    await user.type(screen.getByPlaceholderText('请输入密码'), '123456');
+    await user.click(screen.getByRole('button', { name: /登\s*录|登录/i }));
 
     await waitFor(() => {
-      expect(apiAdapter.auth.login).toHaveBeenCalledWith('13800138000', '123456');
-      expect(localStorage.getItem('token')).toBe('test-token');
-      expect(push).toHaveBeenCalledWith('/dashboard');
+      expect(mockLogin).toHaveBeenCalledWith('test-token', expect.objectContaining({ role: 'customer' }));
+      expect(localStorage.getItem('viewing_role')).toBe('customer');
+      expect(mockPush).toHaveBeenCalledWith('/customer/dashboard');
     });
   });
 
-  it('should show link to register page', () => {
+  it('should navigate to register page via footer hint', () => {
     renderLoginPage();
 
-    const registerLink = screen.getByText('立即注册');
-    expect(registerLink).toBeInTheDocument();
+    expect(screen.getByText('账号由管理员统一开通管理')).toBeInTheDocument();
   });
 });

@@ -3,6 +3,7 @@
  * 使用统一 AI 客户端 (腾讯云TokenHub/阿里云百炼)
  */
 import { chatCompletion } from './ai-client';
+import { appendAIGCLabel } from './aigc-label.service';
 
 // ─── 类型定义 ────────────────────────────────
 
@@ -82,7 +83,12 @@ ${planResult}
     creativity: opts.creativity,
   });
 
-  return { plan: planResult, content: contentResult, topic: params.topic, platform };
+  return {
+    plan: planResult,
+    content: appendAIGCLabel(contentResult),
+    topic: params.topic,
+    platform,
+  };
 }
 
 // ─── 招聘工作流 ────────────────────────────────
@@ -132,7 +138,7 @@ ${jdResult}
     max_tokens: 1500,
   });
 
-  return { jd: jdResult, interviewQuestions: interviewResult, jobTitle };
+  return { jd: appendAIGCLabel(jdResult), interviewQuestions: appendAIGCLabel(interviewResult), jobTitle };
 }
 
 // ─── 获客话术工作流 ────────────────────────────────
@@ -166,7 +172,7 @@ async function customerAcquisitionWorkflow(
     platform: platform as any,
   });
 
-  return { content: result, product };
+  return { content: appendAIGCLabel(result), product };
 }
 
 export default { processWorkflow };

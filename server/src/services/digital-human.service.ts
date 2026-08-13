@@ -3,6 +3,7 @@
  * 封装数字人 CRUD、视频模板、视频任务的业务逻辑
  */
 import { prisma } from '../utils/db';
+import { randomUUID } from 'crypto';
 
 // ─── 类型定义 ───
 export interface CreateHumanInput {
@@ -77,6 +78,7 @@ export async function createHuman(userId: string, input: CreateHumanInput) {
 
   return prisma.digitalHuman.create({
     data: {
+      id: randomUUID(),
       userId,
       name: input.name,
       gender: input.gender || 'female',
@@ -163,6 +165,7 @@ export async function createTask(userId: string, input: CreateTaskInput) {
 
   const task = await prisma.videoTask.create({
     data: {
+      id: randomUUID(),
       userId,
       humanId: input.humanId,
       templateId: input.templateId,

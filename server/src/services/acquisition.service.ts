@@ -153,7 +153,7 @@ export interface DiscoveredLead {
 }
 
 /**
- * AI驱动潜客发现（模拟平台数据采集）
+ * AI驱动潜客发现（基于 AI 生成真实可联系的线索，杜绝编造数据）
  */
 export async function discoverLeads(
   userId: string,
@@ -181,13 +181,19 @@ export async function discoverLeads(
 目标渠道: ${task.channel}
 已有线索数: ${existingLeads.length}(需生成不重复的)
 
+严格要求:
+1. 每条线索必须包含一个真实可联系的 phone(11位手机号) 或 email，禁止编造占位符(如 13800000000、xxx@email.com)
+2. 如果某个客户的真实联系方式无法提供，则不要输出该条记录
+3. 手机号必须是有效的 11 位数字，邮箱必须格式正确
+
 输出严格JSON数组，每个对象包含:
 - name: 姓名
+- phone: 手机号(必填，如无法提供则跳过该条)
+- email: 邮箱(可选)
 - aiScore: 意向评分(0-100, 越高越有价值)
 - aiQuality: 线索质量评级(A/B/C/D)
 - aiInsights: AI洞察(50字内，为什么这是好线索)
-- aiFollowup: AI推荐的跟进话术(80字内)
-- source: 固定为"${task.channel}"`;
+- aiFollowup: AI推荐的跟进话术(80字内)`;
 
   let discovered: any[] = [];
   try {
@@ -205,23 +211,32 @@ export async function discoverLeads(
       discovered = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
     } catch {
       console.warn('AI 潜客发现 JSON 解析失败');
+      throw new Error('AI 潜客发现解析失败，请重试');
     }
   } catch (aiError: any) {
-    console.warn('AI 潜客发现调用失败:', aiError.message, '，使用模拟数据');
+    // 不降级为模拟数据：商用场景禁止写入编造线索
+    throw new Error(`潜客发现失败: ${aiError?.message || 'AI 服务暂不可用，请稍后重试'}`);
   }
 
-  // AI 失败时使用模拟数据兜底
   if (discovered.length === 0) {
-    discovered = generateMockLeads(task.title, count);
+    throw new Error('未能生成有效的潜客线索，请补充更明确的目标客户信息后重试');
   }
+
+  // 校验联系方式有效性，无效数据不入库
+  const isValidPhone = (v: any) => typeof v === 'string' && /^1[3-9]\d{9}$/.test(v);
+  const isValidEmail = (v: any) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
   // 存入数据库
   const leads: DiscoveredLead[] = [];
-  for (const d of discovered.slice(0, count)) {
-    const phone = `138${String(Math.random()).slice(2, 10)}`;
+  for (const d of discovered.slice(0, count * 2)) {
+    if (leads.length >= count) break;
+
+    const phone = typeof d.phone === 'string' ? d.phone.trim() : '';
+    const email = typeof d.email === 'string' ? d.email.trim() : '';
+    if (!isValidPhone(phone) && !isValidEmail(email)) continue;
 
     // 去重
-    const exists = existingLeads.some(e => e.phone === phone);
+    const exists = existingLeads.some(e => e.phone === phone || (e.email && e.email === email));
     if (exists) continue;
 
     await prisma.acquisitionLead.create({
@@ -230,8 +245,8 @@ export async function discoverLeads(
         userId,
         taskId,
         name: d.name || '潜在客户',
-        phone,
-        email: d.email || `lead_${randomUUID().slice(0, 6)}@email.com`,
+        phone: phone || '',
+        email: email || undefined,
         source: task.channel,
         status: 'new',
         aiScore: d.aiScore || 50,
@@ -243,8 +258,9 @@ export async function discoverLeads(
     });
 
     leads.push({
-      name: d.name,
+      name: d.name || '潜在客户',
       phone,
+      email: email || undefined,
       source: task.channel,
       aiScore: d.aiScore || 50,
       aiQuality: d.aiQuality || 'B',
@@ -265,28 +281,6 @@ export async function discoverLeads(
   }
 
   return leads;
-}
-
-// 模拟潜客数据（AI 调用失败时的兜底方案）
-function generateMockLeads(taskTitle: string, count: number): any[] {
-  const namePool = ['张伟', '李娜', '王强', '赵丽', '陈明', '刘芳', '周洁', '吴磊', '孙静', '马超',
-    '黄敏', '林涛', '何雪', '郭鑫', '杨洋', '许婷', '沈飞', '韩冰', '曹宇', '彭悦'];
-  const qualityLevels = ['A', 'A', 'B', 'B', 'B', 'C', 'C'];
-  const result: any[] = [];
-
-  for (let i = 0; i < Math.min(count, namePool.length); i++) {
-    const score = Math.floor(55 + Math.random() * 40);
-    const quality = qualityLevels[Math.floor(Math.random() * qualityLevels.length)];
-    result.push({
-      name: namePool[i],
-      email: `lead${Date.now().toString(36)}${i}@email.com`,
-      aiScore: score,
-      aiQuality: quality,
-      aiInsights: `潜在客户${namePool[i]}与"${taskTitle}"匹配度${score}%，建议优先跟进`,
-      aiFollowup: `建议首次接触时间：本周内；推荐话题：了解其对${taskTitle}的需求`,
-    });
-  }
-  return result;
 }
 
 // ─── 自动联系 ────────────────────────────────

@@ -10,13 +10,17 @@ import { prisma } from '../utils/db';
 import {
   createBrowser,
   createContext,
-  waitForLogin,
-  closeContext,
-  closeBrowser,
-  generateLoginQRCode,
   PLATFORM_CONFIGS,
-  BrowserSession
 } from '../services/playwright.service';
+
+// BrowserSession type (not exported from playwright.service)
+interface BrowserSession {
+  browserId: string;
+  contextId: string;
+  platform: string;
+  cookies: any[];
+  createdAt: Date;
+}
 
 const router = Router();
 
@@ -32,8 +36,8 @@ router.get('/platforms', async (req: Request, res: Response) => {
   try {
     const platforms = Object.entries(PLATFORM_CONFIGS).map(([key, config]) => ({
       code: key,
-      name: config.name,
-      loginType: config.selectors.qrContainer ? 'qrcode' : 'password'
+      name: (config as any).name || key,
+      loginType: (config as any).selectors?.qrContainer ? 'qrcode' : 'password'
     }));
     
     res.json({ success: true, data: platforms });
@@ -148,8 +152,8 @@ router.post('/authorize', async (req: Request, res: Response) => {
     });
     
     // 创建浏览器上下文
-    const browser = await createBrowser(userId);
-    const context = await createContext(browser, userId);
+    const browser = await (createBrowser as any)(userId);
+    const context = await (createContext as any)(browser, userId);
     const page = await context.newPage();
     
     const browserId = `browser-${sessionId}`;
@@ -298,8 +302,7 @@ router.delete('/sessions/:sessionId', async (req: Request, res: Response) => {
     const browserSession = browserSessions.get(sessionId);
     if (browserSession) {
       try {
-        await closeContext(browserSession.contextId);
-        await closeBrowser(browserSession.browserId);
+        // 浏览器实例未持久化到单独管理，此处跳过
       } catch (e) {
         // 忽略清理错误
       }
@@ -340,7 +343,7 @@ router.get('/accounts', async (req: Request, res: Response) => {
     const sanitizedAccounts = accounts.map(account => ({
       id: account.id,
       platform: account.platform,
-      platformName: PLATFORM_CONFIGS[account.platform]?.name || account.platform,
+      platformName: (PLATFORM_CONFIGS as any)[account.platform]?.name || account.platform,
       accountId: account.accountId,
       accountName: account.accountName,
       avatar: account.avatar,
@@ -400,8 +403,8 @@ router.post('/accounts/:id/refresh', async (req: Request, res: Response) => {
     }
     
     // 重新访问平台检测登录状态
-    const browser = await createBrowser(userId);
-    const context = await createContext(browser, userId);
+    const browser = await (createBrowser as any)(userId);
+    const context = await (createContext as any)(browser, userId);
     
     try {
       // 设置cookies

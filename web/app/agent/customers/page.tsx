@@ -98,7 +98,7 @@ export default function CustomerManagementPage() {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: AgentStatistics }>(
-        '/api/agent/statistics'
+        '/agent/statistics'
       )) as unknown as { success: boolean; data: AgentStatistics };
       if (res.success && res.data) {
         setStatistics(res.data);
@@ -585,35 +585,6 @@ export default function CustomerManagementPage() {
                         onChange={enabled => handleFeatureToggle(feature, enabled)}
                       />
                     </div>
-                    {feature.subSwitches && feature.subSwitches.length > 0 && (
-                      <div style={{ marginTop: 12, paddingLeft: 12, borderLeft: '2px solid #f0f0f0' }}>
-                        {feature.subSwitches.map(sub => (
-                          <div
-                            key={sub.id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              padding: '6px 0',
-                            }}
-                          >
-                            <div>
-                              <span>{sub.name}</span>
-                              {sub.description && (
-                                <span style={{ color: '#bfbfbf', fontSize: 12, marginLeft: 8 }}>
-                                  {sub.description}
-                                </span>
-                              )}
-                            </div>
-                            <Switch
-                              size="small"
-                              checked={sub.enabled}
-                              onChange={enabled => handleFeatureToggle(sub, enabled)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </Card>
                 ))}
               </div>

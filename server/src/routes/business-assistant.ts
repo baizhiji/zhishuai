@@ -148,6 +148,19 @@ router.get('/export/docx/:id', async (req: Request, res: Response) => {
   }
 });
 
+// 导出 Excel
+router.get('/export/xlsx/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as AuthRequest).userId;
+    const buffer = await businessAssistantService.exportXLSX(req.params.id, userId);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="business-plan-${req.params.id}.xlsx"`);
+    res.send(buffer);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // 自由问答
 router.post('/chat', async (req: Request, res: Response) => {
   try {

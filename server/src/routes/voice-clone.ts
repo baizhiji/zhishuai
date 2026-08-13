@@ -6,11 +6,11 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { getPrimaryApiKey } from '../services/user-api-key.service';
-import { prisma } from '../utils/db';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { prisma } from '../utils/db';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -102,7 +102,7 @@ router.post('/voices', authMiddleware, upload.single('audio'), async (req: Reque
       return;
     }
 
-    const voice = await prisma.voiceClone.create({
+    const voice = await (prisma as any).voiceClone.create({
       data: {
         userId,
         name: name || '我的声音',
@@ -124,7 +124,7 @@ router.delete('/voices/:id', authMiddleware, async (req: Request, res: Response)
     const userId = (req as any).userId;
     const { id } = req.params;
 
-    const voice = await prisma.voiceClone.findFirst({ where: { id, userId } });
+    const voice = await (prisma as any).voiceClone.findFirst({ where: { id, userId } });
     if (!voice) {
       res.status(404).json({ error: '声音不存在' });
       return;
@@ -136,7 +136,7 @@ router.delete('/voices/:id', authMiddleware, async (req: Request, res: Response)
       if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
 
-    await prisma.voiceClone.delete({ where: { id } });
+    await (prisma as any).voiceClone.delete({ where: { id } });
 
     res.json({ success: true });
   } catch (error: any) {
@@ -275,6 +275,7 @@ router.post('/videos', authMiddleware, upload.fields([
     // 创建视频任务
     const video = await prisma.videoClone.create({
       data: {
+        id: randomUUID(),
         userId,
         name: name || '数字人视频',
         sourceImageUrl: imageUrl,

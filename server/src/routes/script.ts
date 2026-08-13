@@ -189,7 +189,7 @@ router.get('/conversations', authMiddleware, async (req: Request, res: Response)
         take: Number(pageSize),
         orderBy: { createdAt: 'desc' },
         include: {
-          template: { select: { name: true } },
+          ScriptTemplate: { select: { name: true } },
         },
       }),
       prisma.conversationLog.count({ where }),

@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { UserRole, Permission, rolePermissions } from '@/lib/permissions/config';
+import { AuthAPI } from '@/services/auth';
 
 // 用户信息类型
 export interface UserInfo {
@@ -50,32 +51,7 @@ const defaultFeatureToggles: FeatureToggles = {
   marketing: false,
 };
 
-// 模拟用户数据
-const mockUsers: Record<string, UserInfo> = {
-  '13800138001': {
-    id: '1',
-    name: '管理员',
-    phone: '13800138001',
-    avatar: '',
-    role: UserRole.ADMIN,
-  },
-  '13800138002': {
-    id: '2',
-    name: '代理商',
-    phone: '13800138002',
-    avatar: '',
-    role: UserRole.AGENT,
-    agentId: 'agent-001',
-  },
-  '13800138003': {
-    id: '3',
-    name: '终端客户',
-    phone: '13800138003',
-    avatar: '',
-    role: UserRole.CUSTOMER,
-    tenantId: 'tenant-001',
-  },
-};
+
 
 // Provider组件
 export function UserProvider({ children }: { children: React.ReactNode }) {
@@ -110,17 +86,29 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // 登录
+  // 登录（调用真实后端 API）
   const login = useCallback(async (phone: string, password: string): Promise<boolean> => {
-    // 模拟登录，实际应该调用API
-    if (mockUsers[phone] && password === '123456') {
-      const userInfo = mockUsers[phone];
-      setUser(userInfo);
-      setPermissions(rolePermissions[userInfo.role] || []);
-      localStorage.setItem('user', JSON.stringify(userInfo));
-      return true;
+    try {
+      const res = await AuthAPI.login({ phone, password });
+      if (res.success && res.data?.user && res.data.token) {
+        const u = res.data.user;
+        const userInfo: UserInfo = {
+          id: u.id,
+          name: u.name,
+          phone: u.phone,
+          role: (u.role as UserRole) || UserRole.CUSTOMER,
+        };
+        setUser(userInfo);
+        setPermissions(rolePermissions[userInfo.role] || []);
+        localStorage.setItem('user', JSON.stringify(userInfo));
+        localStorage.setItem('token', res.data.token);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error('登录失败:', e);
+      return false;
     }
-    return false;
   }, []);
 
   // 登出

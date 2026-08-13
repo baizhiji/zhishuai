@@ -53,8 +53,9 @@ export default function AcquisitionDiscoverPage() {
       const res: Record<string, unknown> = await apiClient.get('/acquisition/leads', {
         params: { page: pagination.page, pageSize: pagination.pageSize, search: searchText || undefined, status: statusFilter },
       });
-      setLeads((res.leads as Lead[]) || []);
-      setPagination(prev => ({ ...prev, total: (res.total as number) || 0 }));
+      const payload = (res.data as Record<string, unknown>) || res;
+      setLeads((payload.leads as Lead[]) || []);
+      setPagination(prev => ({ ...prev, total: (payload.total as number) || 0 }));
     } catch (error: unknown) {
       message.error((error as Error).message || '获取潜客列表失败');
     } finally { setLoading(false); }
@@ -64,8 +65,8 @@ export default function AcquisitionDiscoverPage() {
 
   const openDetail = async (lead: Lead) => {
     try {
-      const res: Record<string, unknown> = await apiClient.get(`/api/acquisition/leads/${lead.id}`);
-      setSelectedLead(res as Lead);
+      const res: Record<string, unknown> = await apiClient.get(`/acquisition/leads/${lead.id}`);
+      setSelectedLead(((res.data as unknown as Lead) || (res as unknown as Lead)));
     } catch { setSelectedLead(lead); }
     setDetailVisible(true);
   };

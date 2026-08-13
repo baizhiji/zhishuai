@@ -15,7 +15,7 @@ import {
   BulbOutlined, StarOutlined, WarningOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions, bannerOverlayOptions } from '@/lib/content/types';
-import { generateText, generateImage, generateVideo, analyzeViralTopic } from '@/lib/ai/factory-service';
+import { generateText, generateImage, generateVideo, analyzeViralTopic, type ContentTypeSlug } from '@/lib/ai/factory-service';
 import { CATEGORY_TIPS } from '@/lib/ai/category-config';
 import PageContainer from '@/components/customer/PageContainer';
 
@@ -41,7 +41,43 @@ const CATEGORY_TIPS_KEY_MAP: Record<ContentCategory, string> = {
   [ContentCategory.CINEMA_SHORT]: 'cinemaShort',
   [ContentCategory.AI_SKETCH]: 'cinemaShort',
   [ContentCategory.AI_COMIC]: 'cartoonVideo',
+  [ContentCategory.CONTENT_CREATIVITY]: 'creativity',
 };
+
+// 内容安全：敏感词黑名单（正则模式）
+const BLOCKED_PATTERNS: RegExp[] = [
+  /色情|淫秽|裸体|性交|卖淫|嫖娼/i,
+  /赌博|赌场|博彩|六合彩|押注/i,
+  /毒品|大麻|海洛因|冰毒|摇头丸|吸毒/i,
+  /枪支|弹药|爆炸物|管制刀具/i,
+  /恐怖主义|恐怖分子|ISIS|圣战/i,
+  /贩卖人口|器官买卖|人体器官/i,
+  /洗钱|非法集资|传销|庞氏骗局/i,
+  /诈骗|钓鱼|木马|黑客.*攻击|DDoS|入侵.*系统/i,
+  /自杀|自残|割腕|跳楼.*方法/i,
+  /暴恐|血腥|分尸|残肢|虐杀/i,
+  /种族.*歧视|纳粹|法西斯|种族.*灭绝/i,
+  /儿童.*色情|未成年人.*性|恋童/i,
+];
+
+interface ContentSafetyResult {
+  blocked: boolean;
+  reason?: string;
+}
+
+function checkContentSafety(text: string): ContentSafetyResult {
+  if (!text || text.trim().length === 0) {
+    return { blocked: true, reason: '请输入创作主题或描述' };
+  }
+
+  for (const pattern of BLOCKED_PATTERNS) {
+    if (pattern.test(text)) {
+      return { blocked: true, reason: '检测到敏感内容，请修改主题后重试' };
+    }
+  }
+
+  return { blocked: false };
+}
 
 const getCategoryTips = (category: ContentCategory) => {
   const key = CATEGORY_TIPS_KEY_MAP[category];
@@ -131,6 +167,16 @@ export default function AIFactoryPage() {
   const handleGenerate = async () => {
     const values = await form.validateFields().catch(() => null);
     if (!values) return;
+
+    // 内容安全校验
+    const userInput = values.topic || values.description || values.productName || (typeof values.theme === 'string' ? values.theme : '');
+    if (userInput) {
+      const safetyResult = checkContentSafety(userInput);
+      if (safetyResult.blocked) {
+        message.warning(safetyResult.reason || '内容安全校验未通过');
+        return;
+      }
+    }
 
     setGenerating(true);
     setProgress(0);
@@ -293,8 +339,8 @@ export default function AIFactoryPage() {
     }
   };
 
-  function getTaskKey(cat: ContentCategory) {
-    const map: Record<string, string> = {
+  function getTaskKey(cat: ContentCategory): ContentTypeSlug {
+    const map: Record<string, ContentTypeSlug> = {
       [ContentCategory.XIAOHONGSHU]: 'xiaohongshu',
       [ContentCategory.IMAGE_GENERATION]: 'image',
       [ContentCategory.ECOMMERCE_DETAIL]: 'ecommerce',
@@ -478,7 +524,7 @@ export default function AIFactoryPage() {
       }
     >
       {/* 功能卡片网格 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
         {factoryCards.map(card => {
           const isComingSoon = COMING_SOON_CATEGORIES.includes(card.category);
           return (
@@ -514,7 +560,7 @@ export default function AIFactoryPage() {
             >
               <List.Item.Meta
                 avatar={getCategoryIcon(record.category)}
-                title={<Space><span>{record.config?.description?.slice(0, 30) || contentCategoryConfig[record.category]?.label}</span><Tag color={contentCategoryConfig[record.category]?.color}>{contentCategoryConfig[record.category]?.label}</Tag><Tag color={record.status === 'success' ? 'green' : 'red'}>{record.status === 'success' ? '成功' : '失败'}</Tag></Space>}
+                title={<Space><span>{String(record.config?.description ?? '').slice(0, 30) || contentCategoryConfig[record.category]?.label}</span><Tag color={contentCategoryConfig[record.category]?.color}>{contentCategoryConfig[record.category]?.label}</Tag><Tag color={record.status === 'success' ? 'green' : 'red'}>{record.status === 'success' ? '成功' : '失败'}</Tag></Space>}
                 description={<Space><Text type="secondary">{new Date(record.timestamp).toLocaleString('zh-CN')}</Text>{record.provider && <Tag style={{ fontSize: 11 }}>{record.provider}</Tag>}</Space>}
               />
             </List.Item>

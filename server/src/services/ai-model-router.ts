@@ -16,7 +16,7 @@ import { Request, Response } from 'express';
 // 腾讯云TokenHub模型列表
 const TENCENT_MODELS = {
   hunyuan_instruct: {
-    id: 'hy3',
+    id: 'hunyuan-2.0-instruct-20251111',
     name: '混元日常',
     provider: 'tencent',
     type: 'chat',
@@ -28,7 +28,7 @@ const TENCENT_MODELS = {
     fallback: 'qwen_turbo',
   },
   hunyuan_thinking: {
-    id: 'hy3',
+    id: 'hunyuan-2.0-thinking-20251109',
     name: '混元思考',
     provider: 'tencent',
     type: 'reasoning',
@@ -39,42 +39,42 @@ const TENCENT_MODELS = {
     keywords: ['分析', '推理', '计算', '证明', '思考', '逻辑'],
     fallback: 'deepseek_r1',
   },
-  kimi_k3: {
-    id: 'kimi-k3',
-    name: 'Kimi K3 长文',
+  kimi_k2: {
+    id: 'kimi-k2.6',
+    name: 'Kimi K2 长文',
     provider: 'tencent',
     type: 'long_text',
     priority: 1,
     cost: 'medium',
     maxTokens: 128000,
-    description: '长篇文本处理/摘要/改写 — 蓝皮书v3.0质量优先',
+    description: '长篇文本处理/摘要/改写 — 蓝皮书质量优先',
     keywords: ['报告', '总结', '文章', '论文', '文档', '小说', '长文', '万字', '摘要'],
-    fallback: 'glm_5.2',
+    fallback: 'glm_5',
   },
-  glm_5_2: {
-    id: 'glm-5.2',
-    name: 'GLM-5.2 Agent',
+  glm_5: {
+    id: 'glm-5',
+    name: 'GLM-5 Agent',
     provider: 'tencent',
     type: 'agent',
     priority: 2,
     cost: 'medium',
     maxTokens: 32768,
     maxContext: 1000000,
-    description: '极长文本/合同/报告解析（1M上下文） + Agent/代码 — 蓝皮书v3.0质量优先',
+    description: '极长文本/合同/报告解析（1M上下文） + Agent/代码 — 蓝皮书质量优先',
     keywords: ['代码', '编程', '开发', '任务', '执行', '合同', '报告解析', '万字', '超长'],
-    fallback: 'kimi_k3',
+    fallback: 'kimi_k2',
   },
-  hy_vision_2: {
-    id: 'hy-vision-2.0-instruct',
-    name: '混元视觉2.0',
+  glm_5v: {
+    id: 'glm-5v-turbo',
+    name: 'GLM视觉',
     provider: 'tencent',
     type: 'vision',
     priority: 1,
     cost: 'medium',
     maxTokens: 8192,
-    description: '图像理解/OCR/图表分析 — 蓝皮书v3.0质量优先',
+    description: '图像理解/OCR/图表分析 — 蓝皮书质量优先',
     keywords: ['图片', '图像', '看图', '图表', '截图', '照片'],
-    fallback: 'glm_5.2',
+    fallback: 'glm_5',
   },
   youtu_vita: {
     id: 'youtu-vita',
@@ -84,30 +84,8 @@ const TENCENT_MODELS = {
     priority: 1,
     cost: 'high',
     maxTokens: 16384,
-    description: '视频理解/视频分析 — 蓝皮书v3.0质量优先',
+    description: '视频理解/视频分析 — 蓝皮书质量优先',
     keywords: ['视频', '抖音', '快手', '小红书视频', 'B站'],
-    fallback: null,
-  },
-  hy_image_v3: {
-    id: 'hy-image-v3.0',
-    name: '混元图像V3.0',
-    provider: 'tencent',
-    type: 'image',
-    priority: 1,
-    cost: 'high',
-    description: '写实/高质量文生图 — 蓝皮书v3.0质量优先',
-    keywords: ['生成图片', '画图', '创作图片', 'AI绘图'],
-    fallback: null,
-  },
-  digital_human: {
-    id: 'yt-video-humanactor',
-    name: '有道数字人播报',
-    provider: 'tencent',
-    type: 'digital_human',
-    priority: 1,
-    cost: 'high',
-    description: '数字人口播/口型同步 — 蓝皮书v3.0质量优先',
-    keywords: ['数字人', '口播', '配音', '主播', '虚拟人'],
     fallback: null,
   },
 };
@@ -136,7 +114,7 @@ const ALIYUN_MODELS = {
     maxTokens: 32768,
     description: '专业文案、营销内容',
     keywords: ['文案', '营销', '推广', '策划', '方案'],
-    fallback: 'glm_5_2',
+    fallback: 'glm_5',
   },
   qwen_long: {
     id: 'qwen-long',
@@ -148,7 +126,7 @@ const ALIYUN_MODELS = {
     maxTokens: 10000000,
     description: '超长文本处理',
     keywords: ['超长', '万字', '长文', '长篇小说'],
-    fallback: 'kimi_k3',
+    fallback: 'kimi_k2',
   },
   deepseek_r1: {
     id: 'deepseek-r1-0528',
@@ -224,32 +202,22 @@ export class AIModelRouter {
       return 'video';
     }
     
-    // 3. 检查图像生成
-    if (this.matchKeywords(input, ['生成图片', '画图', '创作图片', '生成画作', 'AI绘图'])) {
-      return 'image';
-    }
-    
-    // 4. 检查数字人
-    if (this.matchKeywords(input, ['数字人', '口播', '配音', '主播', '虚拟人'])) {
-      return 'digital_human';
-    }
-    
-    // 5. 检查代码/Agent任务
+    // 3. 检查代码/Agent任务
     if (this.matchKeywords(input, ['代码', '编程', '开发', '任务', '执行', '自动化'])) {
       return 'agent';
     }
     
-    // 6. 检查超长文本
+    // 4. 检查超长文本
     if (this.matchKeywords(input, ['报告', '总结', '文章', '论文', '文档', '小说', '长文', '万字'])) {
       return 'long_text';
     }
     
-    // 7. 检查专业内容
+    // 5. 检查专业内容
     if (this.matchKeywords(input, ['文案', '营销', '推广', '策划', '方案', '专业', '详细'])) {
       return 'professional';
     }
     
-    // 8. 检查深度推理
+    // 6. 检查深度推理
     if (this.matchKeywords(input, ['深度', '推理', '分析', '思考', '复杂', '数学', '为什么', '分析一下'])) {
       return 'reasoning';
     }
@@ -521,8 +489,6 @@ export function getTaskTypeName(taskType: string): string {
     agent: 'Agent任务',
     vision: '图像理解',
     video: '视频理解',
-    image: '图像生成',
-    digital_human: '数字人',
     unknown: '未知',
   };
   return names[taskType] || taskType;

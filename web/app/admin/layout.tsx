@@ -40,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: Announcement[] }>(
-        '/api/announcements?audience=all&limit=5'
+        '/announcements?audience=all&limit=5'
       )) as unknown as { success: boolean; data: Announcement[] };
       if (res.success && Array.isArray(res.data)) {
         setAnnouncements(res.data);

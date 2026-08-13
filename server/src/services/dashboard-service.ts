@@ -14,6 +14,7 @@
  */
 
 import { prisma } from '../utils/db';
+import { appendAIGCLabelShort } from './aigc-label.service';
 
 // ==================== 类型定义 ====================
 
@@ -234,11 +235,6 @@ export async function getDashboardTrend(userId: string, days: number = 30): Prom
     if (dateMap[key]) dateMap[key].candidates++;
   });
 
-  dailyContent.forEach(c => {
-    const key = c.publishedAt.toISOString().split('T')[0];
-    if (dateMap[key]) dateMap[key].content++;
-  });
-
   const result = Object.values(dateMap).sort((a, b) => a.date.localeCompare(b.date));
   setCache(cacheKey, result);
   return result;
@@ -332,7 +328,7 @@ export async function getHotTopics(
         const topics = parsed.map((item, i) => ({
           id: `ai-hot-${platform}-${i + 1}`,
           rank: i + 1,
-          title: item.title as string,
+          title: appendAIGCLabelShort(item.title as string),
           heat: item.heat as number,
           trend: item.trend as 'up' | 'down' | 'stable',
           category: item.category as string,
@@ -348,12 +344,12 @@ export async function getHotTopics(
         return topics;
       }
     } catch (err) {
-      console.warn('[Dashboard] AI 热点话题生成失败，使用降级数据:', (err as Error).message);
+      console.warn('[Dashboard] AI 热点话题生成失败:', (err as Error).message);
     }
   }
 
-  // 降级：返回高质量静态热点数据
-  return getFallbackHotTopics(platform, limit);
+  // 商用原则：未配置 AI 或生成失败时返回空数组，不返回编造的假热点
+  return [];
 }
 
 function buildHotTopicsPrompt(platform: string, limit: number): string {
@@ -383,49 +379,6 @@ function buildHotTopicsPrompt(platform: string, limit: number): string {
 - 内容创作建议要有实操性，能直接用于内容生产
 - 话题要有时效性，反映出近期真实热点
 - 不要编造过于离谱或不存在的话题`;
-}
-
-function getFallbackHotTopics(platform: string, limit: number): HotTopicItem[] {
-  // 按类别分组的高质量静态热点
-  const allTopics = [
-    // 科技类
-    { title: 'AI大模型最新突破', heat: 9850000, trend: 'up' as const, category: '科技', relatedTopics: ['人工智能', '大语言模型'], contentIdeas: ['盘点最新AI模型能力对比', 'AI如何改变你所在行业的三个案例', '普通人如何利用AI提升工作效率'] },
-    { title: '华为新旗舰发布', heat: 8750000, trend: 'up' as const, category: '科技', relatedTopics: ['手机评测', '国产芯片'], contentIdeas: ['新机上手体验与竞品对比', '国产芯片突围之路深度分析', '华为生态全家桶体验报告'] },
-    { title: '新能源车智能化竞赛', heat: 7650000, trend: 'up' as const, category: '科技', relatedTopics: ['自动驾驶', '电动车'], contentIdeas: ['实测各品牌智能驾驶能力', '新能源车选购指南2026版', '充电桩布局全国地图解读'] },
-
-    // 财经类
-    { title: 'A股市场结构性机会', heat: 8320000, trend: 'stable' as const, category: '财经', relatedTopics: ['股票投资', '经济复苏'], contentIdeas: ['下半年值得关注的三条主线', '散户投资避坑指南', '基金经理最新观点汇总'] },
-    { title: '数字人民币跨境支付', heat: 6540000, trend: 'up' as const, category: '财经', relatedTopics: ['数字货币', '人民币国际化'], contentIdeas: ['数字人民币最新应用场景实测', '对普通人生活的影响分析', '各国数字货币进展对比'] },
-
-    // 社会民生
-    { title: '高考志愿填报季', heat: 9200000, trend: 'up' as const, category: '教育', relatedTopics: ['高考', '大学选择'], contentIdeas: ['2026年最热门专业TOP10分析', '志愿填报五大常见误区', '各行业就业前景真实数据解读'] },
-    { title: '夏季高温用电安全', heat: 7120000, trend: 'up' as const, category: '社会', relatedTopics: ['节能降耗', '安全用电'], contentIdeas: ['家庭节电实用技巧大全', '夏季用电安全隐患排查清单', '各地电力供应形势分析'] },
-
-    // 娱乐
-    { title: '暑期档电影大战', heat: 8450000, trend: 'up' as const, category: '娱乐', relatedTopics: ['电影票房', '国产电影'], contentIdeas: ['暑期档电影全评测', '历年暑期档票房冠军回顾', '电影院观影省钱攻略'] },
-
-    // 生活方式
-    { title: '暑期旅游热门目的地', heat: 7900000, trend: 'up' as const, category: '旅游', relatedTopics: ['避暑胜地', '亲子游'], contentIdeas: ['小众避暑目的地推荐', '暑期亲子游全攻略', '旅游省钱秘籍大公开'] },
-    { title: '居家办公新趋势', heat: 5430000, trend: 'stable' as const, category: '生活方式', relatedTopics: ['远程办公', '工作效率'], contentIdeas: ['打造高效居家办公环境的建议', '远程办公时间管理方法论', '居家办公对职业发展的影响'] },
-
-    // 健康
-    { title: '全民健身热潮持续', heat: 6780000, trend: 'up' as const, category: '健康', relatedTopics: ['运动健身', '健康生活'], contentIdeas: ['零基础入门健身计划', '办公室碎片化运动指南', '科学饮食搭配方案'] },
-
-    // 商业
-    { title: '新消费品牌崛起', heat: 5670000, trend: 'stable' as const, category: '商业', relatedTopics: ['品牌营销', '消费升级'], contentIdeas: ['新消费品牌案例拆解', '社交媒体营销新玩法', '品牌从0到1的获客方法论'] },
-
-    // 创业
-    { title: 'AI创业浪潮', heat: 8120000, trend: 'up' as const, category: '创业', relatedTopics: ['人工智能创业', '融资趋势'], contentIdeas: ['2026年AI创业机会地图', 'AI创业者避坑指南', '如何用AI为传统行业降本增效'] },
-  ];
-
-  return allTopics.slice(0, limit).map((topic, i) => ({
-    id: `${platform}-${i + 1}`,
-    rank: i + 1,
-    ...topic,
-    platform,
-    updatedAt: new Date().toISOString(),
-    aiGenerated: false,
-  }));
 }
 
 /**

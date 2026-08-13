@@ -243,6 +243,7 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
     userId: user.id,
     featureCode: f.code,
     enabled: f.code === 'factory',
+    updatedAt: new Date(),
   }));
   if (defaultFeatures.length > 0) {
     await prisma.userFeatureSwitch.createMany({ data: defaultFeatures });
@@ -361,7 +362,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
 
   // 记录登录日志
   try {
-    await prisma.loginLog.create({
+    await (prisma as any).loginLog.create({
       data: {
         userId: user.id,
         action: 'login',
@@ -466,13 +467,13 @@ export async function getLoginLogs(
   // 尝试从 loginLog 表获取真实数据
   try {
     const [logs, total] = await Promise.all([
-      prisma.loginLog.findMany({
+      (prisma as any).loginLog.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         skip,
         take: pageSize,
       }),
-      prisma.loginLog.count({ where: { userId } }),
+      (prisma as any).loginLog.count({ where: { userId } }),
     ]);
 
     if (total > 0) {

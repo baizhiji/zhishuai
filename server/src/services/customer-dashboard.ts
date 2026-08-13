@@ -187,11 +187,11 @@ export async function getCustomerDashboardSummary(
 
     safeQuery('pendingTickets', () => prisma.ticket.count({ where: { userId, status: { in: ['pending', 'processing'] } } }), 0),
 
-    safeQuery('aiUsageTotal', () => prisma.aiUsageStats.aggregate({
+    safeQuery('aiUsageTotal', () => prisma.aIUsageStats.aggregate({
       where: { userId },
       _sum: { successCount: true, failCount: true },
     }), { _sum: { successCount: 0, failCount: 0 } }),
-    safeQuery('weekAiTokens', () => prisma.aiUsageStats.aggregate({
+    safeQuery('weekAiTokens', () => prisma.aIUsageStats.aggregate({
       where: { userId, periodStart: { gte: weekStart } },
       _sum: { tokens: true },
     }), { _sum: { tokens: 0 } }),

@@ -49,7 +49,7 @@ export function detectDiagnosisRequest(messages: ChatMessage[]): boolean {
 
 // ─── 会话管理 ───
 export async function getConversationList(userId: string, limit: number, offset: number) {
-  return prisma.conversation.findMany({
+  return (prisma as any).conversationLog.findMany({
     where: { userId },
     orderBy: { updatedAt: 'desc' },
     take: limit,
@@ -64,7 +64,7 @@ export async function getConversationList(userId: string, limit: number, offset:
 }
 
 export async function getConversationDetail(id: string, userId: string) {
-  return prisma.conversation.findFirst({
+  return (prisma as any).conversationLog.findFirst({
     where: { id, userId },
     include: {
       messages: {
@@ -75,21 +75,21 @@ export async function getConversationDetail(id: string, userId: string) {
 }
 
 export async function deleteConversation(id: string, userId: string) {
-  const conv = await prisma.conversation.findFirst({ where: { id, userId } });
+  const conv = await prisma.conversationLog.findFirst({ where: { id, userId } });
   if (!conv) return false;
-  await prisma.conversation.delete({ where: { id } });
+  await prisma.conversationLog.delete({ where: { id } });
   return true;
 }
 
 export async function clearAllConversations(userId: string) {
-  await prisma.conversation.deleteMany({ where: { userId } });
+  await prisma.conversationLog.deleteMany({ where: { userId } });
   return true;
 }
 
 export async function updateConversationTitle(id: string, userId: string, title: string) {
-  const conv = await prisma.conversation.findFirst({ where: { id, userId } });
+  const conv = await prisma.conversationLog.findFirst({ where: { id, userId } });
   if (!conv) return false;
-  await prisma.conversation.update({ where: { id }, data: { title } });
+  await (prisma as any).conversationLog.update({ where: { id }, data: { title } });
   return true;
 }
 
@@ -100,18 +100,18 @@ export async function saveMessage(input: SaveMessageInput) {
   let convId = conversationId;
   if (!convId) {
     const title = content.length > 30 ? content.slice(0, 30) + '...' : content;
-    const conv = await prisma.conversation.create({
+    const conv = await (prisma as any).conversationLog.create({
       data: { userId, title },
     });
     convId = conv.id;
   } else {
-    await prisma.conversation.update({
+    await (prisma as any).conversationLog.update({
       where: { id: convId },
       data: { updatedAt: new Date() },
     });
   }
 
-  return prisma.message.create({
+  return (prisma as any).message.create({
     data: {
       conversationId: convId,
       role,
@@ -148,8 +148,6 @@ export const MODEL_CONFIG = {
       agent: { id: 'glm-5', name: 'glm-5', type: 'agent' },
       vision: { id: 'glm-5v-turbo', name: 'glm-5v-turbo', type: 'vision' },
       video: { id: 'youtu-vita', name: 'youtu-vita', type: 'video' },
-      image: { id: 'HY-Image-V3.0', name: 'hy-image-v3', type: 'image' },
-      digitalHuman: { id: 'YT-Video-HumanActor', name: 'yt-video-humanactor', type: 'digital_human' },
     },
   },
 };
@@ -223,7 +221,7 @@ export async function callAIProvider(
       },
     };
   } else {
-    const data = await response.json();
+    const data: any = await response.json();
     return data.choices?.[0]?.message?.content || '';
   }
 }

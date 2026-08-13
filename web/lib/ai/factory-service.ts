@@ -15,8 +15,11 @@ import {
   CATEGORY_PIPELINES,
   getCategoryConfig, hasApiKey, getCategoryKeyCoverage,
   buildPhaseParams,
-  type AiProvider, type CategoryPipeline, type PhaseConfig, type PipelinePhase,
+  type AiProvider, type CategoryPipeline, type PhaseConfig, type PipelinePhase, type ModelInfo,
 } from './category-config';
+
+/** 兼容旧名：阶段处理函数使用的模型信息类型 */
+type ModelInfoType = ModelInfo;
 
 import {
   HUMAN_TEXT_SYSTEM_PROMPT,
@@ -180,7 +183,7 @@ async function callImageAPI(
 
 async function callVideoAPI(
   provider: AiProvider, modelId: string, prompt: string,
-  params: { duration?: number; size?: string; images?: string[]; text?: string },
+  params: { duration?: number; size?: string; images?: string[]; text?: string; imageUrl?: string; voice?: string },
   apiKey: string
 ): Promise<string> {
   const info = PROVIDER_INFO[provider];
@@ -479,7 +482,7 @@ export async function generateWithLocalPipeline(
 async function executePhase(
   phase: PhaseConfig, modelInfo: any, apiKey: string,
   accumulatedText: string, originalInput: string
-): Promise<{ data?: string }> {
+): Promise<Record<string, unknown> & { data?: string }> {
   const params = phase.params || {};
   const phaseParams = { temperature: params.temperature, maxTokens: params.maxOutput || 2000, topP: params.top_p, frequencyPenalty: params.frequency_penalty, presencePenalty: params.presence_penalty };
 
@@ -1231,7 +1234,7 @@ export async function generateImage(
     } catch { continue; }
   }
 
-  return mockImageGeneration(params.prompt, params.imageType);
+  throw new Error('图片生成失败：未配置可用的图片生成 API Key（腾讯混元/阿里通义万相），请在设置中配置');
 }
 
 /**
@@ -1286,7 +1289,7 @@ export async function generateVideo(
     } catch { continue; }
   }
 
-  return mockVideoGeneration(params, slug);
+  throw new Error('视频生成失败：未配置可用的视频生成 API Key（可灵/混元），请在设置中配置');
 }
 
 /**
@@ -1408,109 +1411,6 @@ export function getModelsForCategory(slug: ContentTypeSlug) {
 }
 
 export { hasApiKey, getCategoryKeyCoverage, PROVIDER_INFO, MODEL_INFO, CATEGORY_PIPELINES, getCategoryConfig };
-
-// ─── Mock 函数（无 API Key 时的高质量真人级模拟）──
-
-function mockTextGeneration(prompt: string, slug?: string): GenerateResult {
-  const topic = prompt.slice(0, 60);
-  const texts: Record<string, string> = {
-    xiaohongshu: generateXiaohongshuMock(topic),
-    ecommerce: generateEcommerceMock(topic),
-    enterpriseVideo: generateEnterpriseVideoMock(topic),
-    productVideo: generateProductVideoMock(topic),
-    storeTour: generateStoreTourMock(topic),
-    personMv: generatePersonMvMock(topic),
-    cartoonVideo: generateCartoonVideoMock(topic),
-    digitalHuman: generateDigitalHumanMock(topic),
-    cinemaShort: generateCinemaShortMock(topic),
-    default: generateGeneralMock(topic),
-  };
-  return {
-    success: true,
-    data: texts[slug || 'default'] || texts.default,
-    provider: '本地模拟（真人级）',
-    model: 'mock-human-quality',
-  };
-}
-
-function mockImageGeneration(prompt: string, type?: string): GenerateResult {
-  const enhancedPrompt = enhanceImagePrompt(prompt, (type as any) || 'general');
-  const colors = ['1a1a2e', '16213e', '0f3460', '533483', 'e94560', '874356'];
-  const color = colors[Math.floor(Math.random() * colors.length)];
-  const encoded = encodeURIComponent(enhancedPrompt.slice(0, 50));
-  return {
-    success: true,
-    data: `https://via.placeholder.com/1024x1024/${color}/ffffff?text=${encoded}`,
-    provider: '本地模拟（照片级）',
-    model: 'mock-photo-quality',
-  };
-}
-
-function mockVideoGeneration(params: GenerateVideoParams, slug?: string): GenerateResult {
-  const size = params.size || '1280x720';
-  const [w, h] = size.split('x');
-  return {
-    success: true,
-    data: `https://via.placeholder.com/${w}x${h}/1a1a2e/00d2ff?text=${slug || '短视频'}+${params.duration || 10}s`,
-    provider: '本地模拟（电影级）',
-    model: 'mock-cinema-quality',
-  };
-}
-
-// ─── 各类目真人级 Mock ──────────────────────
-
-function generateXiaohongshuMock(topic: string): string {
-  const hooks = [
-    `谁懂啊！！${topic} 我真的会谢...`,
-    `说真的，${topic} 这个东西我真的用了好久才来写`,
-    `姐妹们！${topic} 我发现了一个巨好用的方法！`,
-    `突然发现 ${topic} 的打开方式一直都用错了...`,
-  ];
-  const body = `说真的我之前真的不知道，${topic} 原来可以这样。其实是上周闺蜜安利给我的，我试了一星期才来写这篇笔记。
-
-用下来最大的感受就是——真的巨好用！！！之前用的那款对比起来简直就是...算了不说了。反正就是换了之后整个体验都不一样了。
-
-一个小 tips：记得要${topic.includes('护肤') ? '先做皮肤测试再用' : '搭配XX一起用效果翻倍'}。我第一次用的时候就没注意这个，差点翻车。
-
-反正我现在已经完全离不开了，家里囤了三个。实话实说，这个价位的里面真的没有比它更能打的了。`;
-  return `${hooks[Math.floor(Math.random() * hooks.length)]}\n\n${body}\n\n#好物分享  #${topic.slice(0, 10)}  #真实测评  #种草`;
-}
-
-function generateEcommerceMock(topic: string): string {
-  return `${topic}\n\n说实话这款产品我们测了整整两周才上架。一开始以为就是个普通的，结果用下来发现真的不一样。\n\n就是那种一用就知道区别的感觉。材质这块下足了功夫，拿到手里特别有分量，不是那种轻飘飘的廉价感。之前也有朋友买了说用着用着就不行了，但这批我们改进过的完全不会有这个问题。\n\n设计上也改了好几版，最明显的变化就是把之前吐槽最多的那个接口改成磁吸的了——就这点小改动，整个使用体验直接提升一大截。\n\n价格这块我们也是谈了很久，最后定在了一个比较良心的价位。说实话这个品质放在商场里起码翻一倍。\n\n最后一句掏心窝子的话：如果你之前买过类似的觉得不好用，可以再给一次机会试试这个，应该不会让你失望。\n\n下单的话直接点下面那个按钮就行，库存不多，手慢真的有可能会等。`;
-}
-
-function generateEnterpriseVideoMock(topic: string): string {
-  return `${topic} — 品牌宣传视频脚本\n\n【开场 0-5秒】\n建立品牌认知：一个真实的工作日常镜头（不是那种高大上的航拍，就是办公室的某个角落，有人在工作）\n旁白（自然语气）："说实话，做这行十几年了，最常被问的问题就是——${topic} 到底有什么难的？"\n\n【发展 5-20秒】\n几个快速切换的真实场景：生产车间、质检、客户沟通。不用配音演员那种字正腔圆的语调，就是一个真实员工的口吻\n\n【高潮 20-35秒】\n核心价值展示：产品特写 + 用户使用场景\n\n【结尾 35-42秒】\nBrand moment：一组真实员工的群像（他们笑的瞬间，不是那种假笑）\n字幕："${topic}，用心做好每一件小事"`;
-}
-
-function generateProductVideoMock(topic: string): string {
-  return `${topic} — 产品短视频脚本\n\n【0-2秒 Hook】\n手机举着自拍角度，不是专业相机。"给你们看看我最近买的一个东西..."\n\n【2-8秒 产品展示】\n手拿着产品转一圈，灯光自然（就是房间灯光）\n\n【8-15秒 使用演示】\n直接上手用，拍出使用前后的对比。画面有点微晃没关系，反而更真实\n\n【15-20秒 CTA】\n"链接放下面了，需要的自己去翻"`;
-}
-
-function generateStoreTourMock(topic: string): string {
-  return `${topic} — 探店视频脚本\n\n【0-3秒】\n推门进店的一瞬间——门铃响了（保留原声），画面有点暗正在适应光线\n话外音："就这家，听说${topic}做了一辈子"\n\n【3-12秒 店内环境】\n几个快切镜头：招牌/菜单/环境/老板忙碌的样子。不要用滑轨，就是手机拍的，有轻微晃动\n\n【12-25秒 核心美食/产品】\n特写制作过程 + 成品 + 吃的第一口。关键是——第一口的反应要真实。不要夸张地说"yyds"，但眼睛亮了一下嘴角上扬就够了\n\n【25-32秒 结尾】\n"说实话，会不会再来？会。但要排队就算了..."——真实的评价，有好的有不好的，这才是真人探店`;
-}
-
-function generatePersonMvMock(topic: string): string {
-  return `${topic} — 真人MV脚本\n\n【风格定位】\n真实演唱/演奏风格，非专业MV那种完美灯光。自然光为主，不加美颜滤镜。选用真实场景：卧室、天台、车里、回家的路上。不搭棚。\n\n【分镜 0-10秒 前奏】\n主角入镜——可以是在走路、在整理东西。音乐响起时ta自然地转头/抬头。\n\n【分镜 10-30秒 主歌A段】\n主角开始唱/对口型。关键是：表情要真。偶尔看向镜头，大部分时间看向别处。镜头微晃，像朋友在旁边拍的。\n\n【分镜 30-50秒 副歌】\n能量上来了，可以有稍微大一点的动作。但不要那种规划好的舞蹈，就是听到喜欢的歌时自然的身体律动。\n\n【分镜 50-60秒 尾声】\n音乐渐弱，主角的一个微笑或者看向窗外的侧脸。定格。`;
-}
-
-function generateCartoonVideoMock(topic: string): string {
-  return `${topic} — 萌宠卡通短视频脚本\n\n【风格】2D/3D 卡通渲染，但材质和光影接近真实。不是那种"一眼AI"的塑料卡通。\n\n【0-3秒 开场】\n宠物/卡通角色做出一个让人想笑的表情或动作。\n\n【3-15秒 剧情】\n一个小小的日常。比如猫把桌上的东西推下去了（经典），配上主人的内心独白。\n\n【15-20秒 结尾】\n一个反转或萌点。可以慢放+配"aww"音效。`;
-}
-
-function generateDigitalHumanMock(topic: string): string {
-  return `${topic} — 数字人口播脚本\n\n【关键要求】数字人必须做到：肉眼无法分辨是AI还是真人。皮肤纹理、眨眼节奏、面部微表情、自然的头部晃动。\n\n【0-3秒 开场】\n直接说话："我最近一直在想一个问题——${topic}"。语气随意，像你在跟朋友聊天而不是在做节目。\n\n【3-25秒 主内容】\n分享观点。语速不恒定——讲到重点的时候会慢下来，讲到自己确认的地方会稍微快一点。偶尔停顿1-2秒（像在思考措辞）\n\n【25-30秒 结尾】\n"反正我觉得吧...你们觉得呢？"用问句收尾，增加互动感。\n\n【技术参数】帧率：30fps以上 / 口型同步度：≥95% / 眨眼间隔：随机2-4秒 / 上半身微动：点头、耸肩、手势`;
-}
-
-function generateGeneralMock(topic: string): string {
-  return `${topic}\n\n说实话这个话题真的挺有意思的。我刚才想了一下，其实很多人的误区在于——觉得这个东西很简单，但实际上里面的门道真的挺多的。\n\n就拿最基础的来说吧，很多人一上来就想搞个大新闻，结果第一步就卡住了。真的不用那么着急，先把基本功打扎实再说。\n\n反正我个人建议是从小处着手，慢慢来比较快。当然每个人的情况不一样，我说的也不一定对，你们自己判断哈。\n\n---\n提示：接入阿里云百炼或腾讯云TokenHub API Key可获得完整真人级生成效果`;
-}
-
-function generateCinemaShortMock(topic: string): string {
-  return `【自由创意短片】${topic} — AI导演模式\n\n【镜头1 — 引入 0-5秒】\n广角全景。晨光穿过窗棂，尘埃在光柱中缓缓浮动。镜头上摇，一双手正在${topic}。\n旁白（轻声）: "每个人心里都有一个属于自己的${topic}，而我选择用镜头记录下来。"\n\n【镜头2 — 展开 5-10秒】\n中景特写。手掌纹理、材料质感、水滴滑落的轨迹。慢动作——每一帧都能感受到时间的重量。\n\n【镜头3 — 高潮 10-15秒】\n俯拍推镜。制造过程的精华瞬间：从零散的碎片到完整的形态，剪辑节奏加速，画面与音乐同频共振。\n\n【镜头4 — 转折 15-20秒】\n侧跟镜头。一个意外的细节：瑕疵、不完美、手工痕迹——正是这些赋予了它灵魂。\n\n【镜头5 — 结论 20-25秒】\n正面对称构图。成品完整展示，光影从一侧缓缓移动到另一侧，揭示每一处细节。\n\n【镜头6 — 余韵 25-30秒】\n远景淡出。画面渐暗，品牌logo浮现。\n字幕: "每一帧，都是对${topic}的致敬。"\n\n【BGM方案】1-3镜头: Lofi氛围 / 4-5镜头: 情感上行 / 6镜头: 舒缓收尾`;
-}
 
 // ─── 方言配音映射 ────────────────────────────
 

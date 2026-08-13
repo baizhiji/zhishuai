@@ -4,6 +4,7 @@
  */
 import { Router, Response } from 'express';
 import { chatCompletion } from '../services/ai-client';
+import { appendAIGCLabel, appendAIGCLabelShort } from '../services/aigc-label.service';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 
 const router = Router();
@@ -86,7 +87,8 @@ router.post('/title', authMiddleware, async (req: AuthRequest, res: Response) =>
     const titles = result
       .split('\n')
       .map(t => t.replace(/^\d+[\.\、\)]\s*/, '').trim())
-      .filter(t => t.length > 0);
+      .filter(t => t.length > 0)
+      .map(t => appendAIGCLabelShort(t));
 
     res.json({ code: 200, message: 'success', data: { titles } });
   } catch (error: any) {
@@ -129,7 +131,7 @@ router.post('/script', authMiddleware, async (req: AuthRequest, res: Response) =
       creativity: 0.7,
     });
 
-    res.json({ code: 200, message: 'success', data: { script: result } });
+    res.json({ code: 200, message: 'success', data: { script: appendAIGCLabel(result) } });
   } catch (error: any) {
     res.status(500).json({ code: 500, message: error.message, data: null });
   }
@@ -215,7 +217,7 @@ router.post('/post', authMiddleware, async (req: AuthRequest, res: Response) => 
       creativity: 0.7,
     });
 
-    res.json({ code: 200, message: 'success', data: { content: result } });
+    res.json({ code: 200, message: 'success', data: { content: appendAIGCLabel(result) } });
   } catch (error: any) {
     res.status(500).json({ code: 500, message: error.message, data: null });
   }

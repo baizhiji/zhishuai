@@ -1,15 +1,18 @@
 /**
- * Playwright Service — 浏览器自动化管理
+ * Playwright Service — 浏览器自动化管理（商用级）
  *
  * 职责:
  *   - 管理浏览器实例生命周期(启动/关闭/复用)
- *   - 各平台登录流程(抖音/快手/小红书/视频号/Boss直聘/智联招聘等)
- *   - Cookie持久化(登录后保存，过期后自动重新登录)
- *   - 页面操作辅助(截图/填表/点击/等待)
+ *   - 异步登录会话(生成二维码/登录页截图，轮询扫码状态，非阻塞)
+ *   - 各平台登录流程(抖音/快手/小红书/视频号/Boss直聘/智联招聘/微博/B站)
+ *   - Cookie 持久化 + 过期检测(登录后保存，过期后自动重新登录)
+ *   - 内容发布(平台专用选择器 + 通用回退)
+ *   - 数据采集(招聘平台职位采集)
  */
-import { chromium, firefox, Browser, BrowserContext, Page } from 'playwright';
+import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import * as path from 'path';
 import * as fs from 'fs';
+import { randomUUID } from 'crypto';
 
 // ─── 类型定义 ────────────────────────────────
 
@@ -39,10 +42,34 @@ export interface AcquisitionConfig {
   maxResults?: number;
 }
 
+export interface CollectionResult {
+  success: boolean;
+  message: string;
+  items: any[];
+}
+
+export interface LoginSession {
+  id: string;
+  platform: string;
+  context: BrowserContext;
+  page: Page;
+  status: 'pending' | 'logged_in' | 'failed' | 'cancelled';
+  message?: string;
+  createdAt: number;
+}
+
 interface CookieData {
   platform: string;
   cookies: any[];
   savedAt: string;
+}
+
+interface PublishSelectors {
+  upload?: string;
+  title?: string;
+  desc?: string;
+  tags?: string;
+  submit?: string;
 }
 
 // ─── 平台配置 ────────────────────────────────
@@ -53,7 +80,7 @@ export const PLATFORM_LOGIN_CONFIGS: Record<string, PlatformLoginConfig> = {
     loginUrl: 'https://creator.douyin.com/',
     waitForSelector: '.creator-avatar, .account-info',
     cookieFileName: 'douyin_cookies.json',
-    loginTimeout: 120000, // 2分钟扫码等待
+    loginTimeout: 120000,
   },
   kuaishou: {
     platform: 'kuaishou',
@@ -74,7 +101,7 @@ export const PLATFORM_LOGIN_CONFIGS: Record<string, PlatformLoginConfig> = {
     loginUrl: 'https://channels.weixin.qq.com/',
     waitForSelector: '.account-info, .nickname',
     cookieFileName: 'shipinhao_cookies.json',
-    loginTimeout: 180000, // 3分钟登录等待
+    loginTimeout: 180000,
   },
   bosszhipin: {
     platform: 'bosszhipin',
@@ -90,6 +117,47 @@ export const PLATFORM_LOGIN_CONFIGS: Record<string, PlatformLoginConfig> = {
     cookieFileName: 'zhilian_cookies.json',
     loginTimeout: 120000,
   },
+  weibo: {
+    platform: 'weibo',
+    loginUrl: 'https://weibo.com/',
+    waitForSelector: '.woo-box-flex .name, .m-header-name',
+    cookieFileName: 'weibo_cookies.json',
+    loginTimeout: 120000,
+  },
+  bilibili: {
+    platform: 'bilibili',
+    loginUrl: 'https://member.bilibili.com/',
+    waitForSelector: '.nickname, .bili-avatar',
+    cookieFileName: 'bilibili_cookies.json',
+    loginTimeout: 120000,
+  },
+};
+
+/** 平台专用发布选择器(找不到时回退通用选择器) */
+const PUBLISH_SELECTORS: Record<string, PublishSelectors> = {
+  douyin: {
+    title: '[placeholder*="标题"], input[class*="title"]',
+    desc: '[placeholder*="简介"], [placeholder*="描述"]',
+    tags: '[placeholder*="话题"], [placeholder*="标签"]',
+    submit: 'button:has-text("发布")',
+  },
+  kuaishou: {
+    title: '[placeholder*="标题"], input[class*="title"]',
+    desc: '[placeholder*="描述"], textarea[placeholder*="简介"]',
+    tags: '[placeholder*="话题"], [placeholder*="标签"]',
+    submit: 'button:has-text("发布")',
+  },
+  xiaohongshu: {
+    title: '[placeholder*="标题"], input[class*="title"]',
+    desc: '[placeholder*="说点什么"], [placeholder*="正文"]',
+    tags: '[placeholder*="标签"], [placeholder*="话题"]',
+    submit: 'button:has-text("发布")',
+  },
+  shipinhao: {
+    title: '[placeholder*="标题"], input[class*="title"]',
+    desc: '[placeholder*="描述"], [placeholder*="简介"]',
+    submit: 'button:has-text("发表"), button:has-text("发布")',
+  },
 };
 
 // ─── 服务类 ────────────────────────────────
@@ -97,8 +165,10 @@ export const PLATFORM_LOGIN_CONFIGS: Record<string, PlatformLoginConfig> = {
 class PlaywrightService {
   private browser: Browser | null = null;
   private contexts: Map<string, BrowserContext> = new Map();
+  private sessions: Map<string, LoginSession> = new Map();
   private cookieDir: string;
   private initialized = false;
+  private static readonly COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // Cookie 7 天过期
 
   constructor() {
     this.cookieDir = path.join(process.cwd(), 'data', 'cookies');
@@ -110,7 +180,6 @@ class PlaywrightService {
   async init(): Promise<void> {
     if (this.initialized) return;
 
-    // 确保cookie目录存在
     if (!fs.existsSync(this.cookieDir)) {
       fs.mkdirSync(this.cookieDir, { recursive: true });
     }
@@ -150,15 +219,121 @@ class PlaywrightService {
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     });
 
-    // 尝试注入已保存的Cookie
     const savedCookies = this.loadCookies(config.cookieFileName);
-    if (savedCookies && savedCookies.length > 0) {
+    if (savedCookies.length > 0) {
       await context.addCookies(savedCookies);
       console.log(`[PlaywrightService] Injected ${savedCookies.length} cookies for ${platform}`);
     }
 
     this.contexts.set(platform, context);
     return context;
+  }
+
+  // ─── 异步登录会话 ────────────────────────────────
+
+  /**
+   * 启动异步登录会话：打开平台登录页并返回登录页截图(含二维码)
+   * 非阻塞 —— 后台轮询扫码状态，前端通过 getLoginStatus 查询
+   */
+  async startLogin(platform: string): Promise<{ sessionId: string; qrcode: string }> {
+    const config = PLATFORM_LOGIN_CONFIGS[platform];
+    if (!config) {
+      throw new Error(`未知平台: ${platform}`);
+    }
+    await this.init();
+
+    const sessionId = randomUUID();
+    const context = await this.browser!.newContext({
+      viewport: { width: 1280, height: 800 },
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    });
+    const page = await context.newPage();
+    await page.goto(config.loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForTimeout(3000); // 等待二维码渲染
+
+    const qrcode = await page.screenshot({ type: 'png' }).then(b => b.toString('base64'));
+
+    const session: LoginSession = {
+      id: sessionId,
+      platform,
+      context,
+      page,
+      status: 'pending',
+      createdAt: Date.now(),
+    };
+    this.sessions.set(sessionId, session);
+    void this.pollLoginSession(session);
+    return { sessionId, qrcode };
+  }
+
+  /**
+   * 查询登录会话状态(双重检测：后台轮询 + 主动检查)
+   */
+  async getLoginStatus(sessionId: string): Promise<{ status: string; message?: string; platform: string }> {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error('登录会话不存在或已过期');
+    }
+
+    if (session.status === 'pending') {
+      const config = PLATFORM_LOGIN_CONFIGS[session.platform];
+      const el = await session.page.$(config.waitForSelector).catch(() => null);
+      if (el) {
+        const cookies = await session.context.cookies();
+        this.saveCookies(config.cookieFileName, cookies);
+        session.status = 'logged_in';
+        session.message = '登录成功';
+      }
+    }
+
+    if (session.status === 'logged_in' || session.status === 'failed' || session.status === 'cancelled') {
+      await session.context.close().catch(() => {});
+      this.sessions.delete(sessionId);
+    }
+
+    return { status: session.status, message: session.message, platform: session.platform };
+  }
+
+  /**
+   * 取消登录会话
+   */
+  async cancelLogin(sessionId: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error('登录会话不存在或已过期');
+    }
+    session.status = 'cancelled';
+    session.message = '已取消';
+    await session.context.close().catch(() => {});
+    this.sessions.delete(sessionId);
+  }
+
+  /**
+   * 后台轮询登录状态(最多等待 config.loginTimeout 毫秒)
+   */
+  private async pollLoginSession(session: LoginSession): Promise<void> {
+    const config = PLATFORM_LOGIN_CONFIGS[session.platform];
+    const maxTries = Math.floor(config.loginTimeout / 2000);
+    try {
+      for (let i = 0; i < maxTries; i++) {
+        if (session.status !== 'pending') return;
+        await session.page.waitForTimeout(2000);
+        if (session.status !== 'pending') return;
+        const el = await session.page.$(config.waitForSelector).catch(() => null);
+        if (el) {
+          const cookies = await session.context.cookies();
+          this.saveCookies(config.cookieFileName, cookies);
+          session.status = 'logged_in';
+          session.message = '登录成功';
+          return;
+        }
+      }
+      session.status = 'failed';
+      session.message = '登录超时，请重试';
+    } catch (error: any) {
+      session.status = 'failed';
+      session.message = `登录失败: ${error.message}`;
+    }
   }
 
   /**
@@ -174,9 +349,7 @@ class PlaywrightService {
     const page = await context.newPage();
 
     try {
-      // 尝试访问页面验证Cookie是否有效
       await page.goto(config.loginUrl, { waitUntil: 'domcontentloaded' });
-
       const isLoggedIn = await page.$(config.waitForSelector).catch(() => null);
 
       if (isLoggedIn) {
@@ -185,14 +358,12 @@ class PlaywrightService {
         return { success: true, message: '已登录' };
       }
 
-      // Cookie无效，需要登录
       console.log(`[PlaywrightService] ${platform} 需要登录，等待扫码...`);
       await page.waitForSelector(config.waitForSelector, { timeout: config.loginTimeout });
-      
-      // 保存新Cookie
+
       const cookies = await context.cookies();
       this.saveCookies(config.cookieFileName, cookies);
-      
+
       console.log(`[PlaywrightService] ${platform} 登录成功`);
       await page.close();
       return { success: true, message: '登录成功' };
@@ -213,66 +384,134 @@ class PlaywrightService {
 
     const context = await this.getContext(platform);
     const page = await context.newPage();
+    const selectors = PUBLISH_SELECTORS[platform] || {};
 
     try {
-      // 根据平台导航到发布页面
       const publishUrls: Record<string, string> = {
         douyin: 'https://creator.douyin.com/creator-micro/content/upload',
         kuaishou: 'https://cp.kuaishou.com/article/publish/video',
         xiaohongshu: 'https://creator.xiaohongshu.com/publish/publish',
         shipinhao: 'https://channels.weixin.qq.com/web/pages/post/create',
+        weibo: 'https://weibo.com/compose',
+        bilibili: 'https://member.bilibili.com/platform/upload/video/frame',
       };
 
       const targetUrl = config.postUrl || publishUrls[platform] || PLATFORM_LOGIN_CONFIGS[platform].loginUrl;
-      await page.goto(targetUrl, { waitUntil: 'networkidle' });
+      await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 45000 });
 
-      // 上传视频文件(如果有)
       if (config.filePath) {
-        const fileInput = await page.$('input[type="file"]');
+        const fileInput = await page.$(selectors.upload || 'input[type="file"]');
         if (fileInput) {
           await fileInput.setInputFiles(config.filePath);
-          await page.waitForTimeout(5000); // 等待上传完成
+          await page.waitForTimeout(8000);
+        } else {
+          await page.close();
+          return { success: false, message: '未找到文件上传控件，发布页面结构可能已变更' };
         }
       }
 
-      // 填写标题
-      if (config.title) {
-        const titleInput = await page.$('[placeholder*="标题"], input[class*="title"], textarea[class*="title"]');
-        if (titleInput) {
-          await titleInput.fill(config.title);
-        }
+      const fields: Array<[string | undefined, string | undefined]> = [
+        [selectors.title, config.title],
+        [selectors.desc, config.description],
+        [selectors.tags, config.tags?.join(' ')],
+      ];
+      for (const [selector, value] of fields) {
+        if (!selector || !value) continue;
+        const el = await page.$(selector).catch(() => null);
+        if (el) await el.fill(value);
       }
 
-      // 填写描述
-      if (config.description) {
-        const descInput = await page.$('[placeholder*="描述"], [placeholder*="简介"], textarea[placeholder*="分享"]');
-        if (descInput) {
-          await descInput.fill(config.description);
-        }
-      }
-
-      // 添加标签
-      if (config.tags && config.tags.length > 0) {
-        const tagInput = await page.$('[placeholder*="标签"], [placeholder*="话题"]');
-        if (tagInput) {
-          await tagInput.fill(config.tags.join(' '));
-        }
-      }
-
-      // 点击发布按钮
-      const publishBtn = await page.$('button:has-text("发布"), button:has-text("投稿"), button:has-text("上传")');
-      if (publishBtn) {
-        await publishBtn.click();
+      const submitBtn = await page.$(selectors.submit || 'button:has-text("发布"), button:has-text("投稿"), button:has-text("上传")').catch(() => null);
+      if (submitBtn) {
+        await submitBtn.click();
         await page.waitForTimeout(5000);
         return { success: true, message: '发布成功', postUrl: page.url() };
       }
 
-      return { success: false, message: '未找到发布按钮' };
+      return { success: false, message: '未找到发布按钮，发布页面结构可能已变更' };
     } catch (error: any) {
       return { success: false, message: `发布失败: ${error.message}` };
     } finally {
       await page.close().catch(() => {});
     }
+  }
+
+  /**
+   * 数据采集：招聘平台职位采集(BOSS直聘/智联)，其他平台明确拒绝
+   */
+  async collectData(platform: string, config: AcquisitionConfig): Promise<CollectionResult> {
+    if (platform !== 'bosszhipin' && platform !== 'zhilian') {
+      return { success: false, message: `平台 ${platform} 暂不支持浏览器数据采集，请使用 API 数据源`, items: [] };
+    }
+    if (!config.keywords || config.keywords.length === 0) {
+      return { success: false, message: 'keywords 不能为空', items: [] };
+    }
+
+    const loginResult = await this.ensureLogin(platform);
+    if (!loginResult.success) {
+      return { success: false, message: `未登录平台 ${platform}: ${loginResult.message}`, items: [] };
+    }
+
+    const context = await this.getContext(platform);
+    const page = await context.newPage();
+    try {
+      const items: any[] = [];
+      const maxTotal = config.maxResults || 20;
+      for (const keyword of config.keywords.slice(0, 3)) {
+        const searchUrl = this.buildSearchUrl(platform, keyword);
+        await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForTimeout(3000);
+        const keywordItems = await this.extractListItems(page, platform, maxTotal - items.length);
+        items.push(...keywordItems);
+        if (items.length >= maxTotal) break;
+      }
+      if (items.length === 0) {
+        return { success: false, message: '未采集到数据，页面结构可能已变更或账号未登录', items: [] };
+      }
+      return { success: true, message: `采集到 ${items.length} 条职位数据`, items };
+    } catch (error: any) {
+      return { success: false, message: `采集失败: ${error.message}`, items: [] };
+    } finally {
+      await page.close().catch(() => {});
+    }
+  }
+
+  /**
+   * 构建搜索URL
+   */
+  private buildSearchUrl(platform: string, keyword: string): string {
+    const encoded = encodeURIComponent(keyword);
+    if (platform === 'bosszhipin') {
+      return `https://www.zhipin.com/web/geek/job?query=${encoded}&city=101010100`;
+    }
+    return `https://sou.zhaopin.com/?jl=489&kw=${encoded}`;
+  }
+
+  /**
+   * 从搜索结果页提取职位卡片
+   */
+  private async extractListItems(page: Page, platform: string, max: number): Promise<any[]> {
+    const selectors = platform === 'bosszhipin'
+      ? { item: '.job-card-wrapper', title: '.job-name', company: '.company-name', salary: '.salary' }
+      : { item: '.joblist-box__item', title: '.joblist-box__iteminfo__title', company: '.company_name', salary: '.salary' };
+
+    const cards = await page.$$(selectors.item);
+    const items: any[] = [];
+    for (const card of cards.slice(0, max)) {
+      const read = async (sel: string): Promise<string> => {
+        const el = await card.$(sel).catch(() => null);
+        return (el ? (await el.textContent().catch(() => '') || '') : '').trim();
+      };
+      items.push({
+        source: platform,
+        sourceType: 'job',
+        title: await read(selectors.title),
+        company: await read(selectors.company),
+        salary: await read(selectors.salary),
+        sourceUrl: page.url(),
+      });
+    }
+    return items;
   }
 
   /**
@@ -318,6 +557,11 @@ class PlaywrightService {
    * 关闭浏览器
    */
   async close(): Promise<void> {
+    for (const session of this.sessions.values()) {
+      await session.context.close().catch(() => {});
+    }
+    this.sessions.clear();
+
     for (const context of this.contexts.values()) {
       await context.close().catch(() => {});
     }
@@ -330,19 +574,36 @@ class PlaywrightService {
     this.initialized = false;
   }
 
-  // ─── Cookie管理 ────────────────────────────────
+  // ─── Cookie 管理 ────────────────────────────────
 
+  /**
+   * 加载平台Cookie(带过期检测：7天过期 或 所有cookie均失效)
+   */
   private loadCookies(fileName: string): any[] {
     const filePath = path.join(this.cookieDir, fileName);
     if (!fs.existsSync(filePath)) return [];
 
     try {
       const data: CookieData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-      // Cookie有效期检查(TODO: 实现过期检测)
+      if (!this.cookiesValid(data)) {
+        console.log(`[PlaywrightService] ${fileName} 已过期，忽略`);
+        return [];
+      }
       return data.cookies || [];
     } catch {
       return [];
     }
+  }
+
+  /**
+   * Cookie 有效性检查：存储时间未超7天 且 至少存在一个未过期cookie
+   */
+  private cookiesValid(data: CookieData): boolean {
+    if (!data.savedAt) return false;
+    const savedAt = new Date(data.savedAt).getTime();
+    if (Number.isNaN(savedAt)) return false;
+    if (Date.now() - savedAt > PlaywrightService.COOKIE_MAX_AGE_MS) return false;
+    return (data.cookies || []).some(c => !c.expires || c.expires === -1 || c.expires * 1000 > Date.now());
   }
 
   private saveCookies(fileName: string, cookies: any[]): void {

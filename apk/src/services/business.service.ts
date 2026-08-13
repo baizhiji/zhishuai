@@ -88,7 +88,7 @@ const businessService = {
   },
 
   /** 获取导出链接 */
-  getExportUrl(planId: string, format: 'ppt' | 'pdf' | 'docx'): string {
+  getExportUrl(planId: string, format: 'ppt' | 'pdf' | 'docx' | 'xlsx'): string {
     return `${API_CONFIG.BASE_URL}/business/export/${format}/${planId}`;
   },
 

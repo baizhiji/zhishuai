@@ -43,7 +43,7 @@ export default function AgentUsagePage() {
     setLoading(true);
     try {
       const request = (await import('@/lib/request')).default;
-      const res: any = await request.get('/api/agent/usage');
+      const res: any = await request.get('/agent/usage');
       const payload = res?.data || res;
       setData({
         totalTokens: payload?.totalTokens ?? 0,

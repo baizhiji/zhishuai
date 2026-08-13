@@ -3,8 +3,11 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
-// JWT 密钥：优先使用环境变量，否则使用固定密钥以保持重启后 Token 有效
-const JWT_SECRET = process.env.JWT_SECRET || 'zhishuai-jwt-secret-prod-2025';
+// JWT 密钥：必须通过环境变量设置，禁止硬编码回退
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set. Server cannot start.');
+}
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -59,10 +62,12 @@ export const verifyPassword = (password: string, hash: string): boolean => {
     return bcrypt.compareSync(password, hash);
   }
   // Legacy SHA256 fallback (for passwords hashed before upgrade)
-  // Try old secret first, then current secret
-  const oldJwtSecret = 'zhishuai-secret-key-2024';
-  const legacyHash = crypto.createHash('sha256').update(password + oldJwtSecret).digest('hex');
-  if (legacyHash === hash) return true;
+  // Previous secrets must be configured via env vars, never hardcoded
+  const legacySecret = process.env.LEGACY_JWT_SECRET;
+  if (legacySecret) {
+    const legacyHash = crypto.createHash('sha256').update(password + legacySecret).digest('hex');
+    if (legacyHash === hash) return true;
+  }
   const currentHash = crypto.createHash('sha256').update(password + JWT_SECRET).digest('hex');
   return currentHash === hash;
 };

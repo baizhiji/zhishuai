@@ -5,7 +5,7 @@
 
 // API 基础地址
 // 开发环境: http://localhost:3001/api
-// 生产环境: http://43.129.16.148:3001/api 或 https://baizhiji.net/api
+// 生产环境: https://baizhiji.net/api
 
 const getBaseURL = () => {
   // 优先使用环境变量
@@ -19,7 +19,7 @@ const getBaseURL = () => {
   }
   
   // 生产环境默认
-  return 'http://43.129.16.148:3001/api';
+  return 'https://baizhiji.net/api';
 };
 
 export const API_CONFIG = {

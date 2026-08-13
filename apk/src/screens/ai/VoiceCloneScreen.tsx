@@ -122,18 +122,9 @@ export default function VoiceCloneScreen({ navigation }: VoiceCloneScreenProps) 
       };
       setClonedVoices((prev) => [newVoice, ...prev]);
       Alert.alert('克隆成功', `声音克隆完成！已添加到"我的声音"列表`);
-    } catch (e) {
-      // 如果后端不可用，模拟成功（降级方案）
-      const step = 0;
-      const newVoice: ClonedVoice = {
-        id: `cloned_${Date.now()}`,
-        name: `我的声音 ${clonedVoices.length + 1}`,
-        createdAt: new Date().toLocaleString('zh-CN'),
-        sampleFile: audioFile.name,
-      };
-      setClonedVoices((prev) => [newVoice, ...prev]);
-      setProgress(100);
-      Alert.alert('已提交', '声音克隆请求已提交，处理完成后将通知您');
+    } catch (e: any) {
+      setProgress(0);
+      Alert.alert('克隆失败', e?.message || '声音克隆服务调用失败，请检查网络或后端服务后重试');
     } finally {
       setCloning(false);
     }

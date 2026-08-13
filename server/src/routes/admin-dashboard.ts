@@ -45,18 +45,57 @@ router.get('/', async (req: Request, res: Response) => {
     ]);
 
     // 客户来源 Top（按代理商分组，按 createdAt 倒序）
-    const topAgents = await prisma.agent.findMany({
+    const agentsRaw = await prisma.agent.findMany({
       take: 5,
       orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { name: true, phone: true } },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        totalPaid: true,
       },
-    }).then(agents => agents.map((a: any) => ({
-      id: a.id,
-      name: a.user?.name || a.user?.phone || '未命名',
-      totalCustomers: a.totalCustomers || 0,
-      totalCommission: a.totalCommission || 0,
-    })));
+    });
+
+    // 分开查询用户，避免required relation null报错
+    const userIds = agentsRaw.map(a => a.userId).filter(Boolean);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, phone: true },
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    const topAgents = agentsRaw.map(a => {
+      const u = userMap.get(a.userId);
+      return {
+        id: a.id,
+        name: a.name || u?.name || u?.phone || '未命名',
+        totalCustomers: 0,
+        totalCommission: Number(a.totalPaid) || 0,
+      };
+    });
+
+    // 代理商区域分布：按 region 第一级（省份）聚合
+    const agentsWithRegion = await prisma.agent.findMany({
+      select: { region: true, level: true },
+    });
+
+    const regionMap = new Map<string, number>();
+    agentsWithRegion.forEach(a => {
+      let key = '未设置区域';
+      if (a.region) {
+        const firstPart = a.region.split(' / ')[0]?.trim();
+        if (firstPart) key = firstPart;
+      } else if (a.level === 'national') {
+        key = '全国代理';
+      } else if (a.level === 'personal') {
+        key = '个人代理';
+      }
+      regionMap.set(key, (regionMap.get(key) || 0) + 1);
+    });
+
+    const agentRegionDistribution = Array.from(regionMap.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
 
     res.json({
       success: true,
@@ -80,6 +119,8 @@ router.get('/', async (req: Request, res: Response) => {
         enabledApiProviders,
         // 排行榜
         topAgents,
+        // 区域分布
+        agentRegionDistribution,
       },
     });
   } catch (error: any) {

@@ -50,24 +50,24 @@ export async function getBusinessLinesSummary(userId: string): Promise<{
     prisma.acquisitionTask.count({ where: { userId } }),
 
     prisma.shareQrCode.count({ where: { userId } }),
-    prisma.shareQrCode.aggregate({ where: { userId }, _sum: { scanCount: true } }),
-    prisma.shareQrCode.aggregate({ where: { userId }, _sum: { publishCount: true } }),
+    (prisma.shareQrCode.aggregate({ where: { userId }, _sum: { scanCount: true } }) as any),
+    (prisma.shareQrCode.aggregate({ where: { userId }, _sum: { publishCount: true } }) as any),
     // shareEffect 通过 qrCode 关联过滤，aggregate 的嵌套 where 在部分 Prisma 版本中受限
-    prisma.shareEffect.aggregate({
+    (prisma as any).shareEffect.aggregate({
       where: { qrCode: { userId } },
       _sum: { viewCount: true, convertCount: true, revenue: true },
     }).catch(() => ({ _sum: { viewCount: 0, convertCount: 0, revenue: 0 } })),
-    prisma.shareCommission.aggregate({ where: { userId }, _sum: { amount: true } }),
-    prisma.shareCommission.aggregate({ where: { userId, status: 'settled' }, _sum: { amount: true } }),
+    (prisma as any).shareCommission.aggregate({ where: { userId }, _sum: { amount: true } }),
+    (prisma as any).shareCommission.aggregate({ where: { userId, status: 'settled' }, _sum: { amount: true } }),
   ]);
 
-  const totalScans = shareScansSum._sum?.scanCount || 0;
-  const totalPublishes = sharePublishesSum._sum?.publishCount || 0;
-  const totalViews = shareEffectsSum._sum?.viewCount || 0;
-  const totalConverts = shareEffectsSum._sum?.convertCount || 0;
-  const totalRevenue = shareEffectsSum._sum?.revenue || 0;
-  const totalCommission = shareCommissionSum._sum?.amount || 0;
-  const settledCommission = shareCommissionSettled._sum?.amount || 0;
+  const totalScans = (shareScansSum as any)._sum?.scanCount || 0;
+  const totalPublishes = (sharePublishesSum as any)._sum?.publishCount || 0;
+  const totalViews = (shareEffectsSum as any)._sum?.viewCount || 0;
+  const totalConverts = (shareEffectsSum as any)._sum?.convertCount || 0;
+  const totalRevenue = (shareEffectsSum as any)._sum?.revenue || 0;
+  const totalCommission = (shareCommissionSum as any)._sum?.amount || 0;
+  const settledCommission = (shareCommissionSettled as any)._sum?.amount || 0;
 
   const lines: BusinessLineKPI[] = [
     {
@@ -160,12 +160,12 @@ export async function getAgentBusinessLinesSummary(agentUserId: string): Promise
   overview: { totalContent: number; totalLeads: number; totalCandidates: number; totalShareRevenue: number; customerCount: number };
   lines: BusinessLineKPI[];
 }> {
-  // 获取该代理商的所有客户ID
-  const customers = await prisma.user.findMany({
-    where: { agentId: agentUserId, role: 'customer' },
-    select: { id: true },
+  // 获取该代理商的所有客户ID（通过UserAgentRelation）
+  const relations = await prisma.userAgentRelation.findMany({
+    where: { agentId: agentUserId },
+    select: { userId: true },
   });
-  const customerIds = customers.map(c => c.id);
+  const customerIds = relations.map(r => r.userId);
 
   if (customerIds.length === 0) {
     return {
@@ -191,11 +191,11 @@ export async function getAgentBusinessLinesSummary(agentUserId: string): Promise
     prisma.acquisitionLead.count({ where: { userId: { in: customerIds } } }),
     prisma.acquisitionLead.count({ where: { userId: { in: customerIds }, status: 'converted' } }),
     prisma.shareQrCode.count({ where: { userId: { in: customerIds } } }),
-    prisma.shareQrCode.aggregate({
+    (prisma.shareQrCode.aggregate({
       where: { userId: { in: customerIds } },
       _sum: { scanCount: true, publishCount: true },
-    }),
-    prisma.shareEffect.aggregate({
+    }) as any),
+    (prisma as any).shareEffect.aggregate({
       where: { qrCode: { userId: { in: customerIds } } },
       _sum: { revenue: true },
     }).catch(() => ({ _sum: { revenue: 0 } })),
@@ -246,12 +246,12 @@ export async function getAgentBusinessLinesSummary(agentUserId: string): Promise
       icon: 'share',
       metrics: [
         { label: '分享码', value: shareCodesCount, unit: '个' },
-        { label: '扫码数', value: shareScansSum._sum?.scanCount || 0, unit: '次' },
+        { label: '扫码数', value: (shareScansSum as any)._sum?.scanCount || 0, unit: '次' },
         { label: '覆盖客户', value: customerIds.length, unit: '家' },
       ],
       chartData: [
         { label: '分享码', value: shareCodesCount },
-        { label: '扫码', value: shareScansSum._sum?.scanCount || 0 },
+        { label: '扫码', value: (shareScansSum as any)._sum?.scanCount || 0 },
       ],
     },
   ];

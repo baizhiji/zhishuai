@@ -69,10 +69,10 @@ export default function SubscribePage() {
   const fetchSubscription = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/api/account/subscription');
-      if (res.data.success && res.data.data) {
-        setSubscription(res.data.data.current);
-        setHistory(res.data.data.history || []);
+      const res: any = await apiClient.get('/account/subscription');
+      if ((res as any).current) {
+        setSubscription((res as any).current);
+        setHistory((res as any).history || []);
       }
     } catch {
       // API 未就绪时显示空状态

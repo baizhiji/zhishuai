@@ -88,30 +88,6 @@ export const TENCENT_MODELS = {
     description: '视频理解、视频分析、内容提取',
     keywords: ['视频', '抖音', '快手', '小红书视频', 'B站', '分析视频', '视频链接'],
   },
-  
-  // 图像生成模型
-  hy_image: {
-    id: 'HY-Image-V3.0',
-    name: '图片生成',
-    provider: 'tencent',
-    type: 'image',
-    priority: 1,
-    cost: 'high',
-    description: '高质量图像生成、图片创作',
-    keywords: ['生成图片', '画图', '创作图片', '生成画作', 'AI绘图', '生成图像'],
-  },
-  
-  // 数字人模型
-  digital_human: {
-    id: 'YT-Video-HumanActor',
-    name: '数字人',
-    provider: 'tencent',
-    type: 'digital_human',
-    priority: 1,
-    cost: 'high',
-    description: '数字人口播视频、自动配音',
-    keywords: ['数字人', '口播', '配音', '主播', '虚拟人', 'AI主播'],
-  },
 }
 
 // 阿里云百炼模型列表
@@ -185,8 +161,6 @@ export type TaskType =
   | 'agent'          // Agent任务
   | 'vision'         // 图像理解
   | 'video'          // 视频理解
-  | 'image'          // 图像生成
-  | 'digital_human'  // 数字人
   | 'unknown'        // 未知
 
 // ==================== 智能调度核心类 ====================
@@ -244,32 +218,22 @@ export class AIModelRouter {
       return 'video'
     }
     
-    // 3. 检查图像生成
-    if (this.matchKeywords(input, ['生成图片', '画图', '创作图片', '生成画作', 'AI绘图', '生成图像', '画一幅'])) {
-      return 'image'
-    }
-    
-    // 4. 检查数字人
-    if (this.matchKeywords(input, ['数字人', '口播', '配音', '主播', '虚拟人', 'AI主播'])) {
-      return 'digital_human'
-    }
-    
-    // 5. 检查代码/Agent任务
+    // 3. 检查代码/Agent任务
     if (this.matchKeywords(input, ['代码', '编程', '开发', '任务', '执行', '自动化', '脚本', '写代码'])) {
       return 'agent'
     }
     
-    // 6. 检查超长文本
+    // 4. 检查超长文本
     if (this.matchKeywords(input, ['报告', '总结', '文章', '论文', '文档', '小说', '长文', '超长', '万字'])) {
       return 'long_text'
     }
     
-    // 7. 检查专业内容
+    // 5. 检查专业内容
     if (this.matchKeywords(input, ['文案', '营销', '推广', '策划', '方案', '专业', '详细', '营销文案'])) {
       return 'professional'
     }
     
-    // 8. 检查深度推理
+    // 6. 检查深度推理
     if (this.matchKeywords(input, ['深度', '推理', '分析', '思考', '复杂', '数学', '证明', '为什么', '分析一下'])) {
       return 'reasoning'
     }
@@ -508,8 +472,6 @@ export function getTaskTypeName(taskType: TaskType): string {
     agent: 'Agent任务',
     vision: '图像理解',
     video: '视频理解',
-    image: '图像生成',
-    digital_human: '数字人',
     unknown: '未知',
   }
   return names[taskType]
@@ -527,8 +489,6 @@ export function getTaskTypeIcon(taskType: TaskType): string {
     agent: 'cog-outline',
     vision: 'image-outline',
     video: 'videocam-outline',
-    image: 'images-outline',
-    digital_human: 'person-outline',
     unknown: 'help-outline',
   }
   return icons[taskType]

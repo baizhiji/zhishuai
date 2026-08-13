@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Layout, Menu, Modal, Form, Input, App, Avatar } from 'antd';
+import { Layout, Menu, Modal, Form, Input, message } from 'antd';
 import {
   DashboardOutlined,
   TeamOutlined,
@@ -9,9 +9,7 @@ import {
   CustomerServiceOutlined,
   SettingOutlined,
   LockOutlined,
-  SwapOutlined,
   LogoutOutlined,
-  UserOutlined,
   BarChartOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
@@ -19,20 +17,17 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 const { Sider } = Layout;
-const { SubMenu } = Menu;
 
 const AgentNavbar: React.FC = () => {
   const [selectedKey, setSelectedKey] = useState('');
   const [openSubMenu, setOpenSubMenu] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
-  const [switchModalOpen, setSwitchModalOpen] = useState(false);
   const [passwordForm] = Form.useForm();
   const [passwordLoading, setPasswordLoading] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { user, logout } = useAuth();
-  const { message, modal } = App.useApp();
+  const { logout } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -65,10 +60,6 @@ const AgentNavbar: React.FC = () => {
       setPasswordModalOpen(true);
       return;
     }
-    if (key === 'switch-account') {
-      setSwitchModalOpen(true);
-      return;
-    }
     if (key === 'logout') {
       handleLogout();
       return;
@@ -81,7 +72,7 @@ const AgentNavbar: React.FC = () => {
 
   // 退出登录（带二次确认）
   const handleLogout = useCallback(() => {
-    modal.confirm({
+    Modal.confirm({
       title: '退出登录',
       content: '确定要退出当前账号吗？',
       okText: '确认退出',
@@ -93,16 +84,7 @@ const AgentNavbar: React.FC = () => {
         router.push('/login');
       },
     });
-  }, [logout, modal, message, router]);
-
-  // 切换账号（确认后跳到登录页保留 viewing_role）
-  const handleSwitchAccount = () => {
-    setSwitchModalOpen(false);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('viewing_role');
-    }
-    router.push('/login');
-  };
+  }, [logout, router]);
 
   // 修改密码
   const handleChangePassword = async (values: { oldPassword: string; newPassword: string; confirmPassword?: string }) => {
@@ -221,11 +203,6 @@ const AgentNavbar: React.FC = () => {
                   label: '修改密码',
                 },
                 {
-                  key: 'switch-account',
-                  icon: <SwapOutlined />,
-                  label: '切换账号',
-                },
-                {
                   key: 'logout',
                   icon: <LogoutOutlined />,
                   label: '退出登录',
@@ -323,27 +300,6 @@ const AgentNavbar: React.FC = () => {
             </button>
           </Form.Item>
         </Form>
-      </Modal>
-
-      {/* 切换账号确认弹窗 */}
-      <Modal
-        title="切换账号"
-        open={switchModalOpen}
-        onCancel={() => setSwitchModalOpen(false)}
-        onOk={handleSwitchAccount}
-        okText="确认切换"
-        cancelText="取消"
-      >
-        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 0' }}>
-          <Avatar size={40} icon={<UserOutlined />} style={{ marginRight: 12 }} />
-          <div>
-            <div style={{ fontWeight: 500 }}>{user?.name || user?.phone || '当前用户'}</div>
-            <div style={{ fontSize: 12, color: '#999' }}>代理商 · {user?.phone || ''}</div>
-          </div>
-        </div>
-        <div style={{ marginTop: 12, padding: 12, background: '#f5f5f5', borderRadius: 6, fontSize: 13, color: '#666' }}>
-          切换账号后将退出当前登录状态，需要重新登录代理商后台。
-        </div>
       </Modal>
     </>
   );

@@ -70,10 +70,8 @@ export async function cleanupUserData(userId: string): Promise<CleanupResult> {
       data: {
         name: '已注销用户',
         phone: '',
-        email: '',
         experience: '',
         education: '',
-        skills: '',
         remark: '用户已注销',
       },
     });
@@ -85,7 +83,6 @@ export async function cleanupUserData(userId: string): Promise<CleanupResult> {
       data: {
         name: '已注销用户',
         phone: '',
-        email: '',
         notes: '用户已注销',
         status: 'deleted',
       },
@@ -143,7 +140,7 @@ async function updateShareRecordsAnonymous(userId: string): Promise<number> {
     count += scans.count;
 
     // 匿名化推荐追踪
-    const tracks = await prisma.referralTrack.updateMany({
+    const tracks = await (prisma as any).referralTrack.updateMany({
       where: { userId },
       data: { userAgent: '', ip: '', metadata: { status: 'user_deleted' } as any },
     });

@@ -51,6 +51,7 @@ import {
   CustomerServiceOutlined,
   SearchOutlined,
   KeyOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLatestAnnouncements, type Announcement } from '@/services/version';
@@ -107,21 +108,84 @@ function getNavigationItems(
           label: '智能招聘',
           icon: <SearchOutlined />,
           featureKey: 'recruit',
-          path: '/customer/recruitment',
+          children: [
+            {
+              key: 'recruitment-board',
+              label: '招聘看板',
+              icon: <PieChartOutlined />,
+              path: '/customer/recruitment',
+            },
+            {
+              key: 'recruitment-publish',
+              label: '职位发布',
+              icon: <FileTextOutlined />,
+              path: '/customer/recruitment/publish',
+            },
+            {
+              key: 'recruitment-auto',
+              label: '自动招聘',
+              icon: <ThunderboltOutlined />,
+              path: '/customer/recruitment/auto',
+            },
+            {
+              key: 'recruitment-platforms',
+              label: '招聘平台管理',
+              icon: <ApartmentOutlined />,
+              path: '/customer/recruitment/platforms',
+            },
+          ],
         },
         {
           key: 'acquisition',
           label: '智能获客',
           icon: <ThunderboltOutlined />,
           featureKey: 'leads',
-          path: '/customer/acquisition/discover',
+          children: [
+            {
+              key: 'acquisition-board',
+              label: '获客看板',
+              icon: <PieChartOutlined />,
+              path: '/customer/acquisition/board',
+            },
+            {
+              key: 'acquisition-discover',
+              label: '潜客发现',
+              icon: <SearchOutlined />,
+              path: '/customer/acquisition/discover',
+            },
+            {
+              key: 'acquisition-task',
+              label: '获客任务',
+              icon: <ClockCircleOutlined />,
+              path: '/customer/acquisition/task',
+            },
+          ],
         },
         {
           key: 'share',
           label: '推荐分享',
           icon: <ShareAltOutlined />,
           featureKey: 'referral',
-          path: '/customer/share/board',
+          children: [
+            {
+              key: 'share-board',
+              label: '分享看板',
+              icon: <PieChartOutlined />,
+              path: '/customer/share/board',
+            },
+            {
+              key: 'share-code',
+              label: '分享码管理',
+              icon: <QrcodeOutlined />,
+              path: '/customer/share/code',
+            },
+            {
+              key: 'share-track',
+              label: '分享追踪',
+              icon: <BarChartOutlined />,
+              path: '/customer/share/track',
+            },
+          ],
         },
         {
           key: 'materials',
@@ -131,7 +195,7 @@ function getNavigationItems(
         },
         {
           key: 'tickets',
-          label: '工单管理',
+          label: '我的工单',
           icon: <FileTextOutlined />,
           path: '/customer/tickets',
         },
@@ -154,13 +218,13 @@ function getNavigationItems(
             },
             {
               key: 'settings-api-keys',
-              label: 'API管理',
+              label: 'API 设置',
               icon: <KeyOutlined />,
               path: '/customer/api-keys',
             },
             {
               key: 'settings-app-download',
-              label: '智枢AI APP下载',
+              label: '智枢AI APP 下载',
               icon: <AndroidOutlined />,
               path: '/customer/settings/app-download',
             },
@@ -180,22 +244,24 @@ function getNavigationItems(
   }
 }
 
-// 获取当前选中的菜单项
+// 获取当前选中的菜单项（优先精确匹配，避免 /recruitment 前缀错误匹配 /recruitment/publish）
 function getSelectedKeys(items: NavigationItem[], path: string): string[] {
-  for (const item of items) {
-    if (item.path && path.startsWith(item.path)) {
-      return [item.key];
+  let bestKey: string | null = null;
+  let bestLen = -1;
+
+  const visit = (item: NavigationItem) => {
+    if (item.type === 'divider') return;
+    if (item.path && path === item.path && item.path.length > bestLen) {
+      bestKey = item.key;
+      bestLen = item.path.length;
     }
     if (item.children) {
-      for (const child of item.children) {
-        if (child.type === 'divider') continue;
-        if (child.path && path.startsWith(child.path)) {
-          return [child.key];
-        }
-      }
+      item.children.forEach(visit);
     }
-  }
-  return [];
+  };
+
+  items.forEach(visit);
+  return bestKey ? [bestKey] : [];
 }
 
 // 获取当前展开的菜单项
@@ -204,7 +270,7 @@ function getOpenKeysForPath(items: NavigationItem[], path: string): string[] {
     if (item.children) {
       for (const child of item.children) {
         if (child.type === 'divider') continue;
-        if (child.path && path.startsWith(child.path)) {
+        if (child.path && path === child.path) {
           return [item.key];
         }
       }
@@ -383,16 +449,64 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   // 菜单展开状态
   const [openKeys, setOpenKeys] = useState<string[]>([]);
 
+  // 当前选中的菜单项（memo 避免每次渲染新建数组引用导致菜单抖动）
+  const selectedKeys = useMemo(() => getSelectedKeys(navItems, pathname), [navItems, pathname]);
+
+  // 菜单项数据（memo 避免每次渲染重建对象，解决子菜单点击抖动/需多次点击问题）
+  const menuItems = useMemo(() => {
+    return navItems.map(item => ({
+      key: item.key,
+      icon: item.icon,
+      label: item.label,
+      children: item.children?.map(child => {
+        if (child.type === 'divider') {
+          return { type: 'divider' as const };
+        }
+        return {
+          key: child.key,
+          icon: child.icon,
+          label: child.label,
+          danger: child.danger,
+        };
+      }),
+    }));
+  }, [navItems]);
+
   // 用户手动展开/折叠菜单
   const handleOpenChange = useCallback((keys: string[]) => {
     setOpenKeys(keys);
   }, []);
 
+  // 菜单点击：优先跳转 path，否则执行自定义 onClick（如退出登录）
+  const handleMenuClick = useCallback((e: { key: string }) => {
+    const find = (items: NavigationItem[]): NavigationItem | undefined => {
+      for (const item of items) {
+        if (item.key === e.key) return item;
+        if (item.children) {
+          const found = find(item.children);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+    const item = find(navItems);
+    if (item?.path) {
+      router.push(item.path);
+    } else if (item?.onClick) {
+      item.onClick();
+    }
+  }, [navItems, router]);
+
   // 路由变化时自动更新菜单展开状态
   useEffect(() => {
     const keysFromPath = getOpenKeysForPath(navItems, pathname);
     if (keysFromPath.length > 0) {
-      setOpenKeys(keysFromPath);
+      setOpenKeys(prev => {
+        if (keysFromPath.length === prev.length && keysFromPath.every(k => prev.includes(k))) {
+          return prev;
+        }
+        return keysFromPath;
+      });
     }
   }, [pathname, navItems]);
 
@@ -598,28 +712,12 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <Menu
             mode="inline"
-            selectedKeys={getSelectedKeys(navItems, pathname)}
+            selectedKeys={selectedKeys}
             openKeys={openKeys}
             onOpenChange={handleOpenChange}
+            onClick={handleMenuClick}
             style={{ border: 'none' }}
-            items={navItems.map(item => ({
-              key: item.key,
-              icon: item.icon,
-              label: item.label,
-              children: item.children?.map(child => {
-                if (child.type === 'divider') {
-                  return { type: 'divider' as const };
-                }
-                return {
-                  key: child.key,
-                  icon: child.icon,
-                  label: child.label,
-                  danger: child.danger,
-                  onClick: child.path ? () => router.push(child.path!) : child.onClick,
-                };
-              }),
-              onClick: item.path ? () => router.push(item.path!) : undefined,
-            }))}
+            items={menuItems}
           />
         </div>
 

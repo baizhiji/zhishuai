@@ -8,7 +8,7 @@ datasource db {
 }
 
 model AIContentFeedback {
-  id          String   @id
+  id          String   @id @default(uuid())
   userId      String
   contentId   String?
   contentType String
@@ -25,7 +25,7 @@ model AIContentFeedback {
 }
 
 model AIExample {
-  id         String   @id
+  id         String   @id @default(uuid())
   type       String
   platform   String?
   content    String
@@ -41,7 +41,7 @@ model AIExample {
 }
 
 model AIUsageStats {
-  id           String   @id
+  id           String   @id @default(uuid())
   userId       String
   agentId      String?
   feature      String
@@ -58,30 +58,8 @@ model AIUsageStats {
   @@index([userId, periodStart])
 }
 
-model AcquisitionAutomation {
-  id             String    @id
-  userId         String
-  name           String
-  platform       String
-  status         String    @default("draft")
-  targetLeads    Int       @default(100)
-  currentLeads   Int       @default(0)
-  productInfo    String?
-  targetAudience String?
-  strategy       Json?
-  schedule       DateTime?
-  startedAt      DateTime?
-  completedAt    DateTime?
-  notes          String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime
-  User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, status])
-}
-
 model AcquisitionData {
-  id            String    @id
+  id            String    @id @default(uuid())
   userId        String
   source        String
   sourceType    String
@@ -105,7 +83,7 @@ model AcquisitionData {
   status        String    @default("new")
   followupAt    DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @default(now())
   User          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([intentScore])
@@ -114,14 +92,14 @@ model AcquisitionData {
 }
 
 model AcquisitionLead {
-  id              String           @id
+  id              String           @id @default(uuid())
   userId          String
   name            String?
   phone           String
   source          String?
   status          String           @default("new")
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
   aiFollowup      String?
   aiInsights      String?
   aiQuality       String?
@@ -142,21 +120,21 @@ model AcquisitionLead {
 }
 
 model AcquisitionSource {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   name      String
   type      String
   config    Json?
   enabled   Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @default(now())
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type])
 }
 
 model AcquisitionTask {
-  id              String            @id
+  id              String            @id @default(uuid())
   userId          String
   title           String
   channel         String
@@ -167,7 +145,7 @@ model AcquisitionTask {
   startedAt       DateTime?
   completedAt     DateTime?
   createdAt       DateTime          @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
   AcquisitionLead AcquisitionLead[]
   User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -175,7 +153,7 @@ model AcquisitionTask {
 }
 
 model AdminLog {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   action    String
   detail    String?
@@ -190,12 +168,12 @@ model AdminLog {
 }
 
 model Agent {
-  id                String              @id
+  id                String              @id @default(uuid())
   userId            String              @unique
   level             String              @default("district")
   status            String              @default("active")
   createdAt         DateTime            @default(now())
-  updatedAt         DateTime
+  updatedAt         DateTime @default(now())
   agentType         String              @default("commission")
   balance           Decimal             @default(0.00) @db.Decimal(10, 2)
   commissionRate    Decimal             @default(0.30) @db.Decimal(10, 2)
@@ -217,39 +195,22 @@ model Agent {
 }
 
 model AgentApiConfig {
-  id         String   @id
+  id         String   @id @default(uuid())
   agentId    String   @unique
   providerId String
   apiKey     String?  @db.Text
   enabled    Boolean  @default(true)
   createdAt  DateTime @default(now())
-  updatedAt  DateTime
-
+  updatedAt  DateTime @default(now())
   @@index([agentId])
 }
 
-model AgentFeedback {
-  id             String   @id
-  agentId        String
-  conversationId String?
-  messageIndex   Int?
-  userMessage    String?
-  agentResponse  String?
-  helpful        Boolean?
-  rating         Int?
-  userId         String?
-  createdAt      DateTime @default(now())
-
-  @@index([agentId, createdAt])
-  @@index([helpful, createdAt])
-}
-
 model AgentStats {
-  id              String   @id
+  id              String   @id @default(uuid())
   agentId         String
   activeCustomers Int      @default(0)
   totalRevenue    Decimal  @default(0.00) @db.Decimal(10, 2)
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
   commission      Decimal  @default(0.00) @db.Decimal(10, 2)
   createdAt       DateTime @default(now())
   newCustomers    Int      @default(0)
@@ -261,12 +222,12 @@ model AgentStats {
 }
 
 model Announcement {
-  id          String    @id
+  id          String    @id @default(uuid())
   title       String
   content     String?   @db.Text
   type        String    @default("info")
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @default(now())
   agentId     String?
   priority    String    @default("normal") @db.VarChar(20)
   publishedAt DateTime?
@@ -279,7 +240,7 @@ model Announcement {
 }
 
 model ApiKey {
-  id          String    @id
+  id          String    @id @default(uuid())
   userId      String
   provider    String
   apiKey      String?   @db.Text
@@ -292,14 +253,13 @@ model ApiKey {
   failCount   Int       @default(0)
   lastUsedAt  DateTime?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime
-
+  updatedAt   DateTime @default(now())
   @@index([userId])
   @@index([userId, provider])
 }
 
 model ApiProvider {
-  id        String   @id
+  id        String   @id @default(uuid())
   name      String   @unique
   type      String   @default("coze")
   apiKey    String
@@ -307,14 +267,14 @@ model ApiProvider {
   enabled   Boolean  @default(true)
   priority  Int      @default(0)
   createdAt DateTime @default(now())
-  updatedAt DateTime
+  updatedAt DateTime @default(now())
   config    Json?
   isDefault Boolean  @default(false)
   remark    String?
 }
 
 model ApiUsageLog {
-  id             String   @id
+  id             String   @id @default(uuid())
   userId         String
   agentId        String?
   providerId     String
@@ -334,7 +294,7 @@ model ApiUsageLog {
 }
 
 model AppVersion {
-  id          String    @id
+  id          String    @id @default(uuid())
   version     String
   platform    String    @default("android")
   buildNumber Int       @default(1)
@@ -344,37 +304,12 @@ model AppVersion {
   status      String    @default("released")
   releasedAt  DateTime?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime
-
+  updatedAt   DateTime @default(now())
   @@index([platform, status])
 }
 
-model AutomationTask {
-  id           String    @id
-  userId       String
-  agentId      String?
-  name         String
-  type         String
-  platform     String
-  accountId    String
-  config       Json
-  schedule     Json?
-  enabled      Boolean   @default(true)
-  status       String    @default("idle")
-  lastRunAt    DateTime?
-  nextRunAt    DateTime?
-  runCount     Int       @default(0)
-  successCount Int       @default(0)
-  failCount    Int       @default(0)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime
-
-  @@index([status, enabled])
-  @@index([userId, type])
-}
-
 model Candidate {
-  id              String          @id
+  id              String          @id @default(uuid())
   postId          String
   userId          String
   name            String
@@ -383,7 +318,7 @@ model Candidate {
   status          String          @default("pending")
   remark          String?
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
   education       String?
   experience      String?
   email           String?
@@ -400,7 +335,7 @@ model Candidate {
 }
 
 model CandidateSearchConfig {
-  id              String    @id
+  id              String    @id @default(uuid())
   userId          String
   postId          String
   platform        String    @default("boss")
@@ -417,15 +352,14 @@ model CandidateSearchConfig {
   status          String    @default("active")
   lastSearchedAt  DateTime?
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime
-
+  updatedAt       DateTime @default(now())
   @@index([platform, status])
   @@index([postId], map: "CandidateSearchConfig_postId_fkey")
   @@index([userId, postId])
 }
 
 model ChatConversation {
-  id           String        @id
+  id           String        @id @default(uuid())
   userId       String
   title        String        @default("新对话")
   modelKey     String?
@@ -433,14 +367,14 @@ model ChatConversation {
   messageCount Int           @default(0)
   lastMessage  String?
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime
+  updatedAt    DateTime @default(now())
   ChatMessage  ChatMessage[]
 
   @@index([userId, createdAt])
 }
 
 model ChatMessage {
-  id               String           @id
+  id               String           @id @default(uuid())
   conversationId   String
   role             String           @default("user")
   content          String
@@ -455,75 +389,8 @@ model ChatMessage {
   @@index([conversationId, createdAt])
 }
 
-model CodeAssistantConversation {
-  id           String   @id
-  userId       String
-  taskType     String   @default("generate")
-  language     String   @default("javascript")
-  userMode     String   @default("developer")
-  title        String   @default("新对话")
-  modelKey     String?
-  messageCount Int      @default(0)
-  lastMessage  String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime
-
-  @@index([userId, createdAt])
-  @@index([userId, taskType])
-}
-
-model CodeAssistantMessage {
-  id             String   @id
-  conversationId String
-  role           String   @default("user")
-  content        String   @db.MediumText
-  model          String?
-  tokens         Int?
-  latency        Int?
-  metadata       Json?
-  createdAt      DateTime @default(now())
-
-  @@index([conversationId, createdAt])
-}
-
-model CompanyInfo {
-  id          String   @id
-  userId      String   @unique
-  name        String   @default("上海百智集网络科技有限公司")
-  logo        String?
-  industry    String?
-  size        String?
-  address     String?
-  description String?
-  contact     String?
-  phone       String?
-  email       String?
-  website     String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime
-}
-
-model ComplianceAuditLog {
-  id             String   @id
-  userId         String
-  contentPreview String   @db.Text
-  contentType    String   @default("text")
-  platform       String?
-  passed         Boolean
-  score          Int
-  issueCount     Int      @default(0)
-  criticalCount  Int      @default(0)
-  warningCount   Int      @default(0)
-  issues         String?  @db.Text
-  createdAt      DateTime @default(now())
-
-  @@index([passed, createdAt])
-  @@index([platform, createdAt])
-  @@index([userId, createdAt])
-}
-
 model ContentFeedback {
-  id               String   @id
+  id               String   @id @default(uuid())
   contentType      String
   prompt           String
   generatedContent String
@@ -533,15 +400,14 @@ model ContentFeedback {
   editedContent    String?
   userId           String?
   createdAt        DateTime @default(now())
-  updatedAt        DateTime
-
+  updatedAt        DateTime @default(now())
   @@index([adopted, createdAt])
   @@index([contentType, createdAt])
   @@index([userId])
 }
 
 model Conversation {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   title     String   @default("新对话")
   createdAt DateTime @default(now())
@@ -551,7 +417,7 @@ model Conversation {
 }
 
 model ConversationLog {
-  id              String          @id
+  id              String          @id @default(uuid())
   userId          String
   createdAt       DateTime        @default(now())
   feedback        String?
@@ -570,7 +436,7 @@ model ConversationLog {
 }
 
 model DataCollectionTask {
-  id             String    @id
+  id             String    @id @default(uuid())
   userId         String
   source         String
   keywords       String?
@@ -586,19 +452,19 @@ model DataCollectionTask {
   completedAt    DateTime?
   error          String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @default(now())
   User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
 }
 
 model DigitalHuman {
-  id          String      @id
+  id          String      @id @default(uuid())
   userId      String
   name        String
   status      String      @default("active")
   createdAt   DateTime    @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @default(now())
   avatar      String?
   description String?
   gender      String
@@ -613,11 +479,11 @@ model DigitalHuman {
 }
 
 model Employee {
-  id          String    @id
+  id          String    @id @default(uuid())
   userId      String
   status      String    @default("active")
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @default(now())
   avatar      String?
   email       String?
   lastLoginAt DateTime?
@@ -633,7 +499,7 @@ model Employee {
 }
 
 model EmployeeLoginLog {
-  id         String   @id
+  id         String   @id @default(uuid())
   employeeId String
   ip         String?
   userAgent  String?
@@ -643,7 +509,7 @@ model EmployeeLoginLog {
 }
 
 model FeatureSubSwitch {
-  id            String        @id
+  id            String        @id @default(uuid())
   featureCode   String
   code          String
   name          String
@@ -651,14 +517,14 @@ model FeatureSubSwitch {
   enabled       Boolean       @default(true)
   sortOrder     Int           @default(0)
   createdAt     DateTime      @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @default(now())
   FeatureSwitch FeatureSwitch @relation(fields: [featureCode], references: [code])
 
   @@unique([featureCode, code])
 }
 
 model FeatureSwitch {
-  id               String             @id
+  id               String             @id @default(uuid())
   code             String             @unique
   name             String
   description      String?
@@ -666,29 +532,12 @@ model FeatureSwitch {
   enabled          Boolean            @default(true)
   sortOrder        Int                @default(0)
   createdAt        DateTime           @default(now())
-  updatedAt        DateTime
+  updatedAt        DateTime @default(now())
   FeatureSubSwitch FeatureSubSwitch[]
 }
 
-model HotspotCache {
-  id        String   @id
-  platform  String
-  keyword   String
-  heat      Int      @default(0)
-  label     String?
-  category  String?
-  url       String?
-  rawData   String?
-  cachedAt  DateTime @default(now())
-  expiresAt DateTime
-
-  @@unique([platform, keyword, cachedAt])
-  @@index([heat])
-  @@index([platform, cachedAt])
-}
-
 model Interview {
-  id          String   @id
+  id          String   @id @default(uuid())
   userId      String
   candidateId String
   postId      String
@@ -702,8 +551,7 @@ model Interview {
   feedback    String?
   score       Int?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
-
+  updatedAt   DateTime @default(now())
   @@index([candidateId])
   @@index([postId])
   @@index([scheduledAt])
@@ -711,7 +559,7 @@ model Interview {
 }
 
 model LeadFollowup {
-  id              String          @id
+  id              String          @id @default(uuid())
   leadId          String
   userId          String
   content         String
@@ -726,7 +574,7 @@ model LeadFollowup {
 }
 
 model LiveRoom {
-  id            String    @id
+  id            String    @id @default(uuid())
   userId        String
   platform      String    @default("douyin")
   roomId        String
@@ -743,14 +591,13 @@ model LiveRoom {
   productCount  Int       @default(0)
   startTime     DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-
+  updatedAt     DateTime @default(now())
   @@index([status])
   @@index([userId, platform])
 }
 
 model LoginLog {
-  id         String   @id
+  id         String   @id @default(uuid())
   userId     String
   ip         String?
   device     String?
@@ -765,28 +612,14 @@ model LoginLog {
   @@index([userId])
 }
 
-model MapFavorite {
-  id        String   @id
-  userId    String
-  poiId     String?
-  name      String
-  address   String?
-  location  Json?
-  type      String?
-  createdAt DateTime @default(now())
-
-  @@index([poiId])
-  @@index([userId])
-}
-
 model Material {
-  id             String    @id
+  id             String    @id @default(uuid())
   userId         String
   type           String
   content        String?
   title          String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @default(now())
   fileType       String?
   fileUrl        String?
   status         String    @default("unused")
@@ -804,7 +637,7 @@ model Material {
 }
 
 model Message {
-  id             String   @id
+  id             String   @id @default(uuid())
   conversationId String
   role           String
   content        String   @db.Text
@@ -814,7 +647,7 @@ model Message {
 }
 
 model Notification {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   title     String
   content   String
@@ -828,7 +661,7 @@ model Notification {
 }
 
 model OAuthSession {
-  id          String    @id
+  id          String    @id @default(uuid())
   userId      String
   platform    String
   expiresAt   DateTime
@@ -848,7 +681,7 @@ model OAuthSession {
 }
 
 model Order {
-  id            String    @id
+  id            String    @id @default(uuid())
   userId        String?
   agentId       String?
   planId        String?
@@ -859,15 +692,14 @@ model Order {
   description   String?
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime
-
+  updatedAt     DateTime @default(now())
   @@index([agentId, status])
   @@index([createdAt])
   @@index([userId, status])
 }
 
 model Payment {
-  id            String    @id
+  id            String    @id @default(uuid())
   type          String    @default("customer_fee")
   amount        Decimal   @default(0.00) @db.Decimal(10, 2)
   status        String    @default("paid")
@@ -880,7 +712,7 @@ model Payment {
   remark        String?
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @default(now())
   period        String    @default("monthly")
   planId        String?
   Agent         Agent?    @relation(fields: [agentId], references: [id])
@@ -892,62 +724,8 @@ model Payment {
   @@index([userId, type])
 }
 
-model PlatformSyncLog {
-  id           String    @id @db.VarChar(36)
-  syncType     String    @db.VarChar(100)
-  platform     String    @db.VarChar(100)
-  userId       String    @db.VarChar(36)
-  status       String    @default("running") @db.VarChar(50)
-  totalCount   Int       @default(0)
-  successCount Int       @default(0)
-  failCount    Int       @default(0)
-  incremental  Boolean   @default(false)
-  details      Json?
-  errorMessage String?   @db.Text
-  startedAt    DateTime? @db.DateTime(0)
-  completedAt  DateTime? @db.DateTime(0)
-  createdAt    DateTime  @default(now()) @db.DateTime(0)
-
-  @@index([status], map: "idx_psl_status")
-  @@index([syncType, platform, createdAt], map: "idx_psl_sync")
-  @@index([userId, createdAt], map: "idx_psl_user")
-}
-
-model PromptOptimization {
-  id              String   @id
-  contentType     String   @unique
-  sampleCount     Int      @default(0)
-  adoptionRate    Float    @default(0)
-  avgRating       Float    @default(0)
-  optimizedPrompt String?
-  insights        String?
-  lastUpdated     DateTime @default(now())
-  createdAt       DateTime @default(now())
-
-  @@index([adoptionRate])
-}
-
-model QualityAuditLog {
-  id               String   @id @db.VarChar(36)
-  contentId        String
-  contentType      String   @db.VarChar(50)
-  userId           String   @db.VarChar(36)
-  score            Int      @default(0)
-  passed           Boolean  @default(false)
-  dimensions       Json?
-  correctionRounds Int      @default(0)
-  correctedContent String?  @db.LongText
-  needsHumanReview Boolean  @default(false)
-  metadata         Json?
-  createdAt        DateTime @default(now()) @db.DateTime(0)
-
-  @@index([contentId, contentType], map: "idx_qal_content")
-  @@index([score], map: "idx_qal_score")
-  @@index([userId, createdAt], map: "idx_qal_user")
-}
-
 model RecruitmentCommunication {
-  id              String   @id
+  id              String   @id @default(uuid())
   userId          String
   candidateId     String
   postId          String?
@@ -965,7 +743,7 @@ model RecruitmentCommunication {
 }
 
 model RecruitmentPost {
-  id                 String               @id
+  id                 String               @id @default(uuid())
   userId             String
   title              String
   department         String?              @default("技术部")
@@ -975,7 +753,7 @@ model RecruitmentPost {
   headcount          Int?                 @default(1)
   status             String               @default("recruiting")
   createdAt          DateTime             @default(now())
-  updatedAt          DateTime
+  updatedAt          DateTime @default(now())
   candidateCount     Int                  @default(0)
   description        String?
   education          String?
@@ -994,7 +772,7 @@ model RecruitmentPost {
 }
 
 model RecruitmentProcess {
-  id                String            @id
+  id                String            @id @default(uuid())
   userId            String
   resumeId          String
   jobId             String
@@ -1003,7 +781,7 @@ model RecruitmentProcess {
   scheduledAt       DateTime?
   completedAt       DateTime?
   createdAt         DateTime          @default(now())
-  updatedAt         DateTime
+  updatedAt         DateTime @default(now())
   RecruitmentPost   RecruitmentPost   @relation(fields: [jobId], references: [id], onDelete: Cascade)
   RecruitmentResume RecruitmentResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
@@ -1013,7 +791,7 @@ model RecruitmentProcess {
 }
 
 model RecruitmentResume {
-  id                 String               @id
+  id                 String               @id @default(uuid())
   userId             String
   jobId              String
   name               String
@@ -1028,7 +806,7 @@ model RecruitmentResume {
   aiScore            Int?
   aiAnalysis         String?
   createdAt          DateTime             @default(now())
-  updatedAt          DateTime
+  updatedAt          DateTime @default(now())
   RecruitmentProcess RecruitmentProcess[]
   RecruitmentPost    RecruitmentPost      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   User               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1039,7 +817,7 @@ model RecruitmentResume {
 }
 
 model ReferralCode {
-  id              String   @id
+  id              String   @id @default(uuid())
   userId          String
   title           String   @default("我的推荐码")
   videoLink       String?  @db.VarChar(500)
@@ -1056,25 +834,8 @@ model ReferralCode {
   @@index([userId], map: "idx_referral_code_user")
 }
 
-model ReferralReward {
-  id          String    @id
-  userId      String
-  codeId      String?
-  amount      Decimal   @default(0.00) @db.Decimal(10, 2)
-  type        String    @default("commission") @db.VarChar(50)
-  status      String    @default("pending") @db.VarChar(50)
-  description String?   @db.Text
-  paidAt      DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
-
-  @@index([codeId], map: "fk_reward_code")
-  @@index([status], map: "idx_reward_status")
-  @@index([userId], map: "idx_reward_user")
-}
-
 model ReferralTrack {
-  id          String    @id
+  id          String    @id @default(uuid())
   codeId      String
   userId      String
   referrerId  String?
@@ -1094,12 +855,12 @@ model ReferralTrack {
 }
 
 model ScriptTemplate {
-  id              String            @id
+  id              String            @id @default(uuid())
   userId          String
   content         String
   category        String
   createdAt       DateTime          @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
   isAI            Boolean           @default(false)
   name            String
   scenario        String
@@ -1115,18 +876,17 @@ model ScriptTemplate {
 }
 
 model Setting {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String
   key       String
   value     String   @db.Text
   createdAt DateTime @default(now())
-  updatedAt DateTime
-
+  updatedAt DateTime @default(now())
   @@unique([userId, key])
 }
 
 model SmsConfig {
-  id              String   @id
+  id              String   @id @default(uuid())
   provider        String   @unique
   accessKeyId     String
   accessKeySecret String
@@ -1136,11 +896,11 @@ model SmsConfig {
   isDefault       Boolean  @default(false)
   config          Json?
   createdAt       DateTime @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
 }
 
 model SmsLog {
-  id        String    @id
+  id        String    @id @default(uuid())
   phone     String
   type      String
   code      String
@@ -1159,7 +919,7 @@ model SmsLog {
 }
 
 model ShareCommission {
-  id            String       @id
+  id            String       @id @default(uuid())
   userId        String
   shareRecordId String?
   amount        Float
@@ -1168,7 +928,7 @@ model ShareCommission {
   settledAt     DateTime?
   remark        String?      @db.Text
   createdAt     DateTime     @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @default(now())
   ShareRecord   ShareRecord? @relation(fields: [shareRecordId], references: [id])
   User          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1177,7 +937,7 @@ model ShareCommission {
 }
 
 model ShareEffect {
-  id           String      @id
+  id           String      @id @default(uuid())
   qrCodeId     String
   platform     String      @db.VarChar(50)
   viewCount    Int         @default(0)
@@ -1196,7 +956,7 @@ model ShareEffect {
 }
 
 model ShareQrCode {
-  id           String        @id
+  id           String        @id @default(uuid())
   userId       String
   createdAt    DateTime      @default(now())
   activeCount  Int           @default(0)
@@ -1205,7 +965,7 @@ model ShareQrCode {
   qrCodeUrl    String?
   scanCount    Int           @default(0)
   title        String
-  updatedAt    DateTime
+  updatedAt    DateTime @default(now())
   videoCover   String?
   videoUrl     String?
   ShareEffect  ShareEffect[]
@@ -1216,7 +976,7 @@ model ShareQrCode {
 }
 
 model ShareRecord {
-  id              String            @id
+  id              String            @id @default(uuid())
   userId          String
   createdAt       DateTime          @default(now())
   platform        String
@@ -1225,7 +985,7 @@ model ShareRecord {
   scannedAt       DateTime          @default(now())
   scannerId       String?
   status          String            @default("scanned")
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
   ShareCommission ShareCommission[]
   ShareQrCode     ShareQrCode?      @relation(fields: [qrCodeId], references: [id])
   User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1235,7 +995,7 @@ model ShareRecord {
 }
 
 model SocialAccount {
-  id            String        @id
+  id            String        @id @default(uuid())
   userId        String
   platform      String
   avatar        String?
@@ -1243,7 +1003,7 @@ model SocialAccount {
   refreshToken  String?
   status        String        @default("active")
   createdAt     DateTime        @default(now())
-  updatedAt     DateTime
+  updatedAt     DateTime @default(now())
   accountId     String?
   accountName   String?
   agentId       String?
@@ -1259,78 +1019,8 @@ model SocialAccount {
   @@index([userId, platform])
 }
 
-model SupportConversation {
-  id            String   @id @db.VarChar(36)
-  userId        String   @db.VarChar(36)
-  title         String   @default("在线咨询") @db.VarChar(255)
-  status        String   @default("open") @db.VarChar(20)
-  autoReply     Boolean  @default(true)
-  lastMessageAt DateTime @default(now()) @db.DateTime(0)
-  createdAt     DateTime @default(now()) @db.DateTime(0)
-  updatedAt     DateTime @default(now()) @db.DateTime(0)
-
-  @@index([status, lastMessageAt], map: "idx_status_lastMessageAt")
-  @@index([userId, createdAt], map: "idx_userId_createdAt")
-}
-
-model SupportMessage {
-  id             String   @id @db.VarChar(36)
-  conversationId String   @db.VarChar(36)
-  senderId       String   @db.VarChar(36)
-  senderName     String   @default("") @db.VarChar(100)
-  senderRole     String   @db.VarChar(20)
-  content        String   @db.Text
-  isAutoReply    Boolean  @default(false)
-  createdAt      DateTime @default(now()) @db.DateTime(0)
-
-  @@index([conversationId, createdAt], map: "idx_conversationId_createdAt")
-}
-
-model TaskExecution {
-  id          String    @id
-  taskId      String
-  userId      String
-  platform    String
-  action      String
-  status      String    @default("pending")
-  startTime   DateTime?
-  endTime     DateTime?
-  duration    Int?
-  input       Json?
-  output      Json?
-  error       String?
-  screenshots String?
-  logs        String?
-  createdAt   DateTime  @default(now())
-
-  @@index([status])
-  @@index([taskId, createdAt])
-  @@index([userId, createdAt])
-}
-
-model TaskExecutionLog {
-  id           String    @id @db.VarChar(36)
-  taskType     String    @db.VarChar(100)
-  taskId       String
-  userId       String    @db.VarChar(36)
-  status       String    @default("pending") @db.VarChar(50)
-  startedAt    DateTime? @db.DateTime(0)
-  completedAt  DateTime? @db.DateTime(0)
-  durationMs   Int?
-  retryCount   Int       @default(0)
-  input        Json?
-  result       Json?
-  errorMessage String?   @db.Text
-  errorStack   String?   @db.LongText
-  createdAt    DateTime  @default(now()) @db.DateTime(0)
-
-  @@index([taskId], map: "idx_tel_task")
-  @@index([taskType, createdAt], map: "idx_tel_type")
-  @@index([userId, status], map: "idx_tel_user")
-}
-
 model Ticket {
-  id             String           @id
+  id             String           @id @default(uuid())
   userId         String?
   title          String
   content        String?
@@ -1338,7 +1028,7 @@ model Ticket {
   status         String           @default("pending")
   featureCode    String?          @db.VarChar(50)
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @default(now())
   agentId        String?
   assigneeId     String?
   assigneeName   String?
@@ -1357,7 +1047,7 @@ model Ticket {
 }
 
 model TicketResponse {
-  id           String   @id
+  id           String   @id @default(uuid())
   ticketId     String
   userId       String?
   userName     String?
@@ -1375,7 +1065,7 @@ model TicketResponse {
 }
 
 model User {
-  id                  String                  @id
+  id                  String                  @id @default(uuid())
   phone               String                  @unique
   password            String
   name                String?
@@ -1383,7 +1073,7 @@ model User {
   role                String                  @default("user")
   status              String                  @default("active")
   createdAt           DateTime                @default(now())
-  updatedAt           DateTime
+  updatedAt           DateTime @default(now())
   expireAt            DateTime?
   fee                 Decimal                 @default(0.00) @db.Decimal(10, 2)
   lastPaidAt          DateTime?
@@ -1426,7 +1116,7 @@ model User {
 }
 
 model UserAgentRelation {
-  id        String   @id
+  id        String   @id @default(uuid())
   userId    String   @unique
   agentId   String
   createdAt DateTime @default(now())
@@ -1437,32 +1127,19 @@ model UserAgentRelation {
 }
 
 model UserFeatureSwitch {
-  id          String   @id
+  id          String   @id @default(uuid())
   userId      String
   enabled     Boolean
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @default(now())
   featureCode String
   User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, featureCode])
 }
 
-model UserSettings {
-  id           String   @id
-  userId       String   @unique
-  language     String   @default("zh-CN")
-  timezone     String   @default("Asia/Shanghai")
-  theme        String   @default("light")
-  loginNotify  Boolean  @default(true)
-  riskNotify   Boolean  @default(true)
-  deviceManage Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime
-}
-
 model VideoClone {
-  id             String   @id
+  id             String   @id @default(uuid())
   userId         String
   name           String
   type           String   @default("digital_human")
@@ -1474,7 +1151,7 @@ model VideoClone {
   status         String   @default("processing")
   progress       Int      @default(0)
   createdAt      DateTime @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime @default(now())
   User           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status])
@@ -1482,7 +1159,7 @@ model VideoClone {
 }
 
 model VideoTask {
-  id              String         @id
+  id              String         @id @default(uuid())
   userId          String
   title           String
   status          String         @default("pending")
@@ -1490,7 +1167,7 @@ model VideoTask {
   videoUrl        String?
   thumbnailUrl    String?
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime
+  updatedAt       DateTime @default(now())
   backgroundMusic String?
   completedAt     DateTime?
   errorMessage    String?
@@ -1508,7 +1185,7 @@ model VideoTask {
 }
 
 model VideoTemplate {
-  id         String      @id
+  id         String      @id @default(uuid())
   name       String
   thumbnail  String?
   duration   Int         @default(30)
@@ -1517,14 +1194,14 @@ model VideoTemplate {
   usageCount Int         @default(0)
   config     Json?
   createdAt  DateTime    @default(now())
-  updatedAt  DateTime
+  updatedAt  DateTime @default(now())
   VideoTask  VideoTask[]
 
   @@index([style])
 }
 
 model VoiceClone {
-  id          String   @id
+  id          String   @id @default(uuid())
   userId      String
   name        String
   gender      String   @default("female")
@@ -1534,7 +1211,7 @@ model VoiceClone {
   status      String   @default("ready")
   usageCount  Int      @default(0)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime @default(now())
   User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status])

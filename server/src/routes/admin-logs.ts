@@ -32,9 +32,6 @@ router.get('/logs', authMiddleware, async (req, res) => {
     const [logs, total] = await Promise.all([
       prisma.adminLog.findMany({
         where,
-        include: {
-          user: { select: { name: true, phone: true, role: true } },
-        },
         orderBy: { createdAt: 'desc' },
         skip: (Number(page) - 1) * Number(pageSize),
         take: Number(pageSize),
@@ -42,7 +39,20 @@ router.get('/logs', authMiddleware, async (req, res) => {
       prisma.adminLog.count({ where }),
     ]);
 
-    res.json({ data: logs, total, page: Number(page), pageSize: Number(pageSize) });
+    // 单独查询用户信息，避免 required relation null 报错
+    const logUserIds = [...new Set(logs.map(l => l.userId).filter(Boolean))];
+    const logUsers = await prisma.user.findMany({
+      where: { id: { in: logUserIds } },
+      select: { id: true, name: true, phone: true, role: true },
+    });
+    const logUserMap = new Map(logUsers.map(u => [u.id, u]));
+
+    const enrichedLogs = logs.map(log => ({
+      ...log,
+      User: logUserMap.get(log.userId) || null,
+    }));
+
+    res.json({ success: true, data: enrichedLogs, total, page: Number(page), pageSize: Number(pageSize) });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -75,6 +85,7 @@ router.get('/logs/stats', authMiddleware, async (req, res) => {
     ]);
 
     res.json({
+      success: true,
       totalLogs,
       todayLogs,
       actionStats: actionStats.map(s => ({ action: s.action, count: s._count.id })),

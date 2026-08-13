@@ -8,25 +8,34 @@ import { Router, Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
 import { authMiddleware, agentMiddleware, hashPassword } from '../middleware/auth';
 import { prisma } from '../utils/db';
+import crypto from 'crypto';
 
 const router = Router();
 // 代理商路由需要认证 + 角色检查
 router.use(authMiddleware);
 router.use(agentMiddleware);
 
+function genUUID(): string {
+  return crypto.randomUUID();
+}
+
+// 核心修复：JWT 中 userId 是 User.id，但 UserAgentRelation.agentId 存的是 Agent.id
+// 两者不同，必须先转换。管理员账号没有 Agent 记录，直接用 userId 即可。
+async function resolveAgentId(userId: string): Promise<string> {
+  const agent = await prisma.agent.findUnique({ where: { userId } });
+  return agent?.id || userId;
+}
+
 // 获取代理商统计数据（数据总览用）
 router.get('/statistics', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
     const period = (req.query.period as string) || 'all';
 
-    // 验证代理商
-    const agent = await prisma.user.findFirst({
-      where: { id: agentId, role: 'agent' },
-    });
-    if (!agent) {
-      return res.status(403).json({ success: false, message: '非代理商账号' });
-    }
+    // admin 用户可以访问所有代理数据，agent 用户只访问自己的
+    const isAdmin = (req as any).userRole === 'admin';
+    // UserAgentRelation.agentId 存的是 Agent.id，不是 User.id，必须转换
+    const agentId = isAdmin ? userId : await resolveAgentId(userId);
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -51,55 +60,60 @@ router.get('/statistics', async (req: Request, res: Response) => {
     };
     const periodStart = getPeriodStart();
 
-    // 客户总数
+    // 客户总数（通过 UserAgentRelation 查询）
+    const agentCustomerWhere = isAdmin ? {} : { UserAgentRelation: { agentId } };
     const totalCustomers = await prisma.user.count({
-      where: { agentRelation: { agentId } },
+      where: agentCustomerWhere,
     });
 
     // 正常客户
     const activeCustomers = await prisma.user.count({
-      where: { agentRelation: { agentId }, status: 'active' },
+      where: { ...agentCustomerWhere, status: 'active' },
     });
 
-    // 冻结客户（toggle-status 将客户状态设为 'frozen'，与前端筛选保持一致）
+    // 冻结客户
     const disabledCustomers = await prisma.user.count({
-      where: { agentRelation: { agentId }, status: 'frozen' },
+      where: { ...agentCustomerWhere, status: 'frozen' },
     });
 
     // 本月新增
     const newCustomersThisMonth = await prisma.user.count({
       where: {
-        agentRelation: { agentId },
+        ...agentCustomerWhere,
         createdAt: { gte: startOfMonth },
       },
     });
 
-    // 待处理工单（来自客户）
+    // 待处理工单
     const pendingTickets = await prisma.ticket.count({
       where: {
-        user: { agentRelation: { agentId } },
+        ...(isAdmin ? {} : {
+          userId: { in: [userId, ...(await prisma.userAgentRelation.findMany({
+            where: { agentId },
+            select: { userId: true },
+          })).map(r => r.userId)] },
+        }),
         status: { in: ['open', 'in_progress'] },
       },
     });
 
     // 名下客户的素材总量
-    const totalMaterials = await prisma.material.count({
-      where: { user: { agentRelation: { agentId } } },
-    });
+    const totalMaterials = isAdmin
+      ? await prisma.material.count()
+      : await prisma.material.count({
+          where: { User: { UserAgentRelation: { agentId } } },
+        });
 
     // period 筛选下的增量数据
     let periodNewCustomers = 0;
     let periodNewTickets = 0;
     if (periodStart) {
       periodNewCustomers = await prisma.user.count({
-        where: {
-          agentRelation: { agentId },
-          createdAt: { gte: periodStart },
-        },
+        where: { ...agentCustomerWhere, createdAt: { gte: periodStart } },
       });
       periodNewTickets = await prisma.ticket.count({
         where: {
-          user: { agentRelation: { agentId } },
+          ...(isAdmin ? {} : { userId: { in: [userId] } }),
           createdAt: { gte: periodStart },
         },
       });
@@ -127,21 +141,16 @@ router.get('/statistics', async (req: Request, res: Response) => {
 // 获取客户列表
 router.get('/customers', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
+    const isAdmin = (req as any).userRole === 'admin';
     const { page = '1', pageSize = '20', keyword = '', status = '' } = req.query;
 
-    // 获取代理商信息
-    const agent = await prisma.user.findFirst({
-      where: { id: agentId, role: 'agent' },
-    });
-
-    if (!agent) {
-      return res.status(403).json({ success: false, message: '非代理商账号' });
-    }
+    // UserAgentRelation.agentId 存的是 Agent.id，不是 User.id，必须转换
+    const agentId = isAdmin ? userId : await resolveAgentId(userId);
 
     // 构建查询条件 — 通过 UserAgentRelation 关联表查询
-    const where: any = {
-      agentRelation: { agentId: agentId },
+    const where: any = isAdmin ? {} : {
+      UserAgentRelation: { agentId: agentId },
     };
 
     if (keyword) {
@@ -207,14 +216,19 @@ router.get('/customers', async (req: Request, res: Response) => {
 });
 
 // 获取客户详情
-router.get('/customers/:id', async (req: Request, res: Response) => {
+router.get('/customers/:id([0-9a-fA-F-]{36})', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
+    const isAdmin = (req as any).userRole === 'admin';
     const customerId = req.params.id;
 
-    // 验证客户属于该代理商
+    // 验证客户（admin 不需要校验归属关系）
+    const customerWhere: any = { id: customerId };
+    if (!isAdmin) {
+      const agentId = await resolveAgentId(userId);
+      customerWhere.UserAgentRelation = { agentId: agentId };
+    }
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentRelation: { agentId: agentId } },
       select: {
         id: true,
         phone: true,
@@ -224,8 +238,8 @@ router.get('/customers/:id', async (req: Request, res: Response) => {
         status: true,
         createdAt: true,
         updatedAt: true,
-        agentId: true,
-        featureSwitches: true,
+
+        UserFeatureSwitch: true,
       },
     });
 
@@ -262,23 +276,23 @@ router.post(
   ],
   async (req: Request, res: Response) => {
     try {
-      const agentId = (req as any).userId;
+      const userId = (req as any).userId;
       const { phone, name, password } = req.body;
-
-      // 验证代理商
-      const agent = await prisma.user.findFirst({
-        where: { id: agentId, role: 'agent' },
-      });
-
-      if (!agent) {
-        return res.status(403).json({ success: false, message: '非代理商账号' });
-      }
 
       // 验证输入
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ success: false, message: errors.array()[0].msg });
       }
+
+      // 获取真实的 Agent ID（通过 userId 查 Agent 表）
+      const agent = await prisma.agent.findUnique({
+        where: { userId },
+      });
+      if (!agent) {
+        return res.status(403).json({ success: false, message: '代理记录不存在，请联系管理员' });
+      }
+      const agentId = agent.id;
 
       // 检查手机号是否已存在
       const existing = await prisma.user.findUnique({
@@ -289,15 +303,18 @@ router.post(
         return res.status(400).json({ success: false, message: '手机号已被注册' });
       }
 
-      // 创建客户账号，使用bcrypt哈希密码
+      // 创建客户账号
+      const customerId = genUUID();
+      // 分两步创建：先建User，再建关联（避免MySQL遗留字段FK约束冲突）
       const customer = await prisma.user.create({
         data: {
+          id: customerId,
           phone,
           name: name || phone,
-          password: hashPassword(password || phone.slice(-6)), // 若未提供密码则使用手机号后6位
+          password: hashPassword(password || phone.slice(-6)),
           role: 'customer',
-          agentRelation: { create: { agentId: agentId } },
           status: 'active',
+          updatedAt: new Date(),
         },
         select: {
           id: true,
@@ -307,9 +324,44 @@ router.post(
           role: true,
           status: true,
           createdAt: true,
-          agentId: true,
         },
       });
+
+      // 建立客户-代理关联
+      try {
+        await prisma.userAgentRelation.create({
+          data: {
+            id: genUUID(),
+            userId: customerId,
+            agentId: agentId,
+          },
+        });
+      } catch (relError: any) {
+        await prisma.user.delete({ where: { id: customerId } }).catch(() => {});
+        console.error('建立代理关联失败:', relError);
+        return res.status(500).json({ success: false, message: '建立代理关联失败' });
+      }
+
+      // 初始化客户功能开关：默认仅开通 AI创作工厂
+      try {
+        const allFeatures = await prisma.featureSwitch.findMany();
+        if (allFeatures.length > 0) {
+          const featureRecords = allFeatures.map(f => ({
+            id: genUUID(),
+            userId: customerId,
+            featureCode: f.code,
+            enabled: f.code === 'factory',
+            updatedAt: new Date(),
+          }));
+          await prisma.userFeatureSwitch.createMany({ data: featureRecords });
+        }
+      } catch (featError: any) {
+        // 功能初始化失败时回滚：删除用户和关联
+        await prisma.userAgentRelation.delete({ where: { id: (await prisma.userAgentRelation.findFirst({ where: { userId: customerId } }))!.id } }).catch(() => {});
+        await prisma.user.delete({ where: { id: customerId } }).catch(() => {});
+        console.error('初始化客户功能开关失败:', featError);
+        return res.status(500).json({ success: false, message: '初始化客户功能开关失败' });
+      }
 
       res.json({
         success: true,
@@ -324,15 +376,16 @@ router.post(
 );
 
 // 更新客户信息
-router.put('/customers/:id', async (req: Request, res: Response) => {
+router.put('/customers/:id([0-9a-fA-F-]{36})', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
     const customerId = req.params.id;
     const { name, avatar } = req.body;
 
     // 验证客户属于该代理商
+    const agentId = await resolveAgentId(userId);
     const existing = await prisma.user.findFirst({
-      where: { id: customerId, agentRelation: { agentId: agentId } },
+      where: { id: customerId, UserAgentRelation: { agentId: agentId } },
     });
 
     if (!existing) {
@@ -351,7 +404,7 @@ router.put('/customers/:id', async (req: Request, res: Response) => {
         status: true,
         createdAt: true,
         updatedAt: true,
-        agentId: true,
+
       },
     });
 
@@ -367,14 +420,15 @@ router.put('/customers/:id', async (req: Request, res: Response) => {
 });
 
 // 冻结/解冻客户
-router.post('/customers/:id/toggle-status', async (req: Request, res: Response) => {
+router.post('/customers/:id([0-9a-fA-F-]{36})/toggle-status', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
     const customerId = req.params.id;
 
     // 验证客户属于该代理商
+    const agentId = await resolveAgentId(userId);
     const existing = await prisma.user.findFirst({
-      where: { id: customerId, agentRelation: { agentId: agentId } },
+      where: { id: customerId, UserAgentRelation: { agentId: agentId } },
     });
 
     if (!existing) {
@@ -395,7 +449,7 @@ router.post('/customers/:id/toggle-status', async (req: Request, res: Response) 
         status: true,
         createdAt: true,
         updatedAt: true,
-        agentId: true,
+
       },
     });
 
@@ -411,17 +465,18 @@ router.post('/customers/:id/toggle-status', async (req: Request, res: Response) 
 });
 
 // 重置客户密码
-router.post('/customers/:id/reset-password', async (req: Request, res: Response) => {
+router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
     const customerId = req.params.id;
     const { newPassword = '' } = req.body;
 
     const generatedPassword = newPassword || Math.random().toString(36).slice(-8);
 
     // 验证客户属于该代理商
+    const agentId = await resolveAgentId(userId);
     const existing = await prisma.user.findFirst({
-      where: { id: customerId, agentRelation: { agentId: agentId } },
+      where: { id: customerId, UserAgentRelation: { agentId: agentId } },
     });
 
     if (!existing) {
@@ -445,14 +500,15 @@ router.post('/customers/:id/reset-password', async (req: Request, res: Response)
 });
 
 // 获取客户功能开关
-router.get('/customers/:id/features', async (req: Request, res: Response) => {
+router.get('/customers/:id([0-9a-fA-F-]{36})/features', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
     const customerId = req.params.id;
 
     // 验证客户属于该代理商
+    const agentId = await resolveAgentId(userId);
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentRelation: { agentId: agentId } },
+      where: { id: customerId, UserAgentRelation: { agentId: agentId } },
     });
 
     if (!customer) {
@@ -461,32 +517,40 @@ router.get('/customers/:id/features', async (req: Request, res: Response) => {
 
     // 获取全局功能开关
     const globalFeatures = await prisma.featureSwitch.findMany({
-      include: {
-        subFeatures: true,
-      },
+      orderBy: { sortOrder: 'asc' },
     });
 
     // 获取客户的功能开关设置
-    const customerFeatures = await prisma.userFeatureSwitch.findMany({
+    let customerFeatures = await prisma.userFeatureSwitch.findMany({
       where: { userId: customerId },
     });
 
+    // 若该客户尚无功能开关记录，按全局默认值自动初始化（仅 AI 创作工厂默认开启）
+    if (customerFeatures.length === 0 && globalFeatures.length > 0) {
+      const now = new Date();
+      const defaultRecords = globalFeatures.map((f) => ({
+        id: genUUID(),
+        userId: customerId,
+        featureCode: f.code,
+        enabled: f.code === 'factory',
+        createdAt: now,
+        updatedAt: now,
+      }));
+      await prisma.userFeatureSwitch.createMany({ data: defaultRecords });
+      customerFeatures = defaultRecords;
+    }
+
+    const customerFeatureMap = new Map(customerFeatures.map((f) => [f.featureCode, f]));
+
     // 合并数据
     const featuresWithStatus = globalFeatures.map((feature) => {
-      const customerSetting = customerFeatures.find((f) => f.featureCode === feature.code);
+      const customerSetting = customerFeatureMap.get(feature.code);
       return {
         id: feature.id,
         code: feature.code,
         name: feature.name,
         description: feature.description,
         enabled: customerSetting ? customerSetting.enabled : feature.enabled,
-        subFeatures: feature.subFeatures.map((sub) => ({
-          id: sub.id,
-          code: sub.code,
-          name: sub.name,
-          description: sub.description,
-          enabled: sub.enabled,
-        })),
       };
     });
 
@@ -503,13 +567,14 @@ router.get('/customers/:id/features', async (req: Request, res: Response) => {
 // 更新客户功能开关
 router.put('/customers/:id/features', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
     const customerId = req.params.id;
     const { features } = req.body;
 
     // 验证客户属于该代理商
+    const agentId = await resolveAgentId(userId);
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentRelation: { agentId: agentId } },
+      where: { id: customerId, UserAgentRelation: { agentId: agentId } },
     });
 
     if (!customer) {
@@ -527,9 +592,11 @@ router.put('/customers/:id/features', async (req: Request, res: Response) => {
             },
           },
           create: {
+            id: genUUID(),
             userId: customerId,
             featureCode: feature.code,
             enabled: feature.enabled,
+            updatedAt: new Date(),
           },
           update: {
             enabled: feature.enabled,
@@ -549,15 +616,16 @@ router.put('/customers/:id/features', async (req: Request, res: Response) => {
 });
 
 // 获取客户统计数据
-router.get('/customers/:id/stats', async (req: Request, res: Response) => {
+router.get('/customers/:id([0-9a-fA-F-]{36})/stats', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
     const customerId = req.params.id;
     const { startDate, endDate } = req.query;
 
     // 验证客户属于该代理商
+    const agentId = await resolveAgentId(userId);
     const customer = await prisma.user.findFirst({
-      where: { id: customerId, agentRelation: { agentId: agentId } },
+      where: { id: customerId, UserAgentRelation: { agentId: agentId } },
     });
 
     if (!customer) {
@@ -598,7 +666,8 @@ router.get('/customers/:id/stats', async (req: Request, res: Response) => {
 // ============================================================
 router.get('/acquisition/stats', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
+    const agentId = await resolveAgentId(userId);
     const customerIds = await prisma.userAgentRelation.findMany({
       where: { agentId },
       select: { userId: true },
@@ -624,13 +693,11 @@ router.get('/acquisition/stats', async (req: Request, res: Response) => {
   }
 });
 
-// 获取客户获客潜客列表
+// 获取客户获客潜客统计（仅聚合，不暴露潜客个人身份信息）
 router.get('/acquisition/leads', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
-    const { page = '1', pageSize = '20', search, status } = req.query;
-    const skip = (parseInt(page as string) - 1) * parseInt(pageSize as string);
-    const take = parseInt(pageSize as string);
+    const userId = (req as any).userId;
+    const agentId = await resolveAgentId(userId);
 
     const customerIds = await prisma.userAgentRelation.findMany({
       where: { agentId },
@@ -638,21 +705,26 @@ router.get('/acquisition/leads', async (req: Request, res: Response) => {
     });
     const ids = customerIds.map(r => r.userId);
 
-    const where: any = { userId: { in: ids } };
-    if (status && status !== 'all') where.status = status;
-    if (search) where.name = { contains: search as string };
+    // 按状态统计潜客数量
+    const statusBreakdown = await prisma.acquisitionLead.groupBy({
+      by: ['status'],
+      where: { userId: { in: ids } },
+      _count: { id: true },
+    });
 
-    const [leads, total] = await Promise.all([
-      prisma.acquisitionLead.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }),
-      prisma.acquisitionLead.count({ where }),
-    ]);
+    const totalLeads = await prisma.acquisitionLead.count({
+      where: { userId: { in: ids } },
+    });
+
+    const statusCounts: Record<string, number> = {};
+    statusBreakdown.forEach(g => { statusCounts[g.status] = g._count.id; });
 
     res.json({
       success: true,
-      data: { list: leads, total, page: parseInt(page as string), pageSize: take },
+      data: { totalLeads, statusCounts },
     });
   } catch (error: any) {
-    console.error('获取获客潜客列表失败:', error);
+    console.error('获取获客潜客统计失败:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -696,7 +768,7 @@ router.post('/api-keys', [
     const { providerId, apiKey } = req.body;
 
     const created = await prisma.agentApiConfig.create({
-      data: { agentId, providerId, apiKey, enabled: true },
+      data: { id: genUUID(), agentId, providerId, apiKey, enabled: true, updatedAt: new Date() },
     });
 
     res.json({
@@ -711,35 +783,39 @@ router.post('/api-keys', [
 });
 
 // ============================================================
-// 内容素材管理
+// 内容素材统计（仅聚合数据，不暴露客户素材内容）
 // ============================================================
 router.get('/materials', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
-    const { page = '1', pageSize = '20', type } = req.query;
-    const skip = (parseInt(page as string) - 1) * parseInt(pageSize as string);
-    const take = parseInt(pageSize as string);
+    const userId = (req as any).userId;
+    const agentId = await resolveAgentId(userId);
 
     const customerIds = await prisma.userAgentRelation.findMany({
       where: { agentId },
       select: { userId: true },
     });
-    const ids = [agentId, ...customerIds.map(r => r.customerId)];
+    const ids = [userId, ...customerIds.map(r => r.userId)];
 
-    const where: any = { userId: { in: ids } };
-    if (type && type !== 'all') where.type = type;
+    // 按类型统计素材数量
+    const typeBreakdown = await prisma.material.groupBy({
+      by: ['type'],
+      where: { userId: { in: ids } },
+      _count: { id: true },
+    });
 
-    const [materials, total] = await Promise.all([
-      prisma.material.findMany({ where, skip, take, orderBy: { createdAt: 'desc' } }),
-      prisma.material.count({ where }),
-    ]);
+    const totalMaterials = await prisma.material.count({
+      where: { userId: { in: ids } },
+    });
+
+    const typeCounts: Record<string, number> = {};
+    typeBreakdown.forEach(g => { typeCounts[g.type] = g._count.id; });
 
     res.json({
       success: true,
-      data: { list: materials, total, page: parseInt(page as string), pageSize: take },
+      data: { totalMaterials, typeCounts },
     });
   } catch (error: any) {
-    console.error('获取素材列表失败:', error);
+    console.error('获取素材统计失败:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -749,7 +825,8 @@ router.get('/materials', async (req: Request, res: Response) => {
 // ============================================================
 router.get('/share/stats', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
+    const agentId = await resolveAgentId(userId);
     const customerIds = await prisma.userAgentRelation.findMany({
       where: { agentId },
       select: { userId: true },
@@ -760,7 +837,7 @@ router.get('/share/stats', async (req: Request, res: Response) => {
       prisma.shareQrCode.count({ where: { userId: { in: ids } } }),
       prisma.shareRecord.count({ where: { userId: { in: ids } } }),
       prisma.shareRecord.count({ where: { userId: { in: ids }, status: 'scanned' } }),
-      prisma.shareRecord.groupBy({ by: ['visitorId'], where: { userId: { in: ids }, visitorId: { not: null } }, _count: true }),
+      (prisma as any).shareRecord.groupBy({ by: ['visitorId'], where: { userId: { in: ids }, visitorId: { not: null } }, _count: true }),
     ]);
 
     res.json({
@@ -773,12 +850,15 @@ router.get('/share/stats', async (req: Request, res: Response) => {
   }
 });
 
+// 分享记录统计（仅按日期聚合，不暴露扫码人身份信息）
 router.get('/share/records', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
-    const { page = '1', pageSize = '20' } = req.query;
-    const skip = (parseInt(page as string) - 1) * parseInt(pageSize as string);
-    const take = parseInt(pageSize as string);
+    const userId = (req as any).userId;
+    const agentId = await resolveAgentId(userId);
+    const { days = '30' } = req.query;
+    const lookbackDays = parseInt(days as string) || 30;
+    const since = new Date();
+    since.setDate(since.getDate() - lookbackDays);
 
     const customerIds = await prisma.userAgentRelation.findMany({
       where: { agentId },
@@ -786,21 +866,27 @@ router.get('/share/records', async (req: Request, res: Response) => {
     });
     const ids = customerIds.map(r => r.userId);
 
-    const [records, total] = await Promise.all([
-      prisma.shareRecord.findMany({
-        where: { userId: { in: ids } },
-        skip, take,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.shareRecord.count({ where: { userId: { in: ids } } }),
-    ]);
+    const records = await prisma.shareRecord.findMany({
+      where: { userId: { in: ids }, createdAt: { gte: since } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // 按日期聚合扫码次数
+    const dailyCounts: Record<string, number> = {};
+    records.forEach(r => {
+      const dateKey = r.createdAt.toISOString().split('T')[0];
+      dailyCounts[dateKey] = (dailyCounts[dateKey] || 0) + 1;
+    });
+
+    const total = await prisma.shareRecord.count({ where: { userId: { in: ids } } });
 
     res.json({
       success: true,
-      data: { list: records, total, page: parseInt(page as string), pageSize: take },
+      data: { total, dailyCounts },
     });
   } catch (error: any) {
-    console.error('获取分享记录失败:', error);
+    console.error('获取分享记录统计失败:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
@@ -810,7 +896,8 @@ router.get('/share/records', async (req: Request, res: Response) => {
 // ============================================================
 router.get('/usage', async (req: Request, res: Response) => {
   try {
-    const agentId = (req as any).userId;
+    const userId = (req as any).userId;
+    const agentId = await resolveAgentId(userId);
     const { range = '30d' } = req.query;
     const days = parseInt(range as string) || 30;
     const since = new Date();
@@ -820,10 +907,10 @@ router.get('/usage', async (req: Request, res: Response) => {
       where: { agentId },
       select: { userId: true },
     });
-    const ids = [agentId, ...customerIds.map(r => r.customerId)];
+    const customerUserIds = [userId, ...customerIds.map(r => r.userId)];
 
     const logs = await prisma.apiUsageLog.findMany({
-      where: { userId: { in: ids }, createdAt: { gte: since } },
+      where: { userId: { in: customerUserIds }, createdAt: { gte: since } },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -865,6 +952,120 @@ router.get('/usage', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('获取用量统计失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+// ============================================================
+// 结算管理
+// ============================================================
+router.get('/settlement/overview', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const agent = await prisma.agent.findUnique({ where: { userId } });
+    if (!agent) {
+      return res.status(403).json({ success: false, message: '代理记录不存在' });
+    }
+
+    const agentId = agent.id;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // 累计收益 & 本月收益
+    const [earningsResult, monthEarnings, pendingEarnings, customerCount] = await Promise.all([
+      prisma.payment.aggregate({
+        where: { agentId, status: 'paid' },
+        _sum: { amount: true },
+      }),
+      prisma.payment.aggregate({
+        where: { agentId, status: 'paid', paidAt: { gte: monthStart } },
+        _sum: { amount: true },
+      }),
+      prisma.payment.aggregate({
+        where: { agentId, status: 'pending' },
+        _sum: { amount: true },
+      }),
+      prisma.userAgentRelation.count({ where: { agentId } }),
+    ]);
+
+    // 近6个月收益趋势
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const recentPayments = await prisma.payment.findMany({
+      where: { agentId, status: 'paid', paidAt: { gte: sixMonthsAgo } },
+      select: { amount: true, paidAt: true },
+      orderBy: { paidAt: 'asc' },
+    });
+
+    const monthlyTrend = new Array(6).fill(0).map((_, i) => {
+      const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      return { month: `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`, amount: 0 };
+    }).reverse();
+
+    recentPayments.forEach(p => {
+      if (!p.paidAt) return;
+      const key = `${p.paidAt.getFullYear()}-${String(p.paidAt.getMonth() + 1).padStart(2, '0')}`;
+      const entry = monthlyTrend.find(t => t.month === key);
+      if (entry) entry.amount += Number(p.amount || 0);
+    });
+
+    res.json({
+      success: true,
+      data: {
+        balance: Number(agent.balance || 0),
+        totalEarnings: Number(earningsResult._sum.amount || 0),
+        monthEarnings: Number(monthEarnings._sum.amount || 0),
+        pendingEarnings: Number(pendingEarnings._sum.amount || 0),
+        commissionRate: Number(agent.commissionRate || 0),
+        customerCount,
+        monthlyTrend,
+      },
+    });
+  } catch (error: any) {
+    console.error('结算概览失败:', error);
+    res.status(500).json({ success: false, message: '服务器错误' });
+  }
+});
+
+router.get('/settlement/records', async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const agent = await prisma.agent.findUnique({ where: { userId } });
+    if (!agent) {
+      return res.status(403).json({ success: false, message: '代理记录不存在' });
+    }
+
+    const { page = '1', pageSize = '20' } = req.query;
+    const skip = (parseInt(page as string) - 1) * parseInt(pageSize as string);
+
+    const [records, total] = await Promise.all([
+      prisma.payment.findMany({
+        where: { agentId: agent.id },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: parseInt(pageSize as string),
+      }),
+      prisma.payment.count({ where: { agentId: agent.id } }),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        list: records.map(r => ({
+          id: r.id,
+          amount: Number(r.amount),
+          status: r.status,
+          type: r.type,
+          description: r.description,
+          paidAt: r.paidAt,
+          createdAt: r.createdAt,
+        })),
+        total,
+        page: parseInt(page as string),
+        pageSize: parseInt(pageSize as string),
+      },
+    });
+  } catch (error: any) {
+    console.error('结算记录失败:', error);
     res.status(500).json({ success: false, message: '服务器错误' });
   }
 });

@@ -69,7 +69,6 @@ interface CustomerFeature {
   description?: string;
   icon?: string;
   enabled: boolean;
-  subSwitches?: CustomerFeature[];
 }
 
 const TAG_COLORS = [
@@ -289,28 +288,7 @@ export default function AdminCustomersPage() {
     setCustomerFeatures(prev =>
       prev.map(f => {
         if (f.code === feature.code) {
-          return {
-            ...f,
-            enabled,
-            subSwitches: f.subSwitches?.map(s => ({ ...s, enabled })) ?? undefined,
-          };
-        }
-        return f;
-      })
-    );
-  };
-
-  // 切换子功能开关
-  const handleSubFeatureToggle = (parentCode: string, subFeature: CustomerFeature, enabled: boolean) => {
-    setCustomerFeatures(prev =>
-      prev.map(f => {
-        if (f.code === parentCode) {
-          return {
-            ...f,
-            subSwitches: f.subSwitches?.map(s =>
-              s.code === subFeature.code ? { ...s, enabled } : s
-            ) ?? undefined,
-          };
+          return { ...f, enabled };
         }
         return f;
       })
@@ -343,18 +321,19 @@ export default function AdminCustomersPage() {
     {
       title: '客户',
       key: 'user',
-      width: 180,
+      width: 140,
       render: (_, r) => (
         <Space>
           <UserOutlined style={{ color: '#52c41a' }} />
-          <div>
-            <div style={{ fontWeight: 500 }}>{r.name}</div>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              <PhoneOutlined /> {r.phone}
-            </Text>
-          </div>
+          <Text strong>{r.name}</Text>
         </Space>
       ),
+    },
+    {
+      title: '手机号',
+      dataIndex: 'phone',
+      key: 'phone',
+      width: 130,
     },
     {
       title: '所属代理商',
@@ -367,7 +346,7 @@ export default function AdminCustomersPage() {
       title: '状态',
       dataIndex: 'status',
       key: 'status',
-      width: 90,
+      width: 80,
       render: status => (
         <Badge
           status={status === 'active' ? 'success' : 'error'}
@@ -378,6 +357,7 @@ export default function AdminCustomersPage() {
     {
       title: '已开通功能',
       key: 'features',
+      width: 220,
       render: (_, r) => {
         const features = r.features || {};
         const enabledEntries = Object.entries(features)
@@ -408,7 +388,7 @@ export default function AdminCustomersPage() {
     {
       title: '操作',
       key: 'action',
-      width: 220,
+      width: 240,
       render: (_, r) => (
         <Space size={4} wrap>
           <Button type="link" size="small" onClick={() => handleOpenDetail(r)}>
@@ -648,32 +628,6 @@ export default function AdminCustomersPage() {
                           unCheckedChildren="关"
                         />
                       </div>
-                      {/* 子功能开关 */}
-                      {f.subSwitches && f.subSwitches.length > 0 && (
-                        <div style={{ marginLeft: 24, marginBottom: 4 }}>
-                          {f.subSwitches.map(s => (
-                            <div
-                              key={s.code}
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                padding: '4px 8px',
-                              }}
-                            >
-                              <Text style={{ fontSize: 13 }}>{s.name}</Text>
-                              <Switch
-                                size="small"
-                                checked={s.enabled}
-                                onChange={v => handleSubFeatureToggle(f.code, s, v)}
-                                disabled={!f.enabled}
-                                checkedChildren="开"
-                                unCheckedChildren="关"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 })}

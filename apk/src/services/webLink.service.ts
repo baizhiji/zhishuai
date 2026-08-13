@@ -4,7 +4,7 @@
 import { Linking, Share, Alert } from 'react-native';
 
 // Web端基础URL
-const WEB_BASE_URL = 'http://43.129.16.148:3001';
+const WEB_BASE_URL = 'https://baizhiji.net';
 
 // 深链接映射表
 export const WEB_DEEP_LINKS = {

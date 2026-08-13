@@ -1,30 +1,143 @@
 import request from '../lib/request';
 import type {
   ApiResponse,
-  User,
-  LoginRequest,
-  RegisterRequest,
-  LoginResponse,
-  Material,
-  MaterialListParams,
-  Job,
-  Resume,
-  Customer,
-  AcquisitionTask,
-  AcquisitionStats,
-  ReferralCode,
-  ReferralRecord,
-  ReferralStats,
   Order,
   OrderType,
   PaymentMethod,
   SubscriptionPlan,
-  UserBalance,
-  UserPoints,
-  ApiProvider,
-  Knowledge,
-  Log
 } from '../types/api';
+import type {
+  User,
+  LoginRequest,
+  LoginResponse,
+  Resume,
+  JobPosition as Job,
+  Referral as ReferralRecord,
+  ReferralQRCode as ReferralCode,
+} from '../types/index';
+
+// 注册请求
+export interface RegisterRequest {
+  phone: string;
+  password: string;
+  name?: string;
+  code?: string;
+}
+
+// 素材库相关类型
+export interface Material {
+  id: string;
+  title: string;
+  type: 'text' | 'image' | 'video' | 'audio';
+  content?: string;
+  url?: string;
+  tags: string[];
+  category?: string;
+  used: boolean;
+  usedAt?: string;
+  usedBy?: string;
+  viewCount: number;
+  likeCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MaterialListParams {
+  type?: string;
+  status?: string;
+  keyword?: string;
+  category?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// 获客相关类型
+export interface Customer {
+  id: string;
+  phone: string;
+  name: string;
+  avatar?: string;
+  status: 'active' | 'frozen';
+  role: string;
+  monthlyFee?: number;
+  totalPaid?: number;
+  materialCount?: number;
+  accountCount?: number;
+  publishCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcquisitionTask {
+  id: string;
+  name: string;
+  platform: string;
+  status: string;
+  type?: string;
+  config?: Record<string, unknown>;
+  resultCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcquisitionStats {
+  totalLeads: number;
+  todayNew: number;
+  converted: number;
+  conversionRate: number;
+}
+
+// 推荐分享相关类型
+export interface ReferralStats {
+  totalReferrals: number;
+  totalRegistered: number;
+  totalActive: number;
+  totalCommission: number;
+}
+
+// 用户中心相关类型
+export interface UserBalance {
+  balance: number;
+  frozenBalance: number;
+  totalRecharge: number;
+  totalConsume: number;
+}
+
+export interface UserPoints {
+  points: number;
+  totalEarned: number;
+  totalUsed: number;
+}
+
+// 系统设置相关类型
+export interface ApiProvider {
+  id: string;
+  name: string;
+  provider: string;
+  apiKey: string;
+  apiSecret?: string;
+  baseUrl: string;
+  enabled: boolean;
+}
+
+export interface Knowledge {
+  id: string;
+  name: string;
+  type: string;
+  url?: string;
+  size?: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface Log {
+  id: string;
+  userId: string;
+  action: string;
+  detail?: string;
+  ip?: string;
+  createdAt: string;
+}
 
 // ==================== 认证相关 ====================
 

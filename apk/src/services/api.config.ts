@@ -1,8 +1,8 @@
 // API 配置 - 通过 Expo 环境变量或默认值配置
-// 生产: https://api.zhishuai.cc/api  |  本地: http://localhost:3001/api
+// 生产: https://api.baizhiji.net/api  |  本地: http://localhost:3001/api
 // 可通过 EXPO_PUBLIC_API_URL 环境变量覆盖
 export const API_CONFIG = {
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://api.zhishuai.cc/api',
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://api.baizhiji.net/api',
   
   // 启用生产模式
   DEV_MODE: false,

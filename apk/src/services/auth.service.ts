@@ -35,55 +35,9 @@ export interface LoginResponse {
   user: UserInfo;
 }
 
-// Mock测试账号
-const MOCK_USERS = [
-  { phone: '13800138000', password: '123456', name: '测试用户', role: 'admin' as const },
-  { phone: '13800138001', password: '123456', name: '管理员', role: 'admin' as const },
-];
-
-// Mock登录响应数据格式（匹配API返回格式）
-const createMockResponse = (token: string, user: UserInfo): LoginResponse => ({
-  token,
-  user,
-});
-
 class AuthService {
-  // 是否使用Mock API（已关闭，统一使用真实API）
-  private useMock = false;
-
   // 用户登录
   async login(params: LoginParams): Promise<LoginResponse> {
-    if (this.useMock) {
-      // Mock登录验证
-      const mockUser = MOCK_USERS.find(
-        u => u.phone === params.phone && u.password === params.password
-      );
-      
-      if (mockUser) {
-        const userInfo: UserInfo = {
-          id: 'mock_' + Date.now(),
-          name: mockUser.name,
-          phone: mockUser.phone,
-          role: mockUser.role,
-          status: 'active',
-          expireTime: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        };
-        
-        const mockToken = 'mock_token_' + Date.now();
-        
-        // 保存Token和用户信息
-        TokenStorage.setToken(mockToken);
-        TokenStorage.setUserInfo(userInfo);
-        
-        console.log('Mock登录成功:', userInfo);
-        
-        // 直接返回 { token, user } 格式
-        return createMockResponse(mockToken, userInfo);
-      } else {
-        throw new Error('手机号或密码错误');
-      }
-    }
-    
     try {
       const response = await apiClient.post<LoginResponse>(
         API_ENDPOINTS.LOGIN,

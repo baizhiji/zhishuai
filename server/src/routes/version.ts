@@ -18,7 +18,7 @@ const DEFAULT_VERSION = {
 // 获取最新版本信息
 router.get('/latest', async (_req, res) => {
   try {
-    const dbVersion = await prisma.appVersion.findFirst({
+    const dbVersion = await (prisma as any).appVersion.findFirst({
       where: { status: 'released' },
       orderBy: { releasedAt: 'desc' },
     });
@@ -52,7 +52,7 @@ router.post('/check', async (req, res) => {
   try {
     const { currentVersion, buildNumber, platform } = req.body;
 
-    const dbVersion = await prisma.appVersion.findFirst({
+    const dbVersion = await (prisma as any).appVersion.findFirst({
       where: {
         status: 'released',
         platform: { in: [platform || 'android', 'android', 'ios', 'web'] },
@@ -117,13 +117,13 @@ router.get('/versions', async (req, res) => {
     if (status) where.status = status as string;
 
     const [list, total] = await Promise.all([
-      prisma.appVersion.findMany({
+      (prisma as any).appVersion.findMany({
         where,
         orderBy: { releasedAt: 'desc' },
         skip,
         take,
       }),
-      prisma.appVersion.count({ where }),
+      (prisma as any).appVersion.count({ where }),
     ]);
 
     res.json({ success: true, data: { list, total, page: Number(page), pageSize: Number(pageSize) } });
@@ -142,7 +142,7 @@ router.post('/versions', async (req, res) => {
       return res.status(400).json({ success: false, message: '版本号不能为空' });
     }
 
-    const created = await prisma.appVersion.create({
+    const created = await (prisma as any).appVersion.create({
       data: {
         id: `version_${Date.now()}`,
         version,
@@ -168,14 +168,14 @@ router.put('/versions/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = await prisma.appVersion.findUnique({ where: { id } });
+    const existing = await (prisma as any).appVersion.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ success: false, message: '版本不存在' });
     }
 
     const { version, platform, buildNumber, changelog, downloadUrl, forceUpdate, status } = req.body;
 
-    const updated = await prisma.appVersion.update({
+    const updated = await (prisma as any).appVersion.update({
       where: { id },
       data: {
         ...(version !== undefined && { version }),
@@ -201,12 +201,12 @@ router.delete('/versions/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existing = await prisma.appVersion.findUnique({ where: { id } });
+    const existing = await (prisma as any).appVersion.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ success: false, message: '版本不存在' });
     }
 
-    await prisma.appVersion.delete({ where: { id } });
+    await (prisma as any).appVersion.delete({ where: { id } });
 
     res.json({ success: true, data: null });
   } catch (error) {
@@ -276,11 +276,8 @@ router.post('/announcements', async (req, res) => {
         title,
         content: content || null,
         type: type || 'info',
-        priority: priority || 'normal',
         target: target || 'all',
         status: status || 'draft',
-        startTime: startTime ? new Date(startTime) : null,
-        endTime: endTime ? new Date(endTime) : null,
         publishedAt: status === 'published' ? new Date() : null,
       },
     });

@@ -2,8 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // 跳过预存类型检查错误，不阻塞构建
-  typescript: { ignoreBuildErrors: true },
+  // 强制类型检查：所有类型错误必须修复后才能构建（商用化要求）
+  typescript: { ignoreBuildErrors: false },
 
   // Transpile @ant-design/charts
   transpilePackages: ['@ant-design/charts'],
@@ -132,6 +132,32 @@ const nextConfig = {
           {
             key: 'Expires',
             value: '0',
+          },
+          // 安全响应头：防止点击劫持、MIME 嗅探、信息泄露（P0 商用要求）
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=()',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; font-src 'self' data:; connect-src 'self' https: http:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
           },
         ],
       },

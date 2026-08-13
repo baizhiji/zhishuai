@@ -34,7 +34,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 });
 
 // 更新用户信息
-router.put('/', authMiddleware, validate(updateProfileSchema), async (req: Request, res: Response) => {
+router.put('/', authMiddleware, validate({ body: updateProfileSchema }), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { name, avatar } = req.body;
@@ -60,7 +60,7 @@ router.put('/', authMiddleware, validate(updateProfileSchema), async (req: Reque
 });
 
 // 修改密码
-router.put('/password', authMiddleware, validate(changePasswordSchema), async (req: Request, res: Response) => {
+router.put('/password', authMiddleware, validate({ body: changePasswordSchema }), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { oldPassword, newPassword } = req.body;
@@ -135,7 +135,7 @@ router.get('/packages', async (req: Request, res: Response) => {
 });
 
 // 员工管理 - 获取列表
-router.get('/staff', authMiddleware, validate(paginationSchema), async (req: Request, res: Response) => {
+router.get('/staff', authMiddleware, validate({ query: paginationSchema }), async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { page = 1, pageSize = 20 } = req.query;
@@ -281,7 +281,7 @@ router.post('/delete-account', authMiddleware, async (req: Request, res: Respons
       data: {
         status: 'deleted',
         phone: '',
-        email: '',
+    
         name: '已注销用户',
       },
     });

@@ -1,0 +1,1560 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model AIContentFeedback {
+  id          String   @id
+  userId      String
+  contentId   String?
+  contentType String
+  content     String
+  adopted     Boolean  @default(false)
+  edited      Boolean  @default(false)
+  rating      Int?
+  edits       String?
+  platform    String?
+  createdAt   DateTime @default(now())
+
+  @@index([contentType])
+  @@index([userId, createdAt])
+}
+
+model AIExample {
+  id         String   @id
+  type       String
+  platform   String?
+  content    String
+  quality    Float    @default(7)
+  tags       String?
+  metadata   Json?
+  source     String?
+  usageCount Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([quality])
+  @@index([type, platform])
+}
+
+model AIUsageStats {
+  id           String   @id
+  userId       String
+  agentId      String?
+  feature      String
+  model        String
+  tokens       Int      @default(0)
+  cost         Decimal  @default(0.0000) @db.Decimal(10, 4)
+  successCount Int      @default(0)
+  failCount    Int      @default(0)
+  period       String   @default("daily")
+  periodStart  DateTime
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, feature, model, periodStart])
+  @@index([userId, periodStart])
+}
+
+model AcquisitionAutomation {
+  id             String    @id
+  userId         String
+  name           String
+  platform       String
+  status         String    @default("draft")
+  targetLeads    Int       @default(100)
+  currentLeads   Int       @default(0)
+  productInfo    String?
+  targetAudience String?
+  strategy       Json?
+  schedule       DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime
+  User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model AcquisitionData {
+  id            String    @id
+  userId        String
+  source        String
+  sourceType    String
+  name          String?
+  phone         String?
+  email         String?
+  wechat        String?
+  company       String?
+  position      String?
+  address       String?
+  latitude      Float?
+  longitude     Float?
+  business      String?
+  employeeCount String?
+  roomId        String?
+  roomName      String?
+  platform      String?
+  intentScore   Int?
+  intentLevel   String?
+  intentTags    String?
+  status        String    @default("new")
+  followupAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  User          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([intentScore])
+  @@index([userId, source])
+  @@index([userId, status])
+}
+
+model AcquisitionLead {
+  id              String           @id
+  userId          String
+  name            String?
+  phone           String
+  source          String?
+  status          String           @default("new")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  aiFollowup      String?
+  aiInsights      String?
+  aiQuality       String?
+  aiScore         Int?
+  convertedAt     DateTime?
+  email           String?
+  lastContact     DateTime?
+  notes           String?
+  taskId          String?
+  AcquisitionTask AcquisitionTask? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  User            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  LeadFollowup    LeadFollowup[]
+
+  @@index([aiScore])
+  @@index([source])
+  @@index([taskId], map: "AcquisitionLead_taskId_fkey")
+  @@index([userId, status])
+}
+
+model AcquisitionSource {
+  id        String   @id
+  userId    String
+  name      String
+  type      String
+  config    Json?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+}
+
+model AcquisitionTask {
+  id              String            @id
+  userId          String
+  title           String
+  channel         String
+  status          String            @default("pending")
+  progress        Int               @default(0)
+  leadsCount      Int               @default(0)
+  targetCount     Int?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  AcquisitionLead AcquisitionLead[]
+  User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "AcquisitionTask_userId_fkey")
+}
+
+model AdminLog {
+  id        String   @id
+  userId    String
+  action    String
+  detail    String?
+  ip        String?
+  createdAt DateTime @default(now())
+  target    String?
+  userAgent String?
+  userName  String?
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "AdminLog_userId_fkey")
+}
+
+model Agent {
+  id                String              @id
+  userId            String              @unique
+  level             String              @default("district")
+  status            String              @default("active")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  agentType         String              @default("commission")
+  balance           Decimal             @default(0.00) @db.Decimal(10, 2)
+  commissionRate    Decimal             @default(0.30) @db.Decimal(10, 2)
+  lastPaidAt        DateTime?
+  monthlyPaid       Decimal             @default(0.00) @db.Decimal(10, 2)
+  name              String
+  oneTimeFee        Decimal             @default(0.00) @db.Decimal(10, 2)
+  parentId          String?
+  region            String?
+  totalPaid         Decimal             @default(0.00) @db.Decimal(10, 2)
+  totalRevenue      Decimal             @default(0.00) @db.Decimal(10, 2)
+  Agent             Agent?              @relation("AgentToAgent", fields: [parentId], references: [id])
+  other_Agent       Agent[]             @relation("AgentToAgent")
+  User              User                @relation(fields: [userId], references: [id])
+  Payment           Payment[]
+  UserAgentRelation UserAgentRelation[]
+
+  @@index([parentId], map: "Agent_parentId_fkey")
+}
+
+model AgentApiConfig {
+  id         String   @id
+  agentId    String   @unique
+  providerId String
+  apiKey     String?  @db.Text
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime
+
+  @@index([agentId])
+}
+
+model AgentFeedback {
+  id             String   @id
+  agentId        String
+  conversationId String?
+  messageIndex   Int?
+  userMessage    String?
+  agentResponse  String?
+  helpful        Boolean?
+  rating         Int?
+  userId         String?
+  createdAt      DateTime @default(now())
+
+  @@index([agentId, createdAt])
+  @@index([helpful, createdAt])
+}
+
+model AgentStats {
+  id              String   @id
+  agentId         String
+  activeCustomers Int      @default(0)
+  totalRevenue    Decimal  @default(0.00) @db.Decimal(10, 2)
+  updatedAt       DateTime
+  commission      Decimal  @default(0.00) @db.Decimal(10, 2)
+  createdAt       DateTime @default(now())
+  newCustomers    Int      @default(0)
+  period          String
+  periodEnd       DateTime
+  periodStart     DateTime
+
+  @@unique([agentId, period, periodStart])
+}
+
+model Announcement {
+  id          String    @id
+  title       String
+  content     String?   @db.Text
+  type        String    @default("info")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  agentId     String?
+  priority    String    @default("normal") @db.VarChar(20)
+  publishedAt DateTime?
+  startTime   DateTime? @db.DateTime(0)
+  endTime     DateTime? @db.DateTime(0)
+  status      String    @default("draft")
+  target      String    @default("all")
+
+  @@index([status, publishedAt])
+}
+
+model ApiKey {
+  id          String    @id
+  userId      String
+  provider    String
+  apiKey      String?   @db.Text
+  secretKey   String?   @db.Text
+  status      String    @default("active")
+  isPrimary   Boolean   @default(false)
+  isSecondary Boolean   @default(false)
+  usage       Int       @default(0)
+  limit       Int       @default(0)
+  failCount   Int       @default(0)
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+
+  @@index([userId])
+  @@index([userId, provider])
+}
+
+model ApiProvider {
+  id        String   @id
+  name      String   @unique
+  type      String   @default("coze")
+  apiKey    String
+  baseUrl   String
+  enabled   Boolean  @default(true)
+  priority  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  config    Json?
+  isDefault Boolean  @default(false)
+  remark    String?
+}
+
+model ApiUsageLog {
+  id             String   @id
+  userId         String
+  agentId        String?
+  providerId     String
+  providerName   String
+  endpoint       String
+  model          String?
+  requestTokens  Int?
+  responseTokens Int?
+  cost           Decimal? @default(0.0000) @db.Decimal(10, 4)
+  duration       Int?
+  status         String   @default("success")
+  errorMsg       String?
+  createdAt      DateTime @default(now())
+
+  @@index([agentId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model AppVersion {
+  id          String    @id
+  version     String
+  platform    String    @default("android")
+  buildNumber Int       @default(1)
+  changelog   String?
+  downloadUrl String?
+  forceUpdate Boolean   @default(false)
+  status      String    @default("released")
+  releasedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+
+  @@index([platform, status])
+}
+
+model AutomationTask {
+  id           String    @id
+  userId       String
+  agentId      String?
+  name         String
+  type         String
+  platform     String
+  accountId    String
+  config       Json
+  schedule     Json?
+  enabled      Boolean   @default(true)
+  status       String    @default("idle")
+  lastRunAt    DateTime?
+  nextRunAt    DateTime?
+  runCount     Int       @default(0)
+  successCount Int       @default(0)
+  failCount    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+
+  @@index([status, enabled])
+  @@index([userId, type])
+}
+
+model Candidate {
+  id              String          @id
+  postId          String
+  userId          String
+  name            String
+  phone           String
+  resume          String?
+  status          String          @default("pending")
+  remark          String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  education       String?
+  experience      String?
+  email           String?
+  lastContactedAt DateTime?
+  location        String?
+  matchScore      Int?            @default(0)
+  skills          String?
+  source          String?         @default("manual")
+  RecruitmentPost RecruitmentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId], map: "Candidate_postId_fkey")
+  @@index([userId], map: "Candidate_userId_fkey")
+}
+
+model CandidateSearchConfig {
+  id              String    @id
+  userId          String
+  postId          String
+  platform        String    @default("boss")
+  keywords        String?
+  location        String?
+  experienceMin   Int?
+  experienceMax   Int?
+  education       String?
+  salaryMin       Int?
+  salaryMax       Int?
+  skills          String?
+  autoContact     Boolean   @default(false)
+  contactTemplate String?
+  status          String    @default("active")
+  lastSearchedAt  DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+
+  @@index([platform, status])
+  @@index([postId], map: "CandidateSearchConfig_postId_fkey")
+  @@index([userId, postId])
+}
+
+model ChatConversation {
+  id           String        @id
+  userId       String
+  title        String        @default("新对话")
+  modelKey     String?
+  provider     String?
+  messageCount Int           @default(0)
+  lastMessage  String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime
+  ChatMessage  ChatMessage[]
+
+  @@index([userId, createdAt])
+}
+
+model ChatMessage {
+  id               String           @id
+  conversationId   String
+  role             String           @default("user")
+  content          String
+  model            String?
+  provider         String?
+  tokens           Int?
+  latency          Int?
+  metadata         Json?
+  createdAt        DateTime         @default(now())
+  ChatConversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+model CodeAssistantConversation {
+  id           String   @id
+  userId       String
+  taskType     String   @default("generate")
+  language     String   @default("javascript")
+  userMode     String   @default("developer")
+  title        String   @default("新对话")
+  modelKey     String?
+  messageCount Int      @default(0)
+  lastMessage  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+
+  @@index([userId, createdAt])
+  @@index([userId, taskType])
+}
+
+model CodeAssistantMessage {
+  id             String   @id
+  conversationId String
+  role           String   @default("user")
+  content        String   @db.MediumText
+  model          String?
+  tokens         Int?
+  latency        Int?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model CompanyInfo {
+  id          String   @id
+  userId      String   @unique
+  name        String   @default("上海百智集网络科技有限公司")
+  logo        String?
+  industry    String?
+  size        String?
+  address     String?
+  description String?
+  contact     String?
+  phone       String?
+  email       String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+}
+
+model ComplianceAuditLog {
+  id             String   @id
+  userId         String
+  contentPreview String   @db.Text
+  contentType    String   @default("text")
+  platform       String?
+  passed         Boolean
+  score          Int
+  issueCount     Int      @default(0)
+  criticalCount  Int      @default(0)
+  warningCount   Int      @default(0)
+  issues         String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  @@index([passed, createdAt])
+  @@index([platform, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ContentFeedback {
+  id               String   @id
+  contentType      String
+  prompt           String
+  generatedContent String
+  adopted          Boolean  @default(false)
+  edited           Boolean  @default(false)
+  rating           Int?
+  editedContent    String?
+  userId           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime
+
+  @@index([adopted, createdAt])
+  @@index([contentType, createdAt])
+  @@index([userId])
+}
+
+model Conversation {
+  id        String   @id
+  userId    String
+  title     String   @default("新对话")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@index([userId, updatedAt], map: "idx_conv_user_updated")
+}
+
+model ConversationLog {
+  id              String          @id
+  userId          String
+  createdAt       DateTime        @default(now())
+  feedback        String?
+  generatedReply  String
+  originalMessage String
+  receiver        String
+  scenario        String
+  sender          String
+  style           String
+  templateId      String?
+  ScriptTemplate  ScriptTemplate? @relation(fields: [templateId], references: [id])
+  User            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([templateId])
+  @@index([userId, createdAt])
+}
+
+model DataCollectionTask {
+  id             String    @id
+  userId         String
+  source         String
+  keywords       String?
+  industry       String?
+  region         String?
+  radius         Int?
+  centerLat      Float?
+  centerLng      Float?
+  status         String    @default("pending")
+  totalCount     Int       @default(0)
+  collectedCount Int       @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  error          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime
+  User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+model DigitalHuman {
+  id          String      @id
+  userId      String
+  name        String
+  status      String      @default("active")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime
+  avatar      String?
+  description String?
+  gender      String
+  style       String
+  usageCount  Int         @default(0)
+  voice       String
+  User        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  VideoTask   VideoTask[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model Employee {
+  id          String    @id
+  userId      String
+  status      String    @default("active")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  avatar      String?
+  email       String?
+  lastLoginAt DateTime?
+  name        String
+  password    String
+  permissions Json?
+  phone       String    @unique
+  role        String    @default("staff")
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@index([userId])
+}
+
+model EmployeeLoginLog {
+  id         String   @id
+  employeeId String
+  ip         String?
+  userAgent  String?
+  status     String   @default("success")
+  errorMsg   String?
+  createdAt  DateTime @default(now())
+}
+
+model FeatureSubSwitch {
+  id            String        @id
+  featureCode   String
+  code          String
+  name          String
+  description   String?
+  enabled       Boolean       @default(true)
+  sortOrder     Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime
+  FeatureSwitch FeatureSwitch @relation(fields: [featureCode], references: [code])
+
+  @@unique([featureCode, code])
+}
+
+model FeatureSwitch {
+  id               String             @id
+  code             String             @unique
+  name             String
+  description      String?
+  icon             String?
+  enabled          Boolean            @default(true)
+  sortOrder        Int                @default(0)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime
+  FeatureSubSwitch FeatureSubSwitch[]
+}
+
+model HotspotCache {
+  id        String   @id
+  platform  String
+  keyword   String
+  heat      Int      @default(0)
+  label     String?
+  category  String?
+  url       String?
+  rawData   String?
+  cachedAt  DateTime @default(now())
+  expiresAt DateTime
+
+  @@unique([platform, keyword, cachedAt])
+  @@index([heat])
+  @@index([platform, cachedAt])
+}
+
+model Interview {
+  id          String   @id
+  userId      String
+  candidateId String
+  postId      String
+  round       Int      @default(1)
+  type        String   @default("video")
+  scheduledAt DateTime
+  duration    Int      @default(60)
+  location    String?
+  interviewer String?
+  status      String   @default("scheduled")
+  feedback    String?
+  score       Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+
+  @@index([candidateId])
+  @@index([postId])
+  @@index([scheduledAt])
+  @@index([userId, status])
+}
+
+model LeadFollowup {
+  id              String          @id
+  leadId          String
+  userId          String
+  content         String
+  createdAt       DateTime        @default(now())
+  nextDate        DateTime?
+  type            String          @default("note")
+  AcquisitionLead AcquisitionLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  User            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([userId], map: "LeadFollowup_userId_fkey")
+}
+
+model LiveRoom {
+  id            String    @id
+  userId        String
+  platform      String    @default("douyin")
+  roomId        String
+  roomName      String
+  hostName      String?
+  link          String?
+  coverUrl      String?
+  status        String    @default("offline")
+  viewerCount   Int       @default(0)
+  likeCount     Int       @default(0)
+  giftCount     Int       @default(0)
+  followerCount Int       @default(0)
+  salesAmount   Decimal   @default(0.00) @db.Decimal(10, 2)
+  productCount  Int       @default(0)
+  startTime     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+
+  @@index([status])
+  @@index([userId, platform])
+}
+
+model LoginLog {
+  id         String   @id
+  userId     String
+  ip         String?
+  device     String?
+  deviceId   String?
+  deviceName String?
+  location   String?
+  loginAt    DateTime @default(now())
+  status     String   @default("success")
+  token      String?  @db.Text
+  isActive   Boolean  @default(true)
+
+  @@index([userId])
+}
+
+model MapFavorite {
+  id        String   @id
+  userId    String
+  poiId     String?
+  name      String
+  address   String?
+  location  Json?
+  type      String?
+  createdAt DateTime @default(now())
+
+  @@index([poiId])
+  @@index([userId])
+}
+
+model Material {
+  id             String    @id
+  userId         String
+  type           String
+  content        String?
+  title          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime
+  fileType       String?
+  fileUrl        String?
+  status         String    @default("unused")
+  thumbnail      String?
+  usedCount      Int       @default(0)
+  publishedAt    DateTime?
+  contentHash    String?
+  fileHash       String?
+  simHash        String?
+  usagePlatforms String?
+  isDuplicate    Boolean   @default(false)
+  User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model Message {
+  id             String   @id
+  conversationId String
+  role           String
+  content        String   @db.Text
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId, createdAt], map: "idx_msg_conv_created")
+}
+
+model Notification {
+  id        String   @id
+  userId    String
+  title     String
+  content   String
+  type      String
+  createdAt DateTime @default(now())
+  isRead    Boolean  @default(false)
+  data      String?
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model OAuthSession {
+  id          String    @id
+  userId      String
+  platform    String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  accountInfo Json?
+  completedAt DateTime?
+  cookies     String?   @db.Text
+  error       String?
+  qrcodeUrl   String?
+  redirectUrl String?
+  sessionId   String    @unique
+  state       String
+  status      String    @default("pending")
+
+  @@index([status, expiresAt])
+  @@index([userId, platform])
+}
+
+model Order {
+  id            String    @id
+  userId        String?
+  agentId       String?
+  planId        String?
+  amount        Decimal   @default(0.00) @db.Decimal(10, 2)
+  status        String    @default("pending")
+  paymentMethod String?
+  transactionId String?
+  description   String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+
+  @@index([agentId, status])
+  @@index([createdAt])
+  @@index([userId, status])
+}
+
+model Payment {
+  id            String    @id
+  type          String    @default("customer_fee")
+  amount        Decimal   @default(0.00) @db.Decimal(10, 2)
+  status        String    @default("paid")
+  paymentMethod String?
+  userId        String?
+  agentId       String?
+  tenantId      String?
+  description   String?
+  transactionId String?
+  remark        String?
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+  period        String    @default("monthly")
+  planId        String?
+  Agent         Agent?    @relation(fields: [agentId], references: [id])
+  User          User?     @relation(fields: [userId], references: [id])
+
+  @@index([agentId, type])
+  @@index([createdAt])
+  @@index([status])
+  @@index([userId, type])
+}
+
+model PlatformSyncLog {
+  id           String    @id @db.VarChar(36)
+  syncType     String    @db.VarChar(100)
+  platform     String    @db.VarChar(100)
+  userId       String    @db.VarChar(36)
+  status       String    @default("running") @db.VarChar(50)
+  totalCount   Int       @default(0)
+  successCount Int       @default(0)
+  failCount    Int       @default(0)
+  incremental  Boolean   @default(false)
+  details      Json?
+  errorMessage String?   @db.Text
+  startedAt    DateTime? @db.DateTime(0)
+  completedAt  DateTime? @db.DateTime(0)
+  createdAt    DateTime  @default(now()) @db.DateTime(0)
+
+  @@index([status], map: "idx_psl_status")
+  @@index([syncType, platform, createdAt], map: "idx_psl_sync")
+  @@index([userId, createdAt], map: "idx_psl_user")
+}
+
+model PromptOptimization {
+  id              String   @id
+  contentType     String   @unique
+  sampleCount     Int      @default(0)
+  adoptionRate    Float    @default(0)
+  avgRating       Float    @default(0)
+  optimizedPrompt String?
+  insights        String?
+  lastUpdated     DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([adoptionRate])
+}
+
+model QualityAuditLog {
+  id               String   @id @db.VarChar(36)
+  contentId        String
+  contentType      String   @db.VarChar(50)
+  userId           String   @db.VarChar(36)
+  score            Int      @default(0)
+  passed           Boolean  @default(false)
+  dimensions       Json?
+  correctionRounds Int      @default(0)
+  correctedContent String?  @db.LongText
+  needsHumanReview Boolean  @default(false)
+  metadata         Json?
+  createdAt        DateTime @default(now()) @db.DateTime(0)
+
+  @@index([contentId, contentType], map: "idx_qal_content")
+  @@index([score], map: "idx_qal_score")
+  @@index([userId, createdAt], map: "idx_qal_user")
+}
+
+model RecruitmentCommunication {
+  id              String   @id
+  userId          String
+  candidateId     String
+  postId          String?
+  channel         String   @default("platform")
+  direction       String   @default("outbound")
+  content         String
+  aiGenerated     Boolean  @default(false)
+  readByCandidate Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([candidateId], map: "RecruitmentCommunication_candidateId_fkey")
+  @@index([createdAt])
+  @@index([postId])
+  @@index([userId, candidateId])
+}
+
+model RecruitmentPost {
+  id                 String               @id
+  userId             String
+  title              String
+  department         String?              @default("技术部")
+  location           String?              @default("")
+  requirements       String?
+  benefits           String?
+  headcount          Int?                 @default(1)
+  status             String               @default("recruiting")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  candidateCount     Int                  @default(0)
+  description        String?
+  education          String?
+  experience         String?
+  jobType            String?
+  recruiterName      String?
+  recruiterPhone     String?
+  salaryMax          Int?
+  salaryMin          Int?
+  Candidate          Candidate[]
+  User               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  RecruitmentProcess RecruitmentProcess[]
+  RecruitmentResume  RecruitmentResume[]
+
+  @@index([userId], map: "RecruitmentPost_userId_fkey")
+}
+
+model RecruitmentProcess {
+  id                String            @id
+  userId            String
+  resumeId          String
+  jobId             String
+  stage             String            @default("screening")
+  notes             String?
+  scheduledAt       DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime
+  RecruitmentPost   RecruitmentPost   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  RecruitmentResume RecruitmentResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([resumeId])
+  @@index([userId, stage])
+}
+
+model RecruitmentResume {
+  id                 String               @id
+  userId             String
+  jobId              String
+  name               String
+  phone              String
+  email              String?
+  education          String?
+  experience         String?
+  resumeUrl          String?
+  coverLetter        String?
+  status             String               @default("pending")
+  notes              String?
+  aiScore            Int?
+  aiAnalysis         String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime
+  RecruitmentProcess RecruitmentProcess[]
+  RecruitmentPost    RecruitmentPost      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  User               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([jobId])
+  @@index([userId, status])
+}
+
+model ReferralCode {
+  id              String   @id
+  userId          String
+  title           String   @default("我的推荐码")
+  videoLink       String?  @db.VarChar(500)
+  platforms       Json?
+  notes           String?  @db.Text
+  scanCount       Int      @default(0)
+  viewCount       Int      @default(0)
+  clickCount      Int      @default(0)
+  conversionCount Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now())
+
+  @@index([userId], map: "idx_referral_code_user")
+}
+
+model ReferralReward {
+  id          String    @id
+  userId      String
+  codeId      String?
+  amount      Decimal   @default(0.00) @db.Decimal(10, 2)
+  type        String    @default("commission") @db.VarChar(50)
+  status      String    @default("pending") @db.VarChar(50)
+  description String?   @db.Text
+  paidAt      DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+
+  @@index([codeId], map: "fk_reward_code")
+  @@index([status], map: "idx_reward_status")
+  @@index([userId], map: "idx_reward_user")
+}
+
+model ReferralTrack {
+  id          String    @id
+  codeId      String
+  userId      String
+  referrerId  String?
+  type        String    @default("scan") @db.VarChar(50)
+  platform    String?   @db.VarChar(50)
+  userAgent   String?   @db.VarChar(500)
+  ip          String?   @db.VarChar(45)
+  converted   Boolean   @default(false)
+  convertedAt DateTime? @db.DateTime(0)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  @@index([codeId], map: "idx_track_code")
+  @@index([createdAt], map: "idx_track_created")
+  @@index([type], map: "idx_track_type")
+  @@index([userId], map: "idx_track_user")
+}
+
+model ScriptTemplate {
+  id              String            @id
+  userId          String
+  content         String
+  category        String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime
+  isAI            Boolean           @default(false)
+  name            String
+  scenario        String
+  status          Boolean           @default(true)
+  style           String
+  successRate     Int               @default(85)
+  useCount        Int               @default(0)
+  ConversationLog ConversationLog[]
+  User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, scenario])
+  @@index([userId, status])
+}
+
+model Setting {
+  id        String   @id
+  userId    String
+  key       String
+  value     String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  @@unique([userId, key])
+}
+
+model SmsConfig {
+  id              String   @id
+  provider        String   @unique
+  accessKeyId     String
+  accessKeySecret String
+  signName        String
+  templateCode    String
+  enabled         Boolean  @default(true)
+  isDefault       Boolean  @default(false)
+  config          Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime
+}
+
+model SmsLog {
+  id        String    @id
+  phone     String
+  type      String
+  code      String
+  userId    String?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  errorMsg  String?
+  ip        String?
+  provider  String    @default("aliyun")
+  status    String    @default("pending")
+  used      Boolean   @default(false)
+  usedAt    DateTime?
+
+  @@index([code, type])
+  @@index([phone, createdAt])
+}
+
+model ShareCommission {
+  id            String       @id
+  userId        String
+  shareRecordId String?
+  amount        Float
+  type          String       @default("scan") @db.VarChar(20)
+  status        String       @default("pending") @db.VarChar(20)
+  settledAt     DateTime?
+  remark        String?      @db.Text
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime
+  ShareRecord   ShareRecord? @relation(fields: [shareRecordId], references: [id])
+  User          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([shareRecordId], map: "ShareCommission_shareRecordId_fkey")
+  @@index([userId], map: "ShareCommission_userId_fkey")
+}
+
+model ShareEffect {
+  id           String      @id
+  qrCodeId     String
+  platform     String      @db.VarChar(50)
+  viewCount    Int         @default(0)
+  likeCount    Int         @default(0)
+  commentCount Int         @default(0)
+  shareCount   Int         @default(0)
+  scanCount    Int         @default(0)
+  convertCount Int         @default(0)
+  revenue      Float       @default(0)
+  date         DateTime
+  createdAt    DateTime    @default(now())
+  ShareQrCode  ShareQrCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@unique([qrCodeId, platform, date])
+  @@index([qrCodeId], map: "ShareEffect_qrCodeId_fkey")
+}
+
+model ShareQrCode {
+  id           String        @id
+  userId       String
+  createdAt    DateTime      @default(now())
+  activeCount  Int           @default(0)
+  platforms    String
+  publishCount Int           @default(0)
+  qrCodeUrl    String?
+  scanCount    Int           @default(0)
+  title        String
+  updatedAt    DateTime
+  videoCover   String?
+  videoUrl     String?
+  ShareEffect  ShareEffect[]
+  User         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ShareRecord  ShareRecord[]
+
+  @@index([userId], map: "ShareQrCode_userId_fkey")
+}
+
+model ShareRecord {
+  id              String            @id
+  userId          String
+  createdAt       DateTime          @default(now())
+  platform        String
+  publishedAt     DateTime?
+  qrCodeId        String?
+  scannedAt       DateTime          @default(now())
+  scannerId       String?
+  status          String            @default("scanned")
+  updatedAt       DateTime
+  ShareCommission ShareCommission[]
+  ShareQrCode     ShareQrCode?      @relation(fields: [qrCodeId], references: [id])
+  User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([qrCodeId], map: "ShareRecord_qrCodeId_fkey")
+  @@index([userId], map: "ShareRecord_userId_fkey")
+}
+
+model SocialAccount {
+  id            String        @id
+  userId        String
+  platform      String
+  avatar        String?
+  accessToken   String?
+  refreshToken  String?
+  status        String        @default("active")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  accountId     String?
+  accountName   String?
+  agentId       String?
+  config        Json?
+  cookies       String?         @db.Text
+  headers       String?
+  lastSyncAt    DateTime?
+  syncError     String?
+  tokenExpiry   DateTime?
+  isConnected   Boolean         @default(false)
+
+  @@index([agentId])
+  @@index([userId, platform])
+}
+
+model SupportConversation {
+  id            String   @id @db.VarChar(36)
+  userId        String   @db.VarChar(36)
+  title         String   @default("在线咨询") @db.VarChar(255)
+  status        String   @default("open") @db.VarChar(20)
+  autoReply     Boolean  @default(true)
+  lastMessageAt DateTime @default(now()) @db.DateTime(0)
+  createdAt     DateTime @default(now()) @db.DateTime(0)
+  updatedAt     DateTime @default(now()) @db.DateTime(0)
+
+  @@index([status, lastMessageAt], map: "idx_status_lastMessageAt")
+  @@index([userId, createdAt], map: "idx_userId_createdAt")
+}
+
+model SupportMessage {
+  id             String   @id @db.VarChar(36)
+  conversationId String   @db.VarChar(36)
+  senderId       String   @db.VarChar(36)
+  senderName     String   @default("") @db.VarChar(100)
+  senderRole     String   @db.VarChar(20)
+  content        String   @db.Text
+  isAutoReply    Boolean  @default(false)
+  createdAt      DateTime @default(now()) @db.DateTime(0)
+
+  @@index([conversationId, createdAt], map: "idx_conversationId_createdAt")
+}
+
+model TaskExecution {
+  id          String    @id
+  taskId      String
+  userId      String
+  platform    String
+  action      String
+  status      String    @default("pending")
+  startTime   DateTime?
+  endTime     DateTime?
+  duration    Int?
+  input       Json?
+  output      Json?
+  error       String?
+  screenshots String?
+  logs        String?
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
+  @@index([taskId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model TaskExecutionLog {
+  id           String    @id @db.VarChar(36)
+  taskType     String    @db.VarChar(100)
+  taskId       String
+  userId       String    @db.VarChar(36)
+  status       String    @default("pending") @db.VarChar(50)
+  startedAt    DateTime? @db.DateTime(0)
+  completedAt  DateTime? @db.DateTime(0)
+  durationMs   Int?
+  retryCount   Int       @default(0)
+  input        Json?
+  result       Json?
+  errorMessage String?   @db.Text
+  errorStack   String?   @db.LongText
+  createdAt    DateTime  @default(now()) @db.DateTime(0)
+
+  @@index([taskId], map: "idx_tel_task")
+  @@index([taskType, createdAt], map: "idx_tel_type")
+  @@index([userId, status], map: "idx_tel_user")
+}
+
+model Ticket {
+  id             String           @id
+  userId         String?
+  title          String
+  content        String?
+  priority       String           @default("medium")
+  status         String           @default("pending")
+  featureCode    String?          @db.VarChar(50)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  agentId        String?
+  assigneeId     String?
+  assigneeName   String?
+  attachments    Json?
+  category       String?
+  closedAt       DateTime?
+  ticketNo       String           @unique
+  description    String?
+  rejectReason   String?
+  type           String           @default("feature")
+  TicketResponse TicketResponse[]
+
+  @@index([agentId, status])
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model TicketResponse {
+  id           String   @id
+  ticketId     String
+  userId       String?
+  userName     String?
+  userRole     String?
+  content      String?
+  attachments  Json?
+  isInternal   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  action       String?
+  operatorId   String?
+  operatorRole String?
+  Ticket       Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+model User {
+  id                  String                  @id
+  phone               String                  @unique
+  password            String
+  name                String?
+  avatar              String?
+  role                String                  @default("user")
+  status              String                  @default("active")
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime
+  expireAt            DateTime?
+  fee                 Decimal                 @default(0.00) @db.Decimal(10, 2)
+  lastPaidAt          DateTime?
+  monthlyPaid         Decimal                 @default(0.00) @db.Decimal(10, 2)
+  totalPaid           Decimal                 @default(0.00) @db.Decimal(10, 2)
+  pushPlatform        String?
+  pushToken           String?
+  pushTokenUpdatedAt  DateTime?
+  company             String?
+  package             String                  @default("pro") @db.VarChar(50)
+  lastLoginAt         DateTime?
+  email               String?
+  AcquisitionAutomation AcquisitionAutomation[]
+  AcquisitionData     AcquisitionData[]
+  AcquisitionLead     AcquisitionLead[]
+  AcquisitionSource   AcquisitionSource[]
+  AcquisitionTask     AcquisitionTask[]
+  AdminLog            AdminLog[]
+  Agent               Agent?
+  Candidate           Candidate[]
+  ConversationLog     ConversationLog[]
+  DataCollectionTask  DataCollectionTask[]
+  DigitalHuman        DigitalHuman[]
+  Employee            Employee[]
+  LeadFollowup        LeadFollowup[]
+  Material            Material[]
+  Notification        Notification[]
+  Payment             Payment[]
+  RecruitmentPost     RecruitmentPost[]
+  RecruitmentResume   RecruitmentResume[]
+  ScriptTemplate      ScriptTemplate[]
+  ShareCommission     ShareCommission[]
+  ShareQrCode         ShareQrCode[]
+  ShareRecord         ShareRecord[]
+  UserAgentRelation   UserAgentRelation?
+  UserFeatureSwitch   UserFeatureSwitch[]
+  VideoClone          VideoClone[]
+  VideoTask           VideoTask[]
+  VoiceClone          VoiceClone[]
+}
+
+model UserAgentRelation {
+  id        String   @id
+  userId    String   @unique
+  agentId   String
+  createdAt DateTime @default(now())
+  Agent     Agent    @relation(fields: [agentId], references: [id])
+  User      User     @relation(fields: [userId], references: [id])
+
+  @@index([agentId], map: "UserAgentRelation_agentId_fkey")
+}
+
+model UserFeatureSwitch {
+  id          String   @id
+  userId      String
+  enabled     Boolean
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  featureCode String
+  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, featureCode])
+}
+
+model UserSettings {
+  id           String   @id
+  userId       String   @unique
+  language     String   @default("zh-CN")
+  timezone     String   @default("Asia/Shanghai")
+  theme        String   @default("light")
+  loginNotify  Boolean  @default(true)
+  riskNotify   Boolean  @default(true)
+  deviceManage Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+}
+
+model VideoClone {
+  id             String   @id
+  userId         String
+  name           String
+  type           String   @default("digital_human")
+  sourceVideoUrl String?
+  sourceImageUrl String?
+  videoUrl       String?
+  thumbnail      String?
+  description    String?
+  status         String   @default("processing")
+  progress       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+  User           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+}
+
+model VideoTask {
+  id              String         @id
+  userId          String
+  title           String
+  status          String         @default("pending")
+  script          String
+  videoUrl        String?
+  thumbnailUrl    String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime
+  backgroundMusic String?
+  completedAt     DateTime?
+  errorMessage    String?
+  humanId         String?
+  progress        Int            @default(0)
+  startedAt       DateTime?
+  templateId      String?
+  DigitalHuman    DigitalHuman?  @relation(fields: [humanId], references: [id])
+  VideoTemplate   VideoTemplate? @relation(fields: [templateId], references: [id])
+  User            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([humanId])
+  @@index([templateId])
+  @@index([userId, status])
+}
+
+model VideoTemplate {
+  id         String      @id
+  name       String
+  thumbnail  String?
+  duration   Int         @default(30)
+  style      String
+  scenes     Int         @default(1)
+  usageCount Int         @default(0)
+  config     Json?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime
+  VideoTask  VideoTask[]
+
+  @@index([style])
+}
+
+model VoiceClone {
+  id          String   @id
+  userId      String
+  name        String
+  gender      String   @default("female")
+  description String?
+  audioUrl    String?
+  language    String   @default("zh-CN")
+  status      String   @default("ready")
+  usageCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([userId])
+}
+
+model BusinessPlan {
+  id           String   @id @db.VarChar(36)
+  userId       String   @db.VarChar(36)
+  scenarioId   String   @db.VarChar(50)
+  scenarioName String   @db.VarChar(100)
+  businessName String   @db.VarChar(200)
+  content      Json
+  summary      String   @db.Text
+  status       String   @default("processing") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @db.DateTime(0)
+  updatedAt    DateTime @default(now()) @db.DateTime(0)
+
+  @@index([userId, createdAt])
+  @@index([scenarioId])
+}
+
+

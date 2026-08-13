@@ -78,7 +78,7 @@ export default function AgentSettlementPage() {
     setStatsLoading(true);
     try {
       const request = (await import('@/lib/request')).default;
-      const res = await request.get('/api/agent/settlement/stats') as { data?: SettlementStats } | SettlementStats;
+      const res = await request.get('/agent/settlement/overview') as { data?: SettlementStats } | SettlementStats;
       if (res && 'data' in res && res.data) {
         setStats(res.data);
       } else {
@@ -96,7 +96,7 @@ export default function AgentSettlementPage() {
     setLoading(true);
     try {
       const request = (await import('@/lib/request')).default;
-      const res = await request.get('/api/agent/settlement/records', {
+      const res = await request.get('/agent/settlement/records', {
         params: { page: pagination.page, pageSize: pagination.pageSize },
       }) as { data?: { records: SettlementRecord[]; total: number } } | { records: SettlementRecord[]; total: number };
       const data = 'data' in res && res.data ? res.data : res;
@@ -119,7 +119,7 @@ export default function AgentSettlementPage() {
   const fetchBankInfo = useCallback(async () => {
     try {
       const request = (await import('@/lib/request')).default;
-      const res = await request.get('/api/agent/settlement/bank') as { data?: BankInfo };
+      const res = await request.get('/agent/settlement/bank') as { data?: BankInfo };
       if (res?.data) setBankInfo(res.data);
     } catch {
       const saved = localStorage.getItem(`bank_info_${user?.id}`);
@@ -170,7 +170,7 @@ export default function AgentSettlementPage() {
       setBankLoading(true);
       try {
         const request = (await import('@/lib/request')).default;
-        await request.put('/api/agent/settlement/bank', values);
+        await request.put('/agent/settlement/bank', values);
       } catch { /* 离线 */ }
       const info: BankInfo = {
         bankName: values.bankName,

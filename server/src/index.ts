@@ -193,6 +193,15 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
+// 全局未捕获异常处理：避免静默崩溃，PM2 可据此自动重启恢复（P1 商用要求）
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err);
+  process.exit(1);
+});
+
 // 启动服务器
 app.listen(PORT, () => {
   console.log(`智枢AI后端服务运行在 http://localhost:${PORT}`);

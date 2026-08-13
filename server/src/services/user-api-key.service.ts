@@ -51,12 +51,17 @@ export const PROVIDER_CONFIG = {
     baseUrl: 'https://tokenhub.cloud.tencent.com',
     type: 'tencent',
   },
+  ark: {
+    name: '火山方舟',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    type: 'volcano',
+  },
 };
 
 /**
  * 获取用户的主 API Key
  */
-export async function getPrimaryApiKey(userId: string, provider: 'dashscope' | 'tokenhub') {
+export async function getPrimaryApiKey(userId: string, provider: 'dashscope' | 'tokenhub' | 'ark') {
   const config = PROVIDER_CONFIG[provider];
   
   const apiKeyRecord = await prisma.apiKey.findFirst({
@@ -105,7 +110,7 @@ export async function getPrimaryApiKey(userId: string, provider: 'dashscope' | '
 /**
  * 获取用户的备用 API Key
  */
-export async function getSecondaryApiKey(userId: string, provider: 'dashscope' | 'tokenhub') {
+export async function getSecondaryApiKey(userId: string, provider: 'dashscope' | 'tokenhub' | 'ark') {
   const config = PROVIDER_CONFIG[provider];
   
   const apiKeyRecord = await prisma.apiKey.findFirst({
@@ -165,7 +170,7 @@ export async function getApiKeyList(userId: string) {
  */
 export async function createApiKey(
   userId: string,
-  provider: 'dashscope' | 'tokenhub',
+  provider: 'dashscope' | 'tokenhub' | 'ark',
   apiKey: string,
   secretKey: string,
   isPrimary: boolean = true
@@ -290,7 +295,7 @@ export async function toggleApiKey(userId: string, keyId: string, type: 'primary
   return true;
 }
 
-export async function testApiKey(provider: 'dashscope' | 'tokenhub', apiKey: string, secretKey: string): Promise<{ valid: boolean; message: string }> {
+export async function testApiKey(provider: 'dashscope' | 'tokenhub' | 'ark', apiKey: string, secretKey: string): Promise<{ valid: boolean; message: string }> {
   const config = PROVIDER_CONFIG[provider];
   
   try {

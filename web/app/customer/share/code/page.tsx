@@ -46,7 +46,7 @@ export default function ShareCodePage() {
   const fetchCodes = useCallback(async () => {
     setLoading(true);
     try {
-      const res: Record<string, unknown> = await apiClient.get('/api/share/codes');
+      const res: Record<string, unknown> = await apiClient.get('/share/codes');
       const rawList = (res.list as any[]) || [];
       setCodes(rawList.map((c: any) => ({
         id: c.id,
@@ -73,10 +73,10 @@ export default function ShareCodePage() {
       const values = await form.validateFields();
       setSubmitting(true);
       if (editingCode) {
-        await apiClient.put(`/api/share/codes/${editingCode.id}`, values);
+        await apiClient.put(`/share/codes/${editingCode.id}`, values);
         message.success('分享码已更新');
       } else {
-        await apiClient.post('/api/share/codes', values);
+        await apiClient.post('/share/codes', values);
         message.success('分享码创建成功');
       }
       setModalVisible(false); form.resetFields(); setEditingCode(null);
@@ -93,7 +93,7 @@ export default function ShareCodePage() {
       okText: '确认删除', cancelText: '取消',
       okButtonProps: { danger: true },
       onOk: async () => {
-        try { await apiClient.delete(`/api/share/codes/${code.id}`); message.success('已删除'); fetchCodes(); } catch { message.error('删除失败'); }
+        try { await apiClient.delete(`/share/codes/${code.id}`); message.success('已删除'); fetchCodes(); } catch { message.error('删除失败'); }
       },
     });
   };

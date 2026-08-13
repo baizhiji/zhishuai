@@ -1,5 +1,15 @@
 import '@testing-library/jest-dom';
 
+// Polyfill MessageChannel (required by antd Form / rc-field-form)
+if (typeof global.MessageChannel === 'undefined') {
+  global.MessageChannel = class {
+    constructor() {
+      this.port1 = { onmessage: null, postMessage() {}, close() {}, start() {} };
+      this.port2 = { onmessage: null, postMessage() {}, close() {}, start() {} };
+    }
+  };
+}
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:3000/api';
 process.env.NEXT_PUBLIC_APP_NAME = '智枢AI';
@@ -13,7 +23,7 @@ global.IntersectionObserver = class IntersectionObserver {
     return [];
   }
   unobserve() {}
-} as any;
+};
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -32,14 +42,14 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock localStorage
 const localStorageMock = (() => {
-  let store: Record<string, string> = {};
+  let store = {};
 
   return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => {
       store[key] = value.toString();
     },
-    removeItem: (key: string) => {
+    removeItem: (key) => {
       delete store[key];
     },
     clear: () => {
@@ -54,14 +64,14 @@ Object.defineProperty(window, 'localStorage', {
 
 // Mock sessionStorage
 const sessionStorageMock = (() => {
-  let store: Record<string, string> = {};
+  let store = {};
 
   return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => {
       store[key] = value.toString();
     },
-    removeItem: (key: string) => {
+    removeItem: (key) => {
       delete store[key];
     },
     clear: () => {

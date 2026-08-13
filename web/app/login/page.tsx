@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { LockOutlined, MobileOutlined } from '@ant-design/icons';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import request from '@/lib/request';
@@ -260,6 +261,15 @@ export default function LoginPage() {
           }}
         >
           <p style={{ color: '#999', fontSize: 12, margin: 0 }}>账号由管理员统一开通管理</p>
+          <p style={{ color: '#999', fontSize: 12, margin: '12px 0 0' }}>
+            <Link href="/terms" target="_blank" style={{ color: '#667eea' }}>
+              服务条款
+            </Link>
+            <span style={{ margin: '0 8px' }}>|</span>
+            <Link href="/privacy" target="_blank" style={{ color: '#667eea' }}>
+              隐私政策
+            </Link>
+          </p>
         </div>
       </Card>
     </div>

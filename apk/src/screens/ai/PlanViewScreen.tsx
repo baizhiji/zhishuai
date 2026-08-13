@@ -40,13 +40,13 @@ export default function PlanViewScreen({ route }: any) {
     })();
   }, [planId]);
 
-  const handleDownload = async (format: 'ppt' | 'pdf' | 'docx') => {
+  const handleDownload = async (format: 'ppt' | 'pdf' | 'docx' | 'xlsx') => {
     if (!plan) return;
     setDownloading(format);
 
     try {
       const url = businessService.getExportUrl(plan.id, format);
-      const ext = format === 'docx' ? 'docx' : format === 'pdf' ? 'pdf' : 'pptx';
+      const ext = format === 'xlsx' ? 'xlsx' : format === 'docx' ? 'docx' : format === 'pdf' ? 'pdf' : 'pptx';
       const fileName = `${plan.businessName}_${plan.scenarioName}.${ext}`;
       const filePath = `${FileSystem.documentDirectory}${fileName}`;
 
@@ -56,6 +56,7 @@ export default function PlanViewScreen({ route }: any) {
       if (canShare) {
         await Sharing.shareAsync(downloadResult.uri, {
           mimeType: format === 'pdf' ? 'application/pdf' :
+            format === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' :
             format === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' :
             'application/vnd.openxmlformats-officedocument.presentationml.presentation',
           dialogTitle: `保存 ${plan.businessName} 方案`,
@@ -150,6 +151,11 @@ export default function PlanViewScreen({ route }: any) {
             <TouchableOpacity style={[styles.downloadBtn, { backgroundColor: '#2563EB' }]} onPress={() => handleDownload('docx')} disabled={downloading !== null}>
               {downloading === 'docx' ? <ActivityIndicator size="small" color="#FFF" /> : (
                 <><Ionicons name="document-text" size={20} color="#FFF" /><Text style={styles.downloadBtnText}>DOCX</Text></>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.downloadBtn, { backgroundColor: '#059669' }]} onPress={() => handleDownload('xlsx')} disabled={downloading !== null}>
+              {downloading === 'xlsx' ? <ActivityIndicator size="small" color="#FFF" /> : (
+                <><Ionicons name="grid" size={20} color="#FFF" /><Text style={styles.downloadBtnText}>Excel</Text></>
               )}
             </TouchableOpacity>
           </View>

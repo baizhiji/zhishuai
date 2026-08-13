@@ -36,7 +36,6 @@ export const contentCategoryConfig: Record<
     needDuration: boolean;
     needUpload?: boolean;
     needImageUrl?: boolean;
-    needUpload: boolean;
     comingSoon?: boolean;
   }
 > = {

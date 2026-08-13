@@ -21,6 +21,7 @@ import {
   Empty,
   Typography,
   Tabs,
+  Cascader,
 } from 'antd';
 import {
   SearchOutlined,
@@ -33,9 +34,12 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
+import { regionOptions, joinRegion } from '@/lib/china-regions';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const LEVELS_REQUIRING_REGION = ['province', 'city', 'district'];
 
 interface Agent {
   id: string;
@@ -91,6 +95,7 @@ export default function AdminAgentsPage() {
   const [createVisible, setCreateVisible] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [createForm] = Form.useForm();
+  const selectedLevel = Form.useWatch('level', createForm);
 
   const [detailVisible, setDetailVisible] = useState(false);
   const [detailAgent, setDetailAgent] = useState<Agent | null>(null);
@@ -196,10 +201,17 @@ export default function AdminAgentsPage() {
     try {
       const values = await createForm.validateFields();
       setCreateLoading(true);
+
+      // 将级联选择值转换为区域路径字符串
+      const payload = {
+        ...values,
+        region: Array.isArray(values.region) ? joinRegion(values.region) : values.region,
+      };
+
       const request = (await import('@/lib/request')).default;
       const res = (await request.post<{ error?: string }>(
         '/admin/agents',
-        values
+        payload
       )) as unknown as { error?: string };
       if (!res?.error) {
         message.success(`已成功创建代理商：${values.name}，初始密码：123456`);
@@ -456,7 +468,7 @@ export default function AdminAgentsPage() {
             initialValue="district"
             rules={[{ required: true, message: '请选择级别' }]}
           >
-            <Select>
+            <Select onChange={() => createForm.setFieldsValue({ region: undefined })}>
               <Option value="national">全国代理</Option>
               <Option value="province">省级代理</Option>
               <Option value="city">市级代理</Option>
@@ -464,12 +476,26 @@ export default function AdminAgentsPage() {
               <Option value="personal">个人代理</Option>
             </Select>
           </Form.Item>
-          <Form.Item
-            name="region"
-            label="代理区域"
-          >
-            <Input placeholder="如：上海" />
-          </Form.Item>
+          {selectedLevel && LEVELS_REQUIRING_REGION.includes(selectedLevel) && (
+            <Form.Item
+              name="region"
+              label="代理区域"
+              rules={[{ required: true, message: '请选择代理区域' }]}
+            >
+              <Cascader
+                options={regionOptions}
+                changeOnSelect
+                placeholder={
+                  selectedLevel === 'province'
+                    ? '请选择省份'
+                    : selectedLevel === 'city'
+                    ? '请选择省市'
+                    : '请选择省市区'
+                }
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          )}
           <Form.Item
             name="commissionRate"
             label="分成比例（0-1）"

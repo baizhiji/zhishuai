@@ -234,11 +234,11 @@ export default function AboutPage() {
             官方网站
           </a>{' '}
           |
-          <a href="https://www.baizhiji.net/privacy" style={{ marginLeft: 8 }}>
+          <a href="/privacy" style={{ marginLeft: 8 }}>
             隐私政策
           </a>{' '}
           |
-          <a href="https://www.baizhiji.net/terms" style={{ marginLeft: 8 }}>
+          <a href="/terms" style={{ marginLeft: 8 }}>
             服务条款
           </a>
         </Text>

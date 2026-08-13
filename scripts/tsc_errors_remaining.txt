@@ -1,0 +1,99 @@
+﻿npm notice run zhishuai-server@1.0.0 npx
+npm notice run tsc --noEmit
+src/routes/recruitment.ts(92,9): error TS2353: Object literal may only specify known properties, and 'headcount' does not exist in type 'RecruitmentPostSelect<DefaultArgs>'.
+src/routes/recruitment.ts(327,20): error TS2353: Object literal may only specify known properties, and 'RecruitmentPost' does not exist in type 'CandidateInclude<DefaultArgs>'.
+src/routes/recruitment.ts(347,18): error TS2353: Object literal may only specify known properties, and 'RecruitmentResume' does not exist in type 'RecruitmentProcessInclude<DefaultArgs>'.
+src/routes/share.ts(81,16): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/share.ts(100,20): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/share.ts(420,20): error TS2353: Object literal may only specify known properties, and 'ShareQrCode' does not exist in type 'ShareRecordInclude<DefaultArgs>'.
+src/routes/share.ts(562,14): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/share.ts(567,14): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/share.ts(571,14): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/share.ts(659,14): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/share.ts(666,14): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/share.ts(669,34): error TS2339: Property 'shareCommission' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/social-account.ts(56,18): error TS2339: Property 'name' does not exist on type 'PlatformLoginConfig'.
+src/routes/social-account.ts(143,59): error TS2339: Property 'name' does not exist on type 'PlatformLoginConfig'.
+src/routes/social-account.ts(214,35): error TS2554: Expected 0 arguments, but got 1.
+src/routes/social-account.ts(215,50): error TS2554: Expected 1 arguments, but got 2.
+src/routes/social-account.ts(442,35): error TS2554: Expected 0 arguments, but got 1.
+src/routes/social-account.ts(443,50): error TS2554: Expected 1 arguments, but got 2.
+src/routes/version.ts(21,36): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(55,36): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(120,14): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(126,14): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(145,34): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(171,35): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(178,34): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(204,35): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(209,18): error TS2339: Property 'appVersion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/routes/version.ts(279,9): error TS2353: Object literal may only specify known properties, and 'priority' does not exist in type '(Without<AnnouncementCreateInput, AnnouncementUncheckedCreateInput> & AnnouncementUncheckedCreateInput) | (Without<...> & AnnouncementCreateInput)'.
+src/routes/voice-clone.ts(9,10): error TS2300: Duplicate identifier 'prisma'.
+src/routes/voice-clone.ts(13,10): error TS2300: Duplicate identifier 'prisma'.
+src/routes/voice-clone.ts(109,9): error TS2353: Object literal may only specify known properties, and 'sampleUrl' does not exist in type '(Without<VoiceCloneCreateInput, VoiceCloneUncheckedCreateInput> & VoiceCloneUncheckedCreateInput) | (Without<...> & VoiceCloneCreateInput)'.
+src/routes/voice-clone.ts(134,15): error TS2339: Property 'sampleUrl' does not exist on type '{ userId: string; status: string; name: string; id: string; createdAt: Date; updatedAt: Date; description: string; gender: string; usageCount: number; audioUrl: string; language: string; }'.
+src/routes/voice-clone.ts(135,55): error TS2339: Property 'sampleUrl' does not exist on type '{ userId: string; status: string; name: string; id: string; createdAt: Date; updatedAt: Date; description: string; gender: string; usageCount: number; audioUrl: string; language: string; }'.
+src/services/acquisition-service.ts(73,33): error TS2339: Property 'platformAccount' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/acquisition-service.ts(96,16): error TS2339: Property 'platformAccount' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/agent.service.ts(146,12): error TS2322: Type '{ materialCount: number; role: string; phone: string; status: string; name: string; avatar: string; id: string; createdAt: Date; updatedAt: Date; }[]' is not assignable to type 'CustomerListItem[]'.
+  Type '{ materialCount: number; role: string; phone: string; status: string; name: string; avatar: string; id: string; createdAt: Date; updatedAt: Date; }' is missing the following properties from type 'CustomerListItem': accountCount, publishCount
+src/services/agent.service.ts(169,3): error TS2739: Type '{ featureSwitches: { featureCode: string; enabled: boolean; }[]; materialCount: number; id: string; phone: string; name: string; avatar: string; status: string; role: string; createdAt: Date; updatedAt: Date; }' is missing the following properties from type 'CustomerDetail': accountCount, publishCount
+src/services/agent.service.ts(287,3): error TS2322: Type '{ id: string; code: string; name: string; description: string; enabled: boolean; subFeatures: { id: string; code: string; name: string; description: string; enabled: boolean; }[]; }[]' is not assignable to type 'FeatureSwitchItem[]'.
+  Type '{ id: string; code: string; name: string; description: string; enabled: boolean; subFeatures: { id: string; code: string; name: string; description: string; enabled: boolean; }[]; }' is not assignable to type 'FeatureSwitchItem'.
+    Types of property 'subFeatures' are incompatible.
+      Type '{ id: string; code: string; name: string; description: string; enabled: boolean; }[]' is not assignable to type 'FeatureSwitchItem[]'.
+        Property 'subFeatures' is missing in type '{ id: string; code: string; name: string; description: string; enabled: boolean; }' but required in type 'FeatureSwitchItem'.
+src/services/ai-chat.service.ts(52,17): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(67,17): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(78,29): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(80,16): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(85,16): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(90,29): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(92,16): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(103,31): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(108,18): error TS2551: Property 'conversation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'conversationLog'?
+src/services/ai-chat.service.ts(114,17): error TS2339: Property 'message' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/ai-chat.service.ts(227,17): error TS2339: Property 'choices' does not exist on type 'unknown'.
+src/services/ai-client.ts(605,59): error TS2345: Argument of type '"tencent" | "alibaba"' is not assignable to parameter of type '"aliyun" | "tencent"'.
+  Type '"alibaba"' is not assignable to type '"aliyun" | "tencent"'.
+src/services/ai-client.ts(724,76): error TS2339: Property 'modelId' does not exist on type '{ id: string; name: string; provider: string; type: string; priority: number; cost: string; maxTokens: number; description: string; keywords: string[]; fallback: string; } | { id: string; name: string; ... 7 more ...; fallback: string; } | ... 9 more ... | { ...; }'.
+  Property 'modelId' does not exist on type '{ id: string; name: string; provider: string; type: string; priority: number; cost: string; maxTokens: number; description: string; keywords: string[]; fallback: string; }'.
+src/services/ai-client.ts(724,101): error TS2551: Property 'getModelId' does not exist on type 'AIModelRouter'. Did you mean 'getModelInfo'?
+src/services/ai-client.ts(740,20): error TS2552: Cannot find name 'fallbackModel'. Did you mean 'fallbackModelInfo'?
+src/services/ai-pipeline.ts(500,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(508,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(525,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(534,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/ai-pipeline.ts(542,9): error TS2322: Type '"creative"' is not assignable to type '"agent" | "chat" | "reasoning" | "long_text" | "vision" | "video" | "image" | "professional"'.
+src/services/amap.service.ts(138,14): error TS2339: Property 'status' does not exist on type 'unknown'.
+src/services/amap.service.ts(139,28): error TS2339: Property 'info' does not exist on type 'unknown'.
+src/services/amap.service.ts(143,19): error TS2339: Property 'pois' does not exist on type 'unknown'.
+src/services/amap.service.ts(158,28): error TS2339: Property 'count' does not exist on type 'unknown'.
+src/services/amap.service.ts(229,19): error TS2339: Property 'pois' does not exist on type 'unknown'.
+src/services/amap.service.ts(241,28): error TS2339: Property 'count' does not exist on type 'unknown'.
+src/services/auth.service.ts(364,18): error TS2339: Property 'loginLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/auth.service.ts(469,14): error TS2339: Property 'loginLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/auth.service.ts(475,14): error TS2339: Property 'loginLog' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/business-assistant.service.ts(456,31): error TS2339: Property 'businessPlan' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/business-assistant.service.ts(489,31): error TS2339: Property 'businessPlan' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/business-assistant.service.ts(512,32): error TS2339: Property 'businessPlan' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/business-assistant.service.ts(534,31): error TS2339: Property 'businessPlan' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/services/business-assistant.service.ts(558,37): error TS2322: Type 'string' is not assignable to type 'number'.
+src/services/business-assistant.service.ts(558,54): error TS2322: Type 'string' is not assignable to type 'number'.
+src/services/customer-dashboard.ts(190,44): error TS2551: Property 'aiUsageStats' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'aIUsageStats'?
+src/services/customer-dashboard.ts(194,44): error TS2551: Property 'aiUsageStats' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'aIUsageStats'?
+src/services/dashboard-business-lines.ts(64,36): error TS2339: Property '_sum' does not exist on type 'number'.
+src/services/dashboard-business-lines.ts(65,50): error TS2339: Property 'publishCount' does not exist on type '{ scanCount: number; }'.
+src/services/dashboard-business-lines.ts(66,44): error TS2339: Property 'viewCount' does not exist on type '{ publishCount: number; }'.
+src/services/dashboard-business-lines.ts(67,47): error TS2339: Property 'convertCount' does not exist on type '{ publishCount: number; }'.
+src/services/dashboard-business-lines.ts(68,46): error TS2339: Property 'revenue' does not exist on type '{ publishCount: number; }'.
+src/services/dashboard-business-lines.ts(165,14): error TS2561: Object literal may only specify known properties, but 'agentId' does not exist in type 'UserWhereInput'. Did you mean to write 'agent'?
+src/services/dashboard-business-lines.ts(249,46): error TS2339: Property '_sum' does not exist on type 'number'.
+src/services/dashboard-business-lines.ts(254,45): error TS2339: Property '_sum' does not exist on type 'number'.
+src/services/dashboard-business-lines.ts(264,57): error TS2339: Property 'revenue' does not exist on type '{ scanCount: number; publishCount: number; }'.
+src/services/data-acquisition.service.ts(71,11): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly InputJsonValue[]': length, concat, join, slice, and 20 more.
+src/services/data-acquisition.service.ts(438,16): error TS2322: Type 'string' is not assignable to type '"douyin" | "kuaishou"'.
+src/services/data-acquisition.service.ts(439,22): error TS2322: Type 'string' is not assignable to type '"douyin" | "kuaishou"'.
+src/services/data-acquisition.service.ts(440,20): error TS2322: Type 'string' is not assignable to type '"douyin" | "kuaishou"'.
+src/services/data-cleanup.service.ts(73,9): error TS2353: Object literal may only specify known properties, and 'email' does not exist in type '(Without<CandidateUpdateManyMutationInput, CandidateUncheckedUpdateManyInput> & CandidateUncheckedUpdateManyInput) | (Without<...> & CandidateUpdateManyMutationInput)'.

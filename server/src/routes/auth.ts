@@ -38,7 +38,7 @@ function clearLoginRateLimit(identifier: string): void {
 
 // 发送验证码（含5分钟内只允许发送一次的限速）
 const smsRateLimit = new Map<string, Date>();
-router.post('/send-code', validate(sendCodeSchema), async (req: Request, res: Response) => {
+router.post('/send-code', validate({ body: sendCodeSchema.shape.body }), async (req: Request, res: Response) => {
   try {
     const { phone, type = 'register' } = req.body;
 
@@ -125,7 +125,7 @@ router.post('/send-code', validate(sendCodeSchema), async (req: Request, res: Re
 });
 
 // 注册
-router.post('/register', validate(registerSchema), async (req: Request, res: Response) => {
+router.post('/register', validate({ body: registerSchema.shape.body }), async (req: Request, res: Response) => {
   try {
     const { phone, password, code, name } = req.body;
 
@@ -233,7 +233,7 @@ router.post('/register', validate(registerSchema), async (req: Request, res: Res
 });
 
 // 发送重置密码验证码
-router.post('/send-reset-code', validate(sendCodeSchema), async (req: Request, res: Response) => {
+router.post('/send-reset-code', validate({ body: sendCodeSchema.shape.body }), async (req: Request, res: Response) => {
   try {
     const { phone } = req.body;
 
@@ -325,13 +325,11 @@ router.post('/send-reset-code', validate(sendCodeSchema), async (req: Request, r
 });
 
 // 重置密码
-router.post('/reset-password', validate(z.object({
-  body: z.object({
-    phone: phoneSchema,
-    code: z.string().length(6, '验证码为6位数字'),
-    newPassword: passwordSchema,
-  }),
-})), async (req: Request, res: Response) => {
+router.post('/reset-password', validate({ body: z.object({
+  phone: phoneSchema,
+  code: z.string().length(6, '验证码为6位数字'),
+  newPassword: passwordSchema,
+})}), async (req: Request, res: Response) => {
   try {
     const { phone, code, newPassword } = req.body;
 
@@ -406,7 +404,7 @@ router.post('/reset-password', validate(z.object({
 });
 
 // 登录
-router.post('/login', validate(loginSchema), async (req: Request, res: Response) => {
+router.post('/login', validate({ body: loginSchema.shape.body }), async (req: Request, res: Response) => {
   try {
     const { phone, password, loginType } = req.body;
 
@@ -602,7 +600,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     // 记录登出日志
-    await prisma.loginLog.create({
+    (prisma as any).loginLog?.create({
       data: {
         id: `logout_${Date.now()}`,
         userId: userId,
@@ -610,7 +608,7 @@ router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
         ip: req.ip || req.socket.remoteAddress || 'unknown',
         status: 'success',
       },
-    }).catch(() => {}); // 忽略记录失败
+    }).catch(() => {}); // loginLog 表不存在则忽略
     return ok(res, { message: '登出成功' });
   } catch (error: any) {
     return internalError(res, error.message);

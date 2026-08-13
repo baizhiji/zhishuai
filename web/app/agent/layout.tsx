@@ -43,7 +43,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 待处理工单通知
   const [pendingTickets, setPendingTickets] = useState<PendingTicket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
-  const [ticketStats, setTicketStats] = useState({ open: 0, in_progress: 0 });
+  const [ticketStats, setTicketStats] = useState({ pending: 0, processing: 0 });
 
   // 角色检查
   useEffect(() => {
@@ -66,7 +66,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       const request = (await import('@/lib/request')).default;
       const res = (await request.get<{ success: boolean; data: Announcement[] }>(
-        '/api/announcements?audience=agent&limit=5'
+        '/announcements?audience=agent&limit=5'
       )) as unknown as { success: boolean; data: Announcement[] };
       if (res.success && Array.isArray(res.data)) {
         setAnnouncements(res.data);
@@ -89,20 +89,20 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         success: boolean;
         data?: { list: PendingTicket[]; total: number };
       }>(
-        '/api/tickets?status=open,in_progress&pageSize=10&agentId=' + user?.id
+        '/tickets?status=pending,processing&pageSize=10&agentId=' + user?.id
       )) as unknown as { success: boolean; data?: { list: PendingTicket[]; total: number } };
       if (res.success && res.data) {
         setPendingTickets(res.data.list || []);
-        const open = (res.data.list || []).filter(t => t.status === 'open').length;
-        const progress = (res.data.list || []).filter(t => t.status === 'in_progress').length;
-        setTicketStats({ open, in_progress: progress });
+        const pending = (res.data.list || []).filter(t => t.status === 'pending').length;
+        const processing = (res.data.list || []).filter(t => t.status === 'processing').length;
+        setTicketStats({ pending, processing });
       } else {
         setPendingTickets([]);
-        setTicketStats({ open: 0, in_progress: 0 });
+        setTicketStats({ pending: 0, processing: 0 });
       }
     } catch {
       setPendingTickets([]);
-      setTicketStats({ open: 0, in_progress: 0 });
+      setTicketStats({ pending: 0, processing: 0 });
     } finally {
       setTicketsLoading(false);
     }
@@ -145,7 +145,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   const hasImportant = announcements.some(a => a.important);
-  const pendingTotal = ticketStats.open + ticketStats.in_progress;
+  const pendingTotal = ticketStats.pending + ticketStats.processing;
 
   const getPriorityTag = (priority: string) => {
     const map: Record<string, { color: string; label: string }> = {
@@ -190,10 +190,10 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     {/* 统计摘要 */}
                     <div style={{ display: 'flex', gap: 12, padding: '8px 0 12px', borderBottom: '1px solid #f0f0f0', marginBottom: 8 }}>
                       <span style={{ fontSize: 12, color: '#1677ff' }}>
-                        <ClockCircleOutlined /> 待接单 {ticketStats.open}
+                        <ClockCircleOutlined /> 待接单 {ticketStats.pending}
                       </span>
                       <span style={{ fontSize: 12, color: '#fa8c16' }}>
-                        <SyncOutlined /> 处理中 {ticketStats.in_progress}
+                        <SyncOutlined /> 处理中 {ticketStats.processing}
                       </span>
                     </div>
                     <List
@@ -214,7 +214,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                 {getPriorityTag(ticket.priority)}
                               </div>
                               <Tag style={{ fontSize: 11 }}>
-                                {ticket.status === 'open' ? '待接单' : '处理中'}
+                                {ticket.status === 'pending' ? '待接单' : '处理中'}
                               </Tag>
                             </div>
                             <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2 }}>

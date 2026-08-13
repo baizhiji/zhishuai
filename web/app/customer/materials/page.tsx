@@ -48,14 +48,14 @@ export default function MaterialLibraryPage() {
       if (searchText) params.keyword = searchText;
       if (filterCategoryState !== 'all') params.type = filterCategoryState;
       if (filterStatus !== 'all') params.status = filterStatus;
-      const res: { list?: Material[] } = await request.get('/api/materials', { params });
+      const res: { list?: Array<Record<string, unknown>> } = await request.get('/api/materials', { params });
       const list = (res.list || []).map((m: Record<string, unknown>) => ({
         id: m.id as string,
         category: m.type as ContentCategory,
         title: m.title as string,
         content: (m.content as string) || '',
         images: (m.images as string[]) || [],
-        status: m.used ? 'used' : 'unused',
+        status: (m.used ? 'used' : 'unused') as 'used' | 'unused',
         timestamp: new Date(m.createdAt as string).getTime(),
       }));
       setMaterials(list);
@@ -145,6 +145,8 @@ export default function MaterialLibraryPage() {
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
       [ContentCategory.AI_SKETCH]: <PlaySquareOutlined />,
       [ContentCategory.AI_COMIC]: <SmileOutlined />,
+      [ContentCategory.CINEMA_SHORT]: <VideoCameraOutlined />,
+      [ContentCategory.CONTENT_CREATIVITY]: <BulbOutlined />,
     };
     return iconMap[category] || <FileOutlined />;
   };

@@ -25,15 +25,7 @@ router.get('/agents', async (req, res) => {
       prisma.agent.findMany({
         where,
         include: {
-          user: {
-            select: {
-              phone: true,
-              name: true,
-              avatar: true,
-              createdAt: true
-            }
-          },
-          children: {
+          other_Agent: {
             select: { id: true }
           },
           _count: {
@@ -49,8 +41,22 @@ router.get('/agents', async (req, res) => {
       prisma.agent.count({ where })
     ]);
 
+    // 单独查询用户，避免required relation null报错
+    const userIds = agents.map(a => a.userId).filter(Boolean);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, phone: true, name: true, avatar: true, createdAt: true },
+    });
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    const agentsWithUser = agents.map(agent => ({
+      ...agent,
+      user: userMap.get(agent.userId) || null,
+    }));
+
     res.json({
-      data: agents,
+      success: true,
+      data: agentsWithUser,
       pagination: {
         page: Number(page),
         pageSize: Number(pageSize),
@@ -59,19 +65,20 @@ router.get('/agents', async (req, res) => {
       }
     });
   } catch (error: any) {
+    console.error('[AdminAgents] GET /agents error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
 
 // 获取单个代理商详情
-router.get('/agents/:id', async (req, res) => {
+router.get('/agents/:id([0-9a-fA-F-]{36})', async (req, res) => {
   try {
     const { id } = req.params;
 
     const agent = await prisma.agent.findUnique({
       where: { id },
       include: {
-        user: {
+        User: {
           select: {
             phone: true,
             name: true,
@@ -79,25 +86,25 @@ router.get('/agents/:id', async (req, res) => {
             createdAt: true
           }
         },
-        agent: {
+        Agent: {
           include: {
-            user: { select: { name: true } }
+            User: { select: { name: true } }
           }
         },
-        children: {
+        other_Agent: {
           include: {
-            user: { select: { name: true, phone: true } }
+            User: { select: { name: true, phone: true } }
           }
         },
         UserAgentRelation: {
           include: {
-            user: { select: { id: true, name: true, phone: true, createdAt: true } }
+            User: { select: { id: true, name: true, phone: true, createdAt: true } }
           },
           orderBy: { createdAt: 'desc' },
           take: 50
         },
         _count: {
-          select: { agentRelations: true }
+          select: { UserAgentRelation: true }
         }
       }
     });
@@ -106,7 +113,7 @@ router.get('/agents/:id', async (req, res) => {
       return res.status(404).json({ error: '代理商不存在' });
     }
 
-    res.json({ data: agent });
+    res.json({ success: true, data: agent });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -164,14 +171,14 @@ router.post('/agents', async (req, res) => {
       userAgent: req.headers['user-agent'] as string,
     }).catch(() => {});
 
-    res.json({ message: '代理商创建成功', data: result.agent });
+    res.json({ success: true, message: '代理商创建成功', data: result.agent });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // 更新代理商
-router.put('/agents/:id', async (req, res) => {
+router.put('/agents/:id([0-9a-fA-F-]{36})', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, level, region, commissionRate, status } = req.body;
@@ -186,7 +193,7 @@ router.put('/agents/:id', async (req, res) => {
         ...(status !== undefined && { status })
       },
       include: {
-        user: { select: { phone: true, name: true } }
+        User: { select: { phone: true, name: true } }
       }
     });
 
@@ -194,7 +201,7 @@ router.put('/agents/:id', async (req, res) => {
       action: 'admin.edit_agent',
       userId: (req as any).userId,
       target: `代理商ID: ${id}`,
-      detail: `编辑代理商: ${agent.user.name || agent.user.phone}`,
+      detail: `编辑代理商: ${agent.User.name || agent.User.phone}`,
       ip: (req as any).ip,
       userAgent: req.headers['user-agent'] as string,
     }).catch(() => {});
@@ -215,7 +222,7 @@ router.patch('/agents/:id/status', async (req, res) => {
       where: { id },
       data: { status },
       include: {
-        user: { select: { phone: true, name: true } }
+        User: { select: { phone: true, name: true } }
       }
     });
 
@@ -229,25 +236,25 @@ router.patch('/agents/:id/status', async (req, res) => {
       action: status === 'frozen' ? 'admin.disable_agent' : 'admin.enable_agent',
       userId: (req as any).userId,
       target: `代理商ID: ${id}`,
-      detail: `${status === 'frozen' ? '冻结' : '解冻'}代理商: ${agent.user.name || agent.user.phone}`,
+      detail: `${status === 'frozen' ? '冻结' : '解冻'}代理商: ${agent.User.name || agent.User.phone}`,
       ip: (req as any).ip,
       userAgent: req.headers['user-agent'] as string,
     }).catch(() => {});
 
-    res.json({ data: agent });
+    res.json({ success: true, data: agent });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // 删除代理商
-router.delete('/agents/:id', async (req, res) => {
+router.delete('/agents/:id([0-9a-fA-F-]{36})', async (req, res) => {
   try {
     const { id } = req.params;
 
     const agent = await prisma.agent.findUnique({
       where: { id },
-      include: { _count: { select: { agentRelations: true } } }
+      include: { _count: { select: { UserAgentRelation: true } } }
     });
 
     if (!agent) {
@@ -270,14 +277,14 @@ router.delete('/agents/:id', async (req, res) => {
       userAgent: req.headers['user-agent'] as string,
     }).catch(() => {});
 
-    res.json({ message: '代理商已删除' });
+    res.json({ success: true, message: '代理商已删除' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // 获取代理商业绩统计
-router.get('/agents/:id/stats', async (req, res) => {
+router.get('/agents/:id([0-9a-fA-F-]{36})/stats', async (req, res) => {
   try {
     const { id } = req.params;
     const { period = 'monthly' } = req.query;
@@ -325,6 +332,7 @@ router.get('/agents/:id/stats', async (req, res) => {
     });
 
     res.json({
+      success: true,
       data: {
         stats,
         summary: {
@@ -340,7 +348,7 @@ router.get('/agents/:id/stats', async (req, res) => {
 });
 
 // 获取代理商的客户列表
-router.get('/agents/:id/customers', async (req, res) => {
+router.get('/agents/:id([0-9a-fA-F-]{36})/customers', async (req, res) => {
   try {
     const { id } = req.params;
     const { status, page = '1', pageSize = '20' } = req.query;
@@ -360,7 +368,7 @@ router.get('/agents/:id/customers', async (req, res) => {
     const [customers, total] = await Promise.all([
       prisma.user.findMany({
         where: {
-          UserAgentRelation: { agent: { id: id } },
+          Agent: { id: id },
           ...(statusFilter && { status: statusFilter })
         },
         select: {
@@ -377,13 +385,14 @@ router.get('/agents/:id/customers', async (req, res) => {
       }),
       prisma.user.count({
         where: {
-          UserAgentRelation: { agent: { id: id } },
+          Agent: { id: id },
           ...(statusFilter && { status: statusFilter })
         }
       })
     ]);
 
     res.json({
+      success: true,
       data: customers,
       pagination: {
         page: Number(page),
@@ -398,7 +407,7 @@ router.get('/agents/:id/customers', async (req, res) => {
 });
 
 // 设置客户功能开关
-router.put('/agents/:id/customer/:customerId/features', async (req, res) => {
+router.put('/agents/:id([0-9a-fA-F-]{36})/customer/:customerId([0-9a-fA-F-]{36})/features', async (req, res) => {
   try {
     const { customerId } = req.params;
     const { featureCode, enabled } = req.body;
@@ -427,7 +436,7 @@ router.put('/agents/:id/customer/:customerId/features', async (req, res) => {
 });
 
 // 批量设置客户功能开关
-router.put('/agents/:id/customers/features', async (req, res) => {
+router.put('/agents/:id([0-9a-fA-F-]{36})/customers/features', async (req, res) => {
   try {
     const { id } = req.params;
     const { customerIds, features } = req.body;
@@ -456,7 +465,7 @@ router.put('/agents/:id/customers/features', async (req, res) => {
       }
     }
 
-    res.json({ message: '批量设置成功', data: updates });
+    res.json({ success: true, message: '批量设置成功', data: updates });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -490,21 +499,14 @@ router.get('/customers', async (req, res) => {
           createdAt: true,
           updatedAt: true,
           expireAt: true,
-          agentId: true,
-          UserAgentRelation: {
+  
+          Agent: {
             select: {
-              agentId: true,
-              userId: true,
-              agent: {
-                select: {
-                  id: true,
-                  name: true,
-                  user: { select: { name: true } },
-                },
-              },
+              id: true,
+              User: { select: { name: true } },
             },
           },
-          _count: {}
+          _count: true
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -514,11 +516,12 @@ router.get('/customers', async (req, res) => {
     ]);
 
     res.json({
-      data: customers,
-      pagination: {
+      success: true,
+      data: {
+        list: customers,
+        total,
         page: Number(page),
         pageSize: Number(pageSize),
-        total,
         totalPages: Math.ceil(total / Number(pageSize))
       }
     });
@@ -577,7 +580,7 @@ router.post('/customers', async (req, res) => {
           status: true,
           createdAt: true,
           expireAt: true,
-          agentId: true,
+  
         },
       });
 
@@ -590,17 +593,30 @@ router.post('/customers', async (req, res) => {
         }
       });
 
+      // 初始化客户功能开关：默认仅开通 AI创作工厂
+      const allFeatures = await tx.featureSwitch.findMany();
+      if (allFeatures.length > 0) {
+        const featureRecords = allFeatures.map(f => ({
+          id: randomUUID(),
+          userId: newUser.id,
+          featureCode: f.code,
+          enabled: f.code === 'factory',
+          updatedAt: new Date(),
+        }));
+        await tx.userFeatureSwitch.createMany({ data: featureRecords });
+      }
+
       return newUser;
     });
 
-    res.json({ message: '客户创建成功', data: user });
+    res.json({ success: true, message: '客户创建成功', data: user });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // 更新客户
-router.put('/customers/:id', async (req, res) => {
+router.put('/customers/:id([0-9a-fA-F-]{36})', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, status, expireAt } = req.body;
@@ -621,7 +637,7 @@ router.put('/customers/:id', async (req, res) => {
         status: true,
         createdAt: true,
         expireAt: true,
-        agentId: true,
+
       },
     });
 
@@ -648,7 +664,7 @@ router.patch('/customers/:id/status', async (req, res) => {
         role: true,
         status: true,
         createdAt: true,
-        agentId: true,
+
       },
     });
 
@@ -659,7 +675,7 @@ router.patch('/customers/:id/status', async (req, res) => {
 });
 
 // 删除客户
-router.delete('/customers/:id', async (req, res) => {
+router.delete('/customers/:id([0-9a-fA-F-]{36})', async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -670,7 +686,7 @@ router.delete('/customers/:id', async (req, res) => {
       prisma.user.delete({ where: { id } })
     ]);
 
-    res.json({ message: '客户已删除' });
+    res.json({ success: true, message: '客户已删除' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -680,10 +696,6 @@ router.delete('/customers/:id', async (req, res) => {
 router.get('/features', authMiddleware, adminMiddleware, async (req: any, res: any) => {
   try {
     const features = await prisma.featureSwitch.findMany({
-      where: { enabled: true },
-      include: {
-        FeatureSubSwitch: { orderBy: { sortOrder: 'asc' } }
-      },
       orderBy: { sortOrder: 'asc' }
     });
 
@@ -694,13 +706,6 @@ router.get('/features', authMiddleware, adminMiddleware, async (req: any, res: a
       description: f.description,
       icon: f.icon,
       sortOrder: f.sortOrder,
-      subSwitches: f.FeatureSubSwitch.map(s => ({
-        id: s.id,
-        code: s.code,
-        name: s.name,
-        description: s.description,
-        enabled: s.enabled,
-      })),
     }));
 
     res.json({ success: true, data });
@@ -710,21 +715,31 @@ router.get('/features', authMiddleware, adminMiddleware, async (req: any, res: a
 });
 
 // 获取指定客户的功能开关（含客户个性化覆盖）
-router.get('/customers/:id/features', authMiddleware, adminMiddleware, async (req: any, res: any) => {
+router.get('/customers/:id([0-9a-fA-F-]{36})/features', authMiddleware, adminMiddleware, async (req: any, res: any) => {
   try {
     const { id } = req.params;
 
     const allFeatures = await prisma.featureSwitch.findMany({
-      where: { enabled: true },
-      include: {
-        FeatureSubSwitch: { orderBy: { sortOrder: 'asc' } }
-      },
       orderBy: { sortOrder: 'asc' }
     });
 
-    const userFeatures = await prisma.userFeatureSwitch.findMany({
+    let userFeatures = await prisma.userFeatureSwitch.findMany({
       where: { userId: id }
     });
+
+    // 若客户尚无功能开关记录，按"仅 AI 创作工厂开启"自动初始化
+    if (userFeatures.length === 0 && allFeatures.length > 0) {
+      const now = new Date();
+      const defaultRecords = allFeatures.map(f => ({
+        id: randomUUID(),
+        userId: id,
+        featureCode: f.code,
+        enabled: f.code === 'factory',
+        updatedAt: now,
+      }));
+      await prisma.userFeatureSwitch.createMany({ data: defaultRecords });
+      userFeatures = defaultRecords.map(r => ({ ...r, createdAt: now }));
+    }
 
     const userFeatureMap = new Map(userFeatures.map(f => [f.featureCode, f]));
 
@@ -734,16 +749,7 @@ router.get('/customers/:id/features', authMiddleware, adminMiddleware, async (re
       name: f.name,
       description: f.description,
       icon: f.icon,
-      enabled: userFeatureMap.has(f.code)
-        ? userFeatureMap.get(f.code)!.enabled
-        : f.enabled,
-      subSwitches: f.FeatureSubSwitch.map(s => ({
-        id: s.id,
-        code: s.code,
-        name: s.name,
-        description: s.description,
-        enabled: s.enabled,
-      })),
+      enabled: userFeatureMap.get(f.code)?.enabled ?? f.enabled,
     }));
 
     res.json({ success: true, data: features });
@@ -753,7 +759,7 @@ router.get('/customers/:id/features', authMiddleware, adminMiddleware, async (re
 });
 
 // 设置客户功能开关（每客户粒度，支持启用/停用）
-router.put('/customers/:id/features', authMiddleware, adminMiddleware, async (req: any, res: any) => {
+router.put('/customers/:id([0-9a-fA-F-]{36})/features', authMiddleware, adminMiddleware, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const { features } = req.body; // [{code: string, enabled: boolean}]
@@ -785,7 +791,7 @@ router.put('/customers/:id/features', authMiddleware, adminMiddleware, async (re
 });
 
 // 重置客户密码
-router.post('/customers/:id/reset-password', authMiddleware, adminMiddleware, async (req: any, res: any) => {
+router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', authMiddleware, adminMiddleware, async (req: any, res: any) => {
   try {
     const { id } = req.params;
     const user = await prisma.user.findUnique({ where: { id } });

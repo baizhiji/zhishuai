@@ -91,12 +91,11 @@ export default function AIEditScreen({ navigation }: AIEditScreenProps) {
       setProcessing(false);
       setCompleted(true);
       Alert.alert('任务已提交', 'AI剪辑任务已提交处理，完成后将通知您');
-    } catch (e) {
-      // API 不可用时，渐进式模拟完成
-      setProgress(100);
+    } catch (e: any) {
+      setProgress(0);
       setProcessing(false);
-      setCompleted(true);
-      Alert.alert('任务已提交', 'AI剪辑功能请求已提交，请在历史记录中查看处理状态');
+      setCompleted(false);
+      Alert.alert('提交失败', e?.message || 'AI 剪辑服务调用失败，请检查网络或后端服务后重试');
     }
   };
 

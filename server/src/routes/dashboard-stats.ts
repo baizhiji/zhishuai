@@ -106,7 +106,7 @@ router.get('/acquisition', authMiddleware, async (req: AuthRequest, res) => {
     const [tasks, leads, statusStats] = await Promise.all([
       prisma.acquisitionTask.findMany({
         where: { userId }, orderBy: { createdAt: 'desc' }, take: 10,
-        include: { _count: { select: { leads: true } } },
+        include: { _count: { select: { AcquisitionLead: true } } },
       }),
       prisma.acquisitionLead.count({ where: { userId } }),
       prisma.acquisitionLead.groupBy({ by: ['status'], where: { userId }, _count: true }),
@@ -114,7 +114,7 @@ router.get('/acquisition', authMiddleware, async (req: AuthRequest, res) => {
     const qualityStats = await prisma.acquisitionLead.groupBy({
       by: ['aiQuality'], where: { userId, aiQuality: { not: null } }, _count: true,
     });
-    const tasksWithCount = tasks.map(t => ({ ...t, actualCount: t._count.leads, _count: undefined }));
+    const tasksWithCount = tasks.map(t => ({ ...t, actualCount: t._count.AcquisitionLead, _count: undefined }));
     res.json({
       success: true,
       data: {

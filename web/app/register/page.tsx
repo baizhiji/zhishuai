@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Form, Input, Button, Card, message, Space } from 'antd';
+import { Form, Input, Button, Card, message, Space, Checkbox } from 'antd';
 import { MobileOutlined, LockOutlined, UserOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import request from '@/utils/request';
 import { setAuthToken, setUserInfo } from '@/lib/request';
+import Link from 'next/link';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,7 +17,8 @@ export default function RegisterPage() {
   const handleRegister = async (values: any) => {
     setLoading(true);
     try {
-      const res = await request.post<{ token: string; user: any }>('/auth/register', values);
+      const { agreement: _agreement, ...payload } = values;
+      const res = await request.post<{ token: string; user: any }>('/auth/register', payload);
       const result = res;
       if (!result?.token || !result?.user) {
         throw new Error('注册响应格式错误');
@@ -160,6 +162,30 @@ export default function RegisterPage() {
             ]}
           >
             <Input.Password prefix={<LockOutlined />} placeholder="请确认密码" size="large" />
+          </Form.Item>
+
+          <Form.Item
+            name="agreement"
+            valuePropName="checked"
+            rules={[
+              {
+                validator: (_, value) =>
+                  value
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('请先阅读并同意用户协议和隐私政策')),
+              },
+            ]}
+          >
+            <Checkbox>
+              我已阅读并同意{' '}
+              <Link href="/terms" target="_blank" style={{ color: '#667eea' }}>
+                《用户服务协议》
+              </Link>{' '}
+              和{' '}
+              <Link href="/privacy" target="_blank" style={{ color: '#667eea' }}>
+                《隐私政策》
+              </Link>
+            </Checkbox>
           </Form.Item>
 
           <Form.Item>

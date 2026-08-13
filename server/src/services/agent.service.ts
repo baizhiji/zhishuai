@@ -70,7 +70,7 @@ async function validateAgent(agentId: string): Promise<void> {
 
 async function validateCustomerOwnership(agentId: string, customerId: string) {
   const customer = await prisma.user.findFirst({
-    where: { id: customerId, agentRelation: { agentId } },
+    where: { id: customerId, UserAgentRelation: { agentId } },
   });
   if (!customer) {
     throw new AgentServiceError('客户不存在', 404);
@@ -139,7 +139,7 @@ export async function getCustomers(
   const list = await Promise.all(
     customers.map(async (customer) => {
       const stats = await getCustomerStats(customer.id);
-      return { ...customer, ...stats };
+      return { ...customer, ...stats } as CustomerListItem;
     }),
   );
 
@@ -156,8 +156,8 @@ export async function getCustomerDetail(
   await validateAgent(agentId);
 
   const customer = await prisma.user.findFirst({
-    where: { id: customerId, agentRelation: { agentId } },
-    include: { featureSwitches: true },
+    where: { id: customerId, UserAgentRelation: { agentId } },
+    include: { UserFeatureSwitch: true },
   });
 
   if (!customer) {
@@ -176,7 +176,9 @@ export async function getCustomerDetail(
     createdAt: customer.createdAt,
     updatedAt: customer.updatedAt,
     ...stats,
-    featureSwitches: customer.featureSwitches.map((fs) => ({
+    accountCount: 0,
+    publishCount: 0,
+    featureSwitches: customer.UserFeatureSwitch.map((fs) => ({
       featureCode: fs.featureCode,
       enabled: fs.enabled,
     })),
@@ -205,7 +207,7 @@ export async function createCustomer(
       name: name || phone,
       password: hashPassword(password || Math.random().toString(36).slice(-8)),
       role: 'customer',
-      agentRelation: { create: { agentId } },
+      UserAgentRelation: { create: { agentId } },
       status: 'active',
     },
   });
@@ -218,6 +220,7 @@ export async function createCustomer(
         userId: customer.id,
         featureCode: f.code,
         enabled: f.code === 'factory',
+        updatedAt: new Date(),
       })),
     });
   }
@@ -280,7 +283,7 @@ export async function getCustomerFeatures(
   await validateCustomerOwnership(agentId, customerId);
 
   const [globalFeatures, customerFeatures] = await Promise.all([
-    prisma.featureSwitch.findMany({ include: { subFeatures: true } }),
+    prisma.featureSwitch.findMany({ include: { FeatureSubSwitch: true } }),
     prisma.userFeatureSwitch.findMany({ where: { userId: customerId } }),
   ]);
 
@@ -292,14 +295,15 @@ export async function getCustomerFeatures(
       name: feature.name,
       description: feature.description,
       enabled: customerSetting ? customerSetting.enabled : feature.enabled,
-      subFeatures: feature.subFeatures.map((sub) => ({
+      subFeatures: feature.FeatureSubSwitch.map((sub) => ({
         id: sub.id,
         code: sub.code,
         name: sub.name,
         description: sub.description,
         enabled: sub.enabled,
-      })),
-    };
+        subFeatures: [],
+      })) as unknown as FeatureSwitchItem[],
+    } as FeatureSwitchItem;
   });
 }
 

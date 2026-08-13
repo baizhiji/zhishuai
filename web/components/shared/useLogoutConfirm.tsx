@@ -4,7 +4,7 @@ import { App } from 'antd';
 import { useRouter } from 'next/navigation';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
-import { clearToken } from '@/lib/request';
+import { removeAuthToken as clearToken } from '@/lib/request';
 
 export function useLogoutConfirm() {
   const { modal } = App.useApp();

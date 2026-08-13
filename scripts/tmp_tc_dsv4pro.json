@@ -1,0 +1,1 @@
+{"error":{"type":"gateway_error","code":"401006","message":"The service ID does not exist, or the model does not match the service. Please confirm the service ID in the Online Inference Service list in the console.","message_zh":"输入的服务 ID 不存在，或模型与服务不匹配，请在控制台的在线推理服务列表中确认服务 ID。","request_id":"113ffd28-27c8-49a0-a797-f1d99b1d90a8"}}

@@ -78,9 +78,9 @@ export async function getAgentList(opts: QueryOptions) {
     prisma.agent.findMany({
       where,
       include: {
-        user: { select: { phone: true, name: true, avatar: true, createdAt: true } },
-        children: { select: { id: true } },
-        _count: { select: { agentRelations: true } },
+        User: { select: { phone: true, name: true, avatar: true, createdAt: true } },
+        other_Agent: { select: { id: true } },
+        _count: { select: { UserAgentRelation: true } },
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -99,15 +99,15 @@ export async function getAgentDetail(id: string) {
   const agent = await prisma.agent.findUnique({
     where: { id },
     include: {
-      user: { select: { phone: true, name: true, avatar: true, createdAt: true } },
-      parent: { include: { user: { select: { name: true } } } },
-      children: { include: { user: { select: { name: true, phone: true } } } },
-      agentRelations: {
-        include: { user: { select: { id: true, name: true, phone: true, createdAt: true } } },
+      User: { select: { phone: true, name: true, avatar: true, createdAt: true } },
+      Agent: { include: { User: { select: { name: true } } } },
+      other_Agent: { include: { User: { select: { name: true, phone: true } } } },
+      UserAgentRelation: {
+        include: { User: { select: { id: true, name: true, phone: true, createdAt: true } } },
         orderBy: { createdAt: 'desc' },
         take: 50,
       },
-      _count: { select: { agentRelations: true } },
+      _count: { select: { UserAgentRelation: true } },
     },
   });
 
@@ -148,7 +148,7 @@ export async function updateAgent(id: string, input: UpdateAgentInput) {
       ...(commissionRate !== undefined && { commissionRate }),
       ...(status !== undefined && { status }),
     },
-    include: { user: { select: { phone: true, name: true } } },
+    include: { User: { select: { phone: true, name: true } } },
   });
 
   return agent;
@@ -158,7 +158,7 @@ export async function toggleAgentStatus(id: string, status: string) {
   const agent = await prisma.agent.update({
     where: { id },
     data: { status },
-    include: { user: { select: { phone: true, name: true } } },
+    include: { User: { select: { phone: true, name: true } } },
   });
 
   await prisma.user.update({
@@ -172,11 +172,11 @@ export async function toggleAgentStatus(id: string, status: string) {
 export async function deleteAgent(id: string) {
   const agent = await prisma.agent.findUnique({
     where: { id },
-    include: { _count: { select: { agentRelations: true } } },
+    include: { _count: { select: { UserAgentRelation: true } } },
   });
 
   if (!agent) throw new AdminNotFoundError('代理商不存在');
-  if (agent._count.agentRelations > 0) throw new AdminValidationError('该代理商下有客户，无法删除');
+  if (agent._count.UserAgentRelation > 0) throw new AdminValidationError('该代理商下有客户，无法删除');
 
   await prisma.agent.delete({ where: { id } });
 }
@@ -203,7 +203,7 @@ export async function getAgentStats(id: string, period: string = 'monthly') {
     }),
     prisma.agent.findUnique({
       where: { id },
-      select: { balance: true, totalRevenue: true, _count: { select: { agentRelations: true } } },
+      select: { balance: true, totalRevenue: true, _count: { select: { UserAgentRelation: true } } },
     }),
   ]);
 
@@ -212,7 +212,7 @@ export async function getAgentStats(id: string, period: string = 'monthly') {
     summary: {
       balance: summary?.balance || 0,
       totalRevenue: summary?.totalRevenue || 0,
-      totalCustomers: summary?._count.agentRelations || 0,
+      totalCustomers: summary?._count.UserAgentRelation || 0,
     },
   };
 }
@@ -224,7 +224,7 @@ export async function getAgentCustomers(id: string, opts: { status?: string; pag
   const agent = await prisma.agent.findUnique({ where: { id }, select: { userId: true } });
   if (!agent) throw new AdminNotFoundError('代理商不存在');
 
-  const where: Record<string, unknown> = { agentRelation: { agent: { id } } };
+  const where: Record<string, unknown> = { UserAgentRelation: { agent: { id } } };
   if (status) where.status = status;
 
   const [customers, total] = await Promise.all([
@@ -263,7 +263,7 @@ export async function getCustomerList(opts: QueryOptions) {
     prisma.user.findMany({
       where,
       include: {
-        agentRelation: { include: { agent: { include: { user: { select: { name: true } } } } } },
+        UserAgentRelation: { include: { Agent: { include: { User: { select: { name: true } } } } } },
         _count: {},
       },
       orderBy: { createdAt: 'desc' },
@@ -310,6 +310,7 @@ export async function createCustomer(input: CreateCustomerInput) {
           userId: newUser.id,
           featureCode: f.code,
           enabled: f.code === 'factory',
+          updatedAt: new Date(),
         })),
       });
     }

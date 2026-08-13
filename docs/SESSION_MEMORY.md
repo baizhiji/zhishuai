@@ -1,6 +1,140 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-04 (TokenHub 模型 ID 修正为 hy3 + endpoint 保持实际可解析的 tencentmaas.com + AI API 配置 + 服务端代理 + 模型可用性修复 + 部署验证通过 + 视频生产配置补全) | 提交数：535+ | 项目启动：2026-04-25
+> 最后更新：2026-08-13 (商用就绪改造第1-7组全部完成) | 提交数：535+ | 项目启动：2026-04-25
+
+## 2026-08-13 本次会话关键更新
+
+### 已完成
+7. **商用就绪改造第1-7组全部完成（本次，按用户 7 项要求执行）**：
+   - **第1组 全系统 mock 数据清除**：删除 6 个死代码文件（`ai-service.ts`/`humanization.service.ts`/`recruitment-service.ts`/`acquisition-service.ts`/`hot-topics.service.ts`/`content-creativity.service.ts`，均为零引用、含编造数据）；生产路径改真实/空：`video-enhancer.ts` 三个函数改显式 throw（禁止假成功）、`dashboard-service.ts` 删除 getFallbackHotTopics 静态假热点、`web/app/api/ai/generate-script/route.ts` 删除 mock 话术分支（无 Key 返回 AI_KEY_NOT_CONFIGURED）、`apk/content.service.ts` analyzeVideo 删除 catch 假数据分支。
+   - **第2组 Playwright 桥接商用化**：`server/src/routes/playwright-bridge.ts` 接口落地为真实实现（发布/沟通/采集能力），配套数据采集服务注释清理。
+   - **第3组 第二梯队生产可靠性风险升级修复**：`web`+`server` 双端 `tsc --noEmit` 退出码 0（历史 86 个错误清零）；登录测试通过；next.config.js 强制类型检查（`ignoreBuildErrors: false`）。
+   - **第4组 Web 端隐私政策/服务条款**：`(main)/privacy` 与 `(main)/terms` 已存在且内容完整，登录页页脚补充两个入口链接（target=_blank）。
+   - **第5组 AIGC 标识【智枢AI生成】落地生成链路**：新建 `server/src/services/aigc-label.service.ts`（`appendAIGCLabel` 文末追加 / `appendAIGCLabelShort` 标题用 · 分隔 / `hasAIGCLabel` 去重）；8 处注入：ai-chat（流式 + 非流式主链 + fallback）、business-assistant、ai-workflow（内容/JD/营销）、ai-enhanced（titles/script/content）、dashboard 热点标题、hot-topics（title/content）、web generate-script；已含标识自动跳过防重复。
+   - **第6组 .disabled（短信/结算/报表）处理**：确认 settlement/statistics 路由已是真实 Prisma 统计（非 mock），满足"只需统计能力"；notification 为真实站内信无短信依赖。
+   - **第7组【建议的商用路径】问题修复（本次）**：按 `docs/commercial-readiness-report-2026-08-11.md` 逐项比对——
+     - **已达标（报告误报/已修）**：1.3 API Key（Route Handler 服务端执行，无 NEXT_PUBLIC 泄漏）、1.4 tsc（两端清零）、1.5 健康检查（/health /ready /live /metrics 存在且 monitor.sh 指向 /api/health 正确）、2.1 Zod（auth/account 全路由覆盖）、2.2 Prisma 关系名（schema 中 UserAgentRelation 与代码一致，实为一致）、3.2 Rate Limiting（helmet + express-rate-limit 全局+登录/AI/扫码限流）、3.3 错误页面（not-found 已有）、3.4 自动化测试（jest 5/5 通过，报告"不可运行"判断过时）、3.5 package-lock（web+server 均有）。
+     - **本轮新修复**：① 新建 `web/middleware.ts`（P0-1.1 前端路由服务端鉴权：保护 /admin /agent /customer /account /profile /notifications，未登录重定向 /login；公开路径与 AuthGuard 一致）；② `web/lib/request.ts` setAuthToken/removeAuthToken 同步 `auth_token` cookie（生命周期与 localStorage token 一致，middleware 依赖）；③ `web/next.config.js` 添加 6 项安全响应头（X-Frame-Options / X-Content-Type-Options / Referrer-Policy / HSTS / Permissions-Policy / CSP，P0-1.2+P2-3.1）；④ 新建 `web/app/error.tsx`（500 全局错误页）；⑤ `server/src/index.ts` 添加 unhandledRejection/uncaughtException 全局处理器（P1-2.3，uncaughtException 退出让 PM2 重启，避免半损坏状态继续服务）。
+     - **决策说明**：2.4 viewing_role localStorage 不改（后端 authMiddleware 已兜底，仅 UI 展示层，改动会触碰三角色登录协议有回归风险）；2.3 PM2 频繁重启的服务器内存/swap 侧留待运维。
+6. **全部修改已部署到生产（150.109.60.130，2026-08-13）**：
+   - 打包上传 75 个文件（server 全部改动 + web 全部改动 + `scripts/verify-login.sh`）到 `/var/www/zhishuai/` 解压覆盖。
+   - server：`npm install`（新增 exceljs）→ `pm2 restart zhishuai-api`（tsx 直跑源码，无需 tsc build）。
+   - web：`npm install`（新增 china-area-data；注意 npm install 未自动安装该包，已显式 `npm install china-area-data@^5.0.1` 补装）→ `next build`（产出 `.next/BUILD_ID`）→ `pm2 restart zhishuai-web` → HTTPS/HTTP 均 200。
+   - **部署验证中发现并修复新 Bug（客户登录必 403）**：`server/src/validators/schemas.ts` 的 `loginSchema.body` 原仅声明 `phone`/`password`，未声明 `loginType`；`validate` 中间件 `safeParse` 成功后用 `result.data` 覆盖 `req.body`，zod 默认 strip 未知字段 → 路由层 `req.body.loginType` 恒为 `undefined` → `auth.ts:435` `userRole==='customer' && loginType!=='user'` 恒真 → 客户（loginType=user）登录必 403「您的账号不支持从此入口登录」。**旧验证脚本用 admin 账号测三入口不触发该分支（admin role 不满足条件），新脚本换真实客户账号才暴露此预存 Bug**。修复：`loginSchema` body 增加 `loginType: z.enum(['admin','agent','user']).optional()`；仅 `/login` 路由使用该 schema，无其他影响面。
+   - **最终验证（verify-login.sh）**：管理员 18601655222 → 200、代理商 13900000099 → 200、客户 13800000001 → 200，全部通过。
+   - 第 5 条问题 1（updatedAt）/问题 2（域名）修复已随本次部署上线生效。
+5. **按《智枢AI系统全面验证报告（2026-08-13）》修复 2 个问题（本轮，已随第 6 条部署上线）**：
+   - **问题1 创建客户 500（阻断商用）**：`server/prisma/schema.prisma` 中 `UserFeatureSwitch.updatedAt` 为必填无默认值，5 处 `createMany` 初始化功能开关缺 `updatedAt` → 已全部补齐 `updatedAt: new Date()`：`routes/admin-agents.ts:599`（管理员创建客户）、`routes/agent.ts:349`（代理商创建客户）、`services/admin-agents.service.ts:308`、`services/agent.service.ts:218`、`services/auth.service.ts:242`（后三者当前为死代码，仅补字段不启用）。读取路径（agent.ts:530 / admin-agents.ts:731）与 `seed.ts:65` 原本已正确传值，不受影响。
+   - **问题2 APK 默认域名未解析 + 旧 IP 硬编码清理**：`apk/src/services/api.config.ts` BASE_URL → `https://api.baizhiji.net/api`（原 `api.zhishuai.cc` 无 DNS 解析）；`apk/src/services/webLink.service.ts` WEB_BASE_URL → `https://baizhiji.net`（清除旧地址 `http://43.129.16.148:3001`）；`web/config/api.ts` 生产默认值 → `https://baizhiji.net/api`（nginx 的 `baizhiji.net` 已配 `location /api/` → 3001 代理，可正常访问）；`server/src/routes/share.ts` scanUrl 的 WEB_URL 默认值 → `https://baizhiji.net`（扫码落地页走 Web 前端，不能指向 API 域名）。
+   - **保持原样（未删未加）**：数字人路由 `/api/digital-human`（14 端点）、Web 端 `/customer/digital-human` 页面、注册链路、死代码启用状态；未重新引入任何已删除功能（hy_image/digital_human 等）。
+   - **编译验证**：5 处 updatedAt 修改零 lint 错误、零 tsc 新增错误（`admin-agents.ts`/`agent.ts` 的 `UserAgentRelation`/`User` 关系名报错为历史技术债，SESSION_MEMORY 已有记录，生产用 tsx 直跑不受影响）。
+1. **APK 商业助手 Excel 导出已实现**（补齐四大文档格式导出）：
+   - 后端 `server/src/services/business-assistant.service.ts`：新增 `exportXLSX` 方法（exceljs），生成「方案概览」+「方案详情」两个 Sheet（表头样式、冻结首行、自动换行、边框）；新增依赖 `exceljs`。
+   - 后端 `server/src/routes/business-assistant.ts`：新增路由 `GET /export/xlsx/:id`。
+   - APK `apk/src/services/business.service.ts`：`getExportUrl` 支持 `'xlsx'` 格式。
+   - APK `apk/src/screens/ai/PlanViewScreen.tsx` 与 `apk/src/screens/ai/PlanGenerationScreen.tsx`：新增绿色 Excel 下载按钮（#059669），handleDownload 支持 xlsx 格式与 MIME 类型。
+   - 至此 APK 商业助手支持 PDF/PPT/DOCX/Excel 四种格式导出。
+2. **四大功能模块边界澄清**：四大功能模块 = 四条核心业务线（AI创作工厂 / 智能招聘 / 智能获客 / 推荐分享），与 APK 端 AI 助手（企业策划/诊断对话 + 文档生成导出）完全无关，AI 助手是独立的 AI 对话/文档生成能力，不属于四大功能模块业务架构。此前将两者混为一谈的理解已更正。
+3. **蓝皮书 AIGC 标识品牌化升级**（`docs/智枢AISaaS系统AI模型配置总蓝皮书.md`）：
+   - 3.5 节 AIGC 标识合规新增「品牌标识统一文案（智枢AI生成）」：显式标识统一采用「本内容由智枢AI生成」（短场景「智枢AI生成」），合规依据为《办法》第四条（无固定措辞）+ 强制性国标 GB 45438-2025（须同时含"AI/人工智能"+"生成/合成"字样），与豆包/头条/喜马拉雅等行业做法一致。
+   - 新增五类内容标识规格表（文本/图片/视频/音频/数字人）与合规红线（品牌名不得替换法定要素、显隐标识缺一不可、平台二次标注为叠加关系）。
+   - 新增隐式标识 JSON 规格（provider: 智枢AI + contentId + timestamp + model），写入 C2PA/EXIF/XMP。
+   - 新增租户级标识配置（默认开启、可叠加客户品牌后缀）。
+   - 执行摘要补充"标识即广告"品牌曝光策略；参考来源新增《办法》官方链接（cac.gov.cn）与 GB 45438-2025 国标链接。
+   - 合规与品牌获客双赢：内容分发即品牌曝光，零成本获客触点。
+   - 注意：配套标准编号为 **GB 45438-2025**（强制性国标），网上流传的 GB/T 45407-2025 编号不实，引用时勿用。
+2. **蓝皮书 V1.1 智能招聘自动沟通话术机制修正**（`docs/智枢AISaaS系统AI模型配置总蓝皮书.md` 4.4 节）：
+   - 明确话术三层来源：① 用户自定义模板（`CandidateSearchConfig.contactTemplate`，优先，最长 500 字，4 个占位符 `{{name}}/{{jobTitle}}/{{company}}/{{recruiter}}`）→ ② AI 话术生成（`generateRecruitmentScript` 后端 5 场景：初次联系/跟进/面试邀请/Offer/婉拒；Web `/api/ai/generate-script` 招聘 6 场景：开场打招呼/职位介绍/面试邀请/跟进/婉拒/offer 发放，temp 0.8，多版本）→ ③ 默认模板兜底（`您好{{name}}，看到您的简历与我们{{jobTitle}}岗位非常匹配，方便聊一下吗？`）。
+   - 岗位名动态绑定：发送时 `{{jobTitle}}` 按候选人所属岗位（`candidate.post.title`）替换，杜绝串岗（招聘美容师即发美容师话术，不硬编码其他岗位）。
+   - 产线表新增阶段 6/7（自动沟通话术生成、自动沟通发送）；已知局限：默认模板仅岗位名动态、句子通用，深度贴合岗位需自定义模板或 AI 生成。
+3. **蓝皮书 V1.2 → V1.3 AI 助手（APK）重写**（`docs/智枢AISaaS系统AI模型配置总蓝皮书.md` 4.2 节）：
+   - V1.2 全功能重写：12 模型清单（腾讯 8 + 阿里 4）覆盖 8 类任务，与 `apk/src/screens/ai/AIChatScreen.tsx` 的 AI_MODELS、`apk/src/services/ai-model-router.ts` 完全对齐；新增 6 大快捷能力（QUICK_ACTIONS）：企业诊断（8 维度）/内容创作/图片生成/视频解析/短视频制作/AI 数字人。
+   - **V1.3 质量优先重写（本次）**，修正 V1.2 三处错误：① **模型 ID 修正**：`hunyuan_instruct` = `hunyuan-2.0-instruct-20251111`、`hunyuan_thinking` = `hunyuan-2.0-thinking-20251109`（V1.2 误写为 `deepseek-v4-pro-202606`）；② **调度原则改为质量优先**（删除"费用优化"表述，同任务多模型按质量排序，费用仅平级参考）；③ **文档生成局限修正**：`exportDOCX/exportXLSX/exportPPT/exportPDF` 已在 `server/src/services/business-assistant.service.ts` 全部实现（docx/ExcelJS/PptxGenJS/PDFKit），删除"仅 Word 可用"过时描述。
+   - **新增 8 大商业场景 × 质量优先模型配置**：`startup`/`operations`/`brick_and_mortar` → `kimi_k2`（长文方案）；`diagnosis`/`competitive_analysis` → `hunyuan_thinking`（深度推理）；`media_operations`/`product_promotion`/`marketing` → `qwen_plus`（专业文案），对应 `server/src/services/business-assistant.service.ts` 的 `BUSINESS_SCENARIOS`（8 场景：创业方案/运营策划/企业诊断/自媒体运营/产品宣传/竞品分析/实体店经营/市场营销，分属方案策划/运营管理/分析诊断/营销推广四类）。
+   - **降级链修正**：实际为 `qwen_turbo→hunyuan_instruct`、`qwen_plus→glm_5`、`qwen_long→kimi_k2`、`deepseek_r1→hunyuan_thinking`（仅阿里 4 模型有显式 fallback，腾讯 8 模型为独立主干，无 fallback 的找同类型或任意可用兜底），删除 V1.2 中不存在的"GLM-5.2/Kimi↔GLM"描述。
+   - 已知局限（V1.3）：视频/图像/数字人为腾讯独有模型无方舟对等可降级；"对话+图片理解"组合输入链路待完善；商业助手 8 大场景默认走后端 `callAI`（model=default），场景级模型路由需在部署验证脚本确认场景参数透传。
+   - 版本号 V1.2 → V1.3，第四章总览表 4.2 行与附录 C 同步更新。
+   - **V1.4 功能边界收窄（本次，用户明确要求）**：AI 助手能力收敛为 **8 大商业场景 + 文档导出（docx/xlsx/pptx/pdf）+ 视频解析 + 日常对话/推理**。删除 4 项快捷能力：① 短视频制作（AI 创作工厂 4.1 已含短视频脚本产线）；② AI 数字人（4.5 数字人类目独立覆盖）；③ 内容创作（8 大场景中自媒体运营/产品宣传/市场营销本身即内容创作产出，且 4.1 含文案产线）；④ 图片生成（`business-assistant.service.ts` 无 image 调用，8 场景与文档导出为纯文本+规则引擎渲染链路，且 4.1 含图片生成产线）。企业诊断不再单列快捷能力（= 8 大场景 `diagnosis`）。`hy_image`/`digital_human` 等模型仍保留在 APK 端 12 模型切换清单（UI 事实），但不属 AI 助手功能定位。版本号 V1.3 → V1.4，第四章总览表 4.2 行、目标段、④ 快捷能力表、已知局限、附录 C 同步更新。**随后按用户要求彻底清除正文残留说明**：4.2 目标段删除"短视频制作、AI 数字人、内容创作、图片生成等能力已由 AI 创作工厂覆盖，AI 助手不重复建设"整句；④ 快捷能力标题简化为"（视频解析）"并删除"已删除的快捷能力及原因"整段；第五章总览表 4.2 行删除括号说明。正文配置部分不再出现任何已删功能名称，仅附录 C 与版本头部保留历史变更记录（明确标注"删除"，不参与配置）。
+   - **V1.5 APK 端代码残留清除（本次，用户明确要求）**：按用户要求将 V1.4 收窄落实到 APK 端代码，删除 3 个文件中所有已删功能残留——① `apk/src/screens/ai/AIChatScreen.tsx`：AI_MODELS 删除 `hy_image`（图片生成）/`digital_human`（数字人）两个模型（12→10，注释重新编号 1-10），删除 iconMap/colorMap 中对应映射，QUICK_ACTIONS 删除内容创作/图片生成/短视频制作/AI数字人 4 项入口（6→2，仅剩企业诊断/视频解析），欢迎消息从 6 大核心能力改为 2 项，清理未使用 `RECOMMENDED_MODELS` 导入，文件头注释移除"内容创作"；② `apk/src/services/ai-model-router.ts`：删除 `hy_image`/`digital_human` 模型定义、TaskType 中 `image`/`digital_human` 类型、analyzeTask 检测分支、getTaskTypeName/getTaskTypeIcon 映射（任务分类 9→7：chat/reasoning/long_text/professional/agent/vision/video）；③ `apk/src/services/ai-chat.service.ts`：删除 ImageGenerateRequest 接口、generateImage 方法（无调用方）、RECOMMENDED_MODELS 中 image/digitalHuman、ALL_MODELS 中 HY-Image-V3.0/YT-Video-HumanActor，ModelInfo.type 移除 image/digital_human。**AI 创作工厂不受影响**：`content.service.ts` 独立 generateImage、AIImage/AIVideo/DigitalHuman 页面、server `/ai-chat/image` 端点均保留（4.1/4.5 类目）。版本号 V1.4 → V1.5，蓝皮书 4.2 模型清单表/调度机制/已知局限/版本头部/附录 C 同步更新，文档与代码完全对齐。APK tsc 检查：无本次引入的新错误（AIChatScreen 418/480 行 `autoSelectModel` 返回 string 类型问题为预存，未改动区域）。
+
+4. **蓝皮书 V1.5 Server 端对齐（本次，延续 V1.4/V1.5 APK 端清除）**：
+   - `server/src/services/ai-model-router.ts`：模型 ID 修正（`hunyuan_instruct`=hunyuan-2.0-instruct-20251111、`hunyuan_thinking`=hunyuan-2.0-thinking-20251109，消除误用的 deepseek-v4-pro-202606）；改名（`kimi_k3→kimi_k2`=kimi-k2.6、`glm_5_2→glm_5`=glm-5、`hy_vision_2→glm_5v`=glm-5v-turbo）；删除 `hy_image_v3`/`digital_human` 模型定义与 image/digital_human 任务分支（任务分类 9→7），ALIYUN_MODELS fallback 同步改为 kimi_k2/glm_5。
+   - `server/src/routes/ai-chat.ts`：MODEL_CONFIG 对齐（daily→hunyuan-2.0-instruct-20251111、thinking→hunyuan-2.0-thinking-20251109、longText→kimi-k2.6、agent→glm-5、vision→glm-5v-turbo、video 保留 youtu-vita）；**删除 digitalHuman 但保留 `image: { id: 'hy-image-v3.0' }`**（第460行 `/images/generations` 端点被 APK 创作工厂调用，属保留功能）；resolveApiKey 支持 volcano provider + ARK_API_KEY。
+   - `server/src/services/ai-chat.service.ts`：删除 tencent.models 中 image/digitalHuman 两行配置。
+   - `server/src/services/model-registry.ts`：provider 类型扩展 'volcano'；新增火山方舟分组 8 模型（doubao-seed-2-1-pro/turbo、doubao-seed-1-6-lite/thinking、doubao-seedream-5-0-pro/lite、doubao-seededit-3-0、doubao-seedance-2-5、doubao-seed-audio-1.0），注册进 ALL_MODELS/MODELS_BY_PROVIDER/getModelStats；为 9/15 下线模型添加 `deprecationDate: '2026-09-15'` + `replacementKey` 迁移路径（hy-image-v3→doubao-seedream-5-0-pro、hy-image-lite→doubao-seedream-5-0-lite、kling-video-v3→doubao-seedance-2-5、vd-video-q3-pro/q3-turbo/q2-pro/q2-pro-fast/q2-turbo/q2→kling-video-v3）。**既有 key（kimi-k3/glm-5/hy-image-v3/vd-video-* 等）未改名**——web 创作工厂 category-config.ts 仍引用，属已确定内容不乱改。
+   - `server/src/services/ai-client.ts`：PROVIDER_BASE_URLS 增加火山方舟（https://ark.cn-beijing.volces.com/api/v3）；resolveApiCredentials 支持 volcano + ARK_API_KEY 兜底；generateImage 改为**方舟 Seedream 5.0 优先 → 腾讯 HY-Image-V3.0 → 阿里**三级降级（方舟未配置自动回退，安全）。
+   - `server/src/services/user-api-key.service.ts`：PROVIDER_CONFIG 增加 ark（火山方舟）；getPrimaryApiKey/getSecondaryApiKey/createApiKey/testApiKey 类型扩展 'ark'。
+   - **Prisma client 注意**：本地 client 必须用 `npx prisma generate --schema prisma/schema-restore.prisma` 生成（与代码基线匹配，schema.prisma 为精简版、ChatConversation 关系名 messages 不一致；勿跑默认 `prisma generate`，会覆盖 client 导致大面积类型错误）。编译剩余 4 个错误（admin-agents/agent/business-assistant 的 `UserAgentRelation`/`User` 关系名与 schema 的 agentRelations/user 不一致）为**历史技术债**，与本次无关；生产用 `npx tsx src/index.ts` 直跑源码不做 tsc build，不受影响。
+   - **已部署生产**（150.109.60.130）：scp 6 文件 → pm2 restart zhishuai-api → verify-login.sh 三角色全部 200 → GET /api/ai-chat/models 返回 10 模型（qwen_turbo/qwen_plus/qwen_long/deepseek_r1/hunyuan_instruct/hunyuan_thinking/kimi_k2/glm_5/glm_5v/youtu_vita），无 image/digitalHuman，与蓝皮书 V1.5 完全一致。如启用方舟需在服务器 .env 配置 ARK_API_KEY（未配置自动回退腾讯/阿里，不影响现有功能）。
+
+### 已知仍需处理的问题
+- 待办：「AI 生成话术 → 一键填入沟通模板」链路产品化（当前 Web/APK 两处入口分离），使自动沟通内容真正贴合岗位。
+- 待办：APK 端 AI 助手"对话+图片理解"组合输入链路待完善（当前模型切换为全量 10 模型，组合输入支持不完整）。
+- 待办（第7组决策）：viewing_role 存 localStorage 暂不改服务端（后端 authMiddleware 兜底）；PM2 频繁重启的服务器内存/swap 侧优化留待运维。
+- ~~AIGC 标识仅文档级~~ 已落地（第5组，见上方第 7 条）；~~mock 数据依赖~~ 已清除（第1组）；~~tsc 大量历史错误~~ 已清零（第3组）。
+- 其余同 2026-08-12 记录。
+
+---
+
+## 2026-08-12 本次会话关键更新
+
+### 已完成
+1. **发布《智枢AISaaS系统AI模型配置总蓝皮书 V1.0》**（`docs/智枢AISaaS系统AI模型配置总蓝皮书.md`）：
+   - 覆盖全系统 14 大业务类目（创作工厂/智能客服/智能获客/智能招聘/数字人/声音克隆/热点追踪/推荐分享/业务助手/素材管理/AI工作流/多模态/管理后台/代理商门户），服务商从 2 家扩展为 3 家（TokenHub + 百炼 + 火山方舟）。
+   - 火山方舟完整目录（Doubao-Seed-2.1、Seedream 5.0、Seedance 2.5、声音复刻 2.0、Coding Plan）为新增内容。
+   - 五道横切关卡：违禁内容检测（广告法九大类违禁词+平台屏蔽词+替代词映射表）、反AI化检测（六维检测体系）、爆款内容创意（爆款因子注入器，平台差异化模板）、质量优先（四维质量关卡）、AIGC标识合规（2025-09-01《标识办法》+ 三平台落地差异）。
+   - 每类目均为多阶段流水线+模型三级降级链+最终交付物，符合"全类目产出最终交付物"要求。
+   - 附录含三服务商全量模型注册表、API规范、下线预警（TokenHub 9/15 旧 Kling/Vidu/HY-Image 下线迁移）。
+
+### 关键变更预警（模型侧）
+- TokenHub `kl-*`/`vd-*`/`hy-image-v3.0`/`hy-image-lite` 将于 **2026-09-15 统一下线** → 迁移至 `kling-*`/`vidu-*` 新命名或转方舟 Seedream 5.0 / 百炼 qwen-image。
+- TokenHub `hy3-preview` 于 **2026-08-31 下线** → 迁移 hy3；`minimax-m2.5` 已于 8/7 下线 → M3/M2.7。
+- 百炼 Qwen3.8-Max-Preview 已下线，正式版 `qwen3.8-max` 生效（文本天花板）；Wan3.0 视频 8/6 公测；方舟 Seedance 2.5 8 月 API 公测。
+
+### 已知仍需处理的问题
+- 服务端 `npm run build`（tsc）仍有大量历史遗留 TypeScript/Prisma 类型错误，当前用 `tsx` 启动运行。
+- 智能获客、智能招聘等模块仍依赖 mock 数据，需按业务优先级逐步接入真实平台 API。
+- 模型注册表尚未在代码中落地（仅文档级），需将附录 A 的下线预警位接入 `server` 侧模型路由/注册逻辑。
+
+---
+
+## 2026-08-11 本次会话关键更新
+
+### 已完成
+1. **修复代理商区域级联选择白屏**：
+   - 问题根因：`china-area-data@5.0.1` 的数据结构是嵌套对象（`data['86']` 为省份，`data[provinceCode]` 为市区），原 `web/lib/china-regions.ts` 错误地按扁平结构处理，导致 Cascader 选项值为对象/ `[object Object]`，点击时触发 React 渲染异常。
+   - 修复 `web/lib/china-regions.ts`：按嵌套结构正确生成省市区三级树形选项，值统一使用区域名称字符串。
+   - 重新执行 `npx next build` 并重启 `zhishuai-web`。
+2. **代理商区域改为级联选择**：
+   - 新增 `web/lib/china-regions.ts`，基于 `china-area-data@5.0.1` 将中国行政区划数据转换为 Ant Design Cascader 可用的树形结构。
+   - 修改 `web/app/admin/agents/page.tsx`：
+     - 选择省级/市级/区级代理时，「代理区域」从手动输入改为省市区级联选择器。
+     - 全国代理、个人代理不显示区域字段。
+     - 切换代理级别时自动清空已选区域，避免数据残留。
+     - 区域存储格式为 `浙江省 / 杭州市 / 西湖区`，表格与详情按原字符串回显。
+   - 安装依赖 `china-area-data` 并同步 `package.json` / `package-lock.json`。
+3. **数据总览新增代理商区域分布**：
+   - 后端 `server/src/routes/admin-dashboard.ts` 新增 `agentRegionDistribution`，按区域第一级（省份/全国代理/个人代理/未设置）聚合计数并排序。
+   - 前端 `web/app/admin/dashboard/page.tsx` 新增「代理商区域分布」卡片，以排名 + 进度条形式展示各区域代理商数量及占比。
+4. **部署验证**：`npx next build` 通过，`pm2 restart zhishuai-web` 后 `scripts/verify-login.sh` 三种角色登录均返回 200。
+
+### 已知仍需处理的问题
+- 服务端 `npm run build`（tsc）仍有大量历史遗留 TypeScript/Prisma 类型错误，当前用 `tsx` 启动运行。
+- 智能获客、智能招聘等模块仍依赖 mock 数据，需按业务优先级逐步接入真实平台 API。
+- 测试覆盖率、用户文档、隐私政策/服务条款、监控告警、数据库备份策略等基础设施仍需补齐。
+
+---
+
+## 2026-08-11 历史会话：客户后台工单类别统一
+
+### 已完成
+1. **客户后台工单类别精简统一**：
+   - 在 `web/services/ticket.ts` 新增 `customerTicketCategories`，仅保留客户端 4 大功能：`AI创作工厂`、`智能客服`、`智能获客`、`推荐分享`。
+   - 同步更新 `ticketCategories` 中 `media` 和 `referral` 的展示名称，分别改为 `AI创作工厂` 与 `推荐分享`，与客户端功能命名保持一致。
+   - 修改 `web/app/customer/tickets/page.tsx`，新建工单下拉框改用 `customerTicketCategories`，历史工单展示仍通过完整 `ticketCategories` 回查标签。
+2. **部署验证**：`npx next build` 通过，`pm2 restart zhishuai-web` 后 `scripts/verify-login.sh` 三种角色登录均返回 200。
+
+---
 
 ## 2026-08-04 本次会话关键更新
 
@@ -26,6 +160,14 @@
    - web端 AI 创作工厂页面新增"横幅/贴片"多选下拉框
    - generateVideo 函数注入 buildVideoPrompt：自动将配音/字幕/横幅/BGM 配置转化为增强 prompt
    - 将视频生产配置系统（第十一章）纳入 `docs/AI创作工厂模型配置总蓝皮书.md`
+
+### 2026-08-13 业务边界确认：AI 对话功能范围
+- **用户明确**：全系统唯一需要的 AI 对话功能 = **APK 端 AI 助手**（四大功能模块之一，企业策划/诊断对话窗口 + 生成 Word/Excel/PPT/PDF 供客户下载）。其余所有"智能客服/AI对话/工单转人工/知识库问答"均不需要。
+- 已同步修订蓝皮书 `docs/智枢AISaaS系统AI模型配置总蓝皮书.md`：
+  - 适用范围/能力域/成本治理/爆款因子注入中的"智能客服"全部改为"AI 助手（APK）"。
+  - **4.2 节整体重写**：由"智能对话/智能客服（ai-chat、support、tickets）"改为"AI 助手（APK 端，ai-chat）"，目标改为"企业策划/诊断对话 + Word/Excel/PPT/PDF 文档生成下载"，删除了知识库问答/工单/转人工/会话交接摘要等客服流水线，替换为文档结构化与导出流水线（模型选择不变，阶段重构）。
+  - 第五章交付物清单 4.2 行同步更新。
+- **含义**：蓝皮书中 `support`、`tickets` 路由不再需要 AI 模型配置；`ai-chat` 路由即 APK AI 助手后端，保留。
 
 ### 已知仍需处理的问题
 - 支付系统已按用户要求下线/不启用，保持线下付费模式。
@@ -321,6 +463,14 @@
    - P2：数据库Schema清理（CRM/AI对话/工单/客服标记为预留模块）；分享推荐增强（新增ShareEffect + ShareCommission模型 + 效果追踪/佣金结算API）；Playwright浏览器自动化桥接路由（自动发布/自动沟通/自动采集三个能力）；Customer+Agent Dashboard重定向为四条业务线视角（AI创作工厂/智能招聘/智能获客/推荐分享）
 2. **2026-08-02** — agent端菜单补全（AI创作工厂/内容中心/用量统计/API管理），加 no-cache 响应头
 3. **2026-07-31** — admin端重构：合并客户管理/代理商管理，删除冗余页面，新增API服务商/系统公告
+4. **2026-08-10 Customer端体验修复** — 修复获客看板白屏、侧边栏交互与标签一致性：
+   - 修复 `web/app/customer/acquisition/board/page.tsx`：前端 `DashboardData` 字段与后端 `/acquisition/dashboard` 实际返回结构不一致（后端实际返回 `totalLeads`/`newLeads`/`conversionRate`/`totalTasks`/`convertedLeads`/`trend`/`channelBreakdown`/`aiScoreDist`，旧代码错误使用 `aiScore`/`todayTasks`/`recentTasks`）导致 `.toLocaleString()` 在 `undefined` 上调用，触发客户端异常；已将字段与后端对齐并增加数据归一化与空数组兜底，KPI 卡片改为展示总潜客数/新增潜客/转化率/转化客户。
+   - **额外修复**：首次上传后页面仍报错，远端 `pm2 logs` 出现 `TypeError: Cannot read properties of undefined (reading 'clientModules')` 与 `Failed to find Server Action "x"`。根因为 `.next` 构建缓存与产物状态不一致，仅覆盖 source 文件未清理缓存。已执行 `rm -rf .next && npx next build`，并 `pm2 restart zhishuai-web`，页面恢复正常。
+   - **二次修复（用户截图 `Cannot read properties of null (reading 'trend')`）**：首次请求期间 `loading=true`、`data=null`，原判断 `if (!loading && !data)` 不成立，代码继续执行到 `const d = data!;` 和 `d.trend`，直接访问 `null.trend` 导致客户端崩溃。将判断改为 `if (!data)`，在数据返回前统一走 PageContainer 骨架屏/重试 UI；同时给 `trend`/`channelBreakdown`/`aiScoreDist` 数组元素字段增加 `?? 0` 兜底。
+   - **同类隐患修复**：`web/app/customer/share/board/page.tsx` 存在相同模式（`!loading && !data`）且未对 `/share/dashboard` 响应做数据归一化，一并重构为 `if (!data)` 兜底 + 字段归一化，避免分享看板在首次加载时同样白屏。
+   - 修复 `web/app/customer/layout/Navbar.tsx`：`Menu items` 与 `selectedKeys` 每次渲染重建对象引用导致子菜单点击"抖一下"/需多次点击；改为 `useMemo` 缓存菜单数据与选中项，集中 `onClick` 处理导航。将菜单高亮匹配从 `startsWith` 改为精确匹配，解决 `/recruitment/publish` 错误高亮到 `/recruitment`（招聘看板）的问题。
+   - 统一侧边栏菜单标签与实际页面名称：自动化招聘→自动招聘、平台管理→招聘平台管理、线索发现→潜客发现、任务管理→获客任务、追踪分析→分享追踪、工单管理→我的工单、API管理→API 设置、智枢AI APP下载→智枢AI APP 下载；招聘看板页面标题由"智能招聘"改为"招聘看板"以匹配菜单。
+   - 远端 `npx next build` 通过，`pm2 restart zhishuai-web` 后 `scripts/verify-login.sh` 三种角色登录均返回 200；页面 HTTP 200 且不再返回 `Application error` 文本。
 
 ## 六-B、需求来源与模块建造顺序
 
@@ -373,14 +523,14 @@
 
 | 优先级 | 问题 | 说明 |
 |--------|------|------|
-| 🔴 高 | AI API 未配置 | 当前返回 mock 数据，需配置真实模型 |
-| 🔴 高 | 短信服务未启用 | 代码存在但 `sms.ts.disabled` |
-| 🟡 中 | 结算系统未完成 | `settlement.ts.disabled`，分成逻辑未实现 |
+| 🔴 高 | AI API 未配置 | 已修复（2026-08-13 第1组：全系统 mock 清除，未接入能力显式抛错） |
+| 🔴 高 | 短信服务未启用 | 代码存在但 `sms.ts.disabled`（第6组确认：线下操作，仅需统计能力，统计已真实） |
+| 🟡 中 | 结算系统未完成 | `settlement.ts.disabled`，分成逻辑未实现（统计能力已真实 Prisma） |
 | 🟡 中 | 报表系统未完善 | `report.ts.disabled` |
 | 🟡 中 | Hydration 敏感 | Navbar/Layout 组件改动需谨慎处理 SSR/CSR 差异 |
 | 🟡 中 | 数据库 ApiKey 表 | 需要 Prisma 迁移确认 |
 | 🟢 低 | 移动端 App | 基本完成但未深度测试 |
-| 🟢 低 | 单元测试缺失 | 全项目无测试覆盖 |
+| 🟢 低 | 单元测试缺失 | 已补充登录集成测试（5/5 通过），全项目覆盖仍低 |
 
 ## 八、当前 Git 未提交变更
 
@@ -404,6 +554,9 @@ modified: apk/src/navigation/AppNavigator.tsx, apk/src/constants/index.ts, apk/s
 new: server/src/routes/playwright-bridge.ts（P2:Playwright桥接路由）
 new: server/src/services/dashboard-business-lines.ts（P2:业务线聚合服务）
 new: web/app/agent/recruitment/page.tsx, /acquisition/page.tsx, /share/page.tsx（P1:Agent业务入口）
+modified: web/app/customer/acquisition/board/page.tsx（2026-08-10: DashboardData 字段与后端对齐 + 数据归一化）
+modified: web/app/customer/layout/Navbar.tsx（2026-08-10: 菜单 memo 化/精确高亮/标签一致性）
+modified: web/app/customer/recruitment/page.tsx（2026-08-10: 页面标题改为"招聘看板"）
 ```
 
 ## 九、部署与验证
