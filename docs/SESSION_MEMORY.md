@@ -1,20 +1,22 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-14 (用户确认：Web 下线无影响 + 暂不发签名版；CI Deploy 改密码登录并移除 Web 部署) | 提交数：536+ | 项目启动：2026-04-25
+> 最后更新：2026-08-14 (nginx /downloads/ 配置已加并推送；CI Deploy 自动同步 nginx + 修复 npm ci 命令链) | 提交数：537+ | 项目启动：2026-04-25
 
-## 2026-08-14 收尾会话（用户确认 V3.0 三项决策 + CI Deploy 修复推送）
+## 2026-08-14 收尾会话（用户确认 V3.0 三项决策 + CI Deploy/ nginx 修复推送）
 
 ### 用户确认
 - **Web 网页版下线**：确认对智枢系统无影响（后端/数据/分享落地页/Playwright 自动化均保留），Web 端不再需要 → CI Deploy 移除 web 构建与 `pm2 restart zhishuai-web`。
 - **Windows 代码签名证书**：暂不发签名版 → 保持未签名内测包（SmartScreen 蓝色警告 + 安装指引），正式商用前再办。
 - **updater 签名（tauri signer）**：与代码签名证书是两回事；CI 已内置降级逻辑（未配 `TAURI_SIGNING_PRIVATE_KEY` 时产出无更新签名安装包，配置后自动更新可用）。
+- **GitHub Actions secrets**：截图确认 `SERVER_IP` / `SERVER_USER` / `SERVER_PASSWORD` 已配置，Deploy job 可正常登录。
 
 ### 已完成
-- **CI Deploy job 修复并推送（507c2e3）**：`Deploy via SSH` 从 `CVM_HOST/CVM_USER/CVM_SSH_KEY`（SSH key，从未配置导致秒失败）改为 `SERVER_IP/SERVER_USER/SERVER_PASSWORD`（密码登录，appleboy/ssh-action password 参数）；删除 `cd web && npm ci && npm run build && pm2 restart zhishuai-web`（V3.0 Web 下线，进程不存在会报错），改 `pm2 delete zhishuai-web 2>/dev/null || true`（幂等清理）；保留 `server` 部署（npm ci→prisma generate→db push--skip-generate→build→pm2 restart zhishuai-api）+ `scripts/verify-login.sh` 三角色验证。
+- **CI Deploy job 修复并推送（507c2e3 → a14720b）**：`Deploy via SSH` 从 `CVM_HOST/CVM_USER/CVM_SSH_KEY` 改为 `SERVER_IP/SERVER_USER/SERVER_PASSWORD`（密码登录）；删除 web 构建与 `pm2 restart zhishuai-web`，改幂等清理；**修复命令链 bug**：原 `npm ci 2>/dev/null || npm install && npx prisma generate && ...` 因优先级问题在 `npm ci` 成功时会跳过后续步骤，现改为多行顺序执行；新增 **nginx 自动同步**：`git pull` 后复制 `deploy/nginx/zhishuai.conf` → `/etc/nginx/sites-available/zhishuai.conf`、禁用旧 `api.baizhiji.net`、reload；保留 server 部署 + verify-login 三角色验证。
+- **nginx /downloads/ 目录配置（a14720b）**：`deploy/nginx/zhishuai.conf` 为 `baizhiji.net` / `www.baizhiji.net` 新增 `/downloads/` 静态目录，指向 `/var/www/zhishuai/downloads/`；开启 autoindex（内测期方便查看）、大文件下载优化、`.exe/.msi` 强制附件下载、`.json` 跨域头（供 tauri updater 读取）；`deploy/setup-nginx.sh` 改为从仓库同步 `zhishuai.conf` 并创建 downloads 目录；`deploy/deploy.sh` 同样创建 downloads 目录并修正 `package.json` 文件检测逻辑。
 
 ### 待办
-- 待 CI 确认：① `desktop-build`（a31b3a1 + ee2eeb7）产出 Windows 安装包并下载 artifact；② Deploy job 用 `SERVER_IP/SERVER_USER/SERVER_PASSWORD` 三个 secret 跑通（需确认这些 secret 已在仓库配置，否则 Deploy 仍会失败）。
-- 首个安装包发布到 `https://baizhiji.net/downloads/`（nginx 需新增 `/downloads/` 静态目录）+ `appVersion` 表录入 desktop 记录 → 用 `desktop/scripts/release.mjs` 生成最新格式清单。
+- 待 CI 确认：① `desktop-build` 产出 Windows 安装包 artifact；② `deploy` job 用 `SERVER_IP/SERVER_USER/SERVER_PASSWORD` 跑通并自动 reload nginx；③ 访问 `http://baizhiji.net/downloads/` 能列出目录（当前为空）。
+- 首个安装包发布：CI  artifact 下载后上传 `/var/www/zhishuai/downloads/`，运行 `desktop/scripts/release.mjs --version 3.0.0 --bundle nsis --url https://baizhiji.net` 生成 `latest.json` 一并上传，并在 `appVersion` 表录入 desktop 记录。
 - Windows 代码签名证书（正式发布前置）、COS bucket + CDN 分发。
 
 ## 2026-08-14 历史会话关键更新（桌面版 Tauri 2 工程落地 · 商用级闭环）
