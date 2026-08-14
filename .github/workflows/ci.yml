@@ -142,12 +142,12 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.CVM_HOST }}
-          username: ${{ secrets.CVM_USER }}
-          key: ${{ secrets.CVM_SSH_KEY }}
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /var/www/zhishuai
             git pull origin main
-            cd web && npm ci && npm run build && pm2 restart zhishuai-web
-            cd ../server && npm ci && npx prisma generate && npx prisma db push --skip-generate && npm run build && pm2 restart zhishuai-api
+            pm2 delete zhishuai-web 2>/dev/null || true
+            cd server && npm ci 2>/dev/null || npm install && npx prisma generate && npx prisma db push --skip-generate && npm run build && pm2 restart zhishuai-api
             cd ../scripts && bash verify-login.sh
