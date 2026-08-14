@@ -13,8 +13,7 @@
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "prepare": "cd .. && husky install || true"
+    "db:seed": "tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
