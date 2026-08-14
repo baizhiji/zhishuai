@@ -1,8 +1,21 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-14 (桌面版 Tauri 工程落地 + 服务端部署验证) | 提交数：535+ | 项目启动：2026-04-25
+> 最后更新：2026-08-14 (桌面版收尾：CI shell 修复 + release.mjs 修复已推送) | 提交数：535+ | 项目启动：2026-04-25
 
-## 2026-08-14 本次会话关键更新（桌面版 Tauri 2 工程落地 · 商用级闭环）
+## 2026-08-14 收尾会话（桌面版 CI 修复 + 发布脚本修复）
+
+### 已完成
+- **CI shell 修复提交推送（a31b3a1）**：`desktop-build` job 的 `Build Web Static Export` 与 `Install Desktop Dependencies` 两步加 `shell: bash`，避免 windows-latest 默认 pwsh 将 `2>/dev/null` 解析为 `C:\dev\null` 路径报错。`Build & Package Desktop` 保持 pwsh（含 `TAURI_SIGNING_PRIVATE_KEY` secrets 缺失时移除 updater 配置的降级逻辑）。
+- **`desktop/scripts/release.mjs` 两处 bug 修复并推送（ee2eeb7）**：① 第 46 行把 `.sig` 文件过滤掉导致 `files.find(endsWith('.sig'))` 永远为 undefined，签名恒为空 → 改为从 `allFiles` 中按 `<installerBase>.sig` 查找；② `latest.json` 从旧版顶层格式（`signature`/`url` 平铺）改为 tauri updater v2 静态 JSON 端点要求的 `platforms: { "windows-x86_64": { signature, url } }` 嵌套格式，与服务端 `version.ts` 完全对齐。`node --check` 语法校验通过。
+- 本地确认：无 Rust 工具链（cargo/rustc 不存在），Rust 编译验证以 CI windows-latest 为准；`desktop/frontend` 静态产物 234 文件为今日 21:16 最新构建；`web/next.config.js` `output: 'export'` + `trailingSlash` 配置正确；`copy-web-build.mjs`（web/out→frontend）与 `release.mjs` 链路完整。
+
+### 待办
+- 待 CI（a31b3a1 + ee2eeb7 触发）确认 `desktop-build` 产出 Windows 安装包并下载 artifact。
+- Deploy job 排查：`Deploy via SSH` 步骤失败疑似 GitHub secrets（CVM_HOST/CVM_USER/CVM_SSH_KEY）未配置，或远端 web 进程状态（V3.0 方案 Web 下线后 `pm2 restart zhishuai-web` 若进程不存在会失败）；需用户确认 secrets 配置情况。
+- 首个安装包发布到 `https://baizhiji.net/downloads/` + `appVersion` 表录入 desktop 记录（version/channel=stable/signature/sha256/size/downloadUrl）→ 用 `desktop/scripts/release.mjs` 生成最新格式清单。
+- Windows 代码签名证书（正式发布前置）、COS bucket + CDN 分发。
+
+## 2026-08-14 历史会话关键更新（桌面版 Tauri 2 工程落地 · 商用级闭环）
 
 ### 已完成
 - **Tauri 2 桌面工程 `desktop/` 落地**：`src-tauri/src/{main,lib,ai_proxy,tray,updater}.rs` + `Cargo.toml` + `build.rs` + `capabilities/default.json` + `tauri.conf.json`（真实 minisign 公钥、endpoints=`https://baizhiji.net/api/version/desktop/latest.json`、`withGlobalTauri`）+ icons 全套（由 `web/public/logo.png` 生成）。
