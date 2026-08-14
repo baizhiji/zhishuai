@@ -48,7 +48,6 @@ const PLATFORM_OPTIONS = [
   { value: 'douyin', label: '抖音' },
   { value: 'kuaishou', label: '快手' },
   { value: 'xiaohongshu', label: '小红书' },
-  { value: 'shipinhao', label: '视频号' },
 ];
 
 const STATUS_META: Record<string, { label: string; color: string }> = {

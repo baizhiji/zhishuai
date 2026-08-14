@@ -7,10 +7,11 @@
  */
 
 import { dispatchAuthExpired } from '@/lib/auth-events';
+import { API_ORIGIN } from '@/utils/env';
 
-// API 基础地址 - 保持为空，让服务层负责完整路径（/api/xxx）
+// API 基础地址：默认空（浏览器同源），桌面版构建注入 NEXT_PUBLIC_API_BASE_URL 域名根
 // 服务层（web/services/*.ts）已写完整路径 /api/xxx
-const API_BASE_URL = '';
+const API_BASE_URL = API_ORIGIN;
 
 export interface ApiResponse<T = any> {
   code: number;

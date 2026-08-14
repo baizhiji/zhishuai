@@ -22,12 +22,11 @@ const router = Router();
 // OAuth 路由需要认证
 router.use(authMiddleware);
 
-/** 仅支持的 4 个平台（智能获客） */
+/** 仅支持的 3 个平台（智能获客） */
 const SUPPORTED_PLATFORMS: Record<string, string> = {
   douyin: '抖音',
   kuaishou: '快手',
   xiaohongshu: '小红书',
-  shipinhao: '视频号',
 };
 
 /**
@@ -302,8 +301,6 @@ function getPlatformIcon(platform: string): string {
     douyin: 'douyin',
     kuaishou: 'kuaishou',
     xiaohongshu: 'xiaohongshu',
-    shipinhao: 'shipinhao',
-    channels: 'shipinhao',
     weibo: 'weibo',
     boss: 'boss',
     bosszhipin: 'boss',

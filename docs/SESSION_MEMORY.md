@@ -1,6 +1,96 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-14 (智能获客 4 平台真实扫码授权改造) | 提交数：535+ | 项目启动：2026-04-25
+> 最后更新：2026-08-14 (桌面版 Tauri 工程落地 + 服务端部署验证) | 提交数：535+ | 项目启动：2026-04-25
+
+## 2026-08-14 本次会话关键更新（桌面版 Tauri 2 工程落地 · 商用级闭环）
+
+### 已完成
+- **Tauri 2 桌面工程 `desktop/` 落地**：`src-tauri/src/{main,lib,ai_proxy,tray,updater}.rs` + `Cargo.toml` + `build.rs` + `capabilities/default.json` + `tauri.conf.json`（真实 minisign 公钥、endpoints=`https://baizhiji.net/api/version/desktop/latest.json`、`withGlobalTauri`）+ icons 全套（由 `web/public/logo.png` 生成）。
+- **Rust 关键代码修复（5 处，无本地 Rust 工具链，靠官方文档逐项核对）**：① updater.rs `updater()` 是同步方法不能 `.await`；② `check()` 返回 `Result<Option<Update>>` 需解包 Option 再 `download_and_install`；③ tray.rs 托盘「退出」需先置 `AppExitFlag` 再 `app.exit(0)`，否则被 `CloseRequested` 拦截无法退出；④ `tauri.conf.json` 移除 `app.trayIcon` 声明（v2 托盘由代码创建，config 声明同 id 会 panic），托盘改 `default_window_icon()` 显式设图标；⑤ 清理 lib.rs/updater.rs 未使用 import。
+- **updater v2 协议对齐**：`/api/version/desktop/latest.json` 按静态 JSON 端点要求返回 `platforms: { "windows-x86_64": { signature, url } }` 嵌套格式 + 保留顶层字段兼容；`AppVersion` 模型补 `channel/sha256/size/signature` 4 字段（schema.prisma + version.ts CRUD 同步）；`npx tauri signer generate --ci` 生成签名密钥对（私钥 `~/.zhishuai-updater.key`，双备份）。
+- **Web 静态化收尾**：删除死代码 `web/app/api/ai/generate-script/route.ts`（前端 Web 版走 server Express `/api/ai/generate-script`、桌面版走 Rust 主进程，从不调用；且引用过时域名）+ 清空 `web/app/api` 目录；`web/middleware.ts` 已删；`next.config.js` 固定 `output: 'export'`；`web/out` 静态产物 234 文件构建通过并复制到 `desktop/frontend`。
+- **`.gitignore` 修复行内注释 bug**：`desktop/frontend          # 注释` 这类写法被 git 当作完整模式导致忽略规则全部失效，改为纯模式行，`desktop/frontend`/`target`/`.env` 均正确忽略。
+- **CORS 白名单**：`server/src/index.ts` 追加 `tauri://localhost`、`http://tauri.localhost`、`https://tauri.localhost`；`web/.env.local` 修复双 `/api` bug（值为 `https://baizhiji.net`，env.ts 自动拼 `/api`）。
+- **CI `desktop-build` job**：windows-latest + Rust 工具链 + `npx tauri build` + upload-artifact；`TAURI_SIGNING_PRIVATE_KEY` secrets 未配置时自动移除 updater 配置产出未签名安装包（可手动安装），配置后正常签名（自动更新可用）。
+- **服务端已部署并验证**：version.ts/index.ts/schema.prisma 已 scp 到 CVM（/var/www/zhishuai/server），`prisma generate` + `db push --skip-generate` + `tsc` 构建 + `pm2 restart zhishuai-api` 成功；`/api/version/desktop/latest.json` 返回 204（暂无已发布桌面版）；CORS 响应头 `access-control-allow-origin: tauri://localhost` 生效；远端 `verify-login.sh` 三角色（admin/agent/user）全部 200。
+
+### 待办
+- 本地验证 Rust 编译：安装 Rust 工具链后 `cd desktop/src-tauri && cargo check`（当前靠 CI windows-latest 编译）。
+- 推送 GitHub main 触发 CI，确认 `desktop-build` 产出 Windows 安装包（NSIS/MSI）并下载 artifact。
+- 首个安装包发布到 `https://baizhiji.net/downloads/` + `appVersion` 表录入 desktop 记录（version/channel=stable/signature/sha256/size/downloadUrl）→ 自动更新可用。
+- Windows 代码签名证书（正式发布前置）、COS bucket + CDN 分发。
+- 远端部署已做；git 提交待执行（见下方 git 状态）。
+
+## 2026-08-14 历史会话关键更新（改造方案 v3.0：无壳 · 无 Web 端 · 桌面唯一前端）
+
+### 已完成
+- **用户明确三条前提**：① 不要加壳版本（否决 v1.0 壳方案）；② 不用 Web 端（系统主形态不再以浏览器形态交付）；③ 要真实电脑安装版。
+- **用户二次澄清"不用 Web 端"的准确边界（重要）**：①"不用 Web 端"指系统主形态，三角色日常操作界面全部桌面化；②**"只有网页才能实现的功能"完全保留**——业务网页功能（分享码落地页/下载页/隐私条款）保留；③**技术性网页自动化完全保留**——Playwright 浏览器自动化（自媒体扫码授权登录、内容自动发布、职位采集、智能跟评）跑在服务端，自动化操作的是第三方平台网页（抖音/快手/小红书/招聘网站），不属于本系统 Web 端，与桌面化改造完全兼容，用户明确知道并认可这一点。判据：被替代的是"产品形态"（三角色界面）→ 桌面化；"功能实现手段"（网页承载功能）→ 保留。
+- **产出《智枢AI 桌面原生安装版改造完整方案（v3.0）》**：`docs/desktop-native-app-plan-v3.md`，取代 v2.0（`docs/desktop-first-refactor-plan-v2.md`）。§1.2 已按用户澄清更新为"三类边界"（使用者前端→桌面化；业务网页→保留；技术性网页自动化→保留），§3.2/§8/§9/§10/§11 同步更新。
+- **技术选型升级：Electron → Tauri 2.x**（Rust 主进程 + 系统 WebView2）。对比：安装包 8~15MB（Electron 80~100MB）、内存低一半、系统凭据管理器（keyring crate）存密钥、NSIS/MSI 真安装形态、tauri-plugin-updater 自动更新。前端 73 页 SPA 代码零重写。若团队无 Rust 能力，保底退回 Electron（3~4 周）。
+- **前端改造 5 处（2~3 天，复用 v2.0 结论）**：① next.config.js 固定 `output: 'export'`（在线版下线，不再需要 NEXT_OUTPUT 双模式）；② 删除 middleware.ts；③ AI 路由下沉 Rust 主进程 AI 代理（密钥不进 WebView）；④ API baseURL 统一绝对地址 `https://baizhiji.net/api`；⑤ 新增 `web/utils/env.ts` isDesktop 检测（`'__TAURI__' in window`）。
+- **在线 Web 下线处置（v2.0 没有）**：`pm2 delete zhishuai-web`、nginx 移除 Web 主站路由保留 /api 代理；登录唯一入口改为桌面版内置；分享落地/下载/隐私条款以静态站保留；Playwright 桥接路由（`/api/playwright`、`/api/social-account`、`/api/comment-delivery`）**不下线**，桌面版与 APK 继续通过 API 调用；`baizhiji.net` 继续承担 API + 公共服务。
+- **里程碑**：M1 桌面版 MVP（3~4 周，含 Rust 上手缓冲）→ M2 更新与分发（1.5~2 周）→ M3 Web 下线与收尾（1 周）。合计约 5.5~7 周。
+- **需求大纲升级为 V3.0（桌面安装版）**：`docs/开发需求/智枢AI_开发需求大纲_真实版.md` 直接改写——产品主形态为 Tauri 2.x 桌面安装版；§1.3 架构表新增桌面客户端/公共服务网页层级；§2.2 权限矩阵"以桌面端实际界面为准"；§3 明确四大业务线 + M5/M6 独立能力线；§4/§5 保留全部业务功能与 API；§6 AI 助手改为"桌面版与 APK 端均提供"；§7 AI 模型路由密钥管理改为"系统凭据管理器 + Rust 主进程 AI 代理"；§8 改为"桌面端三端界面功能详解"（Customer/Agent/Admin，含版本管理）；§9 明确 Playwright 网页自动化完整保留（操作第三方平台，不属于本系统 Web 端）；§10 验收新增桌面版安装/卸载与 Playwright 四链路回归；§12 差异表升级为 V1→V2.0→V3.0 三列对比。业务内容（四大业务线、10 创作类目、8 大商业场景、模型清单、API）全部按现状保留。
+- **蓝皮书升级为 V2.0（桌面化适配）**：`docs/智枢AISaaS系统AI模型配置总蓝皮书.md` 结论为**模型配置全部在服务端与前端配置层，桌面化后完整适用**；仅修正前端载体表述（4.2 AI 助手补"桌面版与 APK 端"、4.4 智能招聘"Web 端"→"桌面版"两处、已知局限入口分离描述）、密钥管理 6.2（客户自带 Key 由 Web localStorage 改为系统凭据管理器 + Rust 主进程 AI 代理）、版本头与附录 C 变更记录加 V2.0 条目。模型清单/路由表/横切关卡未动。
+- 本轮仅修改文档（需求大纲 V3.0 重写 + 蓝皮书 V2.0 适配），未改动代码，未部署。
+
+### 待办（按方案执行时）
+- 先做 1 天 Tauri PoC（托盘 + 单实例 + AI 代理三个最小能力）验证 Rust 可行性。
+- 前端静态化 5 处改造 + `web/out` 产物验证。
+- Tauri 工程 `desktop/src-tauri/`（Rust 主进程/窗口/托盘/单实例/AI 代理/keyring/updater）。
+- updater 签名密钥（tauri signer generate）双备份 + CI secrets。
+- 版本服务增强（AppVersion 补 channel/sha256/size + desktop/latest.json 端点）。
+- Web 下线 + 网页功能保留清单核对（分享落地/下载/隐私条款 + Playwright 网页自动化链路回归：扫码授权/发布/采集/跟评）。
+- Windows 代码签名证书、COS bucket + CDN（正式发布前置）。
+
+## 2026-08-14 历史会话关键更新（多端安装版改造方案 v2.0，已被 v3.0 取代）
+
+### 已完成
+- **产出《智枢AI 多端安装版改造完整方案（v2.0 · 桌面版优先）》**：`docs/desktop-first-refactor-plan-v2.md`，取代 v1.0 壳方案 `docs/desktop-apk-install-upgrade-plan.md`。
+- **决策依据（Web 端全量审计结论）**：73 个页面 100% 为 `'use client'` 纯客户端组件；无 Server Actions、无 getServerSideProps/getStaticProps/generateMetadata、无动态路由段、无服务端数据获取；唯一服务端 API 路由为 `web/app/api/ai/generate-script/route.ts`（AI 密钥代理）。Next.js 仅充当打包器 → **可直接静态化（output: 'export'）做真桌面版，Web 业务代码基本零改动**。
+- **方案核心结论**：真桌面版（Electron + 静态化 SPA 本地加载 + electron-updater 自更新）与壳方案 Web 端工作量几乎相同（都需静态化），多出成本仅在 Electron 工程（主进程/IPC/AI 代理/打包/更新，约 1.5~2 周）；**直接上真桌面版**。
+- **Web 端改造清单（4 处，2~3 天）**：① `web/next.config.js` 加 `output: 'export'` + `images.unoptimized`（用 `NEXT_OUTPUT` 环境变量双模式，在线版保持 standalone 不动）；② 删除 `web/middleware.ts`（54 行登录守卫，静态导出不支持；前端 AuthGuard.tsx 161 行已完整覆盖权限）；③ AI 路由 `generate-script` 逻辑下沉 Electron 主进程（密钥不进 Renderer），Web 保留原路由，前端 `web/services/ai.ts` 做 `window.electronAPI` 能力检测双通道；④ baseURL 统一读取 `NEXT_PUBLIC_API_BASE_URL`，桌面版构建注入远程绝对地址（现有 `web/utils/request.ts` 为 `''` 同源、`web/lib/request.ts` 为 `process.env.NEXT_PUBLIC_API_BASE_URL || '/api'`，顺带完成两客户端统一 TODO）。
+- **版本服务增强**：`server/src/routes/version.ts` 现缺 `platform/channel/sha256/size` 字段，方案定义统一 `/check` 协议（v2）支撑 desktop/android/ios 三端，AppVersion 模型补字段 + 管理员版本管理页增加 platform/channel 筛选。
+- **APK 端（P1）**：现有 `eas.json`（development/preview apk/production aab）与 `/api/version/check` 基础可复用；需补 RN 下载安装链路（expo-file-system + sha256 校验 + REQUEST_INSTALL_PACKAGES 权限）、release keystore 签名、可选 EAS Update 热更新。
+- **里程碑**：M1 桌面版 MVP（3 周，P0）→ M2 APK 升级链路（2 周，P1）→ M3 稳定发布（1 周，P2）。合计桌面版 2.5~3 周、APK 1.5~2 周。
+- 本轮仅产出方案文档（未改动任何代码），未部署。
+
+### 待办（按方案执行时）
+- Web 静态化 4 处改造 + 双模式构建验证（在线版 standalone 回归 + export 产物本地跑通）。
+- Electron 工程 `desktop/` 脚手架（主进程/窗口/托盘/单实例/AI 代理/IPC/updater）。
+- 版本服务 v2 协议落地 + AppVersion 字段迁移 + COS/CDN 静态分发。
+- APK 下载安装链路 + keystore 签名 + EAS Update（可选）。
+- Windows 代码签名证书、macOS Developer ID 资质（正式发布前置条件）。
+
+## 2026-08-14 历史会话关键更新（智能获客精简为 3 平台 + 多账号矩阵 + Playwright 实测）
+
+### 已完成
+1. **智能获客平台精简：移除视频号，仅保留抖音/快手/小红书 3 平台**：
+   - **原因**：视频号助手（channels.weixin.qq.com）本质是内容管理后台，没有"去别人视频下发评论"的交互入口；视频号链接依赖微信内置浏览器，网页端不可交互评论区。视频号在智能获客跟评链路中不可行。
+   - **服务端清理**：`server/src/routes/social-account.ts` 的 `SUPPORTED_PLATFORMS` 删除 `shipinhao`；`server/src/services/social-account.service.ts` 的 `getPlatformName` 删除 `shipinhao/channels` 映射；`server/src/services/playwright.service.ts` 删除 `shipinhao` 的登录配置、发布选择器、评论选择器、发布 URL；`server/src/services/comment-delivery.service.ts` 删除视频号平台限额与中文名映射；`server/src/routes/comment-delivery.ts` 删除视频号中文名；`server/src/services/comment-safety.service.ts` 删除视频号平台词库映射；`server/src/routes/playwright-bridge.ts` 的 supported-platforms 删除 `shipinhao`；`server/prisma/schema.prisma` 注释中的 `shipinhao` 移除。
+   - **前端清理**：`web/app/customer/acquisition/accounts/page.tsx` 平台卡片删除视频号；`web/app/customer/acquisition/comment/page.tsx` 跟评平台选项删除视频号；`web/services/social-account.ts` 注释更新。
+   - **保留项说明**：内容发布/AI 创作业务线中的"视频号"未清除（如 `web/lib/platform/config.ts`、`server/src/services/platform-adapter.ts` 的 ChannelsAdapter、`web/lib/ai/category-config.ts`、内容安全词库 `wechat_video`、`customer-dashboard.ts` 的获客来源标签 `videoname`）。这些属于 AI 创作内容发布与线索来源统计，不在智能获客授权/跟评链路中。清除它们会破坏 AI 创作工厂的内容发布能力。
+2. **授权页矩阵改造：同平台支持多账号**：
+   - **核心改动**：`web/app/customer/acquisition/accounts/page.tsx` 的 `accountByPlatform`（仅取首个账号）改为 `accountsByPlatform`（取该平台全部账号）。
+   - **UI 变化**：平台卡片显示"已授权 N 个账号"、前 2 个账号名与状态、"矩阵可用"标签；卡片主按钮从"立即授权/重新授权二选一"改为始终显示"添加账号"（首次授权时显示"立即授权"）；第一个账号的"重新授权"保留为次要按钮。
+   - **服务端支撑**：数据库 `SocialAccount` 无 `userId+platform` 唯一约束；`services/social-account.service.ts` 的 `bindSocialAccount` 按 `userId+platform+accountId` 判重。扫码登录到不同账号会新建记录，同一账号会更新 cookies，天然支持矩阵。
+3. **服务器实测抖音扫码登录链路**：
+   - 在 CVM（150.109.60.130）上运行 Playwright 测试脚本，验证 Chromium 可启动、可打开 `https://creator.douyin.com/`、页面标题为"抖音创作者中心"、检测到二维码 `canvas` 元素、页面文本出现"扫码登录/打开抖音APP/扫一扫"。
+   - 截图 `/tmp/douyin-login-test.png` 确认二维码正常渲染。
+   - 结论：服务器端 Playwright + Chromium 环境正常，抖音扫码登录链路可跑通，授权页可以放心使用。
+4. **部署验证**：
+   - 上传所有变更文件到 `/var/www/zhishuai`；后端 `npm run build`（tsc）通过；前端 `npx next build` 通过；`pm2 restart zhishuai-api zhishuai-web` 成功；`bash scripts/verify-login.sh` 管理员/代理商/客户三角色全部返回 200。
+
+### 影响范围
+- 智能获客授权页仅展示抖音、快手、小红书 3 平台卡片。
+- 跟评中心平台下拉框仅 3 个选项。
+- 服务端 `/api/social/platforms` 仅返回 3 平台，`/api/comment-delivery/limits` 无视频号限额。
+- 同平台可绑定多个账号，每个账号独立 cookies、独立频控、独立发送，矩阵可用。
+
+### 待观察
+- 抖音/快手/小红书的扫码登录与跟评发送仍需实际账号在真实场景下跑通（本次仅验证了抖音登录页能渲染二维码，未实际扫码登录并发送评论）。
+- 多账号矩阵的发送额度是按账号独立计算的，理论上可成倍提升每日跟评量，但需在实际使用中观察各平台风控反应。
 
 ## 2026-08-14 本次会话关键更新
 

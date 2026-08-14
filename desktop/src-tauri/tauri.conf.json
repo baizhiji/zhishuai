@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "智枢AI",
+  "version": "3.0.0",
+  "identifier": "com.zhishuai.desktop",
+  "build": {
+    "beforeDevCommand": "npm run copy:web",
+    "devUrl": "http://localhost:3000",
+    "beforeBuildCommand": "npm run copy:web",
+    "frontendDist": "../frontend"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "智枢AI",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Business",
+    "shortDescription": "智枢AI — 一体化AI办公与营销平台",
+    "longDescription": "智枢AI SaaS 桌面安装版：AI创作工厂、智能招聘、智能获客、推荐分享四大业务模块。",
+    "publisher": "智枢AI",
+    "copyright": "Copyright © 2026 智枢AI",
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": true,
+        "languages": ["SimpChinese", "English"],
+        "installerIcon": "icons/icon.ico",
+        "deleteAppDataOnUninstall": false
+      },
+      "msi": {
+        "installMode": "perMachine"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNBMTEzNzM0RDNCMTU4QjYKUldTMldMSFRORGNST252RllMbmVURnZES2hVdHBwMzNoUlM5ZjdsYUtDL0hGV2wrYVVIb1RPYTcK",
+      "endpoints": [
+        "https://baizhiji.net/api/version/desktop/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

@@ -4,7 +4,7 @@
  * 职责:
  *   - 管理浏览器实例生命周期(启动/关闭/复用)
  *   - 异步登录会话(生成二维码/登录页截图，轮询扫码状态，非阻塞)
- *   - 各平台登录流程(抖音/快手/小红书/视频号/Boss直聘/智联招聘/微博/B站)
+ *   - 各平台登录流程(抖音/快手/小红书/Boss直聘/智联招聘/微博/B站)
  *   - Cookie 持久化 + 过期检测(登录后保存，过期后自动重新登录)
  *   - 内容发布(平台专用选择器 + 通用回退)
  *   - 数据采集(招聘平台职位采集)
@@ -120,13 +120,6 @@ export const PLATFORM_LOGIN_CONFIGS: Record<string, PlatformLoginConfig> = {
     cookieFileName: 'xiaohongshu_cookies.json',
     loginTimeout: 120000,
   },
-  shipinhao: {
-    platform: 'shipinhao',
-    loginUrl: 'https://channels.weixin.qq.com/',
-    waitForSelector: '.account-info, .nickname',
-    cookieFileName: 'shipinhao_cookies.json',
-    loginTimeout: 180000,
-  },
   bosszhipin: {
     platform: 'bosszhipin',
     loginUrl: 'https://www.zhipin.com/web/user/?ka=header-login',
@@ -177,11 +170,6 @@ const PUBLISH_SELECTORS: Record<string, PublishSelectors> = {
     tags: '[placeholder*="标签"], [placeholder*="话题"]',
     submit: 'button:has-text("发布")',
   },
-  shipinhao: {
-    title: '[placeholder*="标题"], input[class*="title"]',
-    desc: '[placeholder*="描述"], [placeholder*="简介"]',
-    submit: 'button:has-text("发表"), button:has-text("发布")',
-  },
 };
 
 /** 平台评论选择器（跟评发送） */
@@ -200,11 +188,6 @@ const COMMENT_SELECTORS: Record<string, CommentSelectors> = {
     input: '.comment-input textarea, #comment-input, textarea[placeholder*="评论"]',
     submit: '.comment-submit, button:has-text("发布"), button:has-text("发送")',
     accountName: '.creator-name, .user-center, .nickname',
-  },
-  shipinhao: {
-    input: '.comment-input textarea, textarea[placeholder*="评论"], [contenteditable="true"]',
-    submit: 'button:has-text("发表"), button:has-text("发送"), button:has-text("评论")',
-    accountName: '.account-info, .nickname, .creator-name',
   },
 };
 
@@ -500,7 +483,6 @@ class PlaywrightService {
         douyin: 'https://creator.douyin.com/creator-micro/content/upload',
         kuaishou: 'https://cp.kuaishou.com/article/publish/video',
         xiaohongshu: 'https://creator.xiaohongshu.com/publish/publish',
-        shipinhao: 'https://channels.weixin.qq.com/web/pages/post/create',
         weibo: 'https://weibo.com/compose',
         bilibili: 'https://member.bilibili.com/platform/upload/video/frame',
       };

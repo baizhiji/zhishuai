@@ -2,24 +2,27 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  // V3.0 桌面安装版：固定静态导出（供 Tauri WebView 加载，无 Node 运行时）
+  output: 'export',
+  trailingSlash: true,
   // 强制类型检查：所有类型错误必须修复后才能构建（商用化要求）
   typescript: { ignoreBuildErrors: false },
 
   // Transpile @ant-design/charts
   transpilePackages: ['@ant-design/charts'],
 
-  // 图片优化配置
+  // 图片优化配置（静态导出必须关闭 Next 图片优化，由 Tauri 本地/远程资源直接加载）
   images: {
     domains: ['code.coze.cn', 'api.dicebear.com', 'via.placeholder.com'],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    unoptimized: false,
+    unoptimized: true,
     minimumCacheTTL: 60,
   },
 
   // 压缩配置
-  compress: true,
+  compress: false,
 
   // 实验性功能
   experimental: {
@@ -30,7 +33,7 @@ const nextConfig = {
   // 环境变量
   env: {
     NEXT_PUBLIC_APP_NAME: '智枢AI',
-    NEXT_PUBLIC_APP_VERSION: '1.0.0',
+    NEXT_PUBLIC_APP_VERSION: '3.0.0',
   },
 
   // Webpack配置
@@ -86,98 +89,10 @@ const nextConfig = {
     return config
   },
 
-  // 页面预加载
-  onDemandEntries: {
-    maxInactiveAge: 60 * 1000,
-    pagesBufferLength: 2,
-  },
+  // 页面预加载（静态导出不支持，移除）
 
   // 生产环境优化
   productionBrowserSourceMaps: false,
-
-  // 头部配置
-  async headers() {
-    return [
-      {
-        source: '/:all*(svg|jpg|png|webp|avif)',
-        locale: false,
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        source: '/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // 防止 HTML 页面被浏览器/CDN 缓存导致用户看到旧版本
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache',
-          },
-          {
-            key: 'Expires',
-            value: '0',
-          },
-          // 安全响应头：防止点击劫持、MIME 嗅探、信息泄露（P0 商用要求）
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-          {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), payment=()',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; font-src 'self' data:; connect-src 'self' https: http:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
-          },
-        ],
-      },
-      // 静态资源（带 hash 的）可以长期缓存
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-    ]
-  },
-
-  // 重定向配置
-  async redirects() {
-    return []
-  },
 }
 
 module.exports = nextConfig

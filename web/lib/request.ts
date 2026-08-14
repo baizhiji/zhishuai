@@ -9,10 +9,11 @@ import axios, {
 import { message } from 'antd';
 import type { ApiResponse } from '@/types/api';
 import { dispatchAuthExpired } from '@/lib/auth-events';
+import { API_PREFIX } from '@/utils/env';
 
-// 创建axios实例
+// 创建axios实例（桌面版注入 NEXT_PUBLIC_API_BASE_URL 后自动使用绝对地址）
 const request: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || '/api',
+  baseURL: API_PREFIX,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',

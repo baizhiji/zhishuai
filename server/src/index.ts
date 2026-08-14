@@ -45,7 +45,7 @@ const PORT = process.env.PORT || 3001;
 // 中间件
 app.use(helmet());
 
-// CORS - 仅允许白名单域名
+// CORS - 仅允许白名单域名（含桌面版 Tauri WebView）
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
   : [
@@ -53,6 +53,10 @@ const allowedOrigins = process.env.CORS_ORIGINS
       'http://localhost:3001',
       'https://baizhiji.net',
       'https://www.baizhiji.net',
+      // 桌面版 Tauri WebView（Windows WebView2 / macOS WKWebView / Linux WebKitGTK）
+      'tauri://localhost',
+      'http://tauri.localhost',
+      'https://tauri.localhost',
     ];
 app.use(cors({
   origin: (origin, callback) => {

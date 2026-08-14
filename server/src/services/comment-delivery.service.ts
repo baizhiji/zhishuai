@@ -22,7 +22,6 @@ export const PLATFORM_LIMITS: Record<string, PlatformLimit> = {
   douyin:     { perHour: 4,  perDay: 16, baseCooldownMs: 15 * 60 * 1000, cooldownJitter: 0.5, startHour: 8, endHour: 23 },
   kuaishou:   { perHour: 4,  perDay: 16, baseCooldownMs: 15 * 60 * 1000, cooldownJitter: 0.5, startHour: 8, endHour: 23 },
   xiaohongshu:{ perHour: 6,  perDay: 24, baseCooldownMs: 10 * 60 * 1000, cooldownJitter: 0.5, startHour: 9, endHour: 23 },
-  shipinhao:  { perHour: 2,  perDay: 8,  baseCooldownMs: 30 * 60 * 1000, cooldownJitter: 0.6, startHour: 9, endHour: 22 },
 };
 
 /** 账号分级阈值（天） */
@@ -404,7 +403,6 @@ function platformName(platform: string): string {
     douyin: '抖音',
     kuaishou: '快手',
     xiaohongshu: '小红书',
-    shipinhao: '视频号',
   };
   return names[platform] || platform;
 }

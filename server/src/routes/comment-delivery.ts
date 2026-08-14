@@ -214,7 +214,6 @@ function platformName(platform: string): string {
     douyin: '抖音',
     kuaishou: '快手',
     xiaohongshu: '小红书',
-    shipinhao: '视频号',
   };
   return names[platform] || platform;
 }

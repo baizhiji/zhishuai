@@ -1,6 +1,6 @@
 /**
  * 社交账号（平台授权）API 服务
- * 支持平台：douyin / kuaishou / xiaohongshu / shipinhao
+ * 支持平台：douyin / kuaishou / xiaohongshu
  */
 
 import request from '@/utils/request';
@@ -62,7 +62,7 @@ function throwIfFailed<T>(res: T): T {
   return res;
 }
 
-/** 获取支持的平台列表（仅 douyin/kuaishou/xiaohongshu/shipinhao） */
+/** 获取支持的平台列表（仅 douyin/kuaishou/xiaohongshu） */
 export async function getPlatforms(): Promise<Platform[]> {
   return throwIfFailed(await request.get<Platform[]>('/api/social/platforms'));
 }

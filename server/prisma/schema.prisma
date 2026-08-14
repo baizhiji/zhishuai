@@ -303,9 +303,15 @@ model AppVersion {
   forceUpdate Boolean   @default(false)
   status      String    @default("released")
   releasedAt  DateTime?
+  // ── V3.0 桌面版自动更新元数据 ──
+  channel     String?   @default("stable") // stable / beta / nightly
+  sha256      String?                        // 安装包 SHA256（tauri updater 校验）
+  size        String?                        // 安装包大小（人类可读，如 82.5 MB）
+  signature   String?                        // 安装包 minisign 签名（tauri updater 必需）
   createdAt   DateTime  @default(now())
   updatedAt   DateTime @default(now())
   @@index([platform, status])
+  @@index([platform, channel])
 }
 
 model Candidate {
@@ -1026,7 +1032,7 @@ model CommentDelivery {
   userId      String
   agentId     String?
   accountId   String?
-  platform    String   // douyin/kuaishou/xiaohongshu/shipinhao
+  platform    String   // douyin/kuaishou/xiaohongshu
   targetUrl   String
   targetTitle String?
   content     String   @db.Text
@@ -1045,7 +1051,7 @@ model CommentDelivery {
 model CommentTemplate {
   id        String   @id @default(uuid())
   userId    String
-  platform  String   // douyin/kuaishou/xiaohongshu/shipinhao
+  platform  String   // douyin/kuaishou/xiaohongshu
   content   String   @db.Text
   hash      String   // 内容指纹，用于去重
   type      String   @default("ai") // ai/manual/template

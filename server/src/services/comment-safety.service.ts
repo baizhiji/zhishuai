@@ -14,7 +14,6 @@ const PLATFORM_SAFETY_MAP: Record<string, Platform[]> = {
   douyin: ['douyin', 'ad_law', 'finance'],
   kuaishou: ['douyin', 'ad_law', 'finance'],
   xiaohongshu: ['xiaohongshu', 'ad_law', 'finance'],
-  shipinhao: ['wechat_video', 'ad_law', 'finance'],
 };
 
 // ─── 三段式话术模板（组合爆炸：开头×核心×收尾，天然低重复度） ───

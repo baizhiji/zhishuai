@@ -14,28 +14,37 @@
 !/docs
 !/shared
 !/.github
+!/desktop
 !/package.json
 !/README.md
 
 # 3. web目录下的忽略项
 web/.next
 web/node_modules
-web/.env                    # 敏感配置
-web/.env.local              # 本地开发配置（可提交）
-web/.env.production          # 生产环境配置（可提交）
+# 敏感配置
+web/.env
+# 本地开发配置（可提交）
+web/.env.local
+# 生产环境配置（可提交）
+web/.env.production
 web/.turbo
 web/dist
 web/out
 web/.DS_Store
 web/*.log
 web/.pnpm-debug.log*
+# TypeScript 增量编译缓存
+web/tsconfig.tsbuildinfo
 
 # 4. apk目录下的忽略项
 apk/.next
 apk/node_modules
-apk/.env                   # 敏感配置
-apk/.env.local             # 本地开发配置（可提交）
-apk/.env.production        # 生产环境配置（可提交）
+# 敏感配置
+apk/.env
+# 本地开发配置（可提交）
+apk/.env.local
+# 生产环境配置（可提交）
+apk/.env.production
 apk/out
 apk/dist
 apk/.DS_Store
@@ -58,3 +67,18 @@ server/.env*
 server/dist
 server/logs
 server/.pnpm-debug.log*
+
+# 8. desktop目录下的忽略项（Tauri 桌面版）
+desktop/node_modules
+# web/out 的复制产物，构建时重新生成
+desktop/frontend
+# Rust 编译产物
+desktop/src-tauri/target
+# tauri build 自动生成
+desktop/src-tauri/gen/schemas
+# Tauri 应用建议提交，这里暂不追踪
+desktop/src-tauri/Cargo.lock
+desktop/*.log
+# 临时审计/截图产物
+scripts/tmp_*.json
+scripts/douyin-login-test.png

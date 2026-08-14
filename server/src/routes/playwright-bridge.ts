@@ -77,7 +77,6 @@ router.get('/supported-platforms', authMiddleware, (_req: Request, res: Response
       { id: 'douyin', name: '抖音', features: ['publish', 'acquisition'] },
       { id: 'kuaishou', name: '快手', features: ['publish', 'acquisition'] },
       { id: 'xiaohongshu', name: '小红书', features: ['publish', 'acquisition'] },
-      { id: 'shipinhao', name: '视频号', features: ['publish'] },
       { id: 'bosszhipin', name: 'BOSS直聘', features: ['acquisition', 'recruitment'] },
       { id: 'zhilian', name: '智联招聘', features: ['acquisition', 'recruitment'] },
       { id: 'weibo', name: '微博', features: ['publish', 'acquisition'] },

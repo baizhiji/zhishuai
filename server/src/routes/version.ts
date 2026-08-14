@@ -47,6 +47,62 @@ router.get('/latest', async (_req, res) => {
   }
 });
 
+// ─── V3.0 桌面版自动更新（tauri-plugin-updater 协议）────────────────
+
+// GET /api/version/desktop/latest.json — Tauri 更新清单
+// 符合 tauri-plugin-updater v2 端点协议（静态 JSON 需 platforms 嵌套格式，
+// 同时保留顶层字段兼容动态服务器格式）：
+// { version, notes, pub_date, platforms: { "windows-x86_64": { signature, url } } }
+router.get('/desktop/latest.json', async (req, res) => {
+  try {
+    const { channel = 'stable', platform = 'windows', arch = 'x86_64', currentVersion } = req.query;
+    const dbVersion = await (prisma as any).appVersion.findFirst({
+      where: {
+        status: 'released',
+        platform: 'desktop',
+        channel: String(channel),
+      },
+      orderBy: { releasedAt: 'desc' },
+    });
+
+    // 当前已是最新：返回 204，tauri 视为无更新
+    if (!dbVersion) {
+      return res.status(204).end();
+    }
+    if (currentVersion && dbVersion.version === String(currentVersion)) {
+      return res.status(204).end();
+    }
+
+    const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.hostname}`;
+    const url = dbVersion.downloadUrl
+      ? /^https?:\/\//.test(dbVersion.downloadUrl)
+        ? dbVersion.downloadUrl
+        : `${baseUrl}${dbVersion.downloadUrl}`
+      : `${baseUrl}/downloads/zhishuai_${dbVersion.version}_${platform}_${arch}.exe`;
+
+    const target = `${platform}-${arch}`;
+    const signature = dbVersion.signature || '';
+    const payload: Record<string, unknown> = {
+      version: dbVersion.version,
+      notes: dbVersion.changelog || '',
+      pub_date: (dbVersion.releasedAt || dbVersion.updatedAt || new Date()).toISOString(),
+      // 静态 JSON 端点要求的 platforms 嵌套格式（tauri-plugin-updater v2 必需）
+      platforms: {
+        [target]: { signature, url },
+      },
+      // 兼容动态服务器格式（v1 顶层字段，供自研检查逻辑使用）
+      signature,
+      url,
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.json(payload);
+  } catch (error) {
+    console.error('获取桌面版更新清单失败:', error);
+    res.status(500).json({ success: false, message: '获取桌面版更新清单失败' });
+  }
+});
+
 // 客户端检查更新
 router.post('/check', async (req, res) => {
   try {
@@ -136,7 +192,7 @@ router.get('/versions', async (req, res) => {
 // POST /api/version/versions — 创建新版本
 router.post('/versions', async (req, res) => {
   try {
-    const { version, platform, buildNumber, changelog, downloadUrl, forceUpdate, status } = req.body;
+    const { version, platform, buildNumber, changelog, downloadUrl, forceUpdate, status, channel, sha256, size, signature } = req.body;
 
     if (!version) {
       return res.status(400).json({ success: false, message: '版本号不能为空' });
@@ -152,6 +208,10 @@ router.post('/versions', async (req, res) => {
         downloadUrl: downloadUrl || null,
         forceUpdate: forceUpdate || false,
         status: status || 'draft',
+        channel: channel || 'stable',
+        sha256: sha256 || null,
+        size: size || null,
+        signature: signature || null,
         releasedAt: status === 'released' ? new Date() : null,
       },
     });
@@ -173,7 +233,7 @@ router.put('/versions/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: '版本不存在' });
     }
 
-    const { version, platform, buildNumber, changelog, downloadUrl, forceUpdate, status } = req.body;
+    const { version, platform, buildNumber, changelog, downloadUrl, forceUpdate, status, channel, sha256, size, signature } = req.body;
 
     const updated = await (prisma as any).appVersion.update({
       where: { id },
@@ -185,6 +245,10 @@ router.put('/versions/:id', async (req, res) => {
         ...(downloadUrl !== undefined && { downloadUrl }),
         ...(forceUpdate !== undefined && { forceUpdate }),
         ...(status !== undefined && { status }),
+        ...(channel !== undefined && { channel }),
+        ...(sha256 !== undefined && { sha256 }),
+        ...(size !== undefined && { size }),
+        ...(signature !== undefined && { signature }),
         ...(status === 'released' && { releasedAt: new Date() }),
       },
     });

@@ -45,7 +45,6 @@ const PLATFORM_STYLE: Record<string, { name: string; color: string; bg: string; 
   douyin: { name: '抖音', color: '#161823', bg: '#eef0f2', desc: '扫码登录抖音创作者中心' },
   kuaishou: { name: '快手', color: '#FF4906', bg: '#fff0ea', desc: '扫码登录快手网页版' },
   xiaohongshu: { name: '小红书', color: '#FF2442', bg: '#ffeef1', desc: '扫码登录小红书网页版' },
-  shipinhao: { name: '视频号', color: '#07C160', bg: '#e8f9f0', desc: '扫码登录微信视频号' },
 };
 
 const POLL_INTERVAL = 3000;
@@ -198,8 +197,9 @@ export default function AcquisitionAccountsPage() {
     }
   };
 
-  const accountByPlatform = (platform: string) =>
-    accounts.find((acc) => acc.platform === platform);
+  /** 返回某平台全部已授权账号（支持同平台多账号矩阵） */
+  const accountsByPlatform = (platform: string) =>
+    accounts.filter((acc) => acc.platform === platform);
 
   const statusTag = (status: string) => {
     if (status === 'active') return <Tag color="success">已授权</Tag>;
@@ -280,7 +280,7 @@ export default function AcquisitionAccountsPage() {
   return (
     <PageContainer
       title="平台账号授权"
-      description="完成抖音、快手、小红书、视频号账号授权后，即可使用智能跟评（话术生成 + 自动发送 + 风控熔断）"
+      description="完成抖音、快手、小红书账号授权后，即可使用智能跟评。支持同平台多账号矩阵，每个账号独立频控、独立发送"
       breadcrumb={[{ title: '智能获客', href: '/customer/acquisition/board' }, { title: '平台账号授权' }]}
       loading={loading}
       skeletonType="card"
@@ -317,7 +317,8 @@ export default function AcquisitionAccountsPage() {
         {(platforms.length > 0 ? platforms : Object.keys(PLATFORM_STYLE).map((key) => ({ key, name: PLATFORM_STYLE[key].name }))).map(
           (platform) => {
             const style = PLATFORM_STYLE[platform.key] || PLATFORM_STYLE.douyin;
-            const acc = accountByPlatform(platform.key);
+            const accs = accountsByPlatform(platform.key);
+            const first = accs[0];
             return (
               <Col xs={24} sm={12} lg={6} key={platform.key} style={{ marginBottom: 16 }}>
                 <Card
@@ -356,32 +357,43 @@ export default function AcquisitionAccountsPage() {
                   </div>
 
                   <div style={{ minHeight: 40, marginBottom: 12 }}>
-                    {acc ? (
-                      <Space direction="vertical" size={2}>
-                        <Space>
-                          <Avatar size={20} src={acc.avatar || undefined} />
-                          <Typography.Text>{acc.accountName || '已授权账号'}</Typography.Text>
+                    {accs.length > 0 ? (
+                      <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                        <Space size={6}>
+                          <Tag color="success">已授权 {accs.length} 个账号</Tag>
+                          {accs.length > 1 && (
+                            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                              矩阵可用
+                            </Typography.Text>
+                          )}
                         </Space>
-                        {statusTag(acc.status)}
+                        {accs.slice(0, 2).map((a) => (
+                          <Space key={a.id} size={6} style={{ width: '100%' }}>
+                            <Avatar size={20} src={a.avatar || undefined} />
+                            <Typography.Text ellipsis style={{ maxWidth: 150, fontSize: 13 }}>
+                              {a.accountName || '未命名账号'}
+                            </Typography.Text>
+                            {a.status !== 'active' && statusTag(a.status)}
+                          </Space>
+                        ))}
+                        {accs.length > 2 && (
+                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            … 等共 {accs.length} 个账号
+                          </Typography.Text>
+                        )}
                       </Space>
                     ) : (
                       <Typography.Text type="secondary">未授权</Typography.Text>
                     )}
                   </div>
 
-                  <Space>
-                    {acc ? (
-                      <>
-                        <Button type="primary" icon={<QrcodeOutlined />} onClick={() => handleReauth(acc)}>
-                          重新授权
-                        </Button>
-                        <Button danger onClick={() => handleUnbind(acc)}>
-                          解绑
-                        </Button>
-                      </>
-                    ) : (
-                      <Button type="primary" icon={<QrcodeOutlined />} onClick={() => handleAuthorize(platform.key)}>
-                        立即授权
+                  <Space wrap>
+                    <Button type="primary" icon={<QrcodeOutlined />} onClick={() => handleAuthorize(platform.key)}>
+                      {accs.length > 0 ? '添加账号' : '立即授权'}
+                    </Button>
+                    {first && (
+                      <Button icon={<ReloadOutlined />} onClick={() => handleReauth(first)}>
+                        重新授权
                       </Button>
                     )}
                   </Space>
