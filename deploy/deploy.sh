@@ -61,6 +61,8 @@ if [ -z "$DB_URL" ]; then
 fi
 
 echo -e "${GREEN}[3/7] 安装后端依赖...${NC}"
+# 确保桌面安装包下载目录存在
+mkdir -p "$APP_DIR/downloads"
 cd "$SERVER_DIR"
 npm install --omit=dev || npm install
 
@@ -82,8 +84,8 @@ echo -e "${GREEN}[6/7] 启动/重启后端服务...${NC}"
 pm2 restart zhishuai-api --update-env 2>/dev/null || pm2 start npm --name "zhishuai-api" -- start
 pm2 save
 
-# 部署 Web 前端(如存在)
-if [ -d "$WEB_DIR/package.json" ]; then
+# 部署 Web 前端(如存在；V3.0 后 Web 管理端已下线，此步骤通常跳过)
+if [ -f "$WEB_DIR/package.json" ]; then
   echo -e "${GREEN}[7/7] 构建并重启 Web 前端...${NC}"
   cd "$WEB_DIR"
   npm install --omit=dev || npm install

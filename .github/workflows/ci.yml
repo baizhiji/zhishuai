@@ -149,5 +149,24 @@ jobs:
             cd /var/www/zhishuai
             git pull origin main
             pm2 delete zhishuai-web 2>/dev/null || true
-            cd server && npm ci 2>/dev/null || npm install && npx prisma generate && npx prisma db push --skip-generate && npm run build && pm2 restart zhishuai-api
-            cd ../scripts && bash verify-login.sh
+
+            # 后端部署
+            cd server
+            npm ci 2>/dev/null || npm install
+            npx prisma generate
+            npx prisma db push --skip-generate
+            npm run build
+            pm2 restart zhishuai-api
+            cd ..
+
+            # 桌面安装包下载目录
+            mkdir -p /var/www/zhishuai/downloads
+
+            # 同步 nginx 配置并 reload（若 sudo 需要密码，请在服务器为该用户配置 NOPASSWD）
+            sudo rm -f /etc/nginx/sites-enabled/api.baizhiji.net
+            sudo cp /var/www/zhishuai/deploy/nginx/zhishuai.conf /etc/nginx/sites-available/zhishuai.conf
+            sudo ln -sf /etc/nginx/sites-available/zhishuai.conf /etc/nginx/sites-enabled/zhishuai.conf
+            sudo nginx -t && sudo systemctl reload nginx
+
+            # 登录验证
+            cd scripts && bash verify-login.sh

@@ -13,58 +13,27 @@ if ! command -v nginx &> /dev/null; then
 fi
 echo "✓ Nginx已安装"
 
-# 2. 创建配置目录
+# 2. 创建配置目录与下载目录
 echo "[2/4] 创建配置目录..."
 sudo mkdir -p /etc/nginx/sites-available
 sudo mkdir -p /etc/nginx/sites-enabled
-echo "✓ 配置目录已就绪"
+sudo mkdir -p /var/www/zhishuai/downloads
+sudo chown -R "$USER:$USER" /var/www/zhishuai/downloads 2>/dev/null || true
+echo "✓ 配置目录与 /var/www/zhishuai/downloads 已就绪"
 
-# 3. 创建API反向代理配置
-echo "[3/4] 创建API反向代理配置..."
-
-# 先删除旧配置
+# 3. 同步项目中的 nginx 配置
+echo "[3/4] 同步 nginx 配置..."
+# 禁用旧配置，避免与 zhishuai.conf 中的 server_name 冲突
 sudo rm -f /etc/nginx/sites-available/api.baizhiji.net
 sudo rm -f /etc/nginx/sites-enabled/api.baizhiji.net
 
-# 创建新配置
-sudo tee /etc/nginx/sites-available/api.baizhiji.net > /dev/null << 'EOF'
-server {
-    listen 80;
-    server_name api.baizhiji.net;
-
-    # 跨域头
-    add_header 'Access-Control-Allow-Origin' '*' always;
-    add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
-    add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization' always;
-
-    location / {
-        # 处理CORS预检请求
-        if ($request_method = 'OPTIONS') {
-            add_header 'Content-Type' 'text/plain charset=UTF-8';
-            add_header 'Content-Length' 0;
-            add_header 'Access-Control-Max-Age' 86400;
-            return 204;
-        }
-
-        # 反向代理到后端API
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
-EOF
-
-echo "✓ 配置文件已创建"
+APP_DIR=/var/www/zhishuai
+sudo cp "$APP_DIR/deploy/nginx/zhishuai.conf" /etc/nginx/sites-available/zhishuai.conf
+echo "✓ 配置文件已同步"
 
 # 4. 启用配置并重载Nginx
 echo "[4/4] 启用配置并重载Nginx..."
-sudo ln -sf /etc/nginx/sites-available/api.baizhiji.net /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/zhishuai.conf /etc/nginx/sites-enabled/zhishuai.conf
 sudo nginx -t && sudo systemctl reload nginx
 echo "✓ Nginx配置已启用"
 
