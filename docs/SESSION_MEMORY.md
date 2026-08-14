@@ -1,18 +1,20 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-14 (桌面版收尾：CI shell 修复 + release.mjs 修复已推送) | 提交数：535+ | 项目启动：2026-04-25
+> 最后更新：2026-08-14 (用户确认：Web 下线无影响 + 暂不发签名版；CI Deploy 改密码登录并移除 Web 部署) | 提交数：536+ | 项目启动：2026-04-25
 
-## 2026-08-14 收尾会话（桌面版 CI 修复 + 发布脚本修复）
+## 2026-08-14 收尾会话（用户确认 V3.0 三项决策 + CI Deploy 修复推送）
+
+### 用户确认
+- **Web 网页版下线**：确认对智枢系统无影响（后端/数据/分享落地页/Playwright 自动化均保留），Web 端不再需要 → CI Deploy 移除 web 构建与 `pm2 restart zhishuai-web`。
+- **Windows 代码签名证书**：暂不发签名版 → 保持未签名内测包（SmartScreen 蓝色警告 + 安装指引），正式商用前再办。
+- **updater 签名（tauri signer）**：与代码签名证书是两回事；CI 已内置降级逻辑（未配 `TAURI_SIGNING_PRIVATE_KEY` 时产出无更新签名安装包，配置后自动更新可用）。
 
 ### 已完成
-- **CI shell 修复提交推送（a31b3a1）**：`desktop-build` job 的 `Build Web Static Export` 与 `Install Desktop Dependencies` 两步加 `shell: bash`，避免 windows-latest 默认 pwsh 将 `2>/dev/null` 解析为 `C:\dev\null` 路径报错。`Build & Package Desktop` 保持 pwsh（含 `TAURI_SIGNING_PRIVATE_KEY` secrets 缺失时移除 updater 配置的降级逻辑）。
-- **`desktop/scripts/release.mjs` 两处 bug 修复并推送（ee2eeb7）**：① 第 46 行把 `.sig` 文件过滤掉导致 `files.find(endsWith('.sig'))` 永远为 undefined，签名恒为空 → 改为从 `allFiles` 中按 `<installerBase>.sig` 查找；② `latest.json` 从旧版顶层格式（`signature`/`url` 平铺）改为 tauri updater v2 静态 JSON 端点要求的 `platforms: { "windows-x86_64": { signature, url } }` 嵌套格式，与服务端 `version.ts` 完全对齐。`node --check` 语法校验通过。
-- 本地确认：无 Rust 工具链（cargo/rustc 不存在），Rust 编译验证以 CI windows-latest 为准；`desktop/frontend` 静态产物 234 文件为今日 21:16 最新构建；`web/next.config.js` `output: 'export'` + `trailingSlash` 配置正确；`copy-web-build.mjs`（web/out→frontend）与 `release.mjs` 链路完整。
+- **CI Deploy job 修复并推送（507c2e3）**：`Deploy via SSH` 从 `CVM_HOST/CVM_USER/CVM_SSH_KEY`（SSH key，从未配置导致秒失败）改为 `SERVER_IP/SERVER_USER/SERVER_PASSWORD`（密码登录，appleboy/ssh-action password 参数）；删除 `cd web && npm ci && npm run build && pm2 restart zhishuai-web`（V3.0 Web 下线，进程不存在会报错），改 `pm2 delete zhishuai-web 2>/dev/null || true`（幂等清理）；保留 `server` 部署（npm ci→prisma generate→db push--skip-generate→build→pm2 restart zhishuai-api）+ `scripts/verify-login.sh` 三角色验证。
 
 ### 待办
-- 待 CI（a31b3a1 + ee2eeb7 触发）确认 `desktop-build` 产出 Windows 安装包并下载 artifact。
-- Deploy job 排查：`Deploy via SSH` 步骤失败疑似 GitHub secrets（CVM_HOST/CVM_USER/CVM_SSH_KEY）未配置，或远端 web 进程状态（V3.0 方案 Web 下线后 `pm2 restart zhishuai-web` 若进程不存在会失败）；需用户确认 secrets 配置情况。
-- 首个安装包发布到 `https://baizhiji.net/downloads/` + `appVersion` 表录入 desktop 记录（version/channel=stable/signature/sha256/size/downloadUrl）→ 用 `desktop/scripts/release.mjs` 生成最新格式清单。
+- 待 CI 确认：① `desktop-build`（a31b3a1 + ee2eeb7）产出 Windows 安装包并下载 artifact；② Deploy job 用 `SERVER_IP/SERVER_USER/SERVER_PASSWORD` 三个 secret 跑通（需确认这些 secret 已在仓库配置，否则 Deploy 仍会失败）。
+- 首个安装包发布到 `https://baizhiji.net/downloads/`（nginx 需新增 `/downloads/` 静态目录）+ `appVersion` 表录入 desktop 记录 → 用 `desktop/scripts/release.mjs` 生成最新格式清单。
 - Windows 代码签名证书（正式发布前置）、COS bucket + CDN 分发。
 
 ## 2026-08-14 历史会话关键更新（桌面版 Tauri 2 工程落地 · 商用级闭环）
