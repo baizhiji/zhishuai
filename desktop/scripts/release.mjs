@@ -38,7 +38,8 @@ const candidates = bundle === 'msi'
   ? ['*.msi']
   : ['*-setup.exe', '*.exe'];
 const { readdirSync } = await import('node:fs');
-const files = readdirSync(bundleDir).filter((f) =>
+const allFiles = readdirSync(bundleDir);
+const files = allFiles.filter((f) =>
   candidates.some((c) => {
     const re = new RegExp('^' + c.replace(/\*/g, '.*') + '$');
     return re.test(f);
@@ -54,20 +55,26 @@ const data = readFileSync(installer);
 const sha256 = createHash('sha256').update(data).digest('hex');
 const sizeMB = (data.length / 1024 / 1024).toFixed(1);
 
-// 3. 读取签名（tauri 在 updater 启用时会生成 .sig）
-let signature = '';
-const sigFile = files.find((f) => f.endsWith('.sig'));
-if (sigFile) {
-  signature = readFileSync(resolve(bundleDir, sigFile), 'utf-8').trim();
-}
+// 3. 读取签名（tauri 在 updater 启用时生成 <installer>.sig）
+const installerBase = files[0].replace(/\.(exe|msi)$/i, '');
+const sigName = allFiles.find(
+  (f) => f === `${installerBase}.sig` || f === `${files[0]}.sig`
+);
+const signature = sigName
+  ? readFileSync(resolve(bundleDir, sigName), 'utf-8').trim()
+  : '';
 
-// 4. 生成 latest.json（tauri updater 协议）
+// 4. 生成 latest.json（tauri updater v2 静态 JSON 端点：platforms 嵌套格式）
 const manifest = {
   version,
   notes: `智枢AI 桌面版 ${version} 更新`,
   pub_date: new Date().toISOString(),
-  signature,
-  url: `${baseUrl}/downloads/${files[0]}`,
+  platforms: {
+    'windows-x86_64': {
+      signature,
+      url: `${baseUrl}/downloads/${files[0]}`,
+    },
+  },
 };
 
 const distDir = resolve(ROOT, 'dist');
