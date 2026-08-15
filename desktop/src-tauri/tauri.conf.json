@@ -48,11 +48,10 @@
         "installMode": "currentUser",
         "displayLanguageSelector": true,
         "languages": ["SimpChinese", "English"],
-        "installerIcon": "icons/icon.ico",
-        "deleteAppDataOnUninstall": false
+        "installerIcon": "icons/icon.ico"
       },
-      "msi": {
-        "installMode": "perMachine"
+      "wix": {
+        "language": ["zh-CN", "en-US"]
       }
     }
   },
