@@ -106,21 +106,30 @@ jobs:
         working-directory: desktop
         run: |
           npm ci 2>/dev/null || npm install
+      - name: Prepare unsigned desktop config (if no signing key)
+        working-directory: desktop
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}" ]; then
+            echo "::warning::TAURI_SIGNING_PRIVATE_KEY 未配置，移除 updater 插件后构建未签名安装包"
+            node -e "
+              const fs = require('fs');
+              const p = 'src-tauri/tauri.conf.json';
+              const c = JSON.parse(fs.readFileSync(p, 'utf8'));
+              if (c.plugins && c.plugins.updater) delete c.plugins.updater;
+              fs.writeFileSync(p, JSON.stringify(c, null, 2) + '\n');
+            "
+          else
+            echo "TAURI_SIGNING_PRIVATE_KEY 已配置，将生成签名安装包"
+          fi
       - name: Build & Package Desktop
         working-directory: desktop
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        shell: pwsh
+        shell: bash
         run: |
-          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
-            Write-Host "::warning::TAURI_SIGNING_PRIVATE_KEY 未配置，跳过签名（自动更新不可用，仅产出可安装包）"
-            $conf = Get-Content 'src-tauri/tauri.conf.json' -Raw | ConvertFrom-Json -Depth 20
-            $conf.plugins.PSObject.Properties.Remove('updater')
-            $conf | ConvertTo-Json -Depth 20 | Set-Content 'src-tauri/tauri.conf.json' -Encoding UTF8
-          } else {
-            Write-Host "TAURI_SIGNING_PRIVATE_KEY 已配置，将生成签名安装包（自动更新可用）"
-          }
+          rustup target add x86_64-pc-windows-msvc
           npx tauri build
       - name: Upload Installer Artifacts
         uses: actions/upload-artifact@v4
@@ -130,6 +139,35 @@ jobs:
             desktop/src-tauri/target/release/bundle/nsis/*.exe
             desktop/src-tauri/target/release/bundle/msi/*.msi
           if-no-files-found: error
+
+  deploy-desktop:
+    name: Deploy Desktop Installer to Server
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [desktop-build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: zhishuai-desktop-installer
+          path: ./installer
+      - name: Ensure downloads directory exists
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: mkdir -p /var/www/zhishuai/downloads
+      - name: Upload installers to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: "installer/*"
+          target: "/var/www/zhishuai/downloads/"
+          strip_components: 1
+          overwrite: true
 
   deploy:
     name: Deploy to Production
@@ -147,8 +185,11 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd /var/www/zhishuai
+            # 服务器上可能存在未提交的手工修改，先 stash 再拉取，避免 pull 失败
+            git config user.email "ci@zhishuai.ai" || true
+            git config user.name "CI Bot" || true
+            git stash push -u -m "auto-stash-before-deploy-$(date +%s)" || true
             git pull origin main
-            pm2 delete zhishuai-web 2>/dev/null || true
 
             # 后端部署
             cd server
@@ -161,12 +202,6 @@ jobs:
 
             # 桌面安装包下载目录
             mkdir -p /var/www/zhishuai/downloads
-
-            # 同步 nginx 配置并 reload（若 sudo 需要密码，请在服务器为该用户配置 NOPASSWD）
-            sudo rm -f /etc/nginx/sites-enabled/api.baizhiji.net
-            sudo cp /var/www/zhishuai/deploy/nginx/zhishuai.conf /etc/nginx/sites-available/zhishuai.conf
-            sudo ln -sf /etc/nginx/sites-available/zhishuai.conf /etc/nginx/sites-enabled/zhishuai.conf
-            sudo nginx -t && sudo systemctl reload nginx
 
             # 登录验证
             cd scripts && bash verify-login.sh
