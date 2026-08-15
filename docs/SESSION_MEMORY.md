@@ -1,6 +1,21 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-15 (CI Deploy SSH 认证修复完成：改用 SERVER_SSH_KEY + SERVER_USER 修正为 ubuntu，Deploy/Deploy-Desktop 全绿；nginx letsencrypt 证书权限修复) | 提交数：540+ | 项目启动：2026-04-25
+> 最后更新：2026-08-16 (桌面版自动更新已启用：生成 minisign 签名密钥对 + 配置 TAURI_SIGNING_PRIVATE_KEY Secrets + 手动签名 3.0.0 安装包 + 录入 appVersion 表，latest.json 验证通过) | 提交数：545+ | 项目启动：2026-04-25
+
+## 2026-08-16 本次会话（桌面版自动更新启用 + appVersion 表录入）
+
+### 已解决：桌面版自动更新（latest.json + 签名）
+- **背景**：上次会话遗留待办「生成 latest.json + 录入 appVersion 表启用自动更新」。排查发现 CI 构建时因无 `TAURI_SIGNING_PRIVATE_KEY` 会**删除 updater 插件配置**，且构建产物无 `.sig` 签名文件，桌面版实际无法自动更新。
+- **修复方案**：
+  1. **生成新签名密钥对**：`npx tauri signer generate --ci` → `~/.tauri/zhishuai`（私钥）+ `~/.tauri/zhishuai.pub`（公钥），密码 `zhishuai-2026-sign`。新公钥 `dW50cnVzdGVk...QzODhGRUFEODgKUldUWTZv...` 已更新到 `desktop/src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。
+  2. **配置 GitHub Secrets**：`TAURI_SIGNING_PRIVATE_KEY`（私钥完整内容）+ `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（密码），用新增 `scripts/set-tauri-signing-secrets.py` 从文件读取加密写入（复用 libsodium sealed-box）。
+  3. **CI 修改**：`.github/workflows/ci.yml` 上传 artifact 增加 `*.sig`（签名文件，防构建自动签名时丢失）；`Prepare unsigned desktop config` 步骤因密钥已配置而保留 updater 插件。
+  4. **手动签名安装包**（CI tauri build 对 NSIS 未自动产出 .sig）：下载服务器 exe → `npx tauri signer sign` 生成 `.sig`（412 字节）→ 上传到 `/var/www/zhishuai/downloads/zhishuai_3.0.0_x64-setup.exe.sig`（公网可访问 HTTP 200）。
+  5. **录入 appVersion 表**：`scripts/insert-appversion.js` 插入 desktop/3.0.0/stable 记录（downloadUrl、sha256=`9de203e9...`、size、signature）。先执行 `scripts/alter-appversion.js` 将 `changelog`/`signature` 列从 `VARCHAR(191)` 改为 `TEXT`（签名 412 字符超长报错后修复），`server/prisma/schema.prisma` 同步加 `@db.Text`。
+- **验证结果**：`https://baizhiji.net/api/version/desktop/latest.json` 返回完整 payload（version=3.0.0、signature 412B、下载 URL 200）；`?currentVersion=2.0.0` → HTTP 200（提示更新）；`?currentVersion=3.0.0` → HTTP 204（已是最新）；`.sig` 公网 HTTP 200。
+- **待办/注意**：CI `tauri build` 对 NSIS bundle 未自动生成 `.sig`（tauri-cli 已知行为），后续发版需手动 `npx tauri signer sign` 并用 `scripts/insert-appversion.js` 更新表记录；签名私钥存放在 `C:\Users\Administrator\.tauri\zhishuai`（密码 `zhishuai-2026-sign`），务必备份，丢失将无法发布新版本。
+- **新增脚本**：`scripts/set-tauri-signing-secrets.py`（设置签名 Secrets）、`scripts/insert-appversion.js`（录入版本记录）、`scripts/alter-appversion.js`（列类型修复）、`scripts/verify-latest-json.sh`（端点验证）。
+- **数据库变更**：`server/prisma/schema.prisma` 中 appVersion 表 `changelog`/`signature` 改为 `@db.Text`（生产库已 ALTER，需 CI 同步 schema）。
 
 ## 2026-08-15 本次会话（CI Deploy SSH 认证根治 + 产品命名更新）
 

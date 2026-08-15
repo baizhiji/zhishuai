@@ -298,7 +298,7 @@ model AppVersion {
   version     String
   platform    String    @default("android")
   buildNumber Int       @default(1)
-  changelog   String?
+  changelog   String?   @db.Text
   downloadUrl String?
   forceUpdate Boolean   @default(false)
   status      String    @default("released")
@@ -307,7 +307,7 @@ model AppVersion {
   channel     String?   @default("stable") // stable / beta / nightly
   sha256      String?                        // 安装包 SHA256（tauri updater 校验）
   size        String?                        // 安装包大小（人类可读，如 82.5 MB）
-  signature   String?                        // 安装包 minisign 签名（tauri updater 必需）
+  signature   String?   @db.Text             // 安装包 minisign 签名（tauri updater 必需）
   createdAt   DateTime  @default(now())
   updatedAt   DateTime @default(now())
   @@index([platform, status])
