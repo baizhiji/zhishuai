@@ -57,7 +57,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNBMTEzNzM0RDNCMTU4QjYKUldTMldMSFRORGNST252RllMbmVURnZES2hVdHBwMzNoUlM5ZjdsYUtDL0hGV2wrYVVIb1RPYTcK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEIzMTBDODQ0Qzg4RkVBRDgKUldUWTZvL0lSTWdRczRMN3YwcHpoT1YxZDJvem5hNk1tZVVSdXgzaEt2ZVhDUVBNeHhrbHQwMksK",
       "endpoints": [
         "https://baizhiji.net/api/version/desktop/latest.json"
       ],
