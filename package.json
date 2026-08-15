@@ -1,20 +1,23 @@
 {
   "name": "zhishuai",
   "version": "1.0.0",
-  "description": "智枢AI SaaS多租户超级应用 - 包含APK端、Web端和后端服务",
+  "description": "智枢AI SaaS多租户超级应用 - 包含桌面安装版（Tauri）、APK端和后端服务",
   "private": true,
   "scripts": {
-    "install:all": "npm run install:web && npm run install:apk && npm run install:server",
+    "install:all": "npm run install:web && npm run install:desktop && npm run install:apk && npm run install:server",
     "install:web": "cd web && npm install",
+    "install:desktop": "cd desktop && npm install",
     "install:apk": "cd apk && npm install",
     "install:server": "cd server && npm install",
     "dev:web": "cd web && npm run dev",
+    "dev:desktop": "cd desktop && npm run dev",
     "dev:apk": "cd apk && npm run dev",
     "dev:server": "cd server && npm run dev",
     "build:web": "cd web && npm run build",
+    "build:desktop": "cd desktop && npm run build:nsis",
     "build:apk": "cd apk && npm run build",
     "build:server": "cd server && npm run build",
-    "build:all": "npm run build:web && npm run build:apk && npm run build:server",
+    "build:all": "npm run build:web && npm run build:desktop && npm run build:apk && npm run build:server",
     "start:web": "cd web && npm start",
     "start:apk": "cd apk && npm start",
     "start:server": "cd server && npm start"
@@ -27,7 +30,8 @@
     "HR",
     "营销",
     "APK",
-    "Web"
+    "Desktop",
+    "Tauri"
   ],
   "author": "智枢AI",
   "license": "All rights reserved"

@@ -4,28 +4,32 @@
 
 ## 项目简介
 
-智枢AI是一个全功能SaaS多租户系统，包含APK端、Web端和后端服务，为自媒体运营者、电商卖家、HR、营销人员等提供一站式智能解决方案。
+智枢AI是一个全功能SaaS多租户系统，主产品形态为 **Windows 桌面安装版** 和 **Android APK端**，配套 Express 后端服务。系统为自媒体运营者、电商卖家、HR、营销人员等提供一站式智能解决方案。
+
+- **桌面安装版**：基于 `web/` 源码通过 Tauri 2.x 封装为 Windows 安装程序，是管理后台的主力形态。
+- **APK端**：基于 Expo + React Native 的 Android 应用。
+- **后端服务**：基于 Express + TypeScript + Prisma + MySQL 的 API 服务。
 
 ## 项目结构
 
 ```
 zhishuai/
-├── apk/                   # APK端（Android应用）
-├── web/                   # Web端（管理后台）
-├── backend/               # 后端服务
+├── apk/                   # APK端（Expo + React Native）
+├── web/                   # 前端源码（Next.js，桌面安装版与网页版共用）
+├── desktop/               # 桌面安装版（Tauri 2.x 封装）
+├── server/                # 后端服务（Express + Prisma + MySQL）
 ├── shared/                # 共享代码
-│   ├── types/             # TypeScript类型定义
-│   ├── api/               # API配置
-│   └── utils/             # 工具函数
+│   └── *.ts               # TypeScript 类型定义
 ├── docs/                  # 文档
-└── scripts/               # 脚本
+├── scripts/               # 脚本（部署、验证等）
+└── deploy/                # 部署配置
 ```
 
 ## 功能模块
 
-### Web端（已完成基础框架）
+### 桌面安装版（管理后台）
 
-#### 自媒体板块 ⭐⭐⭐⭐⭐
+#### 自媒体板块
 - **AI内容生成**：基于热点话题和行业特点生成视频、图文、短视频内容
   - 单次生成
   - 批量生成
@@ -83,40 +87,52 @@ zhishuai/
 - 知识库管理
 - APP定制
 
-### APK端（待开发）
-- 即将开发...
+### APK端
+- 企业策划/诊断对话窗口
+- 生成 Word/Excel/PPT/PDF 供客户下载
+- 与桌面安装版共用后端服务
 
-### 后端服务（待开发）
-- 即将开发...
+### 后端服务
+- 用户/代理商/客户账号体系
+- 多租户数据隔离
+- 第三方 AI 模型中转（阿里云百炼、火山引擎等）
+- 文件生成与下载
+- 部署验证与监控
 
 ## 技术栈
 
-### Web端
-- **框架**: Next.js 14.2.0 (App Router)
+### 桌面安装版
+- **框架**: Tauri 2.x + Next.js 14.2.0 (App Router)
 - **语言**: TypeScript 5.4
 - **UI组件库**: Ant Design 6.3.6
 - **状态管理**: Zustand 4.5
-- **HTTP客户端**: Axios 1.7
-- **日期处理**: Dayjs 1.11
 - **样式**: Tailwind CSS 3.4
 
 ### APK端
-- 待定
+- **框架**: Expo SDK 52 + React Native 0.76
+- **语言**: TypeScript
 
 ### 后端
-- 待定
+- **框架**: Express 4 + TypeScript
+- **ORM**: Prisma
+- **数据库**: MySQL 5.7 (TDSQL-C)
+- **进程管理**: PM2
 
 ## 快速开始
 
-### Web端
+### 桌面安装版
 
 ```bash
-cd web
-npm install
-npm run dev
-```
+# 1. 安装 web 与 desktop 依赖
+npm run install:web
+cd desktop && npm install
 
-访问 http://localhost:3000
+# 2. 启动桌面开发模式
+npm run dev:desktop
+
+# 3. 构建 Windows 安装包
+npm run build:desktop
+```
 
 ### APK端
 
@@ -129,10 +145,12 @@ npm run dev
 ### 后端服务
 
 ```bash
-cd backend
+cd server
 npm install
 npm run dev
 ```
+
+后端默认运行在 http://localhost:3001
 
 ## 账号体系
 
@@ -167,6 +185,16 @@ web/
 ├── types/                # TypeScript类型定义
 ├── utils/                # 工具函数
 └── public/               # 静态资源
+
+desktop/
+├── src/                  # Tauri 主进程/预处理代码
+├── src-tauri/            # Rust 源码与构建配置
+└── package.json          # 桌面端脚本
+
+server/
+├── src/                  # Express API 源码
+├── prisma/               # Prisma schema 与迁移
+└── package.json          # 后端脚本
 ```
 
 ### 开发规范
@@ -202,23 +230,32 @@ web/
 
 ## 环境变量
 
-### Web端
+### 桌面安装版 / Web 前端
 ```env
 APP_NAME=智枢AI
 APP_VERSION=1.0.0
-API_BASE_URL=http://localhost:3000/api
+API_BASE_URL=http://localhost:3001/api
 ```
 
-## 浏览器支持
+### 后端服务
+```env
+DATABASE_URL="mysql://user:password@host:3306/zhishuai"
+PORT=3001
+JWT_SECRET=your-jwt-secret
+```
 
-- Chrome (推荐)
-- Firefox
-- Safari
-- Edge
+## 系统要求
+
+### 桌面安装版
+- Windows 10 64位及以上
+- 4GB RAM 及以上
+
+### APK端
+- Android 8.0 (API 26) 及以上
 
 ## License
 
-© 2024 智枢AI. 保留所有权利。
+© 2024-2026 智枢AI. 保留所有权利。
 
 ## 贡献
 

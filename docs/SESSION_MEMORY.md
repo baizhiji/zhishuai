@@ -1,6 +1,15 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-14 (nginx /downloads/ 配置已加并推送；CI Deploy 自动同步 nginx + 修复 npm ci 命令链) | 提交数：537+ | 项目启动：2026-04-25
+> 最后更新：2026-08-15 (README/package.json/SESSION_MEMORY 产品形态命名更新：Web端→桌面安装版；CI Deploy 仍因 SSH 密码认证失败待排查) | 提交数：538+ | 项目启动：2026-04-25
+
+## 2026-08-15 本次会话关键更新
+
+### 已完成
+- **产品形态与文档命名统一更新**：系统主形态已明确为 **Windows 桌面安装版（Tauri 2.x）+ Android APK端 + Express 后端服务**，原"Web端"表述易造成误解。
+  - `README.md` 重写：项目简介、项目结构（新增 `desktop/`）、功能模块（桌面安装版/APK端/后端服务）、技术栈（新增 Tauri 2.x / Expo / Express+Prisma+MySQL）、快速开始（新增桌面版开发/构建命令）、系统要求（Windows 10+/Android 8.0+）。
+  - `package.json`：`description` 改为"包含桌面安装版（Tauri）、APK端和后端服务"；`keywords` 中 "Web" 改为 "Desktop"/"Tauri"；新增 `install:desktop` / `dev:desktop` / `build:desktop` 脚本，`build:all` 包含桌面版。
+  - `docs/SESSION_MEMORY.md`：项目简介、竞争定位、部署验证等处的"Web端"改为"桌面安装版"或"桌面安装版+APK端"。
+- **CI Deploy 再次验证失败（Secrets 已更新）**：用户已按提示更新 `SERVER_IP` / `SERVER_USER` / `SERVER_PASSWORD`，但新 run 31879202818 的 `Deploy to Production` 与 `Deploy Desktop Installer to Server` 仍报 `ssh: unable to authenticate`。判断为密码仍不匹配或服务器密码认证配置与 ssh-action 不兼容，建议改用 SSH Key 认证。
 
 ## 2026-08-14 收尾会话（用户确认 V3.0 三项决策 + CI Deploy/ nginx 修复推送）
 
@@ -8,7 +17,7 @@
 - **Web 网页版下线**：确认对智枢系统无影响（后端/数据/分享落地页/Playwright 自动化均保留），Web 端不再需要 → CI Deploy 移除 web 构建与 `pm2 restart zhishuai-web`。
 - **Windows 代码签名证书**：暂不发签名版 → 保持未签名内测包（SmartScreen 蓝色警告 + 安装指引），正式商用前再办。
 - **updater 签名（tauri signer）**：与代码签名证书是两回事；CI 已内置降级逻辑（未配 `TAURI_SIGNING_PRIVATE_KEY` 时产出无更新签名安装包，配置后自动更新可用）。
-- **GitHub Actions secrets**：截图确认 `SERVER_IP` / `SERVER_USER` / `SERVER_PASSWORD` 已配置，Deploy job 可正常登录。
+- **GitHub Actions secrets**：截图确认 `SERVER_IP` / `SERVER_USER` / `SERVER_PASSWORD` 已配置，但 Deploy job 实际仍无法登录（2026-08-15 验证）。
 
 ### 已完成
 - **CI Deploy job 修复并推送（507c2e3 → a14720b）**：`Deploy via SSH` 从 `CVM_HOST/CVM_USER/CVM_SSH_KEY` 改为 `SERVER_IP/SERVER_USER/SERVER_PASSWORD`（密码登录）；删除 web 构建与 `pm2 restart zhishuai-web`，改幂等清理；**修复命令链 bug**：原 `npm ci 2>/dev/null || npm install && npx prisma generate && ...` 因优先级问题在 `npm ci` 成功时会跳过后续步骤，现改为多行顺序执行；新增 **nginx 自动同步**：`git pull` 后复制 `deploy/nginx/zhishuai.conf` → `/etc/nginx/sites-available/zhishuai.conf`、禁用旧 `api.baizhiji.net`、reload；保留 server 部署 + verify-login 三角色验证。
@@ -437,9 +446,10 @@
 ## 一、项目是什么
 
 智枢AI SaaS — 多租户 AI 超级应用。Monorepo 架构。
-- **Web 前端**: Next.js 14 + React 18 + TypeScript + Ant Design 6 + Tailwind CSS (`web/`)
+- **前端源码（桌面安装版 + 公共服务网页共用）**: Next.js 14 + React 18 + TypeScript + Ant Design 6 + Tailwind CSS (`web/`)
+- **桌面安装版**: Tauri 2.x 封装 (`desktop/`)
+- **APK 端**: Expo SDK 52 + React Native 0.76 (`apk/`)
 - **后端 API**: Express 4 + TypeScript + Prisma ORM + MySQL (`server/`)
-- **移动端**: Expo SDK 52 + React Native 0.76 (`apk/`)
 - **共享类型**: TypeScript (`shared/`)
 - **部署**: 腾讯云 CVM 香港 150.109.60.130，Ubuntu 22.04，数据库 TDSQL-C MySQL 172.19.0.13:3306
 - **GitHub**: https://github.com/baizhiji/zhishuai
@@ -484,7 +494,7 @@
 2. **浏览器自动化作为技术地基**：通过 Playwright 实现自媒体平台的扫码授权登录、内容自动发布、招聘平台的自动操作、获客的自动采集。这是区分于纯 API 调用型 AI SaaS 的关键能力（目前这项能力仍是待开发状态，属于最高优先级技术债务）。
 3. **"内容→招聘→获客→裂变"的增长闭环**：不是四个独立工具，而是为同一批客户的同一条增长路径服务——先帮他们产出内容（AI创作工厂）→再帮他们找到人才扩大产能（智能招聘）→最后帮他们把产品卖出去（智能获客）→再通过裂变放大效果（推荐分享）。
 
-产品设计为"可售卖的商品化产品"：功能开关控制不同客户的菜单显隐（Agent 为名下客户按模块开关），贴牌定制支持（仅 Admin 可操作 APP 名称/LOGO/主题色）。移动端（APK）+ Web 端双端覆盖，APK 面向日常高频操作，Web 后台面向复杂配置。
+产品设计为"可售卖的商品化产品"：功能开关控制不同客户的菜单显隐（Agent 为名下客户按模块开关），贴牌定制支持（仅 Admin 可操作 APP 名称/LOGO/主题色）。桌面安装版（Tauri）+ APK 端双端覆盖，APK 面向日常高频操作，桌面安装版后台面向复杂配置。
 
 ### 2.5 产品优先级逻辑
 
