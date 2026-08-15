@@ -137,7 +137,6 @@ jobs:
           name: zhishuai-desktop-installer
           path: |
             desktop/src-tauri/target/release/bundle/nsis/*.exe
-            desktop/src-tauri/target/release/bundle/msi/*.msi
           if-no-files-found: error
 
   deploy-desktop:
