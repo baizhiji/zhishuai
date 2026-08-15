@@ -15,7 +15,7 @@ pub async fn check_update(app: AppHandle) {
         Ok(resp) if resp.status().is_success() => match resp.text().await {
             Ok(text) => text,
             Err(_) => {
-                log_warn(app.clone(), "读取版本信息失败");
+                log_warn(app.clone(), "读取版本信息失败".into());
                 return;
             }
         },
@@ -29,7 +29,7 @@ pub async fn check_update(app: AppHandle) {
     let latest_version = match parse_latest_version(&version_info) {
         Some(v) => v,
         None => {
-            log_warn(app.clone(), "版本信息格式无效");
+            log_warn(app.clone(), "版本信息格式无效".into());
             return;
         }
     };
@@ -37,9 +37,14 @@ pub async fn check_update(app: AppHandle) {
     let current = app.package_info().version.clone();
     if compare_versions(&current.to_string(), &latest_version) {
         log_info(app.clone(), format!("发现新版本 {latest_version}，开始更新"));
-        match tauri_plugin_updater::UpdaterExt::updater(&app)
-            .and_then(|updater| updater.check().await)
-        {
+        let updater = match tauri_plugin_updater::UpdaterExt::updater(&app) {
+            Ok(u) => u,
+            Err(e) => {
+                log_warn(app.clone(), format!("初始化更新器失败: {e}"));
+                return;
+            }
+        };
+        match updater.check().await {
             Ok(Some(update)) => {
                 let result = update
                     .download_and_install(

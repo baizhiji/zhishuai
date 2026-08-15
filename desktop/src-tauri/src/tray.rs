@@ -58,17 +58,6 @@ pub fn setup_tray<R: Runtime>(app: &tauri::App<R>) -> tauri::Result<()> {
         })
         .build(app)?;
 
-    // 关闭主窗口时最小化到托盘，而不是退出
-    app.on_window_event(|window, event| {
-        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-            // 非退出流程时拦截关闭事件，隐藏窗口到托盘
-            if !window.app_handle().state::<AppExitFlag>().0.load(std::sync::atomic::Ordering::SeqCst) {
-                api.prevent_close();
-                let _ = window.hide();
-            }
-        }
-    });
-
     Ok(())
 }
 

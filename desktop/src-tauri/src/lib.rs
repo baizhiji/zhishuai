@@ -36,6 +36,20 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .on_window_event(|window, event| {
+            // 关闭主窗口时最小化到托盘，而不是退出
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let flag = window
+                    .app_handle()
+                    .state::<tray::AppExitFlag>()
+                    .0
+                    .load(std::sync::atomic::Ordering::SeqCst);
+                if !flag {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
+        })
         .setup(|app| {
             // 初始化 AI 代理状态
             let provider = std::env::var("AI_PROVIDER").unwrap_or_else(|_| "aliyun".into());

@@ -165,12 +165,12 @@ pub async fn ai_generate_script(
         .provider
         .clone()
         .unwrap_or_else(|| state.provider.clone());
-    let provider = if provider.is_empty() { "aliyun" } else { provider };
+    let provider = if provider.is_empty() { "aliyun".to_string() } else { provider };
     let model = payload
         .model
         .clone()
         .unwrap_or_else(|| state.model.clone());
-    let model = if model.is_empty() { "qwen-plus" } else { model };
+    let model = if model.is_empty() { "qwen-plus".to_string() } else { model };
 
     let api_key = resolve_api_key(&state, &provider, payload.api_key.clone());
     let Some(api_key) = api_key else {
@@ -246,9 +246,9 @@ pub async fn ai_chat(
     let provider = payload
         .provider
         .unwrap_or_else(|| state.provider.clone());
-    let provider = if provider.is_empty() { "aliyun" } else { provider };
+    let provider = if provider.is_empty() { "aliyun".to_string() } else { provider };
     let model = payload.model.unwrap_or_else(|| state.model.clone());
-    let model = if model.is_empty() { "qwen-plus" } else { model };
+    let model = if model.is_empty() { "qwen-plus".to_string() } else { model };
 
     let api_key = resolve_api_key(&state, &provider, payload.api_key);
     let Some(api_key) = api_key else {
