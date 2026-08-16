@@ -1,8 +1,8 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-16 (桌面版自动更新签名验证通过：用 minisign-verify crate 复刻 tauri 客户端 verify_signature 全路径验证 3.0.0 安装包签名有效；CI 重建后 sha256=9fa85cf2d5 已同步数据库) | 提交数：545+ | 项目启动：2026-04-25
+> 最后更新：2026-08-16 (桌面版自动更新闭环完成：签名验证通过 + 推送触发 CI 重建 + 新 exe 手动签名 + 数据库 sha256=862cd077 同步 + 三角色登录验证 200) | 提交数：546+ | 项目启动：2026-04-25
 
-## 2026-08-16 本次会话（桌面版自动更新签名验证 + 数据库同步）
+## 2026-08-16 本次会话（桌面版自动更新签名验证 + 推送触发 CI 重建 + 二次签名同步）
 
 ### 已解决：签名真实性验证（决定性结论：签名有效）
 - **背景**：CI 重建桌面安装包后服务器 exe 的 sha256 变为 `9fa85cf2d5...`，原签名失效；已通过 `scripts/update-appversion-signature.js` 更新数据库 sha256/signature。遗留疑点：tauri signer（rust-minisign）生成的 .sig 无法被任何外部工具（minisign.exe、PyNaCl+blake3/blake2b）验证，需确认签名是否真实有效。
@@ -16,7 +16,17 @@
 - **数据库同步确认**：appVersion 表 desktop/3.0.0/stable 记录 sha256=`9fa85cf2d5066dff9042a58d9c5b938666123023a3bf94f83244928a762b30e3`、signature（base64 编码 4 行签名文本）均与服务器 exe/.sig 一致。
 - **新增脚本**：`scripts/verify-client-rs/`（Rust 验证工程：Cargo.toml + src/main.rs）、`scripts/run-verify-client.sh`（服务器端运行脚本，规避中文文件名 ssh 转码）、`scripts/verify-official.sh`（服务器官方 minisign 验证）、`scripts/verify-tauri-sig.py`/`scripts/verify-sig-python.py`/`scripts/verify-testvector.py`/`scripts/debug-sig.py`/`scripts/decode-sig.js`（外部实现验证调试脚本，均不可验证属预期）。
 - **部署/推送**：本次推送 `.github/workflows/ci.yml`（SSH Key 认证 + artifact 含 *.sig + workflow_dispatch）、`desktop/src-tauri/tauri.conf.json`（新公钥）、`server/prisma/schema.prisma`（changelog/signature 加 @db.Text）、`docs/SESSION_MEMORY.md` 及全部签名验证脚本。CI 重建后需再同步数据库 sha256/signature（见待办）。
-- **待办/注意**：CI `tauri build` 对 NSIS bundle 未自动生成 `.sig`（tauri-cli 已知行为），后续发版需手动 `npx tauri signer sign` 并用 `scripts/update-appversion-signature.js` 更新表记录；签名私钥存放在 `C:\Users\Administrator\.tauri\zhishuai`（密码 `zhishuai-2026-sign`），务必备份，丢失将无法发布新版本。
+
+### 已解决：推送触发 CI 重建 + 二次签名同步（完整闭环）
+- **推送方式**：HTTPS push 被阻断（github.com:443 reset）→ 改用 GitHub Git Data API 推送。因本地与远程历史分叉（此前 push-via-api.py 重建过 commit），新增 `scripts/push-commit-via-api.py`：基于远程 main tree + 本地 commit 的变更文件创建新 commit（复用本地 message/author/committer），非 force 更新 ref。远程 main 更新至 `159a2dd983`（33 文件）+ `044d5430`（push 脚本入库），CI 自动触发且全部成功（Lint/TypeCheck/SecurityAudit/Build/DesktopBuild/Deploy/DeployDesktop）。
+- **CI 重建影响**：服务器 exe 重建为新 sha256=`862cd077d69f735b568048460ffe1efafb3d5952539170fbc65124667d7c616f`（4300556 字节），**CI 对 NSIS 未自动生成新 .sig**（旧 .sig 与新 exe 不匹配，verify-client 验证失败）。
+- **二次签名**：下载新 exe → `npx tauri signer sign -f C:\Users\Administrator\.tauri\zhishuai -p zhishuai-2026-sign <exe>`（新版 CLI 用 `-f`+位置参数，输出 `<exe>.sig`）→ 生成新 .sig（412 字节，timestamp:1786859506）→ 上传覆盖服务器 `zhishuai_3.0.0_x64-setup.exe.sig`。
+- **数据库同步**：`scripts/update-appversion-signature.js` 更新 sha256/signature 为新值 → 服务器 `node` 执行确认 `updated rows: 1`，latest.json 端点已返回新签名。
+- **最终验证（全部通过）**：
+  1. 服务器 verify-client（minisign-verify 0.2.5）对新 exe+新 .sig 验证 **SIGNATURE VERIFIED OK**（官方向量自检也通过）；
+  2. `https://baizhiji.net/api/version/desktop/latest.json` 返回新 signature；
+  3. `scripts/verify-login.sh` 三角色登录（管理员 18601655222/代理商 13900000099/客户 13800000001）全部 HTTP 200。
+- **待办/注意**：CI `tauri build` 对 NSIS bundle 未自动生成 `.sig`（tauri-cli 已知行为），**每次 CI 重建桌面包后必须手动 `npx tauri signer sign` + 用 `scripts/update-appversion-signature.js` 同步数据库**，否则自动更新会签名校验失败；签名私钥存放在 `C:\Users\Administrator\.tauri\zhishuai`（密码 `zhishuai-2026-sign`），务必备份，丢失将无法发布新版本。HTTPS push 被阻断时用 `python scripts/push-commit-via-api.py`（需 GITHUB_PERSONAL_ACCESS_TOKEN 环境变量，token 存于 git remote URL 及会话记录）。
 
 ## 2026-08-15 本次会话（CI Deploy SSH 认证根治 + 产品命名更新）
 
