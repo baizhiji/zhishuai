@@ -145,7 +145,7 @@ export default function MaterialLibraryPage() {
       [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined />,
       [ContentCategory.AI_SKETCH]: <PlaySquareOutlined />,
       [ContentCategory.AI_COMIC]: <SmileOutlined />,
-      [ContentCategory.CINEMA_SHORT]: <VideoCameraOutlined />,
+      [ContentCategory.SMART_EDIT]: <VideoCameraOutlined />,
       [ContentCategory.CONTENT_CREATIVITY]: <BulbOutlined />,
     };
     return iconMap[category] || <FileOutlined />;

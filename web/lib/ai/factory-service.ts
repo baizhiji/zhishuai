@@ -76,18 +76,19 @@ export interface GenerateResult {
 }
 
 export type ContentTypeSlug =
-  | 'xiaohongshu' | 'image' | 'ecommerce' | 'cinemaShort'
-  | 'enterpriseVideo' | 'productVideo'
+  | 'xiaohongshu' | 'image' | 'ecommerce' | 'shortVideo'
+  | 'smartEdit' | 'enterpriseVideo' | 'productVideo'
   | 'storeTour' | 'personMv' | 'cartoonVideo' | 'digitalHuman';
 
 // ─── API Key 管理 ────────────────────────────
 
 function getUserApiKeys(): Record<AiProvider, string> {
-  const keys: Record<AiProvider, string> = { tencent: '', alibaba: '' };
+  const keys: Record<AiProvider, string> = { tencent: '', alibaba: '', volcano: '' };
   if (typeof window === 'undefined') return keys;
   try {
     keys.tencent = localStorage.getItem(PROVIDER_INFO.tencent.storageKey) || '';
     keys.alibaba = localStorage.getItem(PROVIDER_INFO.alibaba.storageKey) || '';
+    keys.volcano = localStorage.getItem(PROVIDER_INFO.volcano.storageKey) || '';
   } catch { /* ignore */ }
   return keys;
 }
@@ -176,6 +177,32 @@ async function callImageAPI(
     if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
     const json = await resp.json();
     return (json.data || []).map((r: any) => r.url);
+  }
+
+  if (provider === 'volcano') {
+    // 火山方舟：Seedream 图像生成，OpenAI 兼容格式
+    const url = `${info.baseUrl}${info.imageEndpoint}`;
+    const body: any = {
+      model: modelId,
+      prompt,
+      size: params.size || '1024x1024',
+      response_format: 'url',
+    };
+    if (params.n && params.n > 1) body.n = params.n;
+    if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
+    const json = await resp.json();
+    // 返回 data[].url 或 data[].b64_json
+    const urls = (json.data || [])
+      .map((r: any) => r.url || (r.b64_json ? `data:image/png;base64,${r.b64_json}` : ''))
+      .filter(Boolean);
+    if (urls.length) return urls;
+    throw new Error(`${info.label}: 图片生成未返回 URL`);
   }
 
   throw new Error(`不支持的 provider: ${provider}`);
@@ -327,6 +354,53 @@ async function callVideoAPI(
       }
     }
     throw new Error(`${info.label} 视频生成超时（3分钟）`);
+  }
+
+  if (provider === 'volcano') {
+    // 火山方舟：Seedance 视频生成，提交任务 + 轮询（OpenAI 兼容异步）
+    const submitUrl = `${info.baseUrl}${info.videoEndpoint}`;
+    const submitBody: any = {
+      model: modelId,
+      content: [{ type: 'text', text: prompt }],
+    };
+    if (params.images && params.images.length > 0) {
+      submitBody.content.push({ type: 'image_url', image_url: { url: params.images[0] } });
+    } else if (params.imageUrl) {
+      submitBody.content.push({ type: 'image_url', image_url: { url: params.imageUrl } });
+    }
+    const submitResp = await fetch(submitUrl, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(submitBody),
+    });
+    if (!submitResp.ok) throw new Error(`${info.label} submit (${submitResp.status}): ${await submitResp.text()}`);
+    const submitJson = await submitResp.json();
+    const taskId = submitJson.id || submitJson.task_id;
+    if (!taskId) {
+      // 可能同步返回
+      const videoUrl = submitJson.output?.video_url || submitJson.video_url || submitJson.url || '';
+      if (videoUrl) return videoUrl;
+      throw new Error(`${info.label}: 视频任务提交未返回 task id`);
+    }
+
+    // 轮询任务状态（最多 5 分钟）
+    const pollUrl = `${info.baseUrl}${info.videoEndpoint}/${taskId}`;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      const pollResp = await fetch(pollUrl, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      if (!pollResp.ok) throw new Error(`${info.label} poll (${pollResp.status}): ${await pollResp.text()}`);
+      const pollJson = await pollResp.json();
+      const status = pollJson.status || pollJson.state || pollJson.output?.status || '';
+      if (status === 'succeeded' || status === 'completed' || status === 'success') {
+        return pollJson.output?.video_url || pollJson.video_url || pollJson.url || pollJson.output?.url || '';
+      }
+      if (status === 'failed' || status === 'error' || status === 'cancelled') {
+        throw new Error(`${info.label} task failed: ${pollJson.error?.message || pollJson.message || JSON.stringify(pollJson).slice(0, 300)}`);
+      }
+    }
+    throw new Error(`${info.label} 视频生成超时（5分钟）`);
   }
 
   throw new Error(`不支持的 provider: ${provider}`);
@@ -551,8 +625,48 @@ async function executePhase(
       return { data: content };
     }
 
+    // ─── v4.0 智能剪辑产线阶段（蓝皮书 §4.1）───
+    case 'edit_plan': {
+      // 阶段1：需求解析 / 剪辑脚本
+      const sysPrompt = `你是一个专业视频剪辑导演。根据用户上传的多个视频素材和剪辑需求，输出完整的剪辑脚本：1)剪辑目标与成片结构 2)素材挑选策略（哪个片段讲什么）3)开头钩子设计（前3秒）4)节奏风格（卡点/叙事/混剪/剧情）5)预期时长与镜头数。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `素材清单：${originalInput}\n剪辑需求：${accumulatedText}` }], { ...phaseParams, temperature: params.temperature ?? 0.7 }, apiKey);
+      return { data: `【剪辑脚本】\n${content}\n\n【素材清单】\n${originalInput}` };
+    }
+
+    case 'clip_analysis': {
+      // 阶段2：素材理解 / 剪辑点识别（视频理解模型，结构化 JSON 输出）
+      const sysPrompt = `你是一个视频理解引擎。逐段分析用户提供的视频素材，识别每个片段的内容：场景、主体动作、镜头质量、可用的剪辑点（入点/出点）、精彩瞬间（表情/动作/转折）。按素材编号结构化输出，供后续镜头排序使用。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `请分析以下素材并输出每段的剪辑点建议：\n${accumulatedText}` }], { ...phaseParams, temperature: params.temperature ?? 0.3 }, apiKey);
+      return { data: `【素材理解与剪辑点】\n${content}` };
+    }
+
+    case 'shot_order': {
+      // 阶段3：镜头排序 / 卡点编排
+      const sysPrompt = `你是一个视频节奏剪辑师。根据剪辑脚本和素材剪辑点分析结果，编排镜头顺序：钩子（前3秒）→ 主体叙事 → 高潮 → 结尾CTA。每个镜头标注：素材编号、入点/出点、镜头时长、转场方式（硬切/叠化/缩放）、与BGM卡点对齐的节奏。输出结构化镜头编排表。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `请根据剪辑脚本和素材分析，输出镜头编排表：\n${accumulatedText}` }], { ...phaseParams, temperature: params.temperature ?? 0.6 }, apiKey);
+      return { data: `【镜头排序与卡点编排】\n${content}` };
+    }
+
+    case 'color_grading': {
+      // 阶段7：调色 / 滤镜策略
+      const sysPrompt = `你是一个专业调色师。根据成片风格输出 FFmpeg 可执行的调色/滤镜策略：色温、对比度、饱和度、HSL调整、LUT风格（电影感/日系清新/高对比商业/复古胶片）、字幕与片头的字体风格。输出结构化调色指令表。`;
+      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `请根据剪辑脚本和内容风格输出调色策略：\n${accumulatedText}` }], { ...phaseParams, temperature: params.temperature ?? 0.5 }, apiKey);
+      return { data: `【调色与滤镜策略】\n${content}` };
+    }
+
+    case 'local_compose': {
+      // 阶段8：本地 FFmpeg 合成（无模型，生成合成指令供桌面端执行）
+      const sysPrompt = `你是一个 FFmpeg 合成指令生成器。根据镜头编排表、调色策略、字幕文本，生成一份完整的本地 FFmpeg 合成清单（JSON）：包含 concat 滤镜、trim 段、xfade 转场、subtitles 滤镜、colorbalance/curves 调色滤镜、scale/pad 分辨率归一化。注意：只输出指令清单，不输出执行结果。`;
+      try {
+        const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `请生成 FFmpeg 合成指令清单：\n${accumulatedText}` }], { ...phaseParams, temperature: params.temperature ?? 0.3 }, apiKey);
+        return { data: `【本地FFmpeg合成指令】\n${content}\n\n⚠️ 请在智枢AI桌面端执行 FFmpeg 合成（本地执行，不上传素材）` };
+      } catch {
+        return { data: `${accumulatedText}\n\n【本地FFmpeg合成】请在智枢AI桌面端执行合成（AI已完成脚本/剪辑点/卡点/调色，桌面FFmpeg合成成片）` };
+      }
+    }
+
     case 'compliance_check': {
-      const sysPrompt = `你是一个内容合规审核员。检查内容是否违反广告法、是否涉及敏感话题、是否存在虚假宣传。`;
+      const sysPrompt = `你是一个内容合规审核员。检查内容是否违反广告法、是否涉及敏感话题、是否存在虚假宣传。如果是智能剪辑成片，还需输出 AIGC 标识文案（蓝皮书要求：成片包含"本视频由AI辅助剪辑"标识）与合规报告。`;
       const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], { ...phaseParams, temperature: 0.1 }, apiKey);
       return { data: content };
     }
@@ -1000,11 +1114,15 @@ export async function generateText(
   }
 
   // 通用回退：尝试所有已配置的 Key
-  const providers: AiProvider[] = ['tencent', 'alibaba'];
+  const providers: AiProvider[] = ['tencent', 'alibaba', 'volcano'];
   for (const p of providers) {
     if (!apiKeys[p]) continue;
-    const modelId = p === 'tencent' ? 'deepseek-v4-pro-202606' : 'qwen3.8-max';
-    const displayName = p === 'tencent' ? 'DeepSeek V4 Pro' : 'Qwen 3.8 Max';
+    const modelId = p === 'tencent' ? 'deepseek-v4-pro-202606'
+      : p === 'alibaba' ? 'qwen3.8-max'
+      : 'doubao-seed-2-1-pro-260628';
+    const displayName = p === 'tencent' ? 'DeepSeek V4 Pro'
+      : p === 'alibaba' ? 'Qwen 3.8 Max'
+      : 'Doubao Seed 2.1 Pro';
     try {
       const content = await callChatAPI(p, modelId, [
         ...(params.systemPrompt ? [{ role: 'system' as const, content: params.systemPrompt }] : []),
@@ -1225,6 +1343,7 @@ export async function generateImage(
   const pref: { p: AiProvider; model: string; name: string }[] = [
     { p: 'tencent', model: 'hy-image-v3.0', name: '混元 Image 3.0' },
     { p: 'alibaba', model: 'wan2.7-image-pro', name: 'WAN 2.7 Image Pro' },
+    { p: 'volcano', model: 'doubao-seedream-5-0-pro-260628', name: 'Doubao Seedream 5.0 Pro' },
   ];
   for (const { p, model, name } of pref) {
     if (!apiKeys[p]) continue;
@@ -1234,7 +1353,7 @@ export async function generateImage(
     } catch { continue; }
   }
 
-  throw new Error('图片生成失败：未配置可用的图片生成 API Key（腾讯混元/阿里通义万相），请在设置中配置');
+  throw new Error('图片生成失败：未配置可用的图片生成 API Key（腾讯混元/阿里通义/火山方舟），请在设置中配置');
 }
 
 /**
@@ -1245,6 +1364,25 @@ export async function generateVideo(
   slug?: ContentTypeSlug
 ): Promise<GenerateResult> {
   const apiKeys = getUserApiKeys();
+
+  // 智能剪辑：走多阶段流水线（脚本→素材理解→镜头编排→配音→字幕→BGM→调色→FFmpeg合成→合规）
+  if (slug === 'smartEdit') {
+    const materialList = [...(params.images || []), params.imageUrl].filter(Boolean);
+    const inputWithMaterials = materialList.length > 0
+      ? `【视频素材清单】\n${materialList.join('\n')}\n\n${params.prompt}`
+      : params.prompt;
+    const pipeline = await generateWithLocalPipeline('smartEdit', inputWithMaterials);
+    if (pipeline.success && pipeline.data.finalOutput) {
+      return {
+        success: true,
+        data: pipeline.data.finalOutput,
+        provider: '智能剪辑流水线',
+        model: `多模型协同 (${pipeline.data.successCount || 0}/${pipeline.data.totalCount || 0} 阶段完成)`,
+      };
+    }
+    const failed = (pipeline.data.tasks || []).filter(t => !t.success).map(t => `${t.label}:${t.error || '失败'}`).join('；');
+    throw new Error(`智能剪辑未完成：${failed || pipeline.data.message || '未知错误'}`);
+  }
 
   // 构建增强 prompt（注入字幕/配音/横幅配置）
   const enhancedPrompt = buildVideoPrompt(params);
@@ -1280,6 +1418,7 @@ export async function generateVideo(
   const pref: { p: AiProvider; model: string; name: string }[] = [
     { p: 'tencent', model: 'kl-video-v3', name: '可灵 KLING 3.0' },
     { p: 'tencent', model: 'hy-video-1.5', name: '混元视频 1.5' },
+    { p: 'volcano', model: 'doubao-seedance-2-5-pro-260628', name: 'Doubao Seedance 2.5' },
   ];
   for (const { p, model, name } of pref) {
     if (!apiKeys[p]) continue;
@@ -1289,7 +1428,7 @@ export async function generateVideo(
     } catch { continue; }
   }
 
-  throw new Error('视频生成失败：未配置可用的视频生成 API Key（可灵/混元），请在设置中配置');
+  throw new Error('视频生成失败：未配置可用的视频生成 API Key（可灵/混元/火山方舟），请在设置中配置');
 }
 
 /**

@@ -17,6 +17,7 @@ const { Title, Text, Paragraph } = Typography;
 const LOCAL_STORAGE_KEYS: Record<string, string> = {
   dashscope: 'api_key_alibaba',
   tokenhub: 'api_key_tencent',
+  volcano: 'api_key_volcano',
 };
 
 interface ApiKeyItem {
@@ -68,12 +69,14 @@ export default function ApiKeysPage() {
       const localKeys: ApiKeyItem[] = [];
       const alibaba = localStorage.getItem('api_key_alibaba');
       const tencent = localStorage.getItem('api_key_tencent');
+      const volcano = localStorage.getItem('api_key_volcano');
+      const hasAny = !!(alibaba || tencent || volcano);
       if (alibaba) {
         localKeys.push({
           id: 'local-dashscope', provider: 'dashscope',
           providerName: '阿里云百炼 (DashScope)',
           apiKey: maskKey(alibaba),
-          status: 'active', isPrimary: true, isSecondary: false,
+          status: 'active', isPrimary: !hasAny, isSecondary: false,
           usage: 0, limit: 0, failCount: 0, lastUsedAt: null,
           createdAt: new Date().toISOString(),
         });
@@ -83,7 +86,17 @@ export default function ApiKeysPage() {
           id: 'local-tokenhub', provider: 'tokenhub',
           providerName: '腾讯云TokenHub',
           apiKey: maskKey(tencent),
-          status: 'active', isPrimary: !alibaba, isSecondary: !!alibaba,
+          status: 'active', isPrimary: !alibaba && !volcano, isSecondary: !!alibaba,
+          usage: 0, limit: 0, failCount: 0, lastUsedAt: null,
+          createdAt: new Date().toISOString(),
+        });
+      }
+      if (volcano) {
+        localKeys.push({
+          id: 'local-volcano', provider: 'volcano',
+          providerName: '火山方舟 (Volcano Ark)',
+          apiKey: maskKey(volcano),
+          status: 'active', isPrimary: !alibaba && !tencent, isSecondary: !!(alibaba || tencent),
           usage: 0, limit: 0, failCount: 0, lastUsedAt: null,
           createdAt: new Date().toISOString(),
         });
@@ -303,9 +316,9 @@ export default function ApiKeysPage() {
             description={
               <div>
                 <Paragraph style={{ marginBottom: 8 }}>
-                  配置至少一家服务商的API Key后，AI创作工厂的全部功能即可使用。两个Key都配置效果最佳。
+                  配置至少一家服务商的API Key后，AI创作工厂的全部功能即可使用。三家服务商都配置效果最佳（智能剪辑需要火山方舟支持视频理解模型）。
                 </Paragraph>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <Card size="small" title="阿里云百炼 (DashScope)" type="inner">
                     <Text type="secondary">支持模型：通义千问 Qwen 系列、DeepSeek R1/V3、WAN 图像、HappyHorse 视频、千问 TTS</Text><br />
                     <Text type="secondary">适用功能：文案创作、图片生成、视频生成、配音合成、反AI化重写</Text><br />
@@ -315,11 +328,19 @@ export default function ApiKeysPage() {
                     </a>
                   </Card>
                   <Card size="small" title="腾讯云TokenHub" type="inner">
-                    <Text type="secondary">支持模型：混元 Image/Video、可灵 KLING、Vidu、Kimi K3、优图数字人</Text><br />
-                    <Text type="secondary">适用功能：图片生成、视频生成、数字人口播、英文去AI化</Text><br />
+                    <Text type="secondary">支持模型：混元 Image/Video、可灵 KLING、Vidu、Kimi K3、优图数字人、YT-VITA 视频理解</Text><br />
+                    <Text type="secondary">适用功能：图片生成、视频生成、数字人口播、智能剪辑素材理解</Text><br />
                     <Text type="secondary">申请入口：</Text>
                     <a href="https://console.cloud.tencent.com/tokenhub" target="_blank" rel="noopener noreferrer" style={{ color: '#1677ff', fontWeight: 500 }}>
                       console.cloud.tencent.com/tokenhub <span style={{ fontSize: 11 }}>↗</span>
+                    </a>
+                  </Card>
+                  <Card size="small" title="火山方舟 (Volcano Ark)" type="inner">
+                    <Text type="secondary">支持模型：Doubao Seed 2.1 Pro/Turbo、Seedream 5.0 图像、Seedance 2.5 视频、SeedEdit 图像编辑、Seed Audio TTS</Text><br />
+                    <Text type="secondary">适用功能：智能剪辑素材理解、图片生成、视频生成、配音、BGM</Text><br />
+                    <Text type="secondary">申请入口：</Text>
+                    <a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer" style={{ color: '#1677ff', fontWeight: 500 }}>
+                      console.volcengine.com/ark <span style={{ fontSize: 11 }}>↗</span>
                     </a>
                   </Card>
                 </div>
@@ -395,10 +416,22 @@ export default function ApiKeysPage() {
                   <Space>
                     <CloudServerOutlined />
                     <Text strong>腾讯云TokenHub</Text>
-                    <Text type="secondary">— 混元/可灵/Vidu/Kimi/数字人</Text>
+                    <Text type="secondary">— 混元/可灵/Vidu/Kimi/数字人/YT-VITA</Text>
                   </Space>
                   <Text type="secondary" style={{ fontSize: 11, marginLeft: 24 }}>
                     申请入口：<a href="https://console.cloud.tencent.com/tokenhub" target="_blank" rel="noopener noreferrer">console.cloud.tencent.com/tokenhub ↗</a>
+                  </Text>
+                </Space>
+              </Select.Option>
+              <Select.Option value="volcano">
+                <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                  <Space>
+                    <CloudServerOutlined />
+                    <Text strong>火山方舟 (Volcano Ark)</Text>
+                    <Text type="secondary">— Doubao Seed/Seedream/Seedance/SeedEdit</Text>
+                  </Space>
+                  <Text type="secondary" style={{ fontSize: 11, marginLeft: 24 }}>
+                    申请入口：<a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer">console.volcengine.com/ark ↗</a>
                   </Text>
                 </Space>
               </Select.Option>

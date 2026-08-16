@@ -11,7 +11,7 @@
 
 // ─── Provider 定义 ─────────────────────────────────
 
-export type AiProvider = 'tencent' | 'alibaba';
+export type AiProvider = 'tencent' | 'alibaba' | 'volcano';
 
 export interface ProviderInfo {
   id: AiProvider;
@@ -60,6 +60,18 @@ export const PROVIDER_INFO: Record<AiProvider, ProviderInfo> = {
     multimodalImageEndpoint: '/api/v1/services/aigc/multimodal-generation/generation',
     videoEndpoint: '/api/v1/services/aigc/video-generation/video-synthesis',
     storageKey: 'api_key_alibaba',
+  },
+  volcano: {
+    id: 'volcano',
+    name: 'Volcano Ark',
+    label: '火山方舟',
+    applyUrl: 'https://console.volcengine.com/ark',
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    chatEndpoint: '/chat/completions',
+    imageEndpoint: '/images/generations',
+    multimodalImageEndpoint: '/images/generations',
+    videoEndpoint: '/contents/generations/tasks',
+    storageKey: 'api_key_volcano',
   },
 };
 
@@ -295,6 +307,178 @@ export const MODEL_INFO: Record<string, ModelInfo> = {
     cost: 'medium',
   },
 
+  // === v4.0 新增：火山方舟模型（蓝皮书附录 A.3 全文） ===
+  // 文本大模型
+  'doubao-seed-2.1-pro': {
+    registryKey: 'doubao-seed-2.1-pro',
+    modelId: 'doubao-seed-2-1-pro-260628',
+    displayName: 'Doubao Seed 2.1 Pro',
+    provider: 'volcano',
+    role: '高质量创作 / 复杂推理 / 需求解析 / 剪辑脚本',
+    cost: 'premium',
+  },
+  'doubao-seed-2.1-turbo': {
+    registryKey: 'doubao-seed-2.1-turbo',
+    modelId: 'doubao-seed-2-1-turbo-260628',
+    displayName: 'Doubao Seed 2.1 Turbo',
+    provider: 'volcano',
+    role: '快速创作 / 长文本 / 高性价比',
+    cost: 'medium',
+  },
+  'doubao-seed-2.0-pro': {
+    registryKey: 'doubao-seed-2.0-pro',
+    modelId: 'doubao-seed-2-0-pro-260215',
+    displayName: 'Doubao Seed 2.0 Pro',
+    provider: 'volcano',
+    role: '通用创作 / 分析总结',
+    cost: 'medium',
+  },
+  'doubao-seed-1.6': {
+    registryKey: 'doubao-seed-1.6',
+    modelId: 'doubao-seed-1-6-260915',
+    displayName: 'Doubao Seed 1.6',
+    provider: 'volcano',
+    role: '通用对话 / 多场景创作',
+    cost: 'low',
+  },
+  'doubao-seed-1.6-thinking': {
+    registryKey: 'doubao-seed-1.6-thinking',
+    modelId: 'doubao-seed-1-6-thinking-251015',
+    displayName: 'Doubao Seed 1.6 Thinking',
+    provider: 'volcano',
+    role: '深度推理 / 复杂逻辑拆解',
+    cost: 'medium',
+  },
+  'doubao-seed-2.0-lite': {
+    registryKey: 'doubao-seed-2.0-lite',
+    modelId: 'doubao-seed-2-0-lite-260215',
+    displayName: 'Doubao Seed 2.0 Lite',
+    provider: 'volcano',
+    role: '轻量快速生成',
+    cost: 'low',
+  },
+  // 图像模型
+  'doubao-seedream-5.0-pro': {
+    registryKey: 'doubao-seedream-5.0-pro',
+    modelId: 'doubao-seedream-5-0-pro-260628',
+    displayName: 'Doubao Seedream 5.0 Pro',
+    provider: 'volcano',
+    role: '图像生成主力（海报/电商/创意）',
+    cost: 'high',
+  },
+  'doubao-seedream-5.0-lite': {
+    registryKey: 'doubao-seedream-5.0-lite',
+    modelId: 'doubao-seedream-5-0-lite-260628',
+    displayName: 'Doubao Seedream 5.0 Lite',
+    provider: 'volcano',
+    role: '快速出图 / 高性价比',
+    cost: 'medium',
+  },
+  'doubao-seedream-4.0': {
+    registryKey: 'doubao-seedream-4.0',
+    modelId: 'doubao-seedream-4-0-250828',
+    displayName: 'Doubao Seedream 4.0',
+    provider: 'volcano',
+    role: '图像生成备选引擎',
+    cost: 'high',
+  },
+  // 图像编辑模型
+  'doubao-seededit-3.0-i2i': {
+    registryKey: 'doubao-seededit-3.0-i2i',
+    modelId: 'doubao-seededit-3-0-i2i-250628',
+    displayName: 'Doubao SeedEdit 3.0 I2I',
+    provider: 'volcano',
+    role: '图像编辑 / 局部重绘 / 风格迁移',
+    cost: 'high',
+  },
+  // 视频模型
+  'doubao-seedance-2.5': {
+    registryKey: 'doubao-seedance-2.5',
+    modelId: 'doubao-seedance-2-5-pro-260628',
+    displayName: 'Doubao Seedance 2.5',
+    provider: 'volcano',
+    role: '文生视频 / 图生视频 / 镜头生成',
+    cost: 'premium',
+  },
+  // 音频 TTS
+  'doubao-seed-audio-1.0': {
+    registryKey: 'doubao-seed-audio-1.0',
+    modelId: 'doubao-seed-audio-1.0',
+    displayName: 'Doubao Seed Audio 1.0',
+    provider: 'volcano',
+    role: '语音合成 / 多音色配音',
+    cost: 'medium',
+  },
+  // 声音复刻
+  'doubao-voice-clone-2.0': {
+    registryKey: 'doubao-voice-clone-2.0',
+    modelId: 'doubao-voice-clone-2-0',
+    displayName: '声音复刻 2.0',
+    provider: 'volcano',
+    role: '声音复刻 / 品牌音色定制',
+    cost: 'high',
+  },
+  // 视频理解模型（智能剪辑素材理解）
+  'yt-vita-1.5': {
+    registryKey: 'yt-vita-1.5',
+    modelId: 'yt-vita-1-5',
+    displayName: 'YT-VITA 视频理解',
+    provider: 'tencent',
+    role: '视频素材理解 / 剪辑点识别（腾讯优图开源视频理解）',
+    cost: 'high',
+  },
+
+  // === v4.0 新增：火山方舟第三方模型（蓝皮书附录 A.3 第三方区） ===
+  'deepseek-v4-volcano': {
+    registryKey: 'deepseek-v4-volcano',
+    modelId: 'deepseek-v4-260628',
+    displayName: 'DeepSeek V4 (方舟)',
+    provider: 'volcano',
+    role: '方舟第三方 DeepSeek V4 / 结构化分析',
+    cost: 'medium',
+  },
+  'glm-5.2': {
+    registryKey: 'glm-5.2',
+    modelId: 'glm-5-2',
+    displayName: 'GLM 5.2 (方舟)',
+    provider: 'volcano',
+    role: '字幕生成 / 去AI化 / 中英双语',
+    cost: 'high',
+  },
+  'kimi-k2.7': {
+    registryKey: 'kimi-k2.7',
+    modelId: 'kimi-k2-7',
+    displayName: 'Kimi K2.7 (方舟)',
+    provider: 'volcano',
+    role: '长文本理解 / 剪辑点描述 / 字幕',
+    cost: 'high',
+  },
+  'minimax-m3': {
+    registryKey: 'minimax-m3',
+    modelId: 'minimax-m3',
+    displayName: 'MiniMax M3 (方舟)',
+    provider: 'volcano',
+    role: '创意文案 / 情感表达',
+    cost: 'high',
+  },
+  // BGM 音乐模型（蓝皮书 §4.1 智能剪辑第6阶段）
+  'minimax-music-v2.6': {
+    registryKey: 'minimax-music-v2.6',
+    modelId: 'MiniMax/music-v2.6',
+    displayName: 'MiniMax Music V2.6',
+    provider: 'alibaba',
+    role: 'BGM 配乐生成 / 情绪化背景音乐',
+    cost: 'high',
+  },
+  'fun-music-v1': {
+    registryKey: 'fun-music-v1',
+    modelId: 'fun-music-v1',
+    displayName: 'Fun Music V1',
+    provider: 'volcano',
+    role: 'BGM 配乐备选 / 轻快背景音乐',
+    cost: 'medium',
+  },
+
 };
 
 // ─── 10 个创作类目 & 流水线配置 ─────────────────────
@@ -324,7 +508,13 @@ export type PipelinePhase =
   | 'video_edit'           // 视频瑕疵修复/产品形态一致性修复（v3.1 新增）
   | 'image_enhance'        // 图片质量增强/超分/去伪影（v3.1 新增）
   | 'dialect_voiceover'    // 方言配音（v3.1 新增：四川话/东北话/上海话/闽南话/河南话/粤语）
-  | 'compliance_check';    // 合规筛查
+  | 'compliance_check'     // 合规筛查
+  // 智能剪辑产线阶段（v4.0 新增，蓝皮书 §4.1）
+  | 'edit_plan'            // 需求解析 / 剪辑脚本（DeepSeek-V4-Pro/Qwen3.8-Max）
+  | 'clip_analysis'        // 素材理解 / 剪辑点识别（YT-VITA/Doubao-Seed-2.1-Pro 视频理解）
+  | 'shot_order'           // 镜头排序 / 卡点编排（DeepSeek-V4-Pro/Qwen3.8-Max）
+  | 'color_grading'        // 调色 / 滤镜策略（DeepSeek-V4-Pro/Qwen3.8-Max）
+  | 'local_compose';       // 本地 FFmpeg 合成（无模型，桌面端执行）
 
 export interface PhaseConfig {
   phase: PipelinePhase;
@@ -428,10 +618,10 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
     requiresProviders: ['tencent', 'alibaba'],
   },
 
-  // ========== 4. 自由创意短片（v3.0：AI导演模式 — 替换原短视频脚本）==========
+  // ========== 4. 短视频（v3.0：AI导演模式 — 原自由创意短片，唯一出口）==========
   {
-    slug: 'cinemaShort',
-    name: '自由创意短片',
+    slug: 'shortVideo',
+    name: '短视频',
     icon: 'clapperboard',
     description: 'AI导演模式：6镜头叙事短片(30-60s)，BGM配乐自动匹配，品牌配音克隆，端到端60s出片',
     pipeline: 'video',
@@ -458,7 +648,38 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
     requiresProviders: ['tencent', 'alibaba'],
   },
 
-  // ========== 5. 企业宣传视频（蓝皮书 V2.1：9阶段）==========
+  // ========== 5. 智能剪辑（v4.0：蓝皮书 §4.1 九阶段 — 素材剪辑成片）==========
+  {
+    slug: 'smartEdit',
+    name: '智能剪辑',
+    icon: 'scissors',
+    description: '上传多个视频素材，AI自动理解素材→识别剪辑点→卡点编排→配音/字幕/BGM/调色→本地FFmpeg合成成片',
+    pipeline: 'video',
+    phases: [
+      // 1. 需求解析 / 剪辑脚本
+      { phase: 'edit_plan', label: '需求解析 + 剪辑脚本', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { temperature: 0.7 }, enabled: true },
+      // 2. 素材理解 / 剪辑点识别（视频理解模型）
+      { phase: 'clip_analysis', label: '素材理解 + 剪辑点识别', primaryModel: 'yt-vita-1.5', fallbackModel: 'doubao-seed-2.1-pro', params: { granularity: 'shot' }, enabled: true },
+      // 3. 镜头排序 / 卡点编排
+      { phase: 'shot_order', label: '镜头排序 + 卡点编排', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { temperature: 0.6 }, enabled: true },
+      // 4. 配音合成
+      { phase: 'tts_generate', label: '配音合成', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'doubao-seed-audio-1.0', params: { style: 'narrative_edit', emotion: 'auto' }, enabled: true },
+      // 5. 字幕生成
+      { phase: 'subtitle_generate', label: '字幕生成', primaryModel: 'kimi-k3', fallbackModel: 'glm-5.2', params: { language: 'bilingual', format: 'srt', style: 'edit' }, enabled: true },
+      // 6. BGM 配乐
+      { phase: 'bgm_generate', label: 'BGM 配乐方案', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { mood: 'auto', duration: 'auto' }, enabled: true },
+      // 7. 调色 / 滤镜策略
+      { phase: 'color_grading', label: '调色 + 滤镜策略', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { temperature: 0.5 }, enabled: true },
+      // 8. 本地 FFmpeg 合成（无模型，桌面端执行）
+      { phase: 'local_compose', label: '本地 FFmpeg 合成成片', primaryModel: 'qwen3.8-max', params: { engine: 'desktop-ffmpeg', deliverable: 'video+srt+cover' }, enabled: true },
+      // 9. 合规终审 + AIGC 标识
+      { phase: 'compliance_check', label: '合规终审 + AIGC 标识', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'copyright,music,image,font', aigcFlag: true }, enabled: true },
+    ],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'minimax-speech-2.8-hd'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
+  },
+
+  // ========== 6. 企业宣传视频（蓝皮书 V2.1：9阶段）==========
   {
     slug: 'enterpriseVideo',
     name: '企业宣传视频',
@@ -886,8 +1107,8 @@ export const CATEGORY_TIPS: Record<string, CategoryTip> = {
     ],
   },
 
-  // ─── 4. 自由创意短片（v3.0：AI导演模式 — 替换原短视频脚本）───
-  cinemaShort: {
+  // ─── 4. 短视频（v3.0：AI导演模式 — 原自由创意短片，唯一出口）───
+  shortVideo: {
     scenarios: [
       '品牌叙事短片（品牌故事/品牌精神传递）',
       '创意广告片（产品创意短片/概念广告）',
@@ -945,7 +1166,64 @@ export const CATEGORY_TIPS: Record<string, CategoryTip> = {
     ],
   },
 
-  // ─── 5. 企业宣传视频 ───
+  // ─── 5. 智能剪辑（v4.0：蓝皮书 §4.1 — 素材剪辑成片）───
+  smartEdit: {
+    scenarios: [
+      '活动/发布会多机位素材智能剪辑',
+      '旅行/日常Vlog素材自动成片',
+      '产品开箱/测评多段素材整合',
+      '企业宣传多段实拍素材智能拼接',
+      '演唱会/演出多视角素材卡点剪辑',
+    ],
+    platforms: ['抖音', 'B站', '视频号', '小红书视频', 'YouTube', '品牌官网'],
+    inputTips: [
+      '上传多个视频素材（建议每段10秒-5分钟，总计不超过30分钟，单文件不超过500MB）',
+      '输入剪辑主题、目标时长、平台（竖屏9:16/横屏16:9/方形1:1）',
+      '可指定卡点风格：强节奏卡点 / 舒缓叙事 / 混剪快切 / 剧情连贯',
+      '可选上传BGM参考或指定音乐情绪，AI自动匹配节奏',
+      '第一次使用建议先用3-5段短视频素材测试，确认风格后再正式剪辑',
+    ],
+    requirements: [
+      'AI先理解素材内容：识别场景、主体、动作、镜头质量，标注可用的剪辑点',
+      '按剪辑脚本自动排序镜头：钩子（前3秒抓住注意力）→ 主体 → 高潮 → 结尾CTA',
+      '卡点编排：BGM重拍与镜头切换对齐，节奏统一',
+      '自动生成字幕（中英双语SRT）和封面帧',
+      '输出成片 + SRT字幕文件 + 封面图 + 标题/发布建议 + 合规报告 + AIGC标识',
+    ],
+    taboos: [
+      '严禁使用未经授权的音乐/音效——BGM版权侵权风险极高',
+      '严禁使用含他人肖像权/隐私的素材（需获得当事人授权）',
+      '严禁涉政/色情/暴力/敏感内容——剪辑素材也须合规',
+      '严禁拼接未经授权的影视剧/直播/赛事画面',
+      '严禁素材中出现虚假功效声明或误导性信息',
+      '成片必须包含AIGC标识（蓝皮书要求）',
+    ],
+    prePublishChecklist: [
+      '☐ 素材已获得使用授权',
+      '☐ 前3秒钩子足够吸引',
+      '☐ 卡点与BGM节奏对齐',
+      '☐ 字幕无错别字/时间轴对齐',
+      '☐ 成片已添加AIGC标识',
+      '☐ BGM版权已确认',
+      '☐ 内容合规无敏感元素',
+    ],
+    faqs: [
+      {
+        question: '智能剪辑和AI生成视频有什么区别？',
+        answer: 'AI生成视频是模型"从零生成"画面，需要消耗视频生成配额；智能剪辑是对你上传的真实素材进行AI理解、编排和本地FFmpeg合成，不消耗视频生成配额，画面100%真实，适合已有实拍素材的场景。',
+      },
+      {
+        question: '剪辑过程在哪里执行？',
+        answer: 'AI在云端完成素材理解、剪辑脚本、剪辑点识别、卡点编排、配音、字幕、BGM、调色指令；最终合成动作由智枢AI桌面端的FFmpeg工作台在本地执行，不上传你的成片到服务器。',
+      },
+      {
+        question: '支持哪些素材格式和数量？',
+        answer: '支持MP4/MOV/AVI/MKV等常见格式，建议上传3-20段素材。单文件建议不超过500MB，总时长建议不超过30分钟。多机位、多角度素材效果最佳。',
+      },
+    ],
+  },
+
+  // ─── 6. 企业宣传视频 ───
   enterpriseVideo: {
     scenarios: [
       '企业品牌形象片',

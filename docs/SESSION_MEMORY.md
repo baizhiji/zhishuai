@@ -1,8 +1,42 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-16 (桌面版自动更新闭环完成：签名验证通过 + 推送触发 CI 重建 + 新 exe 手动签名 + 数据库 sha256=862cd077 同步 + 三角色登录验证 200) | 提交数：546+ | 项目启动：2026-04-25
+> 最后更新：2026-08-16 (AI创作工厂类目改造：短视频唯一出口 + 新增智能剪辑9阶段流水线 + 卡片重排 + 三服务商模型配置完整化含火山方舟) | 提交数：546+ | 项目启动：2026-04-25
 
-## 2026-08-16 本次会话（桌面版自动更新签名验证 + 推送触发 CI 重建 + 二次签名同步）
+## 2026-08-16 本次会话（AI创作工厂类目重构：短视频唯一出口 · 智能剪辑新类目 · 三服务商模型配置完整化）
+
+### 已解决：类目合并（短视频唯一出口）
+- 原【短视频】(shortVideo) 与【自由创意短片】(cinemaShort) 内容一致，仅两个出口 → 决定流水线只保留【短视频】这一个出口。
+- `ContentCategory.CINEMA_SHORT='cinema-short'` 枚举值改为 `SMART_EDIT='smart-edit'`（占位被智能剪辑取代）；原 cinemaShort 流水线重命名为 `shortVideo`（短视频唯一出口）。
+- 全站 `ContentCategory.` 引用穷举检查完成（types.ts / ai-factory/page.tsx / materials/page.tsx），代码中无 cinemaShort/cinema-short/CINEMA_SHORT 残留（仅历史文档残留，不影响运行）；`'cinemaShort'` 字符串字面量 0 匹配。
+
+### 已解决：开发【智能剪辑】类目（前端入口 + 后端 API + 桌面 FFmpeg 合成工作台）
+- **流水线**（`web/lib/ai/category-config.ts` 新增 `smartEdit`，9 阶段）：需求解析/剪辑脚本 → 素材理解/剪辑点识别 → 镜头排序/卡点编排 → 配音合成 → 字幕生成 → BGM配乐 → 调色/滤镜策略 → 本地FFmpeg合成 → 合规终审+AIGC标识。requiredModels: deepseek-v4-pro-tc, qwen3.8-max, kimi-k3, minimax-speech-2.8-hd；requiresProviders 含 volcano。`PipelinePhase` 新增 `edit_plan`/`clip_analysis`/`shot_order`/`color_grading`/`local_compose`。
+- **前端入口**（`web/app/customer/ai-factory/page.tsx`）：SMART_EDIT 卡片（ExperimentOutlined，#13C2C2 青色渐变）；`buildTextPrompt`/`buildVideoPrompt` 新增 SMART_EDIT case（智能剪辑方案结构）；`getTaskKey` 映射 'smartEdit'；`CATEGORY_TIPS.smartEdit`（scenarios/platforms/inputTips/requirements/taboos/prePublishChecklist/faqs）；`materials/page.tsx` 图标映射同步。多素材上传：SMART_EDIT needUpload=true → 表单渲染 `<Upload multiple maxCount={10}>`。
+- **服务层**（`web/lib/ai/factory-service.ts`）：`ContentTypeSlug` 增加 'smartEdit'；`executePhase` 新增 5 个 case（edit_plan 剪辑脚本 / clip_analysis 素材理解 JSON / shot_order 镜头编排表 / color_grading 调色指令 / local_compose 生成 FFmpeg 指令 JSON，compliance_check 增加 AIGC 标识要求）；`generateVideo` 增加 `slug==='smartEdit'` 分支：素材清单注入 prompt 后走 `generateWithLocalPipeline('smartEdit', …)`（物理合成由桌面端本地执行，不消耗模型视频生成配额）。
+- **桌面 FFmpeg 合成工作台**（新建 `desktop/src-tauri/src/video_edit.rs` + `lib.rs` 注册 `video_edit_probe`/`video_edit_compose`）：`VideoEditPayload`（input_files/output_path/width/height/fps/duration/bgm_path/subtitle_path/color_filter）；构造 filter_complex：每素材 scale+pad+fps → concat 视频、各音轨 concat+aresample 统一采样率、可选 BGM `aloop`+`amix` 循环混音、可选 subtitles 字幕烧录、color_filter 调色，最终 Map 双流输出 MP4（h264+aac）。**注意**：无 cargo 环境未本地编译验证，需在有 Rust 工具链的机器上 `cargo check`（CI windows-latest 可代验）。
+- **后端**：确认 server 端火山/ARK_API_KEY/doubao 已完整（12 个文件匹配，model-registry.ts/ai-client.ts/user-api-key.service.ts 等），无需后端改动——web 端此前完全无火山支持，本次补齐 web 端全部缺失内容。
+
+### 已解决：页面卡片重排
+- `factoryCards` 顺序：SHORT_VIDEO → **SMART_EDIT（智能剪辑，第2位）** → **ENTERPRISE_VIDEO（企业宣传视频，第3位）** → PRODUCT_VIDEO → STORE_TOUR_VIDEO → CARTOON_VIDEO → DIGITAL_HUMAN → **PERSON_MV_VIDEO（真人MV，移至原自由创意短片位置）** → AI_SKETCH → AI_COMIC；删除 CINEMA_SHORT 卡片。
+
+### 已解决：三服务商模型配置完整化（含火山方舟）
+- `AiProvider = 'tencent' | 'alibaba' | 'volcano'`；`PROVIDER_INFO.volcano`：baseUrl `https://ark.cn-beijing.volces.com/api/v3`（与 server/desktop 一致，蓝皮书附录B.1 的 `api.volcengine.com/ark/v1` 已否决）、storageKey `api_key_volcano`、videoEndpoint `/contents/generations/tasks`。
+- `MODEL_INFO` 火山模型全量注册：doubao-seed-2.1-pro/turbo/2.0-pro/1.6/1.6-thinking/2.0-lite、seedream-5.0-pro/lite/4.0、seededit-3.0-i2i、seedance-2.5、seed-audio-1.0、声音复刻2.0、第三方（deepseek-v4-volcano/glm-5.2/kimi-k2.7/minimax-m3/fun-music-v1/minimax-music-v2.6）；并修正 `yt-vita-1.5` 归属为 tencent（优图视频理解，非火山）。
+- `factory-service.ts`：`getUserApiKeys()` 返回三服务商并读取 `api_key_volcano`；`callImageAPI` 火山分支（Seedream，OpenAI 兼容，支持 b64_json）；`callVideoAPI` 火山分支（Seedance 提交+轮询，最多 5 分钟）；文本/图片/视频通用回退链均加入火山（doubao-seed-2-1-pro-260628 / doubao-seedream-5-0-pro-260628 / doubao-seedance-2-5-pro-260628）。
+- `web/app/customer/api-keys/page.tsx`：`LOCAL_STORAGE_KEYS` 增加 `volcano:'api_key_volcano'`；`loadKeys` 增加 volcano 读取（isPrimary 互斥更新）；帮助卡片改 3 列网格（新增火山方舟卡片）；Select 增加 volcano Option。
+
+### 编译验证
+- web `npx tsc --noEmit`：仅 TS2688（缺 @types/d3-* 环境问题，与本次无关），过滤后 0 真实错误。
+- 待办：桌面 video_edit.rs 需 Rust 工具链验证（`cd desktop/src-tauri && cargo check`）；本地 git push 直连不通时用 `python scripts/push-commit-via-api.py`。
+
+### 部署（已完成，2026-08-16 22:1x 香港 CVM）
+- 上传 6 个 web 文件（types.ts / category-config.ts / factory-service.ts / ai-factory/page.tsx / materials/page.tsx / api-keys/page.tsx）到 /var/www/zhishuai/web 对应路径，远端 `npx next build` 成功（静态导出 out/）。
+- **重要部署变更**：web/next.config.js 为 `output: 'export'`（V3.0 桌面版静态导出），`next start` 与其冲突报错 "does not work with output: export"。已将 PM2 启动方式从 `next start -p 3000` 改为静态托管：`pm2 start node_modules/.bin/serve --name zhishuai-web -- -s out -l 3000`（serve 已加为 web/package.json 生产依赖 ^14.2.4，避免 `npm install --omit=dev` 移除）。
+- `deploy/deploy.sh` 第 95 行 fallback 已同步修正为 serve 静态托管（避免部署脚本再次以 next start 启动）。
+- 验证：`bash verify-login.sh` 三角色（admin 18601655222 / agent 13900000099 / customer 13800000001）登录均返回 HTTP 200；web /customer/ai-factory/ 返回 200。
+- 待提交：本次所有改动（8 文件 + 新 video_edit.rs + web/package.json + deploy/deploy.sh）需 git commit 并推送触发 CI（桌面版构建验证 + 自动更新）。
+
+## 2026-08-16 历史会话（桌面版自动更新签名验证 + 推送触发 CI 重建 + 二次签名同步）
 
 ### 已解决：签名真实性验证（决定性结论：签名有效）
 - **背景**：CI 重建桌面安装包后服务器 exe 的 sha256 变为 `9fa85cf2d5...`，原签名失效；已通过 `scripts/update-appversion-signature.js` 更新数据库 sha256/signature。遗留疑点：tauri signer（rust-minisign）生成的 .sig 无法被任何外部工具（minisign.exe、PyNaCl+blake3/blake2b）验证，需确认签名是否真实有效。

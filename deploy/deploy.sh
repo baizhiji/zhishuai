@@ -92,7 +92,8 @@ if [ -f "$WEB_DIR/package.json" ]; then
   if [ "$SKIP_BUILD" = false ]; then
     npx next build || echo -e "${YELLOW}Next.js 构建失败，请检查 WEB_DIR=$WEB_DIR 的代码${NC}"
   fi
-  pm2 restart zhishuai-web --update-env 2>/dev/null || pm2 start npm --name "zhishuai-web" -- start
+  # V3.0 静态导出模式(output: export)：必须用 serve 托管 out/，不能用 next start
+  pm2 restart zhishuai-web --update-env 2>/dev/null || pm2 start node_modules/.bin/serve --name "zhishuai-web" -- -s out -l 3000
   pm2 save
 else
   echo -e "${YELLOW}[7/7] 未检测到 Web 前端($WEB_DIR)，跳过${NC}"

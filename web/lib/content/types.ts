@@ -14,7 +14,7 @@ export enum ContentCategory {
   PERSON_MV_VIDEO = 'person-mv-video',    // 真人MV短视频（真人演唱级）
   CARTOON_VIDEO = 'cartoon-video',        // 萌宠卡通短视频（照片级卡通）
   DIGITAL_HUMAN = 'digital-human',        // 真人/数字人短视频（拟真级）
-  CINEMA_SHORT = 'cinema-short',          // 自由创意短片（AI导演模式）
+  SMART_EDIT = 'smart-edit',              // 智能剪辑（素材剪辑成片）
   // 预留功能
   AI_SKETCH = 'ai-sketch',               // AI短剧（预留未来）
   AI_COMIC = 'ai-comic',                  // AI漫剧（预留未来）
@@ -150,13 +150,13 @@ export const contentCategoryConfig: Record<
     needUpload: false,
     needImageUrl: true,
   },
-  [ContentCategory.CINEMA_SHORT]: {
-    label: '自由创意短片',
+  [ContentCategory.SMART_EDIT]: {
+    label: '智能剪辑',
     color: '#EB2F96',
-    icon: 'ThunderboltOutlined',
-    description: 'AI导演模式：6镜头叙事短片(30-60s)，BGM配乐自动匹配，品牌配音克隆，端到端60s出片',
+    icon: 'ScissorOutlined',
+    description: '上传多个视频素材，AI智能剪辑成片：自动理解素材、识别剪辑点、卡点编排、配音、字幕、BGM、调色指令，本地FFmpeg合成成片',
     type: 'video',
-    needWordCount: true,
+    needWordCount: false,
     needSize: true,
     needDuration: true,
     needUpload: true,

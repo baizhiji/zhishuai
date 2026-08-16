@@ -10,6 +10,7 @@
 mod ai_proxy;
 mod tray;
 mod updater;
+mod video_edit;
 
 use tauri::Manager;
 
@@ -84,6 +85,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             ai_proxy::ai_generate_script,
             ai_proxy::ai_chat,
+            video_edit::video_edit_probe,
+            video_edit::video_edit_compose,
         ])
         .run(tauri::generate_context!())
         .expect("智枢AI 桌面版启动失败");

@@ -31,15 +31,15 @@ const CATEGORY_TIPS_KEY_MAP: Record<ContentCategory, string> = {
   [ContentCategory.XIAOHONGSHU]: 'xiaohongshu',
   [ContentCategory.IMAGE_GENERATION]: 'image',
   [ContentCategory.ECOMMERCE_DETAIL]: 'ecommerce',
-  [ContentCategory.SHORT_VIDEO]: 'cinemaShort',
+  [ContentCategory.SHORT_VIDEO]: 'shortVideo',
+  [ContentCategory.SMART_EDIT]: 'smartEdit',
   [ContentCategory.ENTERPRISE_VIDEO]: 'enterpriseVideo',
   [ContentCategory.PRODUCT_VIDEO]: 'productVideo',
   [ContentCategory.STORE_TOUR_VIDEO]: 'storeTour',
   [ContentCategory.PERSON_MV_VIDEO]: 'personMv',
   [ContentCategory.CARTOON_VIDEO]: 'cartoonVideo',
   [ContentCategory.DIGITAL_HUMAN]: 'digitalHuman',
-  [ContentCategory.CINEMA_SHORT]: 'cinemaShort',
-  [ContentCategory.AI_SKETCH]: 'cinemaShort',
+  [ContentCategory.AI_SKETCH]: 'shortVideo',
   [ContentCategory.AI_COMIC]: 'cartoonVideo',
   [ContentCategory.CONTENT_CREATIVITY]: 'creativity',
 };
@@ -109,13 +109,13 @@ const factoryCards: FactoryCard[] = [
   { category: ContentCategory.IMAGE_GENERATION, label: '图片生成', desc: '照片级真实感，真实材质纹理、自然光照', icon: <PictureOutlined />, color: '#FF8C00', gradient: 'linear-gradient(135deg, #FF8C00, #FFB347)' },
   { category: ContentCategory.ECOMMERCE_DETAIL, label: '电商详情页', desc: '真人运营级，不堆砌模板化的套话', icon: <ShoppingOutlined />, color: '#FA541C', gradient: 'linear-gradient(135deg, #FA541C, #FF7A45)' },
   { category: ContentCategory.SHORT_VIDEO, label: '短视频', desc: '真人拍摄级脚本，断句随机、有情绪起伏', icon: <VideoCameraOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #EB2F96, #FF85C0)' },
+  { category: ContentCategory.SMART_EDIT, label: '智能剪辑', desc: '上传素材AI剪辑成片：自动理解素材、剪辑点识别、卡点编排、配音字幕BGM、本地FFmpeg合成', icon: <ExperimentOutlined />, color: '#13C2C2', gradient: 'linear-gradient(135deg, #006D75, #13C2C2)' },
   { category: ContentCategory.ENTERPRISE_VIDEO, label: '企业宣传视频', desc: '电影级宣传片，真实场景非摆拍', icon: <ShopOutlined />, color: '#2F54EB', gradient: 'linear-gradient(135deg, #2F54EB, #597EF7)' },
   { category: ContentCategory.PRODUCT_VIDEO, label: '产品宣传视频', desc: '真人实拍级，像真人开箱而非3D渲染', icon: <ThunderboltOutlined />, color: '#FADB14', gradient: 'linear-gradient(135deg, #D4B106, #FADB14)' },
   { category: ContentCategory.STORE_TOUR_VIDEO, label: '探店视频', desc: '真人Vlog级，真实评价有好有坏', icon: <EnvironmentOutlined />, color: '#52C41A', gradient: 'linear-gradient(135deg, #389E0D, #52C41A)' },
-  { category: ContentCategory.PERSON_MV_VIDEO, label: '真人MV视频', desc: '真人演唱级，无美颜滤镜自然光拍摄', icon: <CustomerServiceOutlined />, color: '#722ED1', gradient: 'linear-gradient(135deg, #531DAB, #722ED1)' },
   { category: ContentCategory.CARTOON_VIDEO, label: '萌宠卡通短视频', desc: '照片级卡通渲染，配音用真人声', icon: <StarOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #C41D7F, #EB2F96)' },
   { category: ContentCategory.DIGITAL_HUMAN, label: '数字人短视频', desc: '拟真级口播，肉眼无法分辨AI', icon: <RobotOutlined />, color: '#13C2C2', gradient: 'linear-gradient(135deg, #08979C, #13C2C2)' },
-  { category: ContentCategory.CINEMA_SHORT, label: '自由创意短片', desc: 'AI导演模式：6镜头叙事短片+BGM配音', icon: <ThunderboltOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #9B1064, #EB2F96)' },
+  { category: ContentCategory.PERSON_MV_VIDEO, label: '真人MV视频', desc: '真人演唱级，无美颜滤镜自然光拍摄', icon: <CustomerServiceOutlined />, color: '#722ED1', gradient: 'linear-gradient(135deg, #531DAB, #722ED1)' },
   { category: ContentCategory.AI_SKETCH, label: 'AI短剧', desc: '功能预留，敬请期待', icon: <PlaySquareOutlined />, color: '#CF1322', gradient: 'linear-gradient(135deg, #CF1322, #FF4D4F)' },
   { category: ContentCategory.AI_COMIC, label: 'AI漫剧', desc: '功能预留，敬请期待', icon: <SmileOutlined />, color: '#A8071A', gradient: 'linear-gradient(135deg, #A8071A, #CF1322)' },
 ];
@@ -300,8 +300,8 @@ export default function AIFactoryPage() {
         return `作为短视频脚本专家，为主题"${values.description}"创作一个${values.duration || 30}秒的短视频脚本：\n1. 开场（0-3秒）：吸引注意力的hook\n2. 内容（3-${(values.duration || 30) - 5}秒）：核心内容展示\n3. 结尾（最后5秒）：行动号召\n配音风格：${values.voiceover || 'female-mandarin'}\n字幕：${values.subtitle || 'chinese'}\n请写出完整的口播文案和画面描述。${viralHint}`;
       case ContentCategory.STORE_TOUR_VIDEO:
         return `作为探店视频博主，为店铺"${values.description}"创作一个${values.duration || 30}秒探店视频脚本：\n- 第一视角探店体验\n- 展示店铺环境、特色产品/服务\n- 配音风格：${values.voiceover || 'female-mandarin'}\n写出完整口播文案。${viralHint}`;
-      case ContentCategory.CINEMA_SHORT:
-        return `作为电影导演，创作一部${values.duration || 30}秒的创意叙事短片，主题："${values.description}"。\n分镜结构（6镜头各${Math.floor((values.duration || 30) / 6)}秒）：\n1. 引入（广角全景，建立氛围）\n2. 展开（中景特写，揭示细节）\n3. 高潮（俯拍推镜，制造冲击）\n4. 转折（侧跟镜头，呈现意外）\n5. 结论（正面对称，完整展示）\n6. 余韵（远景淡出，品牌收尾）\n风格参考：${values.style || '电影质感'}。配音情感：叙事感。BGM自动匹配。\n请为每个镜头写画面描述、镜头运动、旁白文案、音效建议。${viralHint}`;
+      case ContentCategory.SMART_EDIT:
+        return `作为专业视频剪辑导演，根据用户上传的视频素材，制定智能剪辑方案，主题/目标："${values.description}"。\n输出：\n1. 剪辑脚本：目标时长${values.duration || 30}秒，镜头结构（钩子→主体→高潮→CTA）\n2. 素材理解要点：每段素材的内容与可用剪辑点\n3. 节奏风格：${values.style || '强节奏卡点'}\n4. 配音与字幕需求\n5. BGM情绪与调色风格建议\n请输出结构化剪辑方案，供后续素材理解、镜头排序、FFmpeg合成使用。${viralHint}`;
       default:
         return `${values.description || '请生成内容'}${viralHint}`;
     }
@@ -332,8 +332,8 @@ export default function AIFactoryPage() {
         return `MV风格音乐短视频，${values.description}，动感节奏，${values.style || '流行时尚'}风格${viralHint}`;
       case ContentCategory.CARTOON_VIDEO:
         return `萌宠卡通创意短视频，${values.description}，可爱卡通风格，萌趣生动，画面活泼，${values.style || '卡通可爱'}风格，适合社交媒体传播，配${values.voiceover || 'female-mandarin'}配音${viralHint}`;
-      case ContentCategory.CINEMA_SHORT:
-        return `电影级叙事短片，${values.description}，6镜头结构，${values.style || '电影质感'}风格，BGM配乐匹配，品牌配音自然。要求：视觉风格统一、叙事节奏流畅、声音与画面同步，适用于品牌故事/创意广告/微电影。${viralHint}`;
+      case ContentCategory.SMART_EDIT:
+        return `智能剪辑成片方案：${values.description}，目标时长${values.duration || 30}秒，${values.style || '强节奏卡点'}风格。要求：素材理解精准、剪辑点卡点对齐BGM、字幕双语、调色统一。${viralHint}`;
       default:
         return `${values.description || '短视频'}${viralHint}`;
     }
@@ -344,16 +344,16 @@ export default function AIFactoryPage() {
       [ContentCategory.XIAOHONGSHU]: 'xiaohongshu',
       [ContentCategory.IMAGE_GENERATION]: 'image',
       [ContentCategory.ECOMMERCE_DETAIL]: 'ecommerce',
-      [ContentCategory.SHORT_VIDEO]: 'cinemaShort',
+      [ContentCategory.SHORT_VIDEO]: 'shortVideo',
+      [ContentCategory.SMART_EDIT]: 'smartEdit',
       [ContentCategory.ENTERPRISE_VIDEO]: 'enterpriseVideo',
       [ContentCategory.PRODUCT_VIDEO]: 'productVideo',
       [ContentCategory.STORE_TOUR_VIDEO]: 'storeTour',
       [ContentCategory.PERSON_MV_VIDEO]: 'personMv',
       [ContentCategory.CARTOON_VIDEO]: 'cartoonVideo',
       [ContentCategory.DIGITAL_HUMAN]: 'digitalHuman',
-      [ContentCategory.CINEMA_SHORT]: 'cinemaShort',
     };
-    return map[cat] || 'cinemaShort';
+    return map[cat] || 'shortVideo';
   }
 
   const renderCreatorForm = () => {
@@ -583,7 +583,7 @@ function getCategoryIcon(cat: ContentCategory): React.ReactNode {
     [ContentCategory.PERSON_MV_VIDEO]: <CustomerServiceOutlined style={{ color: '#722ED1' }} />,
     [ContentCategory.CARTOON_VIDEO]: <StarOutlined style={{ color: '#EB2F96' }} />,
     [ContentCategory.DIGITAL_HUMAN]: <RobotOutlined style={{ color: '#13C2C2' }} />,
-    [ContentCategory.CINEMA_SHORT]: <ThunderboltOutlined style={{ color: '#EB2F96' }} />,
+    [ContentCategory.SMART_EDIT]: <ExperimentOutlined style={{ color: '#13C2C2' }} />,
     [ContentCategory.AI_SKETCH]: <PlaySquareOutlined style={{ color: '#8C8C8C' }} />,
     [ContentCategory.AI_COMIC]: <SmileOutlined style={{ color: '#8C8C8C' }} />,
   };
