@@ -55,13 +55,13 @@ function auditDir(dir, label) {
   }
 }
 
-const webDeps = auditDir(path.resolve('c:/Users/Administrator/zhishuai/web'), 'WEB');
+const desktopUiDeps = auditDir(path.resolve('c:/Users/Administrator/zhishuai/desktop-ui'), 'DESKTOP-UI');
 const serverDeps = auditDir(path.resolve('c:/Users/Administrator/zhishuai/server'), 'SERVER');
 
 // Output summary
 const output = {
-  web: {
-    packages: Object.keys(webDeps).length,
+  desktopUi: {
+    packages: Object.keys(desktopUiDeps).length,
     keyDeps: {},
   },
   server: {
@@ -82,8 +82,8 @@ const KEY_PACKAGES = [
 ];
 
 for (const pkg of KEY_PACKAGES) {
-  if (webDeps[pkg]) {
-    output.web.keyDeps[pkg] = webDeps[pkg].version;
+  if (desktopUiDeps[pkg]) {
+    output.desktopUi.keyDeps[pkg] = desktopUiDeps[pkg].version;
   }
   if (serverDeps[pkg]) {
     output.server.keyDeps[pkg] = serverDeps[pkg].version;

@@ -229,16 +229,23 @@ pub async fn video_edit_compose(payload: ComposePayload) -> Result<ComposeResult
         .filter(|f| !f.trim().is_empty())
         .map(|f| format!("[vcat]{f}[vcolor];"))
         .unwrap_or_default();
-    if !color_filter.is_empty() {
+    let has_color_filter = !color_filter.is_empty();
+    if has_color_filter {
         filters.push(color_filter);
     }
-    let vmain = if color_filter.is_empty() { "[vcat]" } else { "[vcolor]" };
+    let vmain = if has_color_filter { "[vcolor]" } else { "[vcat]" };
 
     // BGM 混音（本地文件，循环播放，音量 0.25）
     let mut bgm_filter = String::new();
     let mut final_audio = "[aout]".to_string();
-    if let Some(bgm) = payload.bgm_path.filter(|p| Path::new(p).is_file()) {
-        let bgm_esc = escape_filter_path(&bgm);
+    let bgm_exists = payload
+        .bgm_path
+        .as_ref()
+        .map(|p| Path::new(p.as_str()).is_file())
+        .unwrap_or(false);
+    if bgm_exists {
+        let bgm = payload.bgm_path.as_ref().expect("bgm_path 已校验非空");
+        let bgm_esc = escape_filter_path(bgm.as_str());
         bgm_filter = format!(
             "[{n}:a:0]volume=0.25,aloop=loop=-1:size=2e9,atrim=start=0:duration=,asetpts=PTS-STARTPTS[bgm];[aout][bgm]amix=inputs=2:duration=first:dropout_transition=2,apad[aoutmix];"
         );
@@ -269,8 +276,9 @@ pub async fn video_edit_compose(payload: ComposePayload) -> Result<ComposeResult
     for f in &payload.input_files {
         cmd.arg("-i").arg(f);
     }
-    if let Some(bgm) = payload.bgm_path.filter(|p| Path::new(p).is_file()) {
-        cmd.arg("-i").arg(bgm);
+    if bgm_exists {
+        let bgm = payload.bgm_path.as_ref().expect("bgm_path 已校验非空");
+        cmd.arg("-i").arg(bgm.as_str());
     }
     cmd.arg("-filter_complex").arg(&filter_complex)
         .arg("-map").arg(map_v)

@@ -1,7 +1,7 @@
 {
-  "name": "zhishuai-web",
+  "name": "zhishuai-desktop-ui",
   "version": "1.0.0",
-  "description": "智枢AI Web端 - 管理后台",
+  "description": "智枢AI 桌面安装版界面 (desktop-ui, 供 Tauri 壳加载)",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -1,8 +1,8 @@
-# 智枢AI SaaS系统 - Web端管理后台
+# 智枢AI SaaS系统 - 桌面安装版界面 (desktop-ui)
 
 ## 项目简介
 
-智枢AI是一个全功能商业智能平台，集成自媒体、电商、HR、营销、获客等全场景功能。Web端管理后台提供完整的配置和管理能力。
+智枢AI是一个全功能商业智能平台，集成自媒体、电商、HR、营销、获客等全场景功能。desktop-ui 是桌面安装版（Tauri）的界面源码，由 Next.js 静态导出后供 Tauri 壳加载，提供完整的配置和管理能力。在线网页版已下线，安装包由 GitHub Actions CI 发布。
 
 ## 技术栈
 
@@ -17,7 +17,7 @@
 ## 项目结构
 
 ```
-zhishuai-web/
+desktop-ui/
 ├── app/                      # Next.js App Router
 │   ├── dashboard/           # 首页Dashboard
 │   ├── media/               # 自媒体板块

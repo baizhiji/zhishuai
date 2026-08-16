@@ -48,27 +48,4 @@ do
 done
 
 echo ""
-echo "=== Web Customer Pages (no auth, public == 200) ==="
-for page in \
-  /customer/dashboard \
-  /customer/recruitment \
-  /customer/acquisition \
-  /customer/share \
-  /customer/support \
-  /customer/tickets \
-  /customer/profile \
-  /customer/materials \
-  /customer/notifications
-do
-  CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000${page}")
-  if [ "$CODE" = "200" ] || [ "$CODE" = "307" ]; then
-    echo "  PASS web${page} ($CODE)"
-    pass=$((pass+1))
-  else
-    echo "  FAIL web${page} ($CODE)"
-    fail=$((fail+1))
-  fi
-done
-
-echo ""
 echo "=== Summary: Pass=$pass Fail=$fail Total=$((pass+fail)) ==="
