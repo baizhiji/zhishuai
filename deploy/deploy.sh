@@ -18,9 +18,7 @@ NC='\033[0m'
 # 配置
 APP_DIR=/var/www/zhishuai
 SERVER_DIR=$APP_DIR/server
-WEB_DIR=$APP_DIR/web
 BACKEND_PORT=3001
-WEB_PORT=3000
 SKIP_BUILD=false
 SKIP_DB=false
 for arg in "$@"; do
@@ -84,20 +82,10 @@ echo -e "${GREEN}[6/7] 启动/重启后端服务...${NC}"
 pm2 restart zhishuai-api --update-env 2>/dev/null || pm2 start npm --name "zhishuai-api" -- start
 pm2 save
 
-# 部署 Web 前端(如存在；V3.0 后 Web 管理端已下线，此步骤通常跳过)
-if [ -f "$WEB_DIR/package.json" ]; then
-  echo -e "${GREEN}[7/7] 构建并重启 Web 前端...${NC}"
-  cd "$WEB_DIR"
-  npm install --omit=dev || npm install
-  if [ "$SKIP_BUILD" = false ]; then
-    npx next build || echo -e "${YELLOW}Next.js 构建失败，请检查 WEB_DIR=$WEB_DIR 的代码${NC}"
-  fi
-  # V3.0 静态导出模式(output: export)：必须用 serve 托管 out/，不能用 next start
-  pm2 restart zhishuai-web --update-env 2>/dev/null || pm2 start node_modules/.bin/serve --name "zhishuai-web" -- -s out -l 3000
-  pm2 save
-else
-  echo -e "${YELLOW}[7/7] 未检测到 Web 前端($WEB_DIR)，跳过${NC}"
-fi
+# 在线网页版已下线（产品形态：桌面安装版 + APK，desktop-ui/ 为桌面版界面源码）
+# 桌面版安装包由 GitHub Actions desktop-build 构建并自动发布到 /var/www/zhishuai/downloads/
+echo -e "${YELLOW}[7/7] 在线网页版已下线，跳过 Web 前端部署${NC}"
+echo -e "${YELLOW}      桌面版安装包由 CI desktop-build 自动发布到 $APP_DIR/downloads/${NC}"
 
 # 部署验证
 echo ""
@@ -112,7 +100,6 @@ fi
 echo ""
 echo -e "${GREEN}服务状态: pm2 status${NC}"
 echo -e "${GREEN}后端日志: pm2 logs zhishuai-api${NC}"
-echo -e "${GREEN}前端日志: pm2 logs zhishuai-web${NC}"
 echo -e "${GREEN}数据库备份: sudo bash $APP_DIR/scripts/backup-db.sh${NC}"
 echo -e "${GREEN}健康监控: bash $APP_DIR/scripts/monitor.sh${NC}"
 echo "========================================="

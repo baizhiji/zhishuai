@@ -4,9 +4,9 @@
   "version": "3.0.0",
   "identifier": "com.zhishuai.desktop",
   "build": {
-    "beforeDevCommand": "npm run copy:web",
+    "beforeDevCommand": "npm run copy:desktop-ui",
     "devUrl": "http://localhost:3000",
-    "beforeBuildCommand": "npm run copy:web",
+    "beforeBuildCommand": "npm run copy:desktop-ui",
     "frontendDist": "../frontend"
   },
   "app": {

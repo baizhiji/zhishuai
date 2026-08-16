@@ -1,0 +1,4 @@
+untrusted comment: signature from tauri secret key
+RUTY6o/IRMgQs318674Ps7SJkqQlPS69P0OvtODO7ZgGfuZncHDHv8wNQpzRd+5B3crv3jQ7Lp4pTEERQY4+mZVlvOSpRFDDKAM=
+trusted comment: timestamp:1786813326	file:zhishuai-setup-3.0.0-new.exe
+7WPN3mjY9EBfUY2HUrJUgh/d7dUknRtnFw44pC7nwX8KCRomSCdfVOSp+tefco/rBl8b91P1u1KNvTYtbux+BA==

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Test all Customer WEB pages and APIs - customer role (13800000001) with JWT token"""
+"""Test Customer APIs - customer role (13800000001) with JWT token.
+在线网页版已下线，本脚本仅验证后端 API 与 CRUD 操作。"""
 import requests
 import sys
 import io
@@ -11,20 +12,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 BASE_URL = "https://baizhiji.net"
 CUSTOMER_LOGIN = {"phone": "13800000001", "password": "123456", "loginType": "user"}
 
-WEB_PAGES = [
-    "/customer", "/customer/dashboard", "/customer/ai-factory",
-    "/customer/ai-chat", "/customer/digital-human",
-    "/customer/recruitment", "/customer/recruitment/publish",
-    "/customer/recruitment/platforms", "/customer/recruitment/auto",
-    "/customer/acquisition/board", "/customer/acquisition/discover",
-    "/customer/acquisition/task",
-    "/customer/share/board", "/customer/share/code", "/customer/share/track",
-    "/customer/materials", "/customer/tickets", "/customer/support",
-    "/customer/api-keys", "/customer/login-logs",
-    "/customer/settings/security", "/customer/settings/app-download",
-]
-
-# Correct API endpoints as verified against backend routes
+# API endpoints as verified against backend routes
 API_ENDPOINTS = [
     ("GET", "/api/auth/me", "User info"),
     ("GET", "/api/dashboard-stats/customer-summary", "Dashboard"),
@@ -38,7 +26,7 @@ API_ENDPOINTS = [
 
 # Step 1: Login to get JWT token
 print("=" * 70)
-print("Customer Terminal Full Test - WEB + API")
+print("Customer Terminal Test - API + CRUD")
 print("=" * 70)
 
 print("\n[1] Login as customer (13800000001)...")
@@ -54,31 +42,8 @@ else:
 
 headers = {"Authorization": f"Bearer {token}"}
 
-# Step 2: Test web pages
-print(f"\n[2] Testing {len(WEB_PAGES)} Customer pages...")
-page_results = []
-for i, page in enumerate(WEB_PAGES, 1):
-    url = f"{BASE_URL}{page}"
-    try:
-        r = requests.get(url, headers=headers, timeout=15, allow_redirects=True, verify=False)
-        s, clen = r.status_code, len(r.text or "")
-        has_err = "Internal Server Error" in (r.text or "")
-        if s == 200 and clen > 500 and not has_err:
-            page_results.append(("PASS", page, s, clen))
-            flag = "OK"
-        elif s in (301,302,307,308):
-            page_results.append(("REDIR", page, s, 0))
-            flag = "->"
-        else:
-            page_results.append(("FAIL", page, s, clen))
-            flag = "XX"
-        print(f"  [{flag}] {s:3d} {page:45s} ({clen}B)")
-    except Exception as e:
-        page_results.append(("ERR", page, 0, str(e)[:80]))
-        print(f"  [!!] ERR {page}: {e}")
-
-# Step 3: Test API endpoints with token
-print(f"\n[3] Testing {len(API_ENDPOINTS)} API endpoints (with JWT token)...")
+# Step 2: Test API endpoints with token
+print(f"\n[2] Testing {len(API_ENDPOINTS)} API endpoints (with JWT token)...")
 api_results = []
 for method, endpoint, desc in API_ENDPOINTS:
     url = f"{BASE_URL}{endpoint}"
@@ -100,11 +65,11 @@ for method, endpoint, desc in API_ENDPOINTS:
         api_results.append(("ERR", endpoint, str(e)[:80], ""))
         print(f"  [!!] ERR {method} {endpoint}: {e}")
 
-# Step 4: Test critical CRUD operations
-print(f"\n[4] Testing Customer CRUD operations...")
+# Step 3: Test critical CRUD operations
+print(f"\n[3] Testing Customer CRUD operations...")
 crud_results = []
 
-# 4a: Get materials
+# 3a: Get materials
 try:
     r = requests.get(f"{BASE_URL}/api/materials", headers=headers, verify=False)
     crud_results.append(("PASS" if r.status_code == 200 else "FAIL", "GET /api/materials", r.status_code, ""))
@@ -113,7 +78,7 @@ except Exception as e:
     crud_results.append(("ERR", "GET /api/materials", str(e)[:80], ""))
     print(f"  [!!] {e}")
 
-# 4b: Get tickets
+# 3b: Get tickets
 try:
     r = requests.get(f"{BASE_URL}/api/tickets/my", headers=headers, verify=False)
     crud_results.append(("PASS" if r.status_code == 200 else "FAIL", "GET /api/tickets/my", r.status_code, ""))
@@ -122,7 +87,7 @@ except Exception as e:
     crud_results.append(("ERR", "GET /api/tickets/my", str(e)[:80], ""))
     print(f"  [!!] {e}")
 
-# 4c: Create ticket
+# 3c: Create ticket
 try:
     r = requests.post(f"{BASE_URL}/api/tickets", headers=headers, json={
         "title": "Test ticket from auto-test",
@@ -134,15 +99,10 @@ except Exception as e:
     crud_results.append(("ERR", "POST /api/tickets", str(e)[:80], ""))
     print(f"  [!!] {e}")
 
-# Step 5: Summary
+# Step 4: Summary
 print("\n" + "=" * 70)
 print("TEST SUMMARY")
 print("=" * 70)
-
-pp = sum(1 for r in page_results if r[0] == "PASS")
-pr = sum(1 for r in page_results if r[0] == "REDIR")
-pf = sum(1 for r in page_results if r[0] == "FAIL")
-pe = sum(1 for r in page_results if r[0] == "ERR")
 
 ap = sum(1 for r in api_results if r[0] == "PASS")
 af = sum(1 for r in api_results if r[0] == "FAIL")
@@ -150,23 +110,16 @@ af = sum(1 for r in api_results if r[0] == "FAIL")
 cp = sum(1 for r in crud_results if r[0] == "PASS")
 cf = sum(1 for r in crud_results if r[0] == "FAIL")
 
-total_p = pp + ap + cp
-total_f = pf + af + cf
-total_all = len(WEB_PAGES) + len(API_ENDPOINTS) + len(crud_results)
+total_p = ap + cp
+total_f = af + cf
+total_all = len(API_ENDPOINTS) + len(crud_results)
 
-print(f"Web Pages:   {pp:2d} PASS / {pf} FAIL / {pr} REDIR / {pe} ERR  ({len(WEB_PAGES)} total)")
 print(f"API Endpoints: {ap:2d} PASS / {af} FAIL  ({len(API_ENDPOINTS)} total)")
 print(f"CRUD Ops:     {cp:2d} PASS / {cf} FAIL  ({len(crud_results)} total)")
 print(f"Overall:   {total_p:2d} PASS / {total_f} FAIL  ({total_all} total)")
 print(f"Pass Rate: {total_p/total_all*100:.1f}%")
 
 # Failed details
-if pf > 0:
-    print("\n--- Failed Pages ---")
-    for r in page_results:
-        if r[0] == "FAIL":
-            print(f"  {r[1]:50s} HTTP {r[2]} ({r[3]}B)")
-
 if af > 0:
     print("\n--- Failed APIs ---")
     for r in api_results:

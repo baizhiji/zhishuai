@@ -46,8 +46,8 @@ fi
 READY=$(curl -s "$API_BASE/ready" 2>/dev/null || echo '{}')
 echo "[INFO] /ready: $READY"
 
-# 3. PM2 服务状态
-for APP in zhishuai-api zhishuai-web; do
+# 3. PM2 服务状态（在线网页版已下线，仅监控后端 API）
+for APP in zhishuai-api; do
   STATUS=$(pm2 jlist 2>/dev/null | python3 -c "
 import json, sys
 try:

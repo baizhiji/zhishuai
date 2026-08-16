@@ -7,8 +7,8 @@ FILES=(
   "server/src/services/comment-delivery.service.ts"
   "server/src/services/comment-safety.service.ts"
   "server/src/services/playwright.service.ts"
-  "web/app/customer/acquisition/accounts/page.tsx"
-  "web/app/customer/acquisition/comment/page.tsx"
+  "desktop-ui/app/customer/acquisition/accounts/page.tsx"
+  "desktop-ui/app/customer/acquisition/comment/page.tsx"
 )
 mkdir -p /tmp/conflict
 for f in "${FILES[@]}"; do

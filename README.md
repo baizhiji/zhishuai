@@ -6,7 +6,7 @@
 
 智枢AI是一个全功能SaaS多租户系统，主产品形态为 **Windows 桌面安装版** 和 **Android APK端**，配套 Express 后端服务。系统为自媒体运营者、电商卖家、HR、营销人员等提供一站式智能解决方案。
 
-- **桌面安装版**：基于 `web/` 源码通过 Tauri 2.x 封装为 Windows 安装程序，是管理后台的主力形态。
+- **桌面安装版**：基于 `desktop-ui/` 源码（原 `web/`，Next.js 静态导出）通过 Tauri 2.x 封装为 Windows 安装程序，是管理后台的主力形态。在线网页版已下线。
 - **APK端**：基于 Expo + React Native 的 Android 应用。
 - **后端服务**：基于 Express + TypeScript + Prisma + MySQL 的 API 服务。
 
@@ -15,8 +15,8 @@
 ```
 zhishuai/
 ├── apk/                   # APK端（Expo + React Native）
-├── web/                   # 前端源码（Next.js，桌面安装版与网页版共用）
-├── desktop/               # 桌面安装版（Tauri 2.x 封装）
+├── desktop-ui/            # 桌面安装版界面（Next.js，静态导出后由 Tauri 壳加载，原 web/）
+├── desktop/               # 桌面壳（Tauri 2.x，Rust）
 ├── server/                # 后端服务（Express + Prisma + MySQL）
 ├── shared/                # 共享代码
 │   └── *.ts               # TypeScript 类型定义
@@ -123,8 +123,8 @@ zhishuai/
 ### 桌面安装版
 
 ```bash
-# 1. 安装 web 与 desktop 依赖
-npm run install:web
+# 1. 安装 desktop-ui 与 desktop 依赖
+npm run install:desktop-ui
 cd desktop && npm install
 
 # 2. 启动桌面开发模式
@@ -133,6 +133,8 @@ npm run dev:desktop
 # 3. 构建 Windows 安装包
 npm run build:desktop
 ```
+
+在线网页版已下线，桌面安装包由 GitHub Actions CI 发布。
 
 ### APK端
 
@@ -230,7 +232,7 @@ server/
 
 ## 环境变量
 
-### 桌面安装版 / Web 前端
+### 桌面安装版界面 (desktop-ui)
 ```env
 APP_NAME=智枢AI
 APP_VERSION=1.0.0

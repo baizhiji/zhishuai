@@ -9,7 +9,7 @@ with open(src, 'r') as f:
     content = f.read()
 
 upload_route = """
-// === 文件上传路由 (APK/WEB 通用) ===
+// === 文件上传路由 (APK/Desktop 通用) ===
 router.post('/upload', authMiddleware, upload.single('file'), async (req, res) => {
   try {
     const userId = String(req.userId);

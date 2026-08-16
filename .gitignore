@@ -1,12 +1,12 @@
 # 1. 忽略当前目录下的所有文件和文件夹
 /*
 
-# 2. 只追踪配置文件、coze文件、web源代码、apk移动端
+# 2. 只追踪配置文件、coze文件、desktop-ui源代码(桌面版界面)、apk移动端
 !/openclaw.json
 !/scripts
 !/.coze
 !/.gitignore
-!/web
+!/desktop-ui
 !/apk
 !/backend
 !/server
@@ -18,23 +18,23 @@
 !/package.json
 !/README.md
 
-# 3. web目录下的忽略项
-web/.next
-web/node_modules
+# 3. desktop-ui目录下的忽略项（桌面版界面源码，Next.js 静态导出）
+desktop-ui/.next
+desktop-ui/node_modules
 # 敏感配置
-web/.env
+desktop-ui/.env
 # 本地开发配置（可提交）
-web/.env.local
+desktop-ui/.env.local
 # 生产环境配置（可提交）
-web/.env.production
-web/.turbo
-web/dist
-web/out
-web/.DS_Store
-web/*.log
-web/.pnpm-debug.log*
+desktop-ui/.env.production
+desktop-ui/.turbo
+desktop-ui/dist
+desktop-ui/out
+desktop-ui/.DS_Store
+desktop-ui/*.log
+desktop-ui/.pnpm-debug.log*
 # TypeScript 增量编译缓存
-web/tsconfig.tsbuildinfo
+desktop-ui/tsconfig.tsbuildinfo
 
 # 4. apk目录下的忽略项
 apk/.next
@@ -56,6 +56,13 @@ backend/.env*
 backend/dist
 backend/logs
 
+# 5.1 scripts 下的测试临时产物（自动更新签名测试等）
+scripts/desktop-run*.log
+scripts/sigtest.*
+scripts/tmp-*.exe
+scripts/tmp-*.exe.sig
+scripts/commit-message.txt
+
 # 6. shared目录下的忽略项
 shared/node_modules
 shared/.env*
@@ -70,7 +77,7 @@ server/.pnpm-debug.log*
 
 # 8. desktop目录下的忽略项（Tauri 桌面版）
 desktop/node_modules
-# web/out 的复制产物，构建时重新生成
+# desktop-ui/out 的复制产物，构建时重新生成
 desktop/frontend
 # Rust 编译产物
 desktop/src-tauri/target

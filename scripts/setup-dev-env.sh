@@ -22,8 +22,8 @@ check_node() {
 install_deps() {
     echo "📦 安装项目依赖..."
     
-    echo "  → 安装 Web 端依赖..."
-    cd web && npm install && cd ..
+    echo "  → 安装 Desktop UI 端依赖..."
+    cd desktop-ui && npm install && cd ..
     
     echo "  → 安装 Server 端依赖..."
     cd server && npm install && cd ..
@@ -38,8 +38,8 @@ install_deps() {
 format_code() {
     echo "🎨 格式化代码..."
     
-    echo "  → 格式化 Web 端..."
-    cd web && npm run format 2>/dev/null || echo "  (跳过)" && cd ..
+    echo "  → 格式化 Desktop UI 端..."
+    cd desktop-ui && npm run format 2>/dev/null || echo "  (跳过)" && cd ..
     
     echo "  → 格式化 Server 端..."
     cd server && npm run format 2>/dev/null || echo "  (跳过)" && cd ..
@@ -63,7 +63,7 @@ setup_git_hooks() {
     echo "🪝 设置 Git Hooks..."
     
     # 尝试安装 husky (如果可用)
-    cd web && npm pkg set prepare="cd .. && husky install" 2>/dev/null || true
+    cd desktop-ui && npm pkg set prepare="cd .. && husky install" 2>/dev/null || true
     cd ../server && npm pkg set prepare="cd .. && husky install" 2>/dev/null || true
     cd ..
     
@@ -74,7 +74,7 @@ setup_git_hooks() {
 setup_dirs() {
     echo "📁 创建必要目录..."
     
-    mkdir -p web/app/logs
+    mkdir -p desktop-ui/app/logs
     mkdir -p server/logs
     mkdir -p docs
     
@@ -85,8 +85,8 @@ setup_dirs() {
 setup_env() {
     echo "⚙️  检查环境配置..."
     
-    if [ ! -f "web/.env.local" ]; then
-        echo "⚠️  警告: web/.env.local 不存在"
+    if [ ! -f "desktop-ui/.env.local" ]; then
+        echo "⚠️  警告: desktop-ui/.env.local 不存在"
     fi
     
     if [ ! -f "server/.env" ]; then
@@ -120,7 +120,7 @@ main() {
     echo "下一步:"
     echo "  1. 配置环境变量"
     echo "  2. 启动开发服务器:"
-    echo "     - Web: cd web && npm run dev"
+    echo "     - Desktop UI: cd desktop-ui && npm run dev"
     echo "     - Server: cd server && npm run dev"
     echo "  3. 查看文档: docs/DEVELOPMENT_GUIDE.md"
     echo ""

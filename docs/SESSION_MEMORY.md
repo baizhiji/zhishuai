@@ -1,8 +1,28 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-16 (AI创作工厂类目改造：短视频唯一出口 + 新增智能剪辑9阶段流水线 + 卡片重排 + 三服务商模型配置完整化含火山方舟) | 提交数：546+ | 项目启动：2026-04-25
+> 最后更新：2026-08-16 (web→desktop-ui 全链路重命名 + 在线网页版下线 + video_edit.rs E0382 修复) | 提交数：546+ | 项目启动：2026-04-25
 
-## 2026-08-16 本次会话（AI创作工厂类目重构：短视频唯一出口 · 智能剪辑新类目 · 三服务商模型配置完整化）
+## 2026-08-16 本次会话（web→desktop-ui 改名 · 在线网页版下线 · video_edit.rs 编译修复）
+
+### 已解决：web/ 目录改名 desktop-ui + 全链路引用同步
+- **背景**：桌面版是 Tauri 壳，界面源码在 web/（Next.js 静态导出）。用户要求把「WEB 内容」全部改为「电脑安装版」，并停掉在线网页版。
+- **git mv web desktop-ui** 保留历史；全链路同步：
+  - 根 `package.json`：scripts 全部 web→desktop-ui（install:desktop-ui / dev:desktop-ui / build:desktop-ui / start:desktop-ui），keywords Web→Desktop，description 改「桌面安装版(desktop-ui)」。
+  - `desktop/package.json`：build:web→build:desktop-ui、copy:web→copy:desktop-ui；`tauri.conf.json` beforeDev/beforeBuildCommand 改 `npm run copy:desktop-ui`；新建 `desktop/scripts/copy-desktop-ui-build.mjs`（复制 `../desktop-ui/out` → `desktop/frontend`），旧 copy-web-build.mjs 删除。
+  - `.github/workflows/ci.yml`：三处矩阵 `web`→`desktop-ui`（lint-and-typecheck/build/security-audit），desktop-build 步骤 `cd web`→`cd desktop-ui`。
+  - `.gitignore`：web 忽略项全改 desktop-ui；`desktop/frontend` 注释修正。
+  - `deploy/deploy.sh`：删除 WEB_DIR/WEB_PORT 与网页版部署块；`scripts/monitor.sh` PM2 列表仅剩 zhishuai-api。
+  - `deploy/nginx/zhishuai.conf` + `deploy/nginx.conf`：根路径返回「在线网页版已下线，请下载桌面安装版」HTML（含前往下载中心链接）；保留 `/api/`（→3001）与 `/downloads/`（安装包+latest.json，含 CORS/附件头）；IP 段(150.109.60.130)同样配置。
+  - `desktop-ui/package.json`：name zhishuai-web→zhishuai-desktop-ui、description 改桌面安装版界面；README/.env.example 文案同步。
+  - `scripts/`：setup-dev-env.sh（cd web→desktop-ui 等 9 处）、build_web_remote.sh、check-pages.sh（改 desktop-ui 路径 + 3000 页面检查改 3001 API）、resolve/compare-conflicts*.sh（web/app→desktop-ui/app）、verify-deploy.sh（WEB_URL 3000→80 nginx 下线页）、audit-deps.js（web→desktopUi + 路径）、patch_materials_js.py（注释）、verify-customer-full/final.sh（移除 3000 页面检查）、test_customer_web.py（重写为仅 API+CRUD 验证）。
+  - **保留不动**：server 平台枚举 `'web'`（自动更新平台值）、playwright.service 外部 bosszhipin URL、CORS 白名单 localhost:3000（desktop-ui dev 端口）、share.ts baizhiji.net 分享 URL（历史遗留，落地页随网页版下线失效，留待后续）。
+- **待办仍挂起**：服务器 `pm2 delete zhishuai-web` + 应用新 nginx 配置并 reload；部署验证 `bash scripts/verify-login.sh`。
+
+### 已解决：video_edit.rs Rust E0382 编译修复（CI run 31952345403 失败根因）
+- **根因**：`color_filter` 与 `payload.bgm_path` 先 move（`Path::new(&color_filter)` / `bgm_path.is_file()`）后借用（`color_filter.as_str()` / `bgm_path.as_str()`）触发 E0382。
+- **修复**：`color_filter` 改为先取 `let has_color_filter = !color_filter.is_empty();` 后用 bool 判断；`bgm_path` 改为 `payload.bgm_path.as_ref().map(|p| Path::new(p.as_str()).is_file()).unwrap_or(false)`，后续 `payload.bgm_path.as_ref().expect(...)` 取用。`subtitle_path` 确认单次使用安全。代码已修复，待 CI 重新验证。
+
+## 2026-08-16 历史会话（AI创作工厂类目重构：短视频唯一出口 · 智能剪辑新类目 · 三服务商模型配置完整化）
 
 ### 已解决：类目合并（短视频唯一出口）
 - 原【短视频】(shortVideo) 与【自由创意短片】(cinemaShort) 内容一致，仅两个出口 → 决定流水线只保留【短视频】这一个出口。
@@ -514,7 +534,8 @@
 ## 一、项目是什么
 
 智枢AI SaaS — 多租户 AI 超级应用。Monorepo 架构。
-- **Web 前端**: Next.js 14 + React 18 + TypeScript + Ant Design 6 + Tailwind CSS (`web/`)
+- **桌面安装版界面**: Next.js 14 + React 18 + TypeScript + Ant Design 6 + Tailwind CSS (`desktop-ui/`，原 `web/`，2026-08-16 改名；静态导出后由 Tauri 壳加载)
+- **桌面壳**: Tauri 2.x (Rust) (`desktop/`)
 - **后端 API**: Express 4 + TypeScript + Prisma ORM + MySQL (`server/`)
 - **移动端**: Expo SDK 52 + React Native 0.76 (`apk/`)
 - **共享类型**: TypeScript (`shared/`)
@@ -762,22 +783,22 @@ modified: web/app/customer/recruitment/page.tsx（2026-08-10: 页面标题改为
 
 - **部署方式**: scp 上传 → pm2 restart → 验证脚本
 - **验证脚本**: `bash scripts/verify-login.sh`（三种角色登录返回 200）
-- **Web 进程**: `pm2 restart zhishuai-web`
+- **在线网页版**: 已下线（2026-08-16），nginx 根路径返回「已下线」提示页；桌面安装包由 CI desktop-build 发布到 `/var/www/zhishuai/downloads/`
 - **API 进程**: `pm2 restart zhishuai-api`
-- **构建**: Web: `npx next build`，Server: `npm run build`（如有）
+- **构建**: desktop-ui: `npx next build`（静态导出，CI 中执行），Server: `npm run build`（如有）
 
 ## 十、关键文件路径
 
 | 用途 | 路径 |
 |------|------|
 | Prisma Schema | `server/prisma/schema.prisma` |
-| 前端路由 | `web/app/` 下各目录的 `page.tsx` |
+| 前端路由 | `desktop-ui/app/` 下各目录的 `page.tsx` |
 | 后端路由 | `server/src/routes/*.ts` |
-| 权限配置 | `web/lib/permissions/config.ts` |
-| 认证上下文 | `web/contexts/AuthContext.tsx` |
-| API 适配器 | `web/services/api.ts` |
-| 请求工具 | `web/utils/request.ts` |
-| 环境配置 | `web/.env.local`（本地）、`server/.env`（服务端） |
+| 权限配置 | `desktop-ui/lib/permissions/config.ts` |
+| 认证上下文 | `desktop-ui/contexts/AuthContext.tsx` |
+| API 适配器 | `desktop-ui/services/api.ts` |
+| 请求工具 | `desktop-ui/utils/request.ts` |
+| 环境配置 | `desktop-ui/.env.local`（本地）、`server/.env`（服务端） |
 | 部署脚本 | `scripts/` 目录 |
 | Nginx 配置 | `deploy/` 目录 |
 

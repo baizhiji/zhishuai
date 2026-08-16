@@ -5,7 +5,7 @@
 set -e
 
 API_URL="${API_URL:-http://localhost:3001}"
-WEB_URL="${WEB_URL:-http://localhost:3000}"
+WEB_URL="${WEB_URL:-http://localhost}"
 PASS=0
 FAIL=0
 
@@ -34,14 +34,14 @@ check() {
 echo "=================================="
 echo "智枢AI 部署验证"
 echo "API:  $API_URL"
-echo "Web:  $WEB_URL"
+echo "Landing (已下线提示页):  $WEB_URL"
 echo "=================================="
 
 echo ""
 echo "[1/4] 健康检查"
 check "API Health"     "$API_URL/health"
 check "API Ready"      "$API_URL/ready"
-check "Web Server"     "$WEB_URL"
+check "Landing Page"   "$WEB_URL"
 
 echo ""
 echo "[2/4] 登录验证 (三种角色)"
@@ -95,7 +95,7 @@ fi
 
 echo ""
 echo "[4/4] 安全头检查"
-check "CSP Header"      "$WEB_URL" "200" "GET" "" "-I"
+check "Landing Headers" "$WEB_URL" "200" "GET" "" "-I"
 SEC_HEADERS=$(curl -s -I "$WEB_URL" 2>/dev/null | grep -iE "x-frame-options|x-content-type-options|x-xss-protection|strict-transport-security" | wc -l)
 if [ "$SEC_HEADERS" -ge 2 ]; then
     echo "  [PASS] 安全响应头 ($SEC_HEADERS headers found)"

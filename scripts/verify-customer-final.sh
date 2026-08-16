@@ -52,29 +52,4 @@ for entry in "${eps[@]}"; do
 done
 
 echo ""
-echo "=== Web Customer Pages ==="
-for page in \
-  /customer/dashboard \
-  /customer/recruitment \
-  /customer/acquisition/task \
-  /customer/acquisition/discover \
-  /customer/share/code \
-  /customer/share/board \
-  /customer/support \
-  /customer/tickets \
-  /customer/materials \
-  /profile \
-  /notifications
-do
-  CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000${page}")
-  if [ "$CODE" = "200" ] || [ "$CODE" = "307" ]; then
-    echo "  PASS web${page} ($CODE)"
-    pass=$((pass+1))
-  else
-    echo "  FAIL web${page} ($CODE)"
-    fail=$((fail+1))
-  fi
-done
-
-echo ""
 echo "=== Final Summary: Pass=$pass Fail=$fail Total=$((pass+fail)) ==="
