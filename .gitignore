@@ -58,7 +58,10 @@ backend/logs
 
 # 5.1 scripts 下的测试临时产物（自动更新签名测试等）
 scripts/desktop-run*.log
+scripts/deploy-run*.log
+scripts/run*.log
 scripts/sigtest.*
+scripts/decoded-sig.txt
 scripts/tmp-*.exe
 scripts/tmp-*.exe.sig
 scripts/commit-message.txt
