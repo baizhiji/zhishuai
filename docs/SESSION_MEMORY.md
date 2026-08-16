@@ -25,7 +25,10 @@
 
 ### 已解决：video_edit.rs Rust E0382 编译修复（CI run 31952345403 失败根因）
 - **根因**：`color_filter` 与 `payload.bgm_path` 先 move（`Path::new(&color_filter)` / `bgm_path.is_file()`）后借用（`color_filter.as_str()` / `bgm_path.as_str()`）触发 E0382。
-- **修复**：`color_filter` 改为先取 `let has_color_filter = !color_filter.is_empty();` 后用 bool 判断；`bgm_path` 改为 `payload.bgm_path.as_ref().map(|p| Path::new(p.as_str()).is_file()).unwrap_or(false)`，后续 `payload.bgm_path.as_ref().expect(...)` 取用。`subtitle_path` 确认单次使用安全。代码已修复，CI（head dbb4850）正在 desktop-build 验证中。
+- **修复**：`color_filter` 改为先取 `let has_color_filter = !color_filter.is_empty();` 后用 bool 判断；`bgm_path` 改为 `payload.bgm_path.as_ref().map(|p| Path::new(p.as_str()).is_file()).unwrap_or(false)`，后续 `payload.bgm_path.as_ref().expect(...)` 取用。`subtitle_path` 确认单次使用安全。
+- **验证结果**：CI run 54ee4cd **全绿通过**（lint/build/security 全部 success；Desktop Build Windows Installer success = video_edit.rs 编译通过；Deploy to Production success = 服务器端重命名拉取+构建+重启+登录验证通过；Deploy Desktop Installer to Server success = 新安装包已上传）。
+- **CI 上传产物**：`/var/www/zhishuai/downloads/` 现有 `智枢AI_3.0.0_x64-setup.exe` + `智枢AI_3.0.0_x64-setup.exe.sig`（命名匹配，Tauri 更新链完整），旧 `zhishuai_*.sig` 手工残留已删除。
+- **对外服务最终状态**：根路径下线页 200 / downloads 200 / api(latest.json) 200 / sig 200；PM2 仅 zhishuai-api。Windows 代码签名证书、COS bucket+CDN 仍需用户提供资源。
 
 ## 2026-08-16 历史会话（AI创作工厂类目重构：短视频唯一出口 · 智能剪辑新类目 · 三服务商模型配置完整化）
 
