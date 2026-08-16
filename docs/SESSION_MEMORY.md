@@ -16,11 +16,16 @@
   - `desktop-ui/package.json`：name zhishuai-web→zhishuai-desktop-ui、description 改桌面安装版界面；README/.env.example 文案同步。
   - `scripts/`：setup-dev-env.sh（cd web→desktop-ui 等 9 处）、build_web_remote.sh、check-pages.sh（改 desktop-ui 路径 + 3000 页面检查改 3001 API）、resolve/compare-conflicts*.sh（web/app→desktop-ui/app）、verify-deploy.sh（WEB_URL 3000→80 nginx 下线页）、audit-deps.js（web→desktopUi + 路径）、patch_materials_js.py（注释）、verify-customer-full/final.sh（移除 3000 页面检查）、test_customer_web.py（重写为仅 API+CRUD 验证）。
   - **保留不动**：server 平台枚举 `'web'`（自动更新平台值）、playwright.service 外部 bosszhipin URL、CORS 白名单 localhost:3000（desktop-ui dev 端口）、share.ts baizhiji.net 分享 URL（历史遗留，落地页随网页版下线失效，留待后续）。
-- **待办仍挂起**：服务器 `pm2 delete zhishuai-web` + 应用新 nginx 配置并 reload；部署验证 `bash scripts/verify-login.sh`。
+- **服务器端已完成**（本会话）：`pm2 delete zhishuai-web`（仅剩 zhishuai-api）；nginx 主站 `location /` 已替换为「已下线」引导页并移除 `/_next/static` 块，`nginx -t` 通过并 reload；三种角色登录验证均 200。
+- **踩坑记录**：
+  - 首次补丁用跨行正则 `re.S` 贪婪匹配误删 nginx 大段配置（224 行→106 行），靠 `baizhiji.net.bak-20260816` 备份恢复。教训：**改服务器 nginx 配置务必先备份 + 基于行的精确替换**（`scripts/patch_nginx_offline.py`）。
+  - 备份文件不能放 `sites-enabled/`（nginx 会重复加载 limit_req_zone 报错），已移到 `/etc/nginx/`。
+  - **自动更新签名文件不匹配**：安装包为 `智枢AI_3.0.0_x64-setup.exe`，但 `.sig` 文件名是 `zhishuai_3.0.0_x64-setup.exe.sig`，导致 Tauri 更新下载签名 404。已在服务器复制一份匹配名 `智枢AI_3.0.0_x64-setup.exe.sig` 修复；更新清单端点 `https://baizhiji.net/api/version/desktop/latest.json`（DB 提供）返回 version/url/signature 均正常。
+  - 新增运维辅助脚本：`scripts/patch_nginx_offline.py`（服务器 nginx 下线补丁）、`scripts/check_updater.py`（自动更新清单校验）。
 
 ### 已解决：video_edit.rs Rust E0382 编译修复（CI run 31952345403 失败根因）
 - **根因**：`color_filter` 与 `payload.bgm_path` 先 move（`Path::new(&color_filter)` / `bgm_path.is_file()`）后借用（`color_filter.as_str()` / `bgm_path.as_str()`）触发 E0382。
-- **修复**：`color_filter` 改为先取 `let has_color_filter = !color_filter.is_empty();` 后用 bool 判断；`bgm_path` 改为 `payload.bgm_path.as_ref().map(|p| Path::new(p.as_str()).is_file()).unwrap_or(false)`，后续 `payload.bgm_path.as_ref().expect(...)` 取用。`subtitle_path` 确认单次使用安全。代码已修复，待 CI 重新验证。
+- **修复**：`color_filter` 改为先取 `let has_color_filter = !color_filter.is_empty();` 后用 bool 判断；`bgm_path` 改为 `payload.bgm_path.as_ref().map(|p| Path::new(p.as_str()).is_file()).unwrap_or(false)`，后续 `payload.bgm_path.as_ref().expect(...)` 取用。`subtitle_path` 确认单次使用安全。代码已修复，CI（head dbb4850）正在 desktop-build 验证中。
 
 ## 2026-08-16 历史会话（AI创作工厂类目重构：短视频唯一出口 · 智能剪辑新类目 · 三服务商模型配置完整化）
 
