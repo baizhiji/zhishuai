@@ -1,21 +1,22 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-16 (桌面版自动更新已启用：生成 minisign 签名密钥对 + 配置 TAURI_SIGNING_PRIVATE_KEY Secrets + 手动签名 3.0.0 安装包 + 录入 appVersion 表，latest.json 验证通过) | 提交数：545+ | 项目启动：2026-04-25
+> 最后更新：2026-08-16 (桌面版自动更新签名验证通过：用 minisign-verify crate 复刻 tauri 客户端 verify_signature 全路径验证 3.0.0 安装包签名有效；CI 重建后 sha256=9fa85cf2d5 已同步数据库) | 提交数：545+ | 项目启动：2026-04-25
 
-## 2026-08-16 本次会话（桌面版自动更新启用 + appVersion 表录入）
+## 2026-08-16 本次会话（桌面版自动更新签名验证 + 数据库同步）
 
-### 已解决：桌面版自动更新（latest.json + 签名）
-- **背景**：上次会话遗留待办「生成 latest.json + 录入 appVersion 表启用自动更新」。排查发现 CI 构建时因无 `TAURI_SIGNING_PRIVATE_KEY` 会**删除 updater 插件配置**，且构建产物无 `.sig` 签名文件，桌面版实际无法自动更新。
-- **修复方案**：
-  1. **生成新签名密钥对**：`npx tauri signer generate --ci` → `~/.tauri/zhishuai`（私钥）+ `~/.tauri/zhishuai.pub`（公钥），密码 `zhishuai-2026-sign`。新公钥 `dW50cnVzdGVk...QzODhGRUFEODgKUldUWTZv...` 已更新到 `desktop/src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。
-  2. **配置 GitHub Secrets**：`TAURI_SIGNING_PRIVATE_KEY`（私钥完整内容）+ `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（密码），用新增 `scripts/set-tauri-signing-secrets.py` 从文件读取加密写入（复用 libsodium sealed-box）。
-  3. **CI 修改**：`.github/workflows/ci.yml` 上传 artifact 增加 `*.sig`（签名文件，防构建自动签名时丢失）；`Prepare unsigned desktop config` 步骤因密钥已配置而保留 updater 插件。
-  4. **手动签名安装包**（CI tauri build 对 NSIS 未自动产出 .sig）：下载服务器 exe → `npx tauri signer sign` 生成 `.sig`（412 字节）→ 上传到 `/var/www/zhishuai/downloads/zhishuai_3.0.0_x64-setup.exe.sig`（公网可访问 HTTP 200）。
-  5. **录入 appVersion 表**：`scripts/insert-appversion.js` 插入 desktop/3.0.0/stable 记录（downloadUrl、sha256=`9de203e9...`、size、signature）。先执行 `scripts/alter-appversion.js` 将 `changelog`/`signature` 列从 `VARCHAR(191)` 改为 `TEXT`（签名 412 字符超长报错后修复），`server/prisma/schema.prisma` 同步加 `@db.Text`。
-- **验证结果**：`https://baizhiji.net/api/version/desktop/latest.json` 返回完整 payload（version=3.0.0、signature 412B、下载 URL 200）；`?currentVersion=2.0.0` → HTTP 200（提示更新）；`?currentVersion=3.0.0` → HTTP 204（已是最新）；`.sig` 公网 HTTP 200。
-- **待办/注意**：CI `tauri build` 对 NSIS bundle 未自动生成 `.sig`（tauri-cli 已知行为），后续发版需手动 `npx tauri signer sign` 并用 `scripts/insert-appversion.js` 更新表记录；签名私钥存放在 `C:\Users\Administrator\.tauri\zhishuai`（密码 `zhishuai-2026-sign`），务必备份，丢失将无法发布新版本。
-- **新增脚本**：`scripts/set-tauri-signing-secrets.py`（设置签名 Secrets）、`scripts/insert-appversion.js`（录入版本记录）、`scripts/alter-appversion.js`（列类型修复）、`scripts/verify-latest-json.sh`（端点验证）。
-- **数据库变更**：`server/prisma/schema.prisma` 中 appVersion 表 `changelog`/`signature` 改为 `@db.Text`（生产库已 ALTER，需 CI 同步 schema）。
+### 已解决：签名真实性验证（决定性结论：签名有效）
+- **背景**：CI 重建桌面安装包后服务器 exe 的 sha256 变为 `9fa85cf2d5...`，原签名失效；已通过 `scripts/update-appversion-signature.js` 更新数据库 sha256/signature。遗留疑点：tauri signer（rust-minisign）生成的 .sig 无法被任何外部工具（minisign.exe、PyNaCl+blake3/blake2b）验证，需确认签名是否真实有效。
+- **验证方法（最终权威路径）**：新建 Rust 工程 `scripts/verify-client-rs/`，依赖 `minisign-verify = "0.2"`（**与 tauri 客户端完全相同的库**），`src/main.rs` 完整复刻 tauri-plugin-updater `verify_signature` 流程：`base64_to_string(pubkey)` → `PublicKey::decode` → `base64_to_string(sig)` → `Signature::decode` → `public_key.verify(data, sig, true)`。
+- **验证结果（服务器 150.109.60.130 实测）**：
+  1. 官方向量自检通过（`minisign-verify/tests.rs` verify_prehashed 向量）→ 库与环境正常；
+  2. 公钥解析 OK（untrusted comment: `minisign public key: B310C844C88FEAD8`）；
+  3. 签名解析 OK（trusted comment: `timestamp:1786813326 file:zhishuai-setup-3.0.0-new.exe`）；
+  4. 对真实 exe（`智枢AI_3.0.0_x64-setup.exe`，4295703 字节）验证 **SIGNATURE VERIFIED OK**。
+- **结论**：服务器 exe 签名**真实有效**，tauri 客户端自动更新可正常校验。此前外部工具（PyNaCl/minisign.exe）验证失败是外部实现与 minisign 预哈希（prehashed/ED 前缀）模式存在差异，**非签名本身问题**。
+- **数据库同步确认**：appVersion 表 desktop/3.0.0/stable 记录 sha256=`9fa85cf2d5066dff9042a58d9c5b938666123023a3bf94f83244928a762b30e3`、signature（base64 编码 4 行签名文本）均与服务器 exe/.sig 一致。
+- **新增脚本**：`scripts/verify-client-rs/`（Rust 验证工程：Cargo.toml + src/main.rs）、`scripts/run-verify-client.sh`（服务器端运行脚本，规避中文文件名 ssh 转码）、`scripts/verify-official.sh`（服务器官方 minisign 验证）、`scripts/verify-tauri-sig.py`/`scripts/verify-sig-python.py`/`scripts/verify-testvector.py`/`scripts/debug-sig.py`/`scripts/decode-sig.js`（外部实现验证调试脚本，均不可验证属预期）。
+- **部署/推送**：本次推送 `.github/workflows/ci.yml`（SSH Key 认证 + artifact 含 *.sig + workflow_dispatch）、`desktop/src-tauri/tauri.conf.json`（新公钥）、`server/prisma/schema.prisma`（changelog/signature 加 @db.Text）、`docs/SESSION_MEMORY.md` 及全部签名验证脚本。CI 重建后需再同步数据库 sha256/signature（见待办）。
+- **待办/注意**：CI `tauri build` 对 NSIS bundle 未自动生成 `.sig`（tauri-cli 已知行为），后续发版需手动 `npx tauri signer sign` 并用 `scripts/update-appversion-signature.js` 更新表记录；签名私钥存放在 `C:\Users\Administrator\.tauri\zhishuai`（密码 `zhishuai-2026-sign`），务必备份，丢失将无法发布新版本。
 
 ## 2026-08-15 本次会话（CI Deploy SSH 认证根治 + 产品命名更新）
 
