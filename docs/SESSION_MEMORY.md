@@ -1,8 +1,28 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-20 (桌面版 3.0.2 发布：紫色视觉升级 + LOGO 方案B) | 提交数：550+ | 项目启动：2026-04-25
+> 最后更新：2026-08-21 (桌面版 3.0.3 热修复：UI 内部 LOGO 统一为方案B) | 提交数：552+ | 项目启动：2026-04-25
 
-## 2026-08-20 本次会话（桌面版 3.0.2 发布：紫色品牌视觉升级 + LOGO 方案B 打包上线）
+## 2026-08-21 本次会话（桌面版 3.0.3 热修复：修复 UI 内部仍显示旧 LOGO 的问题）
+
+### 问题根因
+桌面版 3.0.2 发布后发现：虽然 Tauri 应用图标（`desktop/src-tauri/icons/`）已替换为紫色方案 B，但 **桌面端 UI 内部使用的 `desktop-ui/public/logo.png` 仍被旧蓝绿圆形 LOGO 占用**。该文件用于登录页、注册页、简单登录页和 customer 侧边栏 Logo 区，因此用户看到：
+- 桌面快捷方式/安装包图标：可能仍因 Windows 图标缓存显示旧图标（需刷新缓存或重装）。
+- 打开应用后窗口内的 LOGO（如"智枢 AI 客户中心"）：确定仍是旧 LOGO。
+
+### 已完成：3.0.2 → 3.0.3 热修复
+1. **替换 UI 内部 LOGO**：`desktop-ui/public/logo.png` 替换为 `docs/logo-designs/v2_zhishuai_1024.png`（紫色科技风方案 B）。
+2. **版本号升级 4 处**：`desktop/src-tauri/tauri.conf.json`、`Cargo.toml`、`desktop/package.json`、`desktop-ui/next.config.js` 均 3.0.2 → 3.0.3。
+3. **提交**：`fix(desktop): replace desktop-ui/public/logo.png with new Logo-B and bump version to 3.0.3` + `chore(release): add desktop 3.0.3 release script`。
+4. **重新构建**：`npm run build:desktop-ui` 通过 + `npx tauri build --bundles nsis` 成功；安装包 3,666,456B（3.5MB）。
+5. **签名**：用私钥 `C:\Users\Administrator\.tauri\zhishuai` 生成 `.sig`。**注意**：`.sig` 文件必须用 ASCII 编码保存；之前 3.0.2 用 UTF-8 写入时服务器 `verify-client` 报 `invalid base64 char: ï`，本次改为 `Set-Content -Encoding ASCII` 后验证通过。
+6. **上线**：exe + sig 已 scp 到 `/var/www/zhishuai/downloads/`；数据库 appVersion 插入 3.0.3 记录（sha256 `cce4694c45c7797c0434e1bca1d9ea84b62edb21f520f479ed10ac2d38d3efc4`，downloadUrl `https://baizhiji.net/downloads/zhishuai_3.0.3_x64-setup.exe`，buildNumber 303，status released）。
+7. **验证通过**：`curl https://baizhiji.net/api/version/desktop/latest.json` 返回 3.0.3 + 正确 signature/url；下载 HTTP 200（3666456B 与本地一致）；服务器端 `verify-client` 输出 **SIGNATURE VERIFIED OK**。
+
+### 用户侧建议
+- **重新下载安装 3.0.3**（`https://baizhiji.net/downloads/zhishuai_3.0.3_x64-setup.exe`）。
+- 安装后若桌面快捷方式仍显示旧图标，右键快捷方式 → 属性 → 更改图标 → 浏览到安装目录选择新 `.ico`，或运行 `ie4uinit.exe -show` / 重启资源管理器刷新 Windows 图标缓存。
+
+## 2026-08-20 历史会话（桌面版 3.0.2 发布：紫色品牌视觉升级 + LOGO 方案B 打包上线，但 UI 内部 logo.png 漏换）
 
 ### 已完成：桌面版 3.0.1 → 3.0.2 全链路发布
 1. **提交变更**：4 组提交清理工作区 —— ①`feat(desktop-ui)` 紫色品牌视觉升级 + 版本号 3.0.2（59 文件）；②`feat(assets)` LOGO 方案B 图标（apk assets + desktop tauri 全尺寸 + docs/logo-designs）；③`fix(server)` 取消 AI 兜底 Key（含发布辅助脚本）；④`chore(desktop)` 版本号 3.0.0→3.0.2 + .gitignore（忽略 server-audit/desktop-ui-audit json、tmp_*.js）。另加 `chore(release)` 提交 insert-appversion-3.0.2.js。
