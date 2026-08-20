@@ -28,10 +28,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
 
 /**
- * 获取用户的API Key（优先用户自己的，否则用系统环境变量）
+ * 获取用户的API Key（客户必须自行配置，无系统兜底）
  */
 async function resolveApiKey(userId: string): Promise<string | null> {
-  // 1. 尝试从数据库读取用户自己的Key
+  // 只使用数据库里用户自己配置的Key
   try {
     const userKey = await getPrimaryApiKey(userId, 'tokenhub');
     if (userKey && userKey.apiKey) {
@@ -40,13 +40,6 @@ async function resolveApiKey(userId: string): Promise<string | null> {
     }
   } catch (err: any) {
     console.warn(`[voice-clone] 读取用户API Key失败:`, err.message);
-  }
-
-  // 2. 使用系统环境变量
-  const envKey = process.env.TENCENT_TOKENHUB_API_KEY;
-  if (envKey) {
-    console.log('[voice-clone] 使用系统环境变量 API Key');
-    return envKey;
   }
 
   return null;

@@ -1,50 +1,56 @@
+"""
+清理 server/.env 中的 AI 兜底 Key（无系统兜底，客户只能使用自己配置的 Key）。
+
+用法：python scripts/fix_server_env.py [--path server/.env]
+"""
+import argparse
 import re
 
-with open('server/.env', 'r', encoding='utf-8') as f:
-    lines = f.readlines()
-
-ai_keys = [
+# 需要清理的 AI Key 环境变量（原兜底机制）
+AI_KEY_VARS = [
     'ALIYUN_DASHSCOPE_API_KEY',
     'TENCENT_API_KEY',
     'TENCENT_API_KEY_ID',
     'TENCENT_TOKENHUB_API_KEY',
     'DASHSCOPE_API_KEY',
+    'ARK_API_KEY',
+    'VOLCENGINE_API_KEY',
 ]
 
-aliyun_key = 'sk-ws-H.RPMYEYE.dzw3.MEYCIQDumxWPlxxNkZe2Uhs75oaS-ltlVQoCjBLOfjcD0gVXhAIhAKbRSABq0MMots4ZkSlXRg2tcDnB-66pCr75p6maCiZg'
-tencent_key = 'sk-5U3470t0hXEI6T6rYleZsDt30drktwfd6PpKR4h5JDDA9b7h'
-tencent_key_id = 'ak-20260511-a9a1ca7404955688482124b0af60cb24'
+KEY_PATTERN = re.compile(r'^\s*(?:export\s+)?(' + '|'.join(AI_KEY_VARS) + r')=')
 
-new_lines = []
-i = 0
-while i < len(lines):
-    line = lines[i]
-    stripped = line.strip()
-    if any(stripped.startswith(k + '=') for k in ai_keys):
-        # 跳过当前行及可能的续行
-        while not stripped.endswith('"') and i + 1 < len(lines):
+
+def clean(path: str) -> int:
+    with open(path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    removed = 0
+    kept = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if KEY_PATTERN.match(line):
+            # 跳过可能的续行（值带引号跨行）
+            stripped = line.strip()
+            while not (stripped.endswith('"') or stripped.endswith("'")) and i + 1 < len(lines):
+                i += 1
+                stripped = lines[i].strip()
+            removed += 1
             i += 1
-            stripped = lines[i].strip()
+            continue
+        kept.append(line)
         i += 1
-        continue
-    new_lines.append(line)
-    i += 1
 
-content = ''.join(new_lines)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.writelines(kept)
 
-content = re.sub(
-    r'(# 阿里云百炼 API Key（AI 模型服务）)\n',
-    rf'\1\nALIYUN_DASHSCOPE_API_KEY="{aliyun_key}"\n',
-    content,
-)
+    return removed
 
-content = re.sub(
-    r'(# 火山引擎 API Key（备用 AI 模型服务）)',
-    rf'TENCENT_API_KEY="{tencent_key}"\nTENCENT_API_KEY_ID="{tencent_key_id}"\nTENCENT_TOKENHUB_API_KEY="{tencent_key}"\nDASHSCOPE_API_KEY="{aliyun_key}"\n\n\1',
-    content,
-)
 
-with open('server/.env', 'w', encoding='utf-8') as f:
-    f.write(content)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='清理 AI 兜底 Key')
+    parser.add_argument('--path', default='server/.env', help='.env 文件路径')
+    args = parser.parse_args()
 
-print('env fixed')
+    n = clean(args.path)
+    print(f'cleaned {n} AI fallback key entries from {args.path}')

@@ -3,7 +3,7 @@
  * 智枢 AI SaaS 系统 - 后端
  *
  * 核心职责：
- * 1. 从数据库读取服务商配置 (ApiProvider) 和用户密钥 (ApiKey)
+ * 1. 从用户密钥表 (ApiKey) 读取客户自行配置的 API Key
  * 2. 支持腾讯云 TokenHub 和阿里云百炼两个 OpenAI 兼容服务商
  * 3. 智能模型选择（复用 aiModelRouter）
  * 4. 内容创意增强（社交媒体平台优化）
@@ -116,18 +116,6 @@ export interface VideoScriptResult {
     audio: string;
     subtitle: string;
   }>;
-}
-
-/** 服务商配置 */
-interface ProviderConfig {
-  id: string;
-  name: string;
-  type: string;
-  baseUrl: string;
-  apiKey: string;
-  enabled: boolean;
-  priority: number;
-  config: any;
 }
 
 /** API Key 记录（解密后） */
@@ -245,37 +233,6 @@ export class AIClient {
   // ==================== 服务商/密钥获取 ====================
 
   /**
-   * 从数据库获取服务商配置
-   */
-  private async getProviderConfig(providerType: 'tencent' | 'alibaba' | 'volcano'): Promise<ProviderConfig | null> {
-    const providers = await prisma.apiProvider.findMany({
-      where: { enabled: true },
-      orderBy: { priority: 'asc' },
-    });
-
-    // 匹配指定类型的服务商
-    const matched = providers.find(p => {
-      const type = (p.config as any)?.type || p.type;
-      return type === providerType || type === (providerType === 'tencent' ? 'tokenhub' : 'dashscope');
-    });
-
-    if (matched) {
-      return {
-        id: matched.id,
-        name: matched.name,
-        type: (matched.config as any)?.type || matched.type,
-        baseUrl: matched.baseUrl || PROVIDER_BASE_URLS[providerType],
-        apiKey: decrypt(matched.apiKey),
-        enabled: matched.enabled,
-        priority: matched.priority,
-        config: matched.config,
-      };
-    }
-
-    return null;
-  }
-
-  /**
    * 获取用户的 API Key（从 ApiKey 表）
    * 优先主 Key，其次备用 Key
    */
@@ -316,11 +273,9 @@ export class AIClient {
   }
 
   /**
-   * 获取最佳可用的 API Key 和 Base URL
-   * 策略：
-   * 1. 优先从用户 ApiKey 表获取
-   * 2. 其次从系统 ApiProvider 表获取
-   * 3. 两个服务商都尝试
+   * 获取用户配置的 API Key 和 Base URL
+   * 策略：客户必须自行配置 API Key，不使用系统兜底 Key。
+   * 按优先级尝试：用户指定的 > tencent > alibaba > volcano
    */
   private async resolveApiCredentials(
     userId: string,
@@ -332,7 +287,7 @@ export class AIClient {
       : ['tencent', 'alibaba', 'volcano'] as const;
 
     for (const provider of providerOrder) {
-      // 先查用户自己的 Key
+      // 只使用用户自己配置的 Key
       const userKey = await this.getUserApiKey(userId, provider);
       if (userKey) {
         const baseUrl = PROVIDER_BASE_URLS[provider];
@@ -343,37 +298,9 @@ export class AIClient {
           keyId: userKey.id,
         };
       }
-
-      // 再查系统级 Provider
-      const sysProvider = await this.getProviderConfig(provider);
-      if (sysProvider && sysProvider.apiKey) {
-        const baseUrl = sysProvider.baseUrl || PROVIDER_BASE_URLS[provider];
-        return {
-          apiKey: sysProvider.apiKey,
-          baseUrl: `${baseUrl}/chat/completions`.replace('/chat/completions/chat/completions', '/chat/completions'),
-          provider,
-          keyId: null,
-        };
-      }
-
-      // 最后 fallback 到环境变量（用于测试或默认兜底）
-      const envKey = provider === 'tencent'
-        ? process.env.TENCENT_API_KEY
-        : provider === 'volcano'
-          ? process.env.ARK_API_KEY
-          : process.env.ALIYUN_DASHSCOPE_API_KEY;
-      if (envKey) {
-        const baseUrl = PROVIDER_BASE_URLS[provider];
-        return {
-          apiKey: envKey,
-          baseUrl: `${baseUrl}/chat/completions`.replace('/chat/completions/chat/completions', '/chat/completions'),
-          provider,
-          keyId: null,
-        };
-      }
     }
 
-    throw new Error('没有可用的 API 密钥。请在设置中配置腾讯云 TokenHub、阿里云百炼或火山方舟的 API Key。');
+    throw new Error('没有可用的 API 密钥。请客户在设置中自行配置腾讯云 TokenHub、阿里云百炼或火山方舟的 API Key。');
   }
 
   /**

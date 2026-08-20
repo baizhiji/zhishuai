@@ -9,7 +9,7 @@ import { getPrimaryApiKey } from '../services/user-api-key.service';
 const router = Router();
 
 /**
- * 获取用户的API Key（优先用户自己的，否则用系统环境变量）
+ * 获取用户的API Key（客户必须自行配置，无系统兜底）
  */
 async function resolveApiKey(userId: string): Promise<{ key: string; provider: 'tencent' | 'aliyun' } | null> {
   // 1. 尝试腾讯云TokenHub
@@ -31,13 +31,6 @@ async function resolveApiKey(userId: string): Promise<{ key: string; provider: '
   } catch (err: any) {
     console.warn('[ai-tools] 读取用户dashscope Key失败:', err.message);
   }
-
-  // 3. 使用系统环境变量
-  const tokenhubEnv = process.env.TENCENT_TOKENHUB_API_KEY;
-  if (tokenhubEnv) return { key: tokenhubEnv, provider: 'tencent' };
-
-  const dashscopeEnv = process.env.DASHSCOPE_API_KEY;
-  if (dashscopeEnv) return { key: dashscopeEnv, provider: 'aliyun' };
 
   return null;
 }

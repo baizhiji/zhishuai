@@ -1,0 +1,89 @@
+# 智枢AI 每日安全审计报告
+
+**审计日期**：2026-08-20（第 14 次）
+**审计范围**：desktop-ui/（原 web/）、server/ 依赖漏洞 + 全仓硬编码凭据扫描
+**执行方式**：npm audit + 静态凭据模式扫描
+
+---
+
+## 一、npm audit 漏洞清单
+
+### 1.1 desktop-ui/（11 HIGH，CRITICAL 0，与 08-19 完全一致）
+
+| 漏洞包 | 严重性 | 说明 | 修复方式 |
+|--------|--------|------|----------|
+| `glob`（经 eslint-config-next） | HIGH | CLI 命令注入 GHSA-5j98-mcp5-4vw2（CWE-78，CVSS 7.5） | 升级 eslint-config-next@16.3.1（破坏性） |
+| `@typescript-eslint/parser` / `typescript-estree` | HIGH | 经 minimatch ReDoS 链 | `npm audit fix`（非破坏性） |
+| `eslint-config-next`（含 @next/eslint-plugin-next） | HIGH | 依赖 glob 命令注入 | 升级 16.3.1（破坏性） |
+| `postcss`（next 内置 + 顶层） | HIGH | 路径遍历 .map 文件泄露 GHSA-r28c（CVSS 7.5）、源映射加载漏洞 | 升级 next@16.3.1（破坏性） |
+| `next` 本体 | HIGH | 20+ 公告（DoS / SSRF / XSS / Cache Poisoning） | 升级 next@16.3.1（破坏性） |
+| `xlsx`（SheetJS，直接依赖） | HIGH | 原型污染 GHSA-4r6h（CVSS 7.8）+ ReDoS GHSA-5pgg | **无修复版本，需替换依赖** |
+
+### 1.2 server/（2 HIGH + 2 MODERATE，CRITICAL 0，与 08-19 完全一致）
+
+| 漏洞包 | 严重性 | 说明 | 修复方式 |
+|--------|--------|------|----------|
+| `image-size`（经 pptxgenjs） | HIGH | ICNS/JXL/HEIF 解析无限循环 DoS ×2（CWE-835，CVSS 7.5） | 升级 pptxgenjs@1.1.5（破坏性） |
+| `pptxgenjs`（直接依赖） | HIGH | 依赖 image-size 漏洞链 | 升级 1.1.5（破坏性） |
+| `uuid`（exceljs 内置） | MODERATE | v3/v5/v6 缓冲区边界缺失 GHSA-w5hq（CWE-787） | 升级 exceljs@3.4.0（破坏性） |
+| `exceljs`（直接依赖） | MODERATE | 依赖 uuid 漏洞链 | 升级 3.4.0（破坏性） |
+
+### 1.3 汇总
+
+| 目录 | CRITICAL | HIGH | MODERATE | 趋势 |
+|------|----------|------|----------|------|
+| desktop-ui/ | 0 | 11 | 0 | 与 08-19 一致（连续 14 天 CRITICAL=0） |
+| server/ | 0 | 2 | 2 | 与 08-19 一致 |
+
+---
+
+## 二、硬编码凭据检查
+
+| 检查项 | 状态 | 说明 |
+|--------|------|------|
+| `deploy/deploy.sh` | ✅ 通过 | 从 .env 提取 DATABASE_URL，无硬编码（08-16 修复后持续有效） |
+| `server/.env.example` | ✅ 通过 | ENCRYPTION_KEY / API_KEY_ENCRYPTION_KEY 已登记（无默认值） |
+| `ai-client.ts:208` | ❌ **CRITICAL（连续第 6 天）** | `ENCRYPTION_KEY` 硬编码回退 `'zhishuai-default-key-32chars!!'`，密钥公开导致 AES-256 加密形同虚设 |
+| `user-api-key.service.ts:15` | ❌ **CRITICAL（连续第 6 天）** | 同上，同一默认密钥回退 |
+| `admin-api-providers.ts:8-10` | ⚠️ 功能性风险 | API_KEY_ENCRYPTION_KEY 缺失时 `crypto.randomBytes(32)` 随机回退，进程重启后存量数据无法解密 |
+| 全仓扫描（ts/tsx/js/py/sh/rs） | ✅ 通过 | 无其他新增硬编码凭据；匹配项均为 API 路径或测试 token，非凭据 |
+
+**结论**：硬编码凭据无新增、无修复，遗留 1 处 CRITICAL（同一默认密钥出现在 2 个文件），连续第 6 天。
+
+---
+
+## 三、修复建议（针对 CRITICAL）
+
+npm 依赖层面 CRITICAL 已连续 14 天为 0，当前主要风险为 **ENCRYPTION_KEY 硬编码默认密钥回退**，属 CRITICAL 级，修复建议如下：
+
+### P0 — 密钥管理（人工确认后执行，已连续催促 6 天）
+
+1. **fail-fast 改造**：将两处 `process.env.ENCRYPTION_KEY || 'zhishuai-default-key-32chars!!'` 改为缺失即抛错退出，彻底移除默认密钥路径
+   - `server/src/services/ai-client.ts:208`
+   - `server/src/services/user-api-key.service.ts:15`
+2. **密钥轮换 + 存量重加密**：由于默认密钥已公开且曾用于生产数据加密，必须：
+   - 生成新随机密钥写入生产 .env
+   - 编写一次性重加密脚本（读旧密钥解密 → 新密钥加密回写）
+   - 脚本需幂等、可重跑，执行前备份数据库
+3. **admin-api-providers.ts:8-10 同步 fail-fast**：API_KEY_ENCRYPTION_KEY 缺失即启动报错，避免随机密钥导致重启后密文不可解
+
+### P1 — 依赖修复（可自动执行）
+
+| 动作 | 命令 | 风险 |
+|------|------|------|
+| 非破坏性修复 | `cd desktop-ui && npm audit fix` | js-yaml/minimatch/nanoid 等直接消解 |
+| 破坏性升级 | 升级 next + eslint-config-next 至 16.3.1 | 需回归测试 20+ HIGH 公告消解 |
+| 替换 xlsx | 迁移至 exceljs（server 已用） | 表格导出功能需适配 |
+
+### P2 — server 依赖
+
+升级 `pptxgenjs@1.1.5`、`exceljs@3.4.0`（均破坏性，需回归 PPT/Excel 生成）。
+
+---
+
+## 四、结论
+
+依赖供应链平稳（CRITICAL=0 连续 14 天，HIGH 数量与昨日完全一致），无新增漏洞。主要风险已完全集中在密钥管理：**默认密钥回退使加密形同虚设（CRITICAL），且已连续 6 天未处理**。P0 修复建议已完整写入本节，建议尽快安排人工确认执行密钥轮换。
+
+---
+*本报告由每日自动安全审计生成，仅供参考。*

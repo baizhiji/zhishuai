@@ -44,21 +44,6 @@ async function resolveApiKey(userId: string): Promise<{ key: string; model: stri
     };
   } catch {}
 
-  // 2. 环境变量
-  if (process.env.TENCENT_TOKENHUB_API_KEY) return {
-    key: process.env.TENCENT_TOKENHUB_API_KEY,
-    model: 'hunyuan-2.0-instruct-20251111',
-    baseUrl: 'https://tokenhub.cloud.tencent.com',
-    headers: { 'X-TC-Provider': 'tokenhub' },
-  };
-
-  if (process.env.DASHSCOPE_API_KEY) return {
-    key: process.env.DASHSCOPE_API_KEY,
-    model: 'qwen-plus',
-    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    headers: {},
-  };
-
   return null;
 }
 

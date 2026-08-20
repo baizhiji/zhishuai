@@ -109,12 +109,12 @@ const MODEL_CONFIG = {
 };
 
 /**
- * 获取用户API Key（优先用用户自行配置的，否则用系统环境变量）
+ * 获取用户API Key（客户必须自行配置，无系统兜底）
  */
 async function resolveApiKey(userId: string, provider: 'aliyun' | 'tencent' | 'volcano'): Promise<string | null> {
-  // 1. 尝试从数据库读取用户自己的Key
+  // 只使用数据库里用户自己配置的Key
   const dbProvider = provider === 'aliyun' ? 'dashscope' : provider === 'volcano' ? 'ark' : 'tokenhub';
-  
+
   try {
     const userKey = await getPrimaryApiKey(userId, dbProvider);
     if (userKey && userKey.apiKey) {
@@ -123,18 +123,6 @@ async function resolveApiKey(userId: string, provider: 'aliyun' | 'tencent' | 'v
     }
   } catch (err: any) {
     console.warn(`[ai-chat] 读取用户 ${userId} 的 ${dbProvider} API Key 失败:`, err.message);
-  }
-
-  // 2. 如果用户没有配置，使用系统环境变量
-  const envKey = provider === 'aliyun'
-    ? process.env.DASHSCOPE_API_KEY
-    : provider === 'volcano'
-      ? process.env.ARK_API_KEY
-    : process.env.TENCENT_TOKENHUB_API_KEY;
-
-  if (envKey) {
-    console.log(`[ai-chat] 使用系统环境变量 ${provider} API Key`);
-    return envKey;
   }
 
   return null;
@@ -191,7 +179,7 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
       const providerName = provider === 'aliyun' ? '阿里云百炼' : '腾讯云TokenHub';
       res.status(400).json({ 
         error: 'API Key未配置',
-        message: `请先在「API Key管理」页面配置${providerName}的API Key，或联系管理员配置系统API Key`,
+        message: `请先在「API Key管理」页面配置${providerName}的API Key`,
         provider: providerName
       });
       return;
