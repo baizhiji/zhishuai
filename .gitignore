@@ -91,7 +91,11 @@ desktop/src-tauri/Cargo.lock
 desktop/*.log
 # 临时审计/截图产物
 scripts/tmp_*.json
+scripts/tmp_*.js
 scripts/douyin-login-test.png
+# 审计结果 JSON（不提交，仅本地分析用）
+server/server-audit-*.json
+desktop-ui/desktop-ui-audit*.json
 
 # 9. 服务器 downloads 目录（CI 上传的桌面安装包与签名，
 #    避免服务器上 git stash push -u 误处理安装包文件）
