@@ -1,6 +1,24 @@
 # 智枢AI — 会话记忆文件（AI 启动时必读）
 
-> 最后更新：2026-08-20 (取消 AI 兜底 Key：客户仅能使用自己配置的 API Key) | 提交数：546+ | 项目启动：2026-04-25
+> 最后更新：2026-08-20 (桌面版 3.0.2 发布：紫色视觉升级 + LOGO 方案B) | 提交数：550+ | 项目启动：2026-04-25
+
+## 2026-08-20 本次会话（桌面版 3.0.2 发布：紫色品牌视觉升级 + LOGO 方案B 打包上线）
+
+### 已完成：桌面版 3.0.1 → 3.0.2 全链路发布
+1. **提交变更**：4 组提交清理工作区 —— ①`feat(desktop-ui)` 紫色品牌视觉升级 + 版本号 3.0.2（59 文件）；②`feat(assets)` LOGO 方案B 图标（apk assets + desktop tauri 全尺寸 + docs/logo-designs）；③`fix(server)` 取消 AI 兜底 Key（含发布辅助脚本）；④`chore(desktop)` 版本号 3.0.0→3.0.2 + .gitignore（忽略 server-audit/desktop-ui-audit json、tmp_*.js）。另加 `chore(release)` 提交 insert-appversion-3.0.2.js。
+2. **版本号升级 4 处**：`desktop/src-tauri/tauri.conf.json`、`Cargo.toml`、`desktop/package.json`、`desktop-ui/next.config.js` 均 3.0.1 → 3.0.2（上一版 3.0.1 发布时本地 git 未同步版本号，本次从 3.0.0 基线直接升级）。
+3. **构建+签名**：`npm run build:desktop-ui`（TypeScript 类型检查通过）+ `npx tauri build --bundles nsis` 成功；安装包 4,366,100B（4.2MB）。用 `npx tauri signer sign --private-key-path C:\Users\Administrator\.tauri\zhishuai --password zhishuai-2026-sign` 生成 `.sig`。注意：PowerShell 传中文文件名（智枢AI_*.exe）会乱码，需先复制为 ASCII 名 `zhishuai_3.0.2_x64-setup.exe` 再签名。
+4. **上线**：exe + sig 已 scp 到 `/var/www/zhishuai/downloads/`；数据库 appVersion 插入 3.0.2 记录（sha256 `c876abe557cdfc8db4d8622896925db0f1755af9062b94580df1592ba98e4bfa`，downloadUrl `https://baizhiji.net/downloads/zhishuai_3.0.2_x64-setup.exe`，buildNumber 302，status released）；脚本 `scripts/insert-appversion-3.0.2.js`（幂等，已在服务器执行后删除）。
+5. **验证通过**：`curl https://baizhiji.net/api/version/desktop/latest.json` 返回 3.0.2 + 正确 signature/url；下载 HTTP 200（4366100B 与本地一致）；服务器端 `/home/ubuntu/verify-client-rs` 权威验证 **SIGNATURE VERIFIED OK**（minisign 向量自测通过，签名真实有效）；pubkey 与 tauri.conf.json 配置一致。
+
+### 注意
+- PowerShell 下涉及中文文件名的 scp/签名命令要用通配符（`*3.0.2*setup.exe`）或先复制为 ASCII 文件名。
+- 服务器 appVersion 验证接口域名是 `baizhiji.net`（不是 api.baizhiji.net）。
+- 3.0.2 安装包已在线上，老客户端可自动更新；桌面 UI 改动已打包进 3.0.2。
+
+### 遗留
+- 私钥 `C:\Users\Administrator\.tauri\` 请务必备份（丢失后无法发布新版）。
+- CI `TAURI_SIGNING_PRIVATE_KEY` secret 仍未配置（CI 产未签名包，不能自动更新）。
 
 ## 2026-08-20 本次会话（取消 AI 兜底 Key：客户仅能使用自己配置的 API Key）
 
