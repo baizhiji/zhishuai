@@ -76,8 +76,10 @@ export default function LoginPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #2A1B5C 0%, #4C1D95 45%, #7C3AED 100%)',
         padding: 20,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
       {/* 装饰圆形 */}
@@ -144,7 +146,7 @@ export default function LoginPage() {
               width: 72,
               height: 72,
               borderRadius: 20,
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -189,7 +191,7 @@ export default function LoginPage() {
                   border: 'none',
                   borderRadius: 8,
                   background: selectedRole === item.value ? '#fff' : 'transparent',
-                  color: selectedRole === item.value ? '#667eea' : '#666',
+                  color: selectedRole === item.value ? '#6d28d9' : '#666',
                   fontWeight: selectedRole === item.value ? 600 : 400,
                   fontSize: 14,
                   cursor: 'pointer',
@@ -241,9 +243,9 @@ export default function LoginPage() {
                 height: 52,
                 fontSize: 16,
                 fontWeight: 500,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%)',
                 border: 'none',
-                boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
+                boxShadow: '0 4px 20px rgba(124, 58, 237, 0.4)',
               }}
             >
               登 录
@@ -262,11 +264,11 @@ export default function LoginPage() {
         >
           <p style={{ color: '#999', fontSize: 12, margin: 0 }}>账号由管理员统一开通管理</p>
           <p style={{ color: '#999', fontSize: 12, margin: '12px 0 0' }}>
-            <Link href="/terms" target="_blank" style={{ color: '#667eea' }}>
+            <Link href="/terms" target="_blank" style={{ color: '#6d28d9' }}>
               服务条款
             </Link>
             <span style={{ margin: '0 8px' }}>|</span>
-            <Link href="/privacy" target="_blank" style={{ color: '#667eea' }}>
+            <Link href="/privacy" target="_blank" style={{ color: '#6d28d9' }}>
               隐私政策
             </Link>
           </p>

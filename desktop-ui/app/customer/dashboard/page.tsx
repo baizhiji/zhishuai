@@ -83,7 +83,7 @@ const EMPTY_SUMMARY: CustomerSummary = {
 // ==================== 常量 ====================
 
 const COLORS = {
-  primary: '#1890ff',
+  primary: '#6d28d9',
   success: '#52c41a',
   warning: '#faad14',
   purple: '#722ed1',
@@ -93,8 +93,8 @@ const COLORS = {
 
 const cardBase: React.CSSProperties = {
   borderRadius: 12,
-  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-  border: '1px solid #f0f0f0',
+  boxShadow: '0 2px 12px rgba(76, 29, 149, 0.06)',
+  border: '1px solid rgba(109, 40, 217, 0.08)',
 };
 
 const numFmt = (n: number) => (n || 0).toLocaleString('zh-CN');

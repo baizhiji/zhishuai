@@ -178,7 +178,7 @@ export default function RecruitmentPage() {
       {/* KPI 卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={12} sm={6}>
-          <Card><Statistic title="开放岗位" value={stats.activeJobs} prefix={<TeamOutlined />} valueStyle={{ color: '#1677ff' }} /></Card>
+          <Card><Statistic title="开放岗位" value={stats.activeJobs} prefix={<TeamOutlined />} valueStyle={{ color: '#6d28d9' }} /></Card>
         </Col>
         <Col xs={12} sm={6}>
           <Card><Statistic title="候选人总数" value={stats.totalCandidates} prefix={<UserSwitchOutlined />} valueStyle={{ color: '#52c41a' }} /></Card>
@@ -234,7 +234,7 @@ export default function RecruitmentPage() {
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
         <Col xs={24} sm={8}>
           <Card hoverable onClick={() => router.push('/customer/recruitment/publish')} style={{ textAlign: 'center', borderRadius: 8 }}>
-            <SendOutlined style={{ fontSize: 36, color: '#1677ff', marginBottom: 12 }} />
+            <SendOutlined style={{ fontSize: 36, color: '#6d28d9', marginBottom: 12 }} />
             <Title level={5}>发布新岗位</Title>
             <Text type="secondary">一键发布到多个招聘平台</Text>
           </Card>

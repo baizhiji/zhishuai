@@ -215,7 +215,7 @@ export default function ApiStatsPage() {
               title="总调用次数"
               value={stats.totalCalls}
               prefix={<ApiOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: '#6d28d9' }}
             />
           </Card>
         </Col>
@@ -268,7 +268,7 @@ export default function ApiStatsPage() {
                   yAxisId="left"
                   type="monotone"
                   dataKey="calls"
-                  stroke="#1890ff"
+                  stroke="#6d28d9"
                   name="调用次数"
                 />
                 <Line yAxisId="right" type="monotone" dataKey="cost" stroke="#faad14" name="费用" />

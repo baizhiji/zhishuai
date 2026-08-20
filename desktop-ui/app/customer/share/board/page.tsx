@@ -20,7 +20,7 @@ interface ShareDashboardData {
   deviceBreakdown: { device: string; count: number; percentage: number }[];
 }
 
-const DEVICE_COLORS = ['#1677ff', '#52c41a', '#fa8c16', '#722ed1'];
+const DEVICE_COLORS = ['#6d28d9', '#52c41a', '#fa8c16', '#722ed1'];
 
 export default function ShareBoardPage() {
   const [loading, setLoading] = useState(false);
@@ -88,7 +88,7 @@ export default function ShareBoardPage() {
       {/* KPI 卡片 */}
       <Row gutter={[16, 16]}>
         {[
-          { title: '分享链接数', value: d.totalLinks.toLocaleString(), icon: <ShareAltOutlined />, color: '#1677ff' },
+          { title: '分享链接数', value: d.totalLinks.toLocaleString(), icon: <ShareAltOutlined />, color: '#6d28d9' },
           { title: '总浏览量', value: d.totalViews.toLocaleString(), icon: <EyeOutlined />, color: '#52c41a' },
           { title: '独立访客', value: d.uniqueVisitors.toLocaleString(), icon: <UserOutlined />, color: '#722ed1' },
           { title: '转化率', value: `${d.conversionRate}%`, icon: <RiseOutlined />, color: '#fa8c16' },
@@ -117,7 +117,7 @@ export default function ShareBoardPage() {
                     <div style={{
                       width: 20,
                       height: `${(d.views / maxTrend) * 160}px`,
-                      background: 'linear-gradient(180deg, #1677ff, #69b1ff)',
+                      background: 'linear-gradient(180deg, #6d28d9, #69b1ff)',
                       borderRadius: '3px 3px 0 0',
                       transition: 'height 0.3s',
                     }} title={`浏览量: ${d.views}`} />
@@ -134,7 +134,7 @@ export default function ShareBoardPage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12 }}>
-              <Space><span style={{ display: 'inline-block', width: 10, height: 10, background: '#1677ff', borderRadius: 3 }} /> <Text type="secondary" style={{ fontSize: 12 }}>浏览量</Text></Space>
+              <Space><span style={{ display: 'inline-block', width: 10, height: 10, background: '#6d28d9', borderRadius: 3 }} /> <Text type="secondary" style={{ fontSize: 12 }}>浏览量</Text></Space>
               <Space><span style={{ display: 'inline-block', width: 10, height: 10, background: '#52c41a', borderRadius: 3 }} /> <Text type="secondary" style={{ fontSize: 12 }}>访客</Text></Space>
             </div>
           </Card>
@@ -184,7 +184,7 @@ export default function ShareBoardPage() {
                 <div style={{
                   height: 6,
                   width: `${(link.views / maxLink) * 100}%`,
-                  background: `linear-gradient(90deg, #1677ff, #69b1ff)`,
+                  background: `linear-gradient(90deg, #6d28d9, #69b1ff)`,
                   borderRadius: 3,
                   minWidth: 30,
                 }} />

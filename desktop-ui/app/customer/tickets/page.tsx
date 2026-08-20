@@ -314,7 +314,7 @@ export default function CustomerTicketsPage() {
       {/* Status Summary */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
         {[
-          { label: '待处理', count: statusCounts.pending, color: '#1677ff' },
+          { label: '待处理', count: statusCounts.pending, color: '#6d28d9' },
           { label: '处理中', count: statusCounts.processing, color: '#fa8c16' },
           { label: '已解决', count: statusCounts.resolved, color: '#52c41a' },
           { label: '已关闭', count: statusCounts.closed, color: '#8c8c8c' },
@@ -424,7 +424,7 @@ export default function CustomerTicketsPage() {
                     marginBottom: 16, padding: 12,
                     background: response.userRole === 'user' ? '#f6ffed' : '#f0f5ff',
                     borderRadius: 8,
-                    borderLeft: `3px solid ${response.userRole === 'user' ? '#52c41a' : '#1890ff'}`,
+                    borderLeft: `3px solid ${response.userRole === 'user' ? '#52c41a' : '#6d28d9'}`,
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>

@@ -237,7 +237,7 @@ export default function AdminAgentsPage() {
       width: 200,
       render: (_, r) => (
         <Space>
-          <ContactsOutlined style={{ color: '#1677ff' }} />
+          <ContactsOutlined style={{ color: '#6d28d9' }} />
           <div>
             <div style={{ fontWeight: 500 }}>{r.name}</div>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -286,7 +286,7 @@ export default function AdminAgentsPage() {
       key: 'customers',
       width: 100,
       render: (_, r) => (
-        <Text strong style={{ color: '#1677ff' }}>
+        <Text strong style={{ color: '#6d28d9' }}>
           {r._count?.agentRelations || 0}
         </Text>
       ),
@@ -350,8 +350,8 @@ export default function AdminAgentsPage() {
             <Statistic
               title="代理商总数"
               value={stats.total}
-              prefix={<ContactsOutlined style={{ color: '#1677ff' }} />}
-              valueStyle={{ color: '#1677ff' }}
+              prefix={<ContactsOutlined style={{ color: '#6d28d9' }} />}
+              valueStyle={{ color: '#6d28d9' }}
             />
           </Card>
         </Col>
@@ -561,7 +561,7 @@ export default function AdminAgentsPage() {
                             title="名下客户数"
                             value={detailAgent._count?.agentRelations || 0}
                             prefix={<TeamOutlined />}
-                            valueStyle={{ color: '#1677ff' }}
+                            valueStyle={{ color: '#6d28d9' }}
                           />
                         </Card>
                       </Col>

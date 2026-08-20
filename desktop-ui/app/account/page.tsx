@@ -75,7 +75,7 @@ export default function AccountPage() {
               icon: ICON_MAP[s.key] || <UserOutlined />,
               name: s.name || s.key,
               value: `${s.value || s.count || 0}次`,
-              color: s.color || '#1890ff',
+              color: s.color || '#6d28d9',
             }))
           );
         }

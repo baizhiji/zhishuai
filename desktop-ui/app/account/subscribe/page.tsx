@@ -54,7 +54,7 @@ const PLANS = [
     id: 'monthly',
     name: '月度会员',
     duration: '1个月',
-    color: '#1890ff',
+    color: '#6d28d9',
     features: [
       '无限次内容生成',
       '矩阵管理最多5个账号',
@@ -265,7 +265,7 @@ export default function SubscribePage() {
                   <Col span={8} key={code}>
                     <Card size="small" style={{ opacity: enabled ? 1 : 0.55 }}>
                       <div className="flex items-center mb-2">
-                        <div style={{ fontSize: '20px', color: enabled ? '#1890ff' : '#999', marginRight: '12px' }}>
+                        <div style={{ fontSize: '20px', color: enabled ? '#6d28d9' : '#999', marginRight: '12px' }}>
                           {meta.icon}
                         </div>
                         <div>

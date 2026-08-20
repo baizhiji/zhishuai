@@ -323,7 +323,7 @@ export default function AdminAnnouncementPage() {
             <Statistic
               title="公告总数"
               value={stats.total}
-              prefix={<NotificationOutlined style={{ color: '#1677ff' }} />}
+              prefix={<NotificationOutlined style={{ color: '#6d28d9' }} />}
             />
           </Card>
         </Col>

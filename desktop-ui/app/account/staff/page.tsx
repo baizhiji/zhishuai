@@ -238,7 +238,7 @@ export default function StaffManagementPage() {
         <Col span={8}>
           <Card size="small">
             <Space>
-              <TeamOutlined style={{ fontSize: '24px', color: '#1890ff' }} />
+              <TeamOutlined style={{ fontSize: '24px', color: '#6d28d9' }} />
               <div>
                 <div>
                   <Text type="secondary">员工总数</Text>

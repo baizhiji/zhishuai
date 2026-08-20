@@ -171,7 +171,7 @@ export default function KnowledgeBasePage() {
       key: 'name',
       render: (name: string, record: KnowledgeBase) => (
         <Space>
-          <DatabaseOutlined style={{ color: '#1890ff' }} />
+          <DatabaseOutlined style={{ color: '#6d28d9' }} />
           <div>
             <Text strong>{name}</Text>
             <div>
@@ -364,7 +364,7 @@ export default function KnowledgeBasePage() {
             <Statistic
               title="知识库总数"
               value={stats.total}
-              prefix={<DatabaseOutlined style={{ color: '#1890ff' }} />}
+              prefix={<DatabaseOutlined style={{ color: '#6d28d9' }} />}
             />
           </Card>
         </Col>

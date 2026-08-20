@@ -114,8 +114,8 @@ const AgentNavbar: React.FC = () => {
     return (
       <Sider
         width={220}
+        className="zs-sidebar"
         style={{
-          background: '#001529',
           height: '100vh',
           position: 'fixed',
           left: 0,
@@ -131,27 +131,20 @@ const AgentNavbar: React.FC = () => {
     <>
       <Sider
         width={220}
+        className="zs-sidebar"
         style={{
-          background: '#001529',
           height: '100vh',
           position: 'fixed',
           left: 0,
           top: 0,
         }}
       >
-        <div
-          style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: 18,
-            fontWeight: 'bold',
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-          }}
-        >
-          智枢AI 代理后台
+        <div className="zs-sidebar-logo">
+          <span className="logo-mark">智</span>
+          <span>
+            <div className="logo-title">智枢 AI</div>
+            <div className="logo-sub">代理商后台</div>
+          </span>
         </div>
         <Menu
           theme="dark"
@@ -290,7 +283,7 @@ const AgentNavbar: React.FC = () => {
                 padding: '6px 16px',
                 border: 'none',
                 borderRadius: 6,
-                background: '#1677ff',
+                background: '#6d28d9',
                 color: '#fff',
                 cursor: passwordLoading ? 'not-allowed' : 'pointer',
                 opacity: passwordLoading ? 0.6 : 1,

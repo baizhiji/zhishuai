@@ -218,7 +218,7 @@ export default function AutoRecruitmentPage() {
     >
       {/* 摘要 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={8}><Card size="small"><Statistic title="搜索配置" value={stats.active} suffix={`/ ${configs.length}`} prefix={<SettingOutlined />} valueStyle={{ color: '#1677ff' }} /></Card></Col>
+        <Col xs={8}><Card size="small"><Statistic title="搜索配置" value={stats.active} suffix={`/ ${configs.length}`} prefix={<SettingOutlined />} valueStyle={{ color: '#6d28d9' }} /></Card></Col>
         <Col xs={8}><Card size="small"><Statistic title="已执行搜索" value={stats.totalSearched} prefix={<SearchOutlined />} valueStyle={{ color: '#52c41a' }} /></Card></Col>
         <Col xs={8}><Card size="small"><Statistic title="自动沟通中" value={stats.autoContact} prefix={<RobotOutlined />} valueStyle={{ color: '#722ed1' }} /></Card></Col>
       </Row>

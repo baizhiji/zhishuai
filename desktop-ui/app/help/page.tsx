@@ -78,7 +78,7 @@ const helpArticles: HelpArticle[] = [
     title: '快速入门指南',
     category: 'getting-started',
     description: '5分钟快速上手智枢 AI',
-    icon: <BookOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
+    icon: <BookOutlined style={{ fontSize: 32, color: '#6d28d9' }} />,
   },
   {
     id: 2,
@@ -171,11 +171,11 @@ export default function HelpCenter() {
   };
 
   return (
-    <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
+    <div style={{ padding: 24, background: '#f4f1fa', minHeight: '100vh' }}>
       {/* Hero */}
       <div
         style={{
-          background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)',
+          background: 'linear-gradient(135deg, #6d28d9 0%, #722ed1 100%)',
           borderRadius: 16,
           padding: '48px 24px',
           textAlign: 'center',
@@ -342,7 +342,7 @@ export default function HelpCenter() {
                   maxWidth: '70%',
                   padding: '12px 16px',
                   borderRadius: 12,
-                  background: msg.type === 'user' ? '#1890ff' : '#f0f0f0',
+                  background: msg.type === 'user' ? '#6d28d9' : '#f0f0f0',
                   color: msg.type === 'user' ? 'white' : 'inherit',
                 }}
               >

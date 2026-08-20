@@ -101,7 +101,7 @@ export const STYLE_DARK_OVERLAY: BannerStyle = {
 
 /** 渐变品牌色底（智枢蓝紫渐变） */
 export const STYLE_BRAND_GRADIENT: BannerStyle = {
-  backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  backgroundColor: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
   textColor: '#FFFFFF',
   fontSize: 32,
   fontFamily: 'Alimama ShuHeiTi, sans-serif',

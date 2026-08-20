@@ -170,12 +170,11 @@ export default function AdminDashboardPage() {
         </Typography.Title>
         <Row gutter={16}>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card zs-stat-purple">
               <Statistic
                 title="代理商总数"
                 value={statistics.totalAgents}
                 prefix={<ContactsOutlined />}
-                valueStyle={{ color: '#1677ff' }}
               />
               <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
                 活跃 {statistics.activeAgents} 家
@@ -183,7 +182,7 @@ export default function AdminDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card">
               <Statistic
                 title="本月新增代理商"
                 value={statistics.newAgentsThisMonth}
@@ -196,12 +195,11 @@ export default function AdminDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card zs-stat-purple">
               <Statistic
                 title="名下客户总数"
                 value={statistics.totalCustomers}
                 prefix={<TeamOutlined />}
-                valueStyle={{ color: '#722ed1' }}
               />
               <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
                 活跃 {statistics.activeCustomers} / 冻结 {statistics.disabledCustomers}
@@ -209,7 +207,7 @@ export default function AdminDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card">
               <Statistic
                 title="本月新增客户"
                 value={statistics.newCustomersThisMonth}
@@ -229,7 +227,7 @@ export default function AdminDashboardPage() {
         </Typography.Title>
         <Row gutter={16}>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card zs-stat-purple">
               <Statistic
                 title="素材总量"
                 value={statistics.totalMaterials}
@@ -238,7 +236,7 @@ export default function AdminDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card zs-stat-purple">
               <Statistic
                 title="已发布内容"
                 value={statistics.totalPublished}
@@ -247,7 +245,7 @@ export default function AdminDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card">
               <Statistic
                 title="待处理工单"
                 value={statistics.pendingTickets}
@@ -267,12 +265,11 @@ export default function AdminDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} md={6}>
-            <Card>
+            <Card className="zs-stat-card zs-stat-purple">
               <Statistic
                 title="API 服务商"
                 value={statistics.totalApiProviders}
                 prefix={<ApiOutlined />}
-                valueStyle={{ color: '#13c2c2' }}
               />
               <div style={{ fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
                 已启用 {statistics.enabledApiProviders} 个
@@ -315,7 +312,7 @@ export default function AdminDashboardPage() {
                         style={{
                           width: `${pct}%`,
                           height: '100%',
-                          background: idx < 3 ? '#1677ff' : '#8c8c8c',
+                          background: idx < 3 ? '#6d28d9' : '#8c8c8c',
                           borderRadius: 4,
                           transition: 'width 0.3s ease',
                         }}

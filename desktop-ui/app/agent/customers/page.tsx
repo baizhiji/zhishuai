@@ -390,8 +390,8 @@ export default function CustomerManagementPage() {
             <Statistic
               title="客户总数"
               value={statistics.totalCustomers}
-              prefix={<TeamOutlined style={{ color: '#1677ff' }} />}
-              valueStyle={{ color: '#1677ff', fontSize: 24 }}
+              prefix={<TeamOutlined style={{ color: '#6d28d9' }} />}
+              valueStyle={{ color: '#6d28d9', fontSize: 24 }}
             />
           </Card>
         </Col>

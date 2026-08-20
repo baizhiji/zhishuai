@@ -3,11 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --primary-color: #1890ff;
+  --primary-color: #6d28d9;
   --success-color: #52c41a;
   --warning-color: #faad14;
   --error-color: #f5222d;
-  --info-color: #1890ff;
+  --info-color: #6d28d9;
+  --brand-purple: #4c1d95;
+  --brand-purple-light: #6d28d9;
+  --brand-purple-lighter: #a78bfa;
+  --brand-bg: #f4f1fa;
 }
 
 * {
@@ -79,11 +83,11 @@ body {
 
 /* 渐变背景 */
 .gradient-bg {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
 }
 
 .gradient-bg-blue {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
 }
 
 .gradient-bg-green {
@@ -157,4 +161,194 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ══════════════════════════════════════════════
+   智枢AI · 紫色品牌商务科技风（desktop 版）
+   ══════════════════════════════════════════════ */
+
+/* ── 滚动条紫色美化 ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c4b5fd 0%, #a78bfa 100%);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 100%);
+}
+
+/* ── 内容区：浅紫灰渐变 + 品牌光晕 ── */
+.zs-content {
+  background:
+    radial-gradient(1000px 420px at 88% -120px, rgba(124, 58, 237, 0.1), transparent 60%),
+    radial-gradient(800px 320px at -80px 100%, rgba(76, 29, 149, 0.08), transparent 55%),
+    linear-gradient(180deg, #f6f3fc 0%, #f1ecf9 100%);
+}
+
+/* ── 顶栏毛玻璃 ── */
+.zs-glass-header {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-bottom: 1px solid rgba(109, 40, 217, 0.12) !important;
+  box-shadow: 0 1px 12px rgba(76, 29, 149, 0.05);
+}
+
+/* ── 侧边栏：深紫渐变 + 光晕纹理 ── */
+.zs-sidebar {
+  background: linear-gradient(180deg, #120c2b 0%, #221a52 55%, #2f1d6e 100%) !important;
+}
+.zs-sidebar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(240px 130px at 15% 0%, rgba(139, 92, 246, 0.18), transparent 70%),
+    radial-gradient(200px 160px at 100% 45%, rgba(76, 29, 149, 0.28), transparent 70%);
+}
+
+/* ── 侧边栏 Logo 区 ── */
+.zs-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 64px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.zs-sidebar-logo .logo-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.45);
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.zs-sidebar-logo .logo-title {
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+.zs-sidebar-logo .logo-sub {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+}
+
+/* ── 深色菜单选中态：渐变高亮 + 左侧白色指示条 ── */
+.ant-menu-dark .ant-menu-item-selected,
+.ant-menu-dark > .ant-menu .ant-menu-item-selected {
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.9) 0%, rgba(91, 33, 182, 0.9) 100%) !important;
+  box-shadow: 0 2px 10px rgba(109, 40, 217, 0.35);
+  position: relative;
+  color: #fff !important;
+}
+.ant-menu-dark .ant-menu-item-selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: #fff;
+}
+.ant-menu-dark .ant-menu-item {
+  transition: all 0.25s ease;
+}
+.ant-menu-dark .ant-menu-item:hover {
+  color: #fff !important;
+}
+
+/* ── 表格：表头渐变 ── */
+.ant-table-thead > tr > th {
+  background: linear-gradient(180deg, #f5f0ff 0%, #ede4ff 100%) !important;
+  color: #4c1d95 !important;
+  font-weight: 600 !important;
+}
+
+/* ── 统计卡：顶部渐变色条 + hover 上浮 ── */
+.zs-stat-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(109, 40, 217, 0.08);
+  transition: all 0.3s ease;
+}
+.zs-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #7c3aed, #8b5cf6, #c4b5fd);
+}
+.zs-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(76, 29, 149, 0.12);
+}
+
+/* ── 渐变数字（统计卡数值） ── */
+.zs-stat-purple .ant-statistic-content-value {
+  background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 60%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.zs-stat-purple .ant-statistic-content-prefix {
+  color: #6d28d9;
+}
+.zs-stat-value {
+  background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 60%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: 700;
+}
+
+/* ── 渐变文字 ── */
+.zs-gradient-text {
+  background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 60%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ── 登录页：品牌紫渐变 + 光晕 ── */
+.zs-login-bg {
+  background:
+    radial-gradient(600px 360px at 12% 8%, rgba(139, 92, 246, 0.35), transparent 60%),
+    radial-gradient(700px 420px at 90% 85%, rgba(124, 58, 237, 0.35), transparent 60%),
+    radial-gradient(500px 300px at 80% 5%, rgba(167, 139, 250, 0.2), transparent 60%),
+    linear-gradient(135deg, #1b1040 0%, #3b1d7a 50%, #5b21b6 100%);
+}
+
+/* ── 卡片光晕（白卡 hover） ── */
+.zs-card-glow {
+  border: 1px solid rgba(109, 40, 217, 0.08);
+  box-shadow: 0 2px 12px rgba(76, 29, 149, 0.06);
+  transition: all 0.3s ease;
+}
+.zs-card-glow:hover {
+  border-color: rgba(124, 58, 237, 0.25);
+  box-shadow: 0 8px 28px rgba(76, 29, 149, 0.14);
 }

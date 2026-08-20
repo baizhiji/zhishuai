@@ -43,7 +43,7 @@ interface Notification {
 const getTypeIcon = (type: string) => {
   switch (type) {
     case 'system':
-      return <BellOutlined style={{ color: '#1890ff' }} />;
+      return <BellOutlined style={{ color: '#6d28d9' }} />;
     case 'message':
       return <MailOutlined style={{ color: '#52c41a' }} />;
     case 'recruitment':
@@ -181,7 +181,7 @@ export default function NotificationsPage() {
   ];
 
   return (
-    <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
+    <div style={{ padding: 24, background: '#f4f1fa', minHeight: '100vh' }}>
       <Card
         title={
           <Space>

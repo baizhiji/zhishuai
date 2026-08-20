@@ -67,7 +67,7 @@ export default function ApiTestPage() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 24px' }}>
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <Title level={1}>
-          <ApiOutlined style={{ marginRight: 12, color: '#1890ff' }} />
+          <ApiOutlined style={{ marginRight: 12, color: '#6d28d9' }} />
           API 测试工具
         </Title>
         <Paragraph style={{ fontSize: 16, color: '#666' }}>

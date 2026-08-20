@@ -148,7 +148,7 @@ export default function RecruitmentPlatformsPage() {
         <Row gutter={24}>
           <Col span={8}>
             <Space direction="vertical" size={0} style={{ display: 'flex', alignItems: 'center' }}>
-              <Title level={1} style={{ color: '#1677ff', marginBottom: 0 }}>{connectedCount}</Title>
+              <Title level={1} style={{ color: '#6d28d9', marginBottom: 0 }}>{connectedCount}</Title>
               <Text type="secondary">已连接平台</Text>
             </Space>
           </Col>

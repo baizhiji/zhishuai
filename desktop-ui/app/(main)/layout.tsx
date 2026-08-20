@@ -67,7 +67,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     <Layout className={styles.layout}>
       <Header className={styles.header}>
         <div className={styles.logo}>
-          <RocketOutlined style={{ fontSize: 24, color: '#1890ff', marginRight: 8 }} />
+          <RocketOutlined style={{ fontSize: 24, color: '#6d28d9', marginRight: 8 }} />
           <span className={styles.logoText}>智枢 AI</span>
         </div>
         <Menu

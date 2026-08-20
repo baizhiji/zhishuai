@@ -439,7 +439,7 @@ export default function AdminApiProvidersPage() {
             <Statistic
               title="客户端可见"
               value={stats.clientVisible}
-              valueStyle={{ color: '#1677ff' }}
+              valueStyle={{ color: '#6d28d9' }}
               prefix={<EyeOutlined />}
             />
           </Card>

@@ -192,7 +192,7 @@ export default function PublishPage() {
     >
       {/* 统计卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={12} sm={6}><Card size="small"><Statistic title="全部岗位" value={stats.total} valueStyle={{ color: '#1677ff', fontSize: 22 }} /></Card></Col>
+        <Col xs={12} sm={6}><Card size="small"><Statistic title="全部岗位" value={stats.total} valueStyle={{ color: '#6d28d9', fontSize: 22 }} /></Card></Col>
         <Col xs={12} sm={6}><Card size="small"><Statistic title="招聘中" value={stats.active} valueStyle={{ color: '#52c41a', fontSize: 22 }} /></Card></Col>
         <Col xs={12} sm={6}><Card size="small"><Statistic title="已暂停" value={stats.paused} valueStyle={{ color: '#fa8c16', fontSize: 22 }} /></Card></Col>
         <Col xs={12} sm={6}><Card size="small"><Statistic title="已关闭" value={stats.closed} valueStyle={{ color: '#8c8c8c', fontSize: 22 }} /></Card></Col>

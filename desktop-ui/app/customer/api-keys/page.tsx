@@ -290,7 +290,7 @@ export default function ApiKeysPage() {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={8}>
             <Card size="small">
-              <Statistic title="已配置 Key" value={activeKeys} suffix={`/ ${keys.length}`} prefix={<ApiOutlined />} valueStyle={{ color: '#1677ff' }} />
+              <Statistic title="已配置 Key" value={activeKeys} suffix={`/ ${keys.length}`} prefix={<ApiOutlined />} valueStyle={{ color: '#6d28d9' }} />
             </Card>
           </Col>
           <Col span={8}>
@@ -323,7 +323,7 @@ export default function ApiKeysPage() {
                     <Text type="secondary">支持模型：通义千问 Qwen 系列、DeepSeek R1/V3、WAN 图像、HappyHorse 视频、千问 TTS</Text><br />
                     <Text type="secondary">适用功能：文案创作、图片生成、视频生成、配音合成、反AI化重写</Text><br />
                     <Text type="secondary">申请入口：</Text>
-                    <a href="https://bailian.console.aliyun.com" target="_blank" rel="noopener noreferrer" style={{ color: '#1677ff', fontWeight: 500 }}>
+                    <a href="https://bailian.console.aliyun.com" target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', fontWeight: 500 }}>
                       bailian.console.aliyun.com <span style={{ fontSize: 11 }}>↗</span>
                     </a>
                   </Card>
@@ -331,7 +331,7 @@ export default function ApiKeysPage() {
                     <Text type="secondary">支持模型：混元 Image/Video、可灵 KLING、Vidu、Kimi K3、优图数字人、YT-VITA 视频理解</Text><br />
                     <Text type="secondary">适用功能：图片生成、视频生成、数字人口播、智能剪辑素材理解</Text><br />
                     <Text type="secondary">申请入口：</Text>
-                    <a href="https://console.cloud.tencent.com/tokenhub" target="_blank" rel="noopener noreferrer" style={{ color: '#1677ff', fontWeight: 500 }}>
+                    <a href="https://console.cloud.tencent.com/tokenhub" target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', fontWeight: 500 }}>
                       console.cloud.tencent.com/tokenhub <span style={{ fontSize: 11 }}>↗</span>
                     </a>
                   </Card>
@@ -339,7 +339,7 @@ export default function ApiKeysPage() {
                     <Text type="secondary">支持模型：Doubao Seed 2.1 Pro/Turbo、Seedream 5.0 图像、Seedance 2.5 视频、SeedEdit 图像编辑、Seed Audio TTS</Text><br />
                     <Text type="secondary">适用功能：智能剪辑素材理解、图片生成、视频生成、配音、BGM</Text><br />
                     <Text type="secondary">申请入口：</Text>
-                    <a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer" style={{ color: '#1677ff', fontWeight: 500 }}>
+                    <a href="https://console.volcengine.com/ark" target="_blank" rel="noopener noreferrer" style={{ color: '#6d28d9', fontWeight: 500 }}>
                       console.volcengine.com/ark <span style={{ fontSize: 11 }}>↗</span>
                     </a>
                   </Card>

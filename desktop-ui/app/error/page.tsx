@@ -15,7 +15,7 @@ export default function ErrorPage(props: any) {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: '#f0f2f5',
+        background: '#f4f1fa',
       }}
     >
       <Card>

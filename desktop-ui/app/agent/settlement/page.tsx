@@ -178,7 +178,7 @@ export default function SettlementPage() {
               title="本月收益（元）"
               value={overview?.monthEarnings || 0}
               prefix={<WalletOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              valueStyle={{ color: '#6d28d9' }}
             />
           </Card>
         </Col>
@@ -238,7 +238,7 @@ export default function SettlementPage() {
                     style={{
                       width: '60%',
                       height: h,
-                      background: t.amount > 0 ? '#1890ff' : '#d9d9d9',
+                      background: t.amount > 0 ? '#6d28d9' : '#d9d9d9',
                       borderRadius: '4px 4px 0 0',
                       minHeight: 4,
                     }}

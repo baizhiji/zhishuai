@@ -29,8 +29,8 @@ const plans = [
     name: '专业版',
     price: '¥299',
     period: '/月',
-    icon: <CrownFilled style={{ fontSize: 48, color: '#1890ff' }} />,
-    color: '#1890ff',
+    icon: <CrownFilled style={{ fontSize: 48, color: '#6d28d9' }} />,
+    color: '#6d28d9',
     tag: '推荐',
     features: [
       '5个自媒体平台账号',

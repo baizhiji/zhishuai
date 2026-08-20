@@ -19,7 +19,7 @@ const { Title, Paragraph } = Typography;
 const features = [
   {
     id: 'digital-human',
-    icon: <VideoCameraOutlined style={{ fontSize: 48, color: '#1890ff' }} />,
+    icon: <VideoCameraOutlined style={{ fontSize: 48, color: '#6d28d9' }} />,
     title: '数字人平台',
     desc: 'AI数字人克隆与视频生成，支持形象定制、语音合成、智能互动，打造专属数字分身。',
   },
@@ -72,7 +72,7 @@ export default function FeaturesPage() {
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '60px 24px' }}>
       <div style={{ textAlign: 'center', marginBottom: 60 }}>
         <Title level={1} style={{ marginBottom: 16 }}>
-          <RocketOutlined style={{ marginRight: 12, color: '#1890ff' }} />
+          <RocketOutlined style={{ marginRight: 12, color: '#6d28d9' }} />
           产品功能
         </Title>
         <Paragraph style={{ fontSize: 18, color: '#666', maxWidth: 700, margin: '0 auto' }}>
@@ -104,7 +104,7 @@ export default function FeaturesPage() {
       </Row>
 
       <div style={{ textAlign: 'center', marginTop: 80, padding: '48px 24px', background: '#fafafa', borderRadius: 16 }}>
-        <ThunderboltOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
+        <ThunderboltOutlined style={{ fontSize: 48, color: '#6d28d9', marginBottom: 16 }} />
         <Title level={3}>准备好开始了吗？</Title>
         <Paragraph style={{ fontSize: 16, color: '#666' }}>
           立即注册体验，开启您的智能化运营之旅

@@ -46,9 +46,9 @@ export default function CustomerLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f4f1fa' }}>
       <CustomerNavbar>
-        <Content style={{ background: '#f0f2f5' }}>{children}</Content>
+        <Content className="zs-content" style={{ padding: 24 }}>{children}</Content>
       </CustomerNavbar>
     </Layout>
   );

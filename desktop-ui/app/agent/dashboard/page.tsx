@@ -38,9 +38,9 @@ const EMPTY_STATISTICS: AgentStatistics = {
 };
 
 const cardBase: React.CSSProperties = {
-  borderRadius: 8,
-  boxShadow: '0 1px 4px rgba(0, 0, 0, 0.04)',
-  border: '1px solid #f0f0f0',
+  borderRadius: 12,
+  boxShadow: '0 2px 12px rgba(76, 29, 149, 0.06)',
+  border: '1px solid rgba(109, 40, 217, 0.08)',
 };
 
 const periodLabels: Record<PeriodType, string> = {
@@ -125,7 +125,7 @@ export default function AgentDashboardPage() {
         style={{
           ...cardBase,
           marginBottom: 16,
-          background: 'linear-gradient(135deg, #1677ff 0%, #4096ff 100%)',
+          background: 'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)',
           border: 'none',
         }}
         styles={{ body: { padding: '20px 24px' } }}
@@ -172,7 +172,7 @@ export default function AgentDashboardPage() {
       {businessLines?.lines && businessLines.lines.length > 0 ? (
         <Row gutter={16} style={{ marginBottom: 16 }}>
           {businessLines.lines.map((line: any, idx: number) => {
-            const colorSet = ['#1677ff', '#722ed1', '#13c2c2', '#fa8c16'];
+            const colorSet = ['#6d28d9', '#722ed1', '#13c2c2', '#fa8c16'];
             const iconSet: Record<string, React.ReactNode> = {
               sparkles: <ExperimentOutlined />, briefcase: <UserAddOutlined />,
               thunderbolt: <ThunderboltOutlined />, share: <ShareAltOutlined />,
@@ -202,12 +202,12 @@ export default function AgentDashboardPage() {
         /* KPI 卡片 */
         <Row gutter={16}>
           <Col xs={24} sm={12} md={6}>
-            <Card style={{ ...cardBase, borderTop: '3px solid #1677ff' }} styles={{ body: { padding: 20 } }}>
+            <Card style={{ ...cardBase, borderTop: '3px solid #6d28d9' }} styles={{ body: { padding: 20 } }}>
               <Statistic
                 title="客户总数"
                 value={statistics.totalCustomers}
-                prefix={<TeamOutlined style={{ color: '#1677ff' }} />}
-                valueStyle={{ color: '#1677ff' }}
+                prefix={<TeamOutlined style={{ color: '#6d28d9' }} />}
+                valueStyle={{ color: '#6d28d9' }}
               />
               <div style={{ marginTop: 4, fontSize: 12, color: '#8c8c8c' }}>
                 <UserAddOutlined /> {periodLabel}新增 {statistics.periodNewCustomers ?? statistics.newCustomersThisMonth} 个

@@ -374,12 +374,12 @@ export default function AgentTicketPage() {
       {/* 统计卡片 */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} md={6}>
-          <Card style={{ ...cardBase, borderTop: '3px solid #1677ff' }} styles={{ body: { padding: '16px 24px' } }}>
+          <Card style={{ ...cardBase, borderTop: '3px solid #6d28d9' }} styles={{ body: { padding: '16px 24px' } }}>
             <Statistic
               title="待处理"
               value={stats.pending}
-              prefix={<ClockCircleOutlined style={{ color: '#1677ff' }} />}
-              valueStyle={{ color: '#1677ff' }}
+              prefix={<ClockCircleOutlined style={{ color: '#6d28d9' }} />}
+              valueStyle={{ color: '#6d28d9' }}
             />
           </Card>
         </Col>
@@ -550,7 +550,7 @@ export default function AgentTicketPage() {
                           padding: 12,
                           background: r.isInternal ? '#fffbe6' : r.userRole === 'agent' ? '#f0f5ff' : '#f6ffed',
                           borderRadius: 8,
-                          borderLeft: `3px solid ${r.isInternal ? '#faad14' : r.userRole === 'agent' ? '#1677ff' : '#52c41a'}`,
+                          borderLeft: `3px solid ${r.isInternal ? '#faad14' : r.userRole === 'agent' ? '#6d28d9' : '#52c41a'}`,
                           lineHeight: 1.8,
                         }}
                       >

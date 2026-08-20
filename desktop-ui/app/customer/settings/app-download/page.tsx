@@ -133,7 +133,7 @@ export default function AppDownloadPage() {
                       borderRadius: 8,
                     }}
                   >
-                    <MobileOutlined style={{ fontSize: 24, color: '#1890ff' }} />
+                    <MobileOutlined style={{ fontSize: 24, color: '#6d28d9' }} />
                     <div style={{ marginTop: 8 }}>
                       <Text type="secondary">版本</Text>
                       <div>

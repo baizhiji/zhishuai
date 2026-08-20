@@ -461,7 +461,7 @@ export function qualityScore(category: string): { score: number; label: string; 
   const scores: Record<string, { score: number; label: string; color: string }> = {
     'text': { score: 95, label: '真人级', color: '#52c41a' },
     'image': { score: 92, label: '照片级', color: '#52c41a' },
-    'video': { score: 88, label: '电影级', color: '#1677ff' },
+    'video': { score: 88, label: '电影级', color: '#6d28d9' },
     'digital-human': { score: 85, label: '拟真级', color: '#722ED1' },
   };
 

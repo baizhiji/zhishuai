@@ -94,7 +94,7 @@ export default function ProfilePage() {
                       user?.role === 'admin'
                         ? '#ff4d4f'
                         : user?.role === 'agent'
-                          ? '#1890ff'
+                          ? '#6d28d9'
                           : '#52c41a',
                     color: '#fff',
                     borderRadius: 4,

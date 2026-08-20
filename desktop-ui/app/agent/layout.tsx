@@ -189,7 +189,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <>
                     {/* 统计摘要 */}
                     <div style={{ display: 'flex', gap: 12, padding: '8px 0 12px', borderBottom: '1px solid #f0f0f0', marginBottom: 8 }}>
-                      <span style={{ fontSize: 12, color: '#1677ff' }}>
+                      <span style={{ fontSize: 12, color: '#6d28d9' }}>
                         <ClockCircleOutlined /> 待接单 {ticketStats.pending}
                       </span>
                       <span style={{ fontSize: 12, color: '#fa8c16' }}>
@@ -245,7 +245,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <span>
                 系统公告
                 {announcements.length > 0 && (
-                  <Badge count={announcements.length} size="small" style={{ marginLeft: 6, boxShadow: 'none', backgroundColor: hasImportant ? '#ff4d4f' : '#1677ff' }} />
+                  <Badge count={announcements.length} size="small" style={{ marginLeft: 6, boxShadow: 'none', backgroundColor: hasImportant ? '#ff4d4f' : '#6d28d9' }} />
                 )}
               </span>
             ),
@@ -310,21 +310,20 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f4f1fa' }}>
       <AgentNavbar />
       <Layout style={{ marginLeft: 220 }}>
         {/* 顶部 Header — 公告滚动栏 + 右侧通知中心 */}
         <Header
+          className="zs-glass-header"
           style={{
-            background: '#fff',
             padding: '0 24px',
-            borderBottom: '1px solid #f0f0f0',
             display: 'flex',
             alignItems: 'center',
             height: 56,
             position: 'sticky',
             top: 0,
-            zIndex: 9,
+            zIndex: 20,
             gap: 16,
           }}
         >
@@ -345,7 +344,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 offset={[-4, 2]}
                 style={{ boxShadow: 'none' }}
               >
-                <BellOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+                <BellOutlined style={{ color: '#6d28d9', fontSize: 18 }} />
               </Badge>
               {/* 重要公告圆点 */}
               {hasImportant && pendingTotal === 0 && (
@@ -366,7 +365,7 @@ const AgentLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           </Popover>
         </Header>
 
-        <Content style={{ padding: 24, background: '#f0f2f5', minHeight: 'calc(100vh - 56px)' }}>
+        <Content className="zs-content" style={{ padding: 24, minHeight: 'calc(100vh - 56px)' }}>
           {children}
         </Content>
       </Layout>

@@ -25,7 +25,7 @@ const features = [
     icon: <RobotOutlined />,
     title: 'AI 内容工厂',
     description: '基于大语言模型，批量生成高质量文案、图片、视频内容，支持多平台适配',
-    color: '#1890ff',
+    color: '#6d28d9',
   },
   {
     icon: <PlayCircleOutlined />,
@@ -126,7 +126,7 @@ export default function HomePage() {
                   title={stat.title}
                   value={stat.value}
                   suffix={stat.suffix}
-                  valueStyle={{ color: '#1890ff' }}
+                  valueStyle={{ color: '#6d28d9' }}
                 />
               </Col>
             ))}
@@ -186,7 +186,7 @@ export default function HomePage() {
         <Row gutter={[24, 24]} justify="center">
           <Col xs={12} sm={8} md={6}>
             <Card className={styles.techCard}>
-              <CloudOutlined style={{ fontSize: 48, color: '#1890ff' }} />
+              <CloudOutlined style={{ fontSize: 48, color: '#6d28d9' }} />
               <Text>云原生架构</Text>
             </Card>
           </Col>

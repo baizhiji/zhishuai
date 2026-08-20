@@ -113,33 +113,24 @@ const AdminNavbar: React.FC = () => {
     <>
       <Sider
         width={220}
+        className="zs-sidebar"
         style={{
           position: 'fixed',
           left: 0,
           top: 0,
           bottom: 0,
-          background: '#001529',
           overflow: 'auto',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
         {/* Logo */}
-        <div
-          style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: 16,
-            fontWeight: 600,
-            borderBottom: '1px solid rgba(255,255,255,0.1)',
-            letterSpacing: 1,
-            flexShrink: 0,
-          }}
-        >
-          智枢 AI · 总后台
+        <div className="zs-sidebar-logo">
+          <span className="logo-mark">智</span>
+          <span>
+            <div className="logo-title">智枢 AI</div>
+            <div className="logo-sub">总后台管理</div>
+          </span>
         </div>
 
         {/* 导航菜单 */}

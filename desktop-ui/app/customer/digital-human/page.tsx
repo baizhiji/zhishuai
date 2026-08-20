@@ -139,7 +139,7 @@ export default function DigitalHumanPage() {
               style={{
                 background: record.gender === 'female'
                   ? 'linear-gradient(135deg, #ff6b9d, #ff9bb5)'
-                  : 'linear-gradient(135deg, #1890ff, #69b1ff)',
+                  : 'linear-gradient(135deg, #6d28d9, #69b1ff)',
               }}
             />
           )}

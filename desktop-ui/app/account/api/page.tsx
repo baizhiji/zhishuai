@@ -331,7 +331,7 @@ export default function APIConfigPage() {
                 padding: '4px 12px',
                 cursor: 'pointer',
                 border: selectedModels.includes(model.id)
-                  ? '2px solid #1890ff'
+                  ? '2px solid #6d28d9'
                   : '1px solid #d9d9d9',
               }}
               onClick={() => toggleModel(model.id)}

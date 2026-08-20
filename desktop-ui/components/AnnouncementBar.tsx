@@ -75,7 +75,7 @@ export default function AnnouncementBar() {
         style={{
           display: 'inline-block',
           animation: `scroll-announcements ${ANIMATION_DURATION * announcements.length}s linear infinite`,
-          color: '#1677ff',
+          color: '#6d28d9',
           fontSize: 14,
           fontWeight: 500,
           lineHeight: '56px',

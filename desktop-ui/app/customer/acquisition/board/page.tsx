@@ -26,7 +26,7 @@ const CHANNEL_COLORS: Record<string, string> = {
   xiaohongshu: '#ff7a45',
   wechat: '#52c41a',
   kuaishu: '#fa8c16',
-  linkedin: '#1677ff',
+  linkedin: '#6d28d9',
 };
 
 export default function AcquisitionBoardPage() {
@@ -108,7 +108,7 @@ export default function AcquisitionBoardPage() {
       {/* KPI 卡片 */}
       <Row gutter={[16, 16]}>
         {[
-          { title: '总潜客数', value: d.totalLeads.toLocaleString(), icon: <UserOutlined />, color: '#1677ff' },
+          { title: '总潜客数', value: d.totalLeads.toLocaleString(), icon: <UserOutlined />, color: '#6d28d9' },
           { title: '新增潜客', value: d.newLeads.toLocaleString(), icon: <TeamOutlined />, color: '#52c41a', trend: d.totalLeads > 0 ? `↑ ${Math.round((d.newLeads / d.totalLeads) * 100)}%` : '—' },
           { title: '转化率', value: `${d.conversionRate}%`, icon: <RiseOutlined />, color: '#722ed1' },
           { title: '转化客户', value: d.convertedLeads.toLocaleString(), icon: <DollarOutlined />, color: '#fa8c16' },
@@ -141,7 +141,7 @@ export default function AcquisitionBoardPage() {
                       style={{
                         width: 20,
                         height: `${(d.leads / maxTrend) * 160}px`,
-                        background: 'linear-gradient(180deg, #1677ff, #69b1ff)',
+                        background: 'linear-gradient(180deg, #6d28d9, #69b1ff)',
                         borderRadius: '3px 3px 0 0',
                         transition: 'height 0.3s',
                       }}
@@ -163,7 +163,7 @@ export default function AcquisitionBoardPage() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 12 }}>
-              <Space><span style={{ display: 'inline-block', width: 10, height: 10, background: '#1677ff', borderRadius: 3 }} /> <Text type="secondary" style={{ fontSize: 12 }}>潜客</Text></Space>
+              <Space><span style={{ display: 'inline-block', width: 10, height: 10, background: '#6d28d9', borderRadius: 3 }} /> <Text type="secondary" style={{ fontSize: 12 }}>潜客</Text></Space>
               <Space><span style={{ display: 'inline-block', width: 10, height: 10, background: '#52c41a', borderRadius: 3 }} /> <Text type="secondary" style={{ fontSize: 12 }}>转化</Text></Space>
             </div>
           </Card>
@@ -180,7 +180,7 @@ export default function AcquisitionBoardPage() {
                     style={{
                       width: 36,
                       height: `${(d.count / maxScore) * 160}px`,
-                      background: `linear-gradient(180deg, ${['#f5222d', '#fa8c16', '#faad14', '#52c41a', '#1677ff'][i]}, ${['#ff7875', '#ffbb96', '#ffe58f', '#95de64', '#91caff'][i]})`,
+                      background: `linear-gradient(180deg, ${['#f5222d', '#fa8c16', '#faad14', '#52c41a', '#6d28d9'][i]}, ${['#ff7875', '#ffbb96', '#ffe58f', '#95de64', '#91caff'][i]})`,
                       borderRadius: '4px 4px 0 0',
                       transition: 'height 0.3s',
                     }}

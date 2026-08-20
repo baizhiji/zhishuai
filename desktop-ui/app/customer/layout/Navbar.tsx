@@ -643,7 +643,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
   };
 
   const roleColorMap: Record<string, string> = {
-    admin: '#1890ff',
+    admin: '#6d28d9',
     agent: '#52c41a',
     user: '#faad14',
     customer: '#faad14',
@@ -653,7 +653,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
 
   return (
     <Layout className="min-h-screen">
-      {/* 侧边栏 - 白色风格 */}
+      {/* 侧边栏 - 品牌深紫渐变 */}
       <Sider
         width={240}
         collapsedWidth={64}
@@ -661,9 +661,8 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         collapsed={collapsed}
         onCollapse={setCollapsed}
         breakpoint="lg"
+        className="zs-sidebar"
         style={{
-          background: token.colorBgContainer,
-          borderRight: `1px solid ${token.colorBorderSecondary}`,
           display: 'flex',
           flexDirection: 'column',
           height: '100vh',
@@ -673,62 +672,38 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
         }}
       >
         {/* Logo */}
-        <div
-          style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
-          }}
-        >
-          <Space>
-            {logoError ? (
-              <div
-                style={{
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: token.colorPrimary,
-                  borderRadius: 6,
-                }}
-              >
-                <AppstoreOutlined style={{ color: '#fff', fontSize: 18 }} />
-              </div>
-            ) : (
-              <Image
-                src="/logo.png"
-                alt="智枢AI"
-                width={32}
-                height={32}
-                preview={false}
-                style={{ borderRadius: 6 }}
-                onError={() => setLogoError(true)}
-              />
-            )}
-            <span
-              style={{
-                fontSize: 18,
-                fontWeight: 'bold',
-                color: token.colorText,
-              }}
-            >
-              智枢AI
+        <div className="zs-sidebar-logo">
+          {logoError ? (
+            <span className="logo-mark">
+              <AppstoreOutlined style={{ color: '#fff', fontSize: 18 }} />
             </span>
-          </Space>
+          ) : (
+            <Image
+              src="/logo.png"
+              alt="智枢AI"
+              width={34}
+              height={34}
+              preview={false}
+              style={{ borderRadius: 10, flexShrink: 0 }}
+              onError={() => setLogoError(true)}
+            />
+          )}
+          <span>
+            <div className="logo-title">智枢 AI</div>
+            <div className="logo-sub">客户中心</div>
+          </span>
         </div>
 
-        {/* 导航菜单 - 白色主题 */}
+        {/* 导航菜单 - 深色主题 */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
           <Menu
+            theme="dark"
             mode="inline"
             selectedKeys={selectedKeys}
             openKeys={openKeys}
             onOpenChange={handleOpenChange}
             onClick={handleMenuClick}
-            style={{ border: 'none' }}
+            style={{ border: 'none', background: 'transparent' }}
             items={menuItems}
           />
         </div>
@@ -740,13 +715,15 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       <Layout>
         {/* 顶部导航栏 - 白色风格 */}
         <Header
+          className="zs-glass-header"
           style={{
-            background: token.colorBgContainer,
-            borderBottom: `1px solid ${token.colorBorderSecondary}`,
             padding: '0 24px',
             display: 'flex',
             alignItems: 'center',
             gap: 16,
+            position: 'sticky',
+            top: 0,
+            zIndex: 20,
           }}
         >
           {/* 公告滚动栏：填充铃铛左侧全部空间 */}
@@ -768,7 +745,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
                   }}
                 >
                   <Space size={6}>
-                    <BellOutlined style={{ color: '#1890ff' }} />
+                    <BellOutlined style={{ color: '#6d28d9' }} />
                     <Typography.Text strong>系统公告</Typography.Text>
                     {announcements.length > 0 && (
                       <Tag color="blue">{announcements.length} 条</Tag>
@@ -875,8 +852,8 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
 
         {/* 内容区域 */}
         <Content
+          className="zs-content"
           style={{
-            background: `linear-gradient(135deg, ${token.colorBgLayout} 0%, ${token.colorBgContainer} 100%)`,
             minHeight: 'calc(100vh - 64px)',
             display: 'flex',
             flexDirection: 'column',
@@ -889,8 +866,8 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
             style={{
               textAlign: 'center',
               padding: '16px 0',
-              borderTop: `1px solid ${token.colorBorderSecondary}`,
-              background: token.colorBgContainer,
+              borderTop: '1px solid rgba(109, 40, 217, 0.1)',
+              background: 'rgba(255,255,255,0.6)',
               color: token.colorTextSecondary,
               fontSize: 12,
             }}

@@ -201,7 +201,7 @@ export default function AIChatPage() {
             {messages.length === 0 ? (
               <div style={{ maxWidth: 700, margin: '0 auto', paddingTop: 60 }}>
                 <div style={{ textAlign: 'center', marginBottom: 40 }}>
-                  <Avatar size={72} icon={<RobotOutlined />} style={{ background: 'linear-gradient(135deg, #1890ff 0%, #722ed1 100%)', marginBottom: 20 }} />
+                  <Avatar size={72} icon={<RobotOutlined />} style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #722ed1 100%)', marginBottom: 20 }} />
                   <Title level={2} style={{ marginBottom: 8 }}>欢迎使用智枢AI助手</Title>
                   <Paragraph type="secondary" style={{ fontSize: 15 }}>我可以帮助您进行商业诊断、营销策划、运营优化等全方位的智能分析</Paragraph>
                 </div>
@@ -209,7 +209,7 @@ export default function AIChatPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
                   {QUICK_PROMPTS.map((item, index) => (
                     <Card key={index} hoverable onClick={() => handleQuickPrompt(item.prompt)} style={{ cursor: 'pointer', borderRadius: 10 }}>
-                      <Space><Avatar size="small" icon={item.icon} style={{ background: '#1890ff' }} /><Text strong>{item.title}</Text></Space>
+                      <Space><Avatar size="small" icon={item.icon} style={{ background: '#6d28d9' }} /><Text strong>{item.title}</Text></Space>
                       <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }} ellipsis={{ rows: 2 }}>{item.prompt}</Paragraph>
                     </Card>
                   ))}
@@ -220,11 +220,11 @@ export default function AIChatPage() {
                 {messages.map(message => (
                   <div key={message.id} style={{ display: 'flex', justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start', marginBottom: 24 }}>
                     <div style={{ display: 'flex', maxWidth: '80%', gap: 12 }}>
-                      {message.role === 'assistant' && <Avatar icon={<RobotOutlined />} style={{ background: '#1890ff', flexShrink: 0 }} />}
+                      {message.role === 'assistant' && <Avatar icon={<RobotOutlined />} style={{ background: '#6d28d9', flexShrink: 0 }} />}
                       <Card
                         size="small"
                         style={{
-                          background: message.role === 'user' ? '#1890ff' : '#fff',
+                          background: message.role === 'user' ? '#6d28d9' : '#fff',
                           borderRadius: 16,
                         }}
                         styles={{ body: { padding: '12px 16px' } }}
@@ -248,7 +248,7 @@ export default function AIChatPage() {
                 ))}
                 {isLoading && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0' }}>
-                    <Avatar icon={<RobotOutlined />} style={{ background: '#1890ff' }} />
+                    <Avatar icon={<RobotOutlined />} style={{ background: '#6d28d9' }} />
                     <Card size="small" style={{ background: '#f5f5f5', borderRadius: 12 }}>
                       <Space><Spin size="small" /><Text type="secondary">AI正在思考中...</Text></Space>
                     </Card>

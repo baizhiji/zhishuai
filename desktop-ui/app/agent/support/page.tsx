@@ -92,7 +92,7 @@ export default function AgentSupportPage() {
             <Title level={5} style={{ marginBottom: 16 }}>使用说明</Title>
             <Space direction="vertical" size="middle" style={{ width: '100%' }}>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <ScanOutlined style={{ fontSize: 18, color: '#1677ff', marginTop: 2 }} />
+                <ScanOutlined style={{ fontSize: 18, color: '#6d28d9', marginTop: 2 }} />
                 <div>
                   <Text strong>步骤一：扫码添加</Text>
                   <br />
@@ -100,7 +100,7 @@ export default function AgentSupportPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <CustomerServiceOutlined style={{ fontSize: 18, color: '#1677ff', marginTop: 2 }} />
+                <CustomerServiceOutlined style={{ fontSize: 18, color: '#6d28d9', marginTop: 2 }} />
                 <div>
                   <Text strong>步骤二：描述问题</Text>
                   <br />
@@ -108,7 +108,7 @@ export default function AgentSupportPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <ClockCircleOutlined style={{ fontSize: 18, color: '#1677ff', marginTop: 2 }} />
+                <ClockCircleOutlined style={{ fontSize: 18, color: '#6d28d9', marginTop: 2 }} />
                 <div>
                   <Text strong>步骤三：获取支持</Text>
                   <br />

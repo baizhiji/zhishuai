@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
         padding: '20px',
       }}
     >
@@ -100,7 +100,7 @@ export default function ForgotPasswordPage() {
             <div style={{ textAlign: 'center', marginTop: 16 }}>
               <a
                 onClick={() => router.push('/login')}
-                style={{ color: '#1890ff', cursor: 'pointer' }}
+                style={{ color: '#6d28d9', cursor: 'pointer' }}
               >
                 返回登录
               </a>
@@ -160,7 +160,7 @@ export default function ForgotPasswordPage() {
             </Form.Item>
 
             <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <a onClick={() => setStep('send')} style={{ color: '#1890ff', cursor: 'pointer' }}>
+              <a onClick={() => setStep('send')} style={{ color: '#6d28d9', cursor: 'pointer' }}>
                 返回上一步
               </a>
             </div>

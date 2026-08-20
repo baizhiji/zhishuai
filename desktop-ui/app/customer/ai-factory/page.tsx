@@ -375,7 +375,7 @@ export default function AIFactoryPage() {
                   type="link"
                   size="small"
                   onClick={() => setShowTips(!showTips)}
-                  style={{ padding: '4px 0', fontSize: 13, color: '#1677ff' }}
+                  style={{ padding: '4px 0', fontSize: 13, color: '#6d28d9' }}
                 >
                   <BulbOutlined style={{ marginRight: 4 }} />
                   {showTips ? '收起创作提示 ▲' : '展开创作提示 ▼'}

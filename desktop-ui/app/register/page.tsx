@@ -80,7 +80,7 @@ export default function RegisterPage() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
         padding: '20px',
       }}
     >
@@ -178,11 +178,11 @@ export default function RegisterPage() {
           >
             <Checkbox>
               我已阅读并同意{' '}
-              <Link href="/terms" target="_blank" style={{ color: '#667eea' }}>
+              <Link href="/terms" target="_blank" style={{ color: '#7c3aed' }}>
                 《用户服务协议》
               </Link>{' '}
               和{' '}
-              <Link href="/privacy" target="_blank" style={{ color: '#667eea' }}>
+              <Link href="/privacy" target="_blank" style={{ color: '#7c3aed' }}>
                 《隐私政策》
               </Link>
             </Checkbox>

@@ -118,17 +118,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   );
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f4f1fa' }}>
       <AdminNavbar />
       <Layout style={{ marginLeft: SIDER_WIDTH }}>
         <Header
+          className="zs-glass-header"
           style={{
             padding: '0 24px',
-            background: '#fff',
-            borderBottom: '1px solid #f0f0f0',
             display: 'flex',
             alignItems: 'center',
             gap: 16,
+            position: 'sticky',
+            top: 0,
+            zIndex: 20,
           }}
         >
           {/* 公告滚动栏：填充铃铛左侧全部空间 */}
@@ -147,7 +149,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             placement="bottomRight"
           >
             <div style={{ position: 'relative', cursor: 'pointer', padding: '4px 8px' }}>
-              <NotificationOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+              <NotificationOutlined style={{ color: '#6d28d9', fontSize: 18 }} />
               {announcements.length > 0 && (
                 <span
                   style={{
@@ -157,7 +159,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     width: 8,
                     height: 8,
                     borderRadius: '50%',
-                    background: announcements.some(a => a.type === 'important') ? '#ff4d4f' : '#1677ff',
+                    background: announcements.some(a => a.type === 'important') ? '#ff4d4f' : '#6d28d9',
                     border: '1px solid #fff',
                   }}
                 />
@@ -166,9 +168,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Popover>
         </Header>
         <Content
+          className="zs-content"
           style={{
             padding: '0 24px 24px',
-            background: '#f0f2f5',
             minHeight: 'calc(100vh - 64px)',
           }}
         >

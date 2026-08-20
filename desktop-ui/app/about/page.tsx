@@ -48,7 +48,7 @@ export default function AboutPage() {
   ];
 
   const stats = [
-    { title: '平台用户', value: '10,000+', color: '#1890ff' },
+    { title: '平台用户', value: '10,000+', color: '#6d28d9' },
     { title: '服务企业', value: '1,000+', color: '#52c41a' },
     { title: 'AI调用次数', value: '1,000,000+', color: '#faad14' },
     { title: '服务稳定性', value: '99.9%', color: '#f5222d' },
@@ -61,7 +61,7 @@ export default function AboutPage() {
         style={{
           marginBottom: 24,
           textAlign: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%)',
         }}
       >
         <div style={{ color: 'white' }}>
@@ -105,7 +105,7 @@ export default function AboutPage() {
           <Col span={8} key={i}>
             <Card hoverable>
               <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <div style={{ fontSize: 32, color: '#1890ff' }}>{feature.icon}</div>
+                <div style={{ fontSize: 32, color: '#6d28d9' }}>{feature.icon}</div>
                 <Title level={4} style={{ margin: 0 }}>
                   {feature.title}
                 </Title>

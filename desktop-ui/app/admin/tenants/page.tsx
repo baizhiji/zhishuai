@@ -220,7 +220,7 @@ export default function AdminCustomersPage() {
           content: (
             <div>
               <p>客户 <strong>{customer.name}</strong> 的密码已重置为：</p>
-              <p style={{ fontSize: 18, color: '#1677ff', fontWeight: 600 }}>{pwd}</p>
+              <p style={{ fontSize: 18, color: '#6d28d9', fontWeight: 600 }}>{pwd}</p>
               <p style={{ color: '#8c8c8c' }}>请告知客户尽快登录并修改密码。</p>
             </div>
           ),
@@ -446,8 +446,8 @@ export default function AdminCustomersPage() {
             <Statistic
               title="客户总数"
               value={statistics.total}
-              prefix={<TeamOutlined style={{ color: '#1890ff' }} />}
-              valueStyle={{ color: '#1890ff' }}
+              prefix={<TeamOutlined style={{ color: '#6d28d9' }} />}
+              valueStyle={{ color: '#6d28d9' }}
             />
           </Card>
         </Col>
