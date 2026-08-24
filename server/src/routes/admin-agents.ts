@@ -122,7 +122,8 @@ router.get('/agents/:id([0-9a-fA-F-]{36})', async (req, res) => {
 // 创建代理商
 router.post('/agents', async (req, res) => {
   try {
-    const { phone, password, name, level, region, commissionRate, parentId } = req.body;
+    const { phone, password, name, level, region, commissionRate, parentId, openingFee = 0 } = req.body;
+    const openingFeeAmount = parseFloat(openingFee) || 0;
 
     // 检查手机号是否已注册
     const existingUser = await prisma.user.findUnique({
@@ -139,7 +140,7 @@ router.post('/agents', async (req, res) => {
         data: {
           id: randomUUID(),
           phone,
-          password: hashPassword(password),
+          password: await hashPassword(password),
           name,
           role: 'agent',
           updatedAt: new Date()
@@ -159,6 +160,28 @@ router.post('/agents', async (req, res) => {
         }
       });
 
+      // 记录开通费用并计入代理商收益
+      if (openingFeeAmount > 0) {
+        await tx.payment.create({
+          data: {
+            id: randomUUID(),
+            type: 'agent_open',
+            amount: openingFeeAmount,
+            status: 'paid',
+            paymentMethod: 'offline',
+            agentId: agent.id,
+            description: `开通代理商 ${name || phone} 收费`,
+            paidAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        });
+        await tx.agent.update({
+          where: { id: agent.id },
+          data: { totalRevenue: { increment: openingFeeAmount } }
+        });
+      }
+
       return { user, agent };
     });
 
@@ -166,7 +189,7 @@ router.post('/agents', async (req, res) => {
       action: 'admin.create_agent',
       userId: (req as any).userId,
       target: result.agent.id,
-      detail: `创建代理商: ${name || phone}`,
+      detail: `创建代理商: ${name || phone}${openingFeeAmount > 0 ? `, 开通费: ${openingFeeAmount}元` : ''}`,
       ip: (req as any).ip,
       userAgent: req.headers['user-agent'] as string,
     }).catch(() => {});
@@ -533,7 +556,8 @@ router.get('/customers', async (req, res) => {
 // 创建客户
 router.post('/customers', async (req, res) => {
   try {
-    const { phone, password, name, agentId, expireMonths } = req.body;
+    const { phone, password, name, agentId, expireMonths, openingFee = 0 } = req.body;
+    const openingFeeAmount = parseFloat(openingFee) || 0;
 
     // agentId 必填，防止创建无归属的孤儿客户
     if (!agentId) {
@@ -566,7 +590,7 @@ router.post('/customers', async (req, res) => {
         data: {
           id: randomUUID(),
           phone,
-          password: hashPassword(password || Math.random().toString(36).slice(-8)),
+          password: await hashPassword(password || Math.random().toString(36).slice(-8)),
           name: name || phone,
           role: 'customer',
           updatedAt: new Date()
@@ -604,6 +628,29 @@ router.post('/customers', async (req, res) => {
           updatedAt: new Date(),
         }));
         await tx.userFeatureSwitch.createMany({ data: featureRecords });
+      }
+
+      // 记录开通费用并计入归属代理商收益
+      if (openingFeeAmount > 0) {
+        await tx.payment.create({
+          data: {
+            id: randomUUID(),
+            type: 'customer_open',
+            amount: openingFeeAmount,
+            status: 'paid',
+            paymentMethod: 'offline',
+            agentId,
+            userId: newUser.id,
+            description: `管理员开通客户 ${name || phone} 收费`,
+            paidAt: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        });
+        await tx.agent.update({
+          where: { id: agentId },
+          data: { totalRevenue: { increment: openingFeeAmount } }
+        });
       }
 
       return newUser;
@@ -799,7 +846,7 @@ router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', authMiddleware, a
       return res.status(404).json({ success: false, message: '客户不存在' });
     }
     const newPassword = Math.random().toString(36).slice(-8) + 'Aa1!';
-    const hashed = hashPassword(newPassword);
+    const hashed = await hashPassword(newPassword);
     await prisma.user.update({ where: { id }, data: { password: hashed } });
 
     await prisma.adminLog.create({
@@ -815,6 +862,93 @@ router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', authMiddleware, a
     res.json({ success: true, message: '密码已重置', data: { password: newPassword } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 获取代理商收益汇总（总后台）
+router.get('/earnings', async (req: any, res: any) => {
+  try {
+    const { agentId, startDate, endDate, page = 1, pageSize = 20 } = req.query;
+
+    const where: any = {};
+    if (agentId) {
+      where.agentId = agentId;
+    }
+    if (startDate || endDate) {
+      where.paidAt = {};
+      if (startDate) where.paidAt.gte = new Date(startDate as string);
+      if (endDate) where.paidAt.lte = new Date(endDate as string);
+    }
+
+    const agents = await prisma.agent.findMany({
+      select: {
+        id: true,
+        name: true,
+        commissionRate: true,
+        totalRevenue: true,
+        balance: true,
+      },
+      orderBy: { totalRevenue: 'desc' },
+    });
+
+    const agentIds = agents.map((a: any) => a.id);
+    const customerCounts = agentIds.length > 0
+      ? await prisma.userAgentRelation.groupBy({
+          by: ['agentId'],
+          where: { agentId: { in: agentIds } },
+          _count: { _all: true },
+        })
+      : [];
+
+    const [payments, total] = await Promise.all([
+      prisma.payment.findMany({
+        where,
+        include: {
+          Agent: { select: { name: true } },
+          User: { select: { phone: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (Number(page) - 1) * Number(pageSize),
+        take: Number(pageSize),
+      }),
+      prisma.payment.count({ where }),
+    ]);
+
+    const countMap = new Map(customerCounts.map((c: any) => [c.agentId, c._count._all]));
+
+    const summary = agents.map((agent: any) => ({
+      id: agent.id,
+      name: agent.name,
+      commissionRate: Number(agent.commissionRate),
+      totalRevenue: Number(agent.totalRevenue),
+      balance: Number(agent.balance),
+      customerCount: countMap.get(agent.id) || 0,
+    }));
+
+    return res.json({
+      success: true,
+      data: {
+        summary,
+        records: payments.map((p: any) => ({
+          id: p.id,
+          agentId: p.agentId,
+          agentName: p.Agent?.name,
+          userId: p.userId,
+          userPhone: p.User?.phone,
+          userName: p.User?.name,
+          type: p.type,
+          amount: Number(p.amount),
+          status: p.status,
+          description: p.description,
+          paidAt: p.paidAt,
+          createdAt: p.createdAt,
+        })),
+        pagination: { page: Number(page), pageSize: Number(pageSize), total },
+      },
+    });
+  } catch (error: any) {
+    console.error('获取代理商收益失败:', error);
+    return res.status(500).json({ success: false, message: '服务器错误' });
   }
 });
 

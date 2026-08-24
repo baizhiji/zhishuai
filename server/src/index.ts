@@ -7,7 +7,7 @@ import authRoutes from './routes/auth';
 import recruitmentRoutes from './routes/recruitment';
 import acquisitionRoutes from './routes/acquisition';
 import dataAcquisitionRoutes from './routes/data-acquisition';
-import shareRoutes from './routes/share';
+import shareRoutes, { shareShortRoutes } from './routes/share';
 import materialsRoutes from './routes/materials';
 import notificationsRoutes from './routes/notifications';
 import statisticsRoutes from './routes/statistics';
@@ -49,10 +49,24 @@ app.use(helmet());
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(',')
   : [
+      'http://localhost',
+      'https://localhost',
       'http://localhost:3000',
+      'https://localhost:3000',
+      'http://localhost:1420',
+      'https://localhost:1420',
+      'http://127.0.0.1',
+      'https://127.0.0.1',
+      'http://127.0.0.1:3000',
+      'https://127.0.0.1:3000',
+      'http://127.0.0.1:1420',
+      'https://127.0.0.1:1420',
       'http://localhost:3001',
+      'https://localhost:3001',
       'https://baizhiji.net',
       'https://www.baizhiji.net',
+      'http://baizhiji.net',
+      'http://www.baizhiji.net',
       // 桌面版 Tauri WebView（Windows WebView2 / macOS WKWebView / Linux WebKitGTK）
       'tauri://localhost',
       'http://tauri.localhost',
@@ -94,6 +108,8 @@ app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api/acquisition', acquisitionRoutes);
 app.use('/api/data-acquisition', dataAcquisitionRoutes);
 app.use('/api/share', shareRoutes);
+// 分享码中转短链（扫码落地，{API_URL}/s/:codeId → 记录匿名扫码并 302 跳转平台视频）
+app.use('/s', shareShortRoutes);
 app.use('/api/materials', materialsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/statistics', statisticsRoutes);
@@ -175,10 +191,6 @@ app.use('/api/multimodal', multimodalRoutes);
 // 视频增强路由
 import enhancementRoutes from './routes/enhancement';
 app.use('/api/enhancement', enhancementRoutes);
-
-// Playwright 浏览器自动化
-import playwrightBridgeRoutes from './routes/playwright-bridge';
-app.use('/api/playwright', playwrightBridgeRoutes);
 
 // 在线客服路由
 import supportRoutes from './routes/support';

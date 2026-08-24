@@ -134,6 +134,16 @@ const PROVIDER_BASE_URLS: Record<string, string> = {
   volcano: 'https://ark.cn-beijing.volces.com/api/v3',
 };
 
+/**
+ * 服务商存储值别名映射：标准命名（tencent/alibaba/volcano）→ 数据库 ApiKey 表可能存储的值
+ * 兼容历史数据（tokenhub/dashscope/ark），修复电脑版配置的 Key 无法被后端代理查到的问题
+ */
+const PROVIDER_STORAGE_ALIASES: Record<string, string[]> = {
+  tencent: ['tencent', 'tokenhub'],
+  alibaba: ['alibaba', 'dashscope'],
+  volcano: ['volcano', 'ark'],
+};
+
 /** 平台配置 - 用于内容创意增强 */
 const PLATFORM_OPTIMIZATIONS: Record<string, {
   name: string;
@@ -237,16 +247,19 @@ export class AIClient {
    * 优先主 Key，其次备用 Key
    */
   private async getUserApiKey(userId: string, provider: string): Promise<DecryptedApiKey | null> {
+    // 查询候选：兼容历史存储值（tokenhub/dashscope/ark）
+    const candidates = PROVIDER_STORAGE_ALIASES[provider] || [provider];
+
     // 1. 查找主 Key
     let keyRecord = await prisma.apiKey.findFirst({
-      where: { userId, provider, status: 'active', isPrimary: true },
+      where: { userId, provider: { in: candidates }, status: 'active', isPrimary: true },
       orderBy: { createdAt: 'desc' },
     });
 
     // 2. 查找备用 Key
     if (!keyRecord) {
       keyRecord = await prisma.apiKey.findFirst({
-        where: { userId, provider, status: 'active', isSecondary: true },
+        where: { userId, provider: { in: candidates }, status: 'active', isSecondary: true },
         orderBy: { createdAt: 'desc' },
       });
     }
@@ -254,7 +267,7 @@ export class AIClient {
     // 3. 查找任意可用 Key
     if (!keyRecord) {
       keyRecord = await prisma.apiKey.findFirst({
-        where: { userId, provider, status: 'active' },
+        where: { userId, provider: { in: candidates }, status: 'active' },
         orderBy: { createdAt: 'desc' },
       });
     }

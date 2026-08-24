@@ -120,11 +120,11 @@ export async function saveMessage(input: SaveMessageInput) {
   });
 }
 
-// ─── 模型配置 ───
+// ─── 模型配置（对齐蓝皮书统一标准，2026-08 在售模型）───
 export const DIAGNOSIS_MODEL_CONFIG = {
-  deepAnalysis: 'deepseek-r1-0528',
-  longReport: 'kimi-k2.6',
-  quickDiagnosis: 'hunyuan-2.0-instruct-20251111',
+  deepAnalysis: 'deepseek-v4-pro',
+  longReport: 'kimi-k3',
+  quickDiagnosis: 'hy3',
 };
 
 export const MODEL_CONFIG = {
@@ -132,21 +132,21 @@ export const MODEL_CONFIG = {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     apiKeyEnv: 'DASHSCOPE_API_KEY',
     models: {
-      daily: { id: 'qwen-turbo', name: 'qwen-turbo', type: 'text' },
-      copywriting: { id: 'qwen-plus', name: 'qwen-plus', type: 'text' },
+      daily: { id: 'qwen3.7-flash', name: 'qwen3.7-flash', type: 'text' },
+      copywriting: { id: 'qwen3.7-plus', name: 'qwen3.7-plus', type: 'text' },
       longText: { id: 'qwen-long', name: 'qwen-long', type: 'text' },
-      reasoning: { id: 'deepseek-r1-0528', name: 'deepseek-r1', type: 'reasoning' },
+      reasoning: { id: 'deepseek-v4-pro', name: 'deepseek-v4-pro', type: 'reasoning' },
     },
   },
   tencent: {
-    baseUrl: 'https://tokenhub.cloud.tencent.com',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     apiKeyEnv: 'TENCENT_TOKENHUB_API_KEY',
     models: {
-      daily: { id: 'hunyuan-2.0-instruct-20251111', name: 'hunyuan-instruct', type: 'text' },
-      thinking: { id: 'hunyuan-2.0-thinking-20251109', name: 'hunyuan-thinking', type: 'reasoning' },
-      longText: { id: 'kimi-k2.6', name: 'kimi-k2.6', type: 'text' },
-      agent: { id: 'glm-5', name: 'glm-5', type: 'agent' },
-      vision: { id: 'glm-5v-turbo', name: 'glm-5v-turbo', type: 'vision' },
+      daily: { id: 'hy3', name: 'hy3', type: 'text' },
+      thinking: { id: 'hy3', name: 'hy3', type: 'reasoning' },
+      longText: { id: 'kimi-k3', name: 'kimi-k3', type: 'text' },
+      agent: { id: 'glm-5.2', name: 'glm-5.2', type: 'agent' },
+      vision: { id: 'hy-vision-2.0-instruct', name: 'hy-vision-2.0-instruct', type: 'vision' },
       video: { id: 'youtu-vita', name: 'youtu-vita', type: 'video' },
     },
   },

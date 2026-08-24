@@ -15,8 +15,9 @@ import {
   BulbOutlined, StarOutlined, WarningOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions, bannerOverlayOptions } from '@/lib/content/types';
-import { generateText, generateImage, generateVideo, analyzeViralTopic, type ContentTypeSlug } from '@/lib/ai/factory-service';
+import { generateText, generateImage, generateVideo, generateWithLocalPipeline, analyzeViralTopic, type ContentTypeSlug } from '@/lib/ai/factory-service';
 import { CATEGORY_TIPS } from '@/lib/ai/category-config';
+import { apiClient } from '@/lib/api';
 import PageContainer from '@/components/customer/PageContainer';
 
 const { Title, Text, Paragraph } = Typography;
@@ -116,8 +117,7 @@ const factoryCards: FactoryCard[] = [
   { category: ContentCategory.CARTOON_VIDEO, label: '萌宠卡通短视频', desc: '照片级卡通渲染，配音用真人声', icon: <StarOutlined />, color: '#EB2F96', gradient: 'linear-gradient(135deg, #C41D7F, #EB2F96)' },
   { category: ContentCategory.DIGITAL_HUMAN, label: '数字人短视频', desc: '拟真级口播，肉眼无法分辨AI', icon: <RobotOutlined />, color: '#13C2C2', gradient: 'linear-gradient(135deg, #08979C, #13C2C2)' },
   { category: ContentCategory.PERSON_MV_VIDEO, label: '真人MV视频', desc: '真人演唱级，无美颜滤镜自然光拍摄', icon: <CustomerServiceOutlined />, color: '#722ED1', gradient: 'linear-gradient(135deg, #531DAB, #722ED1)' },
-  { category: ContentCategory.AI_SKETCH, label: 'AI短剧', desc: '功能预留，敬请期待', icon: <PlaySquareOutlined />, color: '#CF1322', gradient: 'linear-gradient(135deg, #CF1322, #FF4D4F)' },
-  { category: ContentCategory.AI_COMIC, label: 'AI漫剧', desc: '功能预留，敬请期待', icon: <SmileOutlined />, color: '#A8071A', gradient: 'linear-gradient(135deg, #A8071A, #CF1322)' },
+  { category: ContentCategory.AI_COMIC, label: 'AI漫剧/短剧', desc: 'AI漫剧与短剧视频创作，功能预留，敬请期待', icon: <PlaySquareOutlined />, color: '#A8071A', gradient: 'linear-gradient(135deg, #A8071A, #CF1322)' },
 ];
 
 export default function AIFactoryPage() {
@@ -142,12 +142,45 @@ export default function AIFactoryPage() {
   useEffect(() => {
     const saved = localStorage.getItem('ai-factory-history');
     if (saved) { try { setGenerationHistory(JSON.parse(saved)); } catch { /* ignore */ } }
+    // Task 2：从服务器拉取生成历史并合并（离线时回退本地缓存）
+    apiClient.get('/ai-enhanced/history', { params: { page: 1, pageSize: 50 } })
+      .then((resp: any) => {
+        const items = resp?.items || [];
+        if (!items.length) return;
+        const remote = items.map((r: any) => ({
+          id: r.id,
+          category: r.category,
+          content: r.content,
+          config: r.config || {},
+          timestamp: r.createdAt ? new Date(r.createdAt).getTime() : Date.now(),
+          status: r.status === 'failed' ? 'failed' : 'success',
+          provider: r.provider || undefined,
+          model: r.model || undefined,
+        }));
+        const local: GenerationRecord[] = (() => { try { return JSON.parse(localStorage.getItem('ai-factory-history') || '[]'); } catch { return []; } })();
+        const localIds = new Set(local.map(r => r.id));
+        const merged = [...local, ...remote.filter((r: any) => !localIds.has(r.id))].slice(0, 50);
+        setGenerationHistory(merged);
+        localStorage.setItem('ai-factory-history', JSON.stringify(merged));
+      })
+      .catch(() => { /* 离线时继续用本地缓存 */ });
   }, []);
 
   const saveHistory = (record: GenerationRecord) => {
     const newHistory = [record, ...generationHistory].slice(0, 50);
     setGenerationHistory(newHistory);
     localStorage.setItem('ai-factory-history', JSON.stringify(newHistory));
+    // 异步同步到服务器（离线静默）
+    apiClient.post('/ai-enhanced/history', {
+      feature: 'ai-factory',
+      category: record.category,
+      content: record.content,
+      config: record.config,
+      status: record.status,
+      provider: record.provider,
+      model: record.model,
+      source: 'web',
+    }).catch(() => { /* 静默 */ });
   };
 
   const openCreator = (category: ContentCategory) => {
@@ -213,9 +246,52 @@ export default function AIFactoryPage() {
       const imgResults: string[] = [];
 
       for (let i = 0; i < count; i++) {
+        // P0-2：全类目优先走多阶段流水线（此前流水线从未被接线，仅直连单次调用）
+        const taskKey = getTaskKey(activeCategory);
+        const pipelinePrompt = cfg.type === 'image'
+          ? buildImagePrompt(activeCategory, values, viralAnalysis)
+          : cfg.type === 'video'
+            ? buildVideoPrompt(activeCategory, values, viralAnalysis)
+            : buildTextPrompt(activeCategory, values, viralAnalysis);
+
+        let pipelined = false;
+        try {
+          const pipeline = await generateWithLocalPipeline(taskKey, pipelinePrompt);
+          if (pipeline.success && pipeline.data) {
+            const pData = pipeline.data;
+            const finalOutput = pData.finalOutput || '';
+            const tasks = pData.tasks || [];
+
+            // 提取图片 URL（[图片N] https://...）
+            for (const m of finalOutput.matchAll(/\[图片\d+\]\s*(https?:\/\/[^\s\]]+)/g)) {
+              imgResults.push(m[1]);
+            }
+            // 提取视频 URL（【生成视频】https://...）
+            const videoMatch = finalOutput.match(/【生成视频】\s*(https?:\/\/[^\s\]]+)/);
+            if (videoMatch) results.push(videoMatch[1]);
+
+            // 文本：取最后一个成功文本阶段的完整输出
+            const textPhaseSet = new Set(['draft', 'anti_ai_rewrite', 'style_calibration', 'platform_adapt']);
+            const textTasks = tasks.filter((t: any) => t.success && textPhaseSet.has(t.phase));
+            const finalText = textTasks.length ? textTasks[textTasks.length - 1].output || '' : '';
+            if (finalText && cfg.type !== 'image') results.push(finalText);
+
+            const lastSuccess = [...tasks].reverse().find((t: any) => t.success);
+            if (lastSuccess) { setProvider(lastSuccess.provider); setModel(lastSuccess.modelName); }
+            pipelined = true;
+          } else {
+            message.warning(pipeline.data?.message || '流水线未产出结果，请检查 API Key 配置');
+            break;
+          }
+        } catch (e: any) {
+          console.warn('[AI工厂] 流水线不可用，回退单次直连:', e?.message);
+        }
+
+        if (pipelined) { setProgress(Math.round(((i + 1) / count) * 95)); continue; }
+
         if (cfg.type === 'image') {
           const prompt = buildImagePrompt(activeCategory, values, viralAnalysis);
-          const result = await generateImage({ prompt, size: values.size, n: values.count }, getTaskKey(activeCategory));
+          const result = await generateImage({ prompt, negativePrompt: values.negativePrompt, size: values.size, n: values.count }, getTaskKey(activeCategory));
           if (result.success && result.data) {
             const urls = Array.isArray(result.data) ? result.data : [result.data as string];
             urls.forEach(u => imgResults.push(u as string));
@@ -287,55 +363,84 @@ export default function AIFactoryPage() {
     }
   };
 
+  // 将类目专属字段格式化为提示词上下文（排除负向提示词，它单独传给图像接口）
+  const buildExtraContext = (cat: ContentCategory, values: any): string => {
+    const cfg = contentCategoryConfig[cat];
+    if (!cfg?.extraFields?.length) return '';
+    const parts: string[] = [];
+    for (const field of cfg.extraFields) {
+      if (field.name === 'negativePrompt') continue;
+      const v = values[field.name];
+      if (v === undefined || v === null || v === '') continue;
+      const arr = Array.isArray(v) ? v.filter(Boolean) : null;
+      if (arr && arr.length === 0) continue;
+      const label = field.promptLabel || field.label;
+      const val = arr ? arr.join('、') : String(v);
+      parts.push(`【${label}】${val}`);
+    }
+    return parts.length ? `\n\n【本功能专属需求】\n${parts.join('\n')}` : '';
+  };
+
   const buildTextPrompt = (cat: ContentCategory, values: any, hint: any): string => {
     const viralHint = hint
       ? `\n\n【爆款基因注入】本主题爆款评分：${hint.score}/40（${hint.rating}）\n${hint.tips.join('\n')}\n${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}` : ''}\n请在生成时主动借鉴以上爆款基因，强化hook、情绪、节奏。`
       : '';
+    const extra = buildExtraContext(cat, values);
     switch (cat) {
       case ContentCategory.XIAOHONGSHU:
-        return `作为小红书爆款文案专家，为主题"${values.description}"创作一篇${values.wordCount || 300}字左右的小红书风格笔记文案。\n要求：\n- 使用emoji和活泼语气\n- 包含吸引人的标题（强hook）\n- 分段落，每段不超过3行\n- 结尾加上相关话题标签（#格式）\n- 风格：${values.style || '种草分享'}${viralHint}`;
+        return `作为小红书爆款文案专家，为主题"${values.description}"创作一篇${values.wordCount || 300}字左右的小红书风格笔记文案。\n要求：\n- 使用emoji和活泼语气\n- 包含吸引人的标题（强hook）\n- 分段落，每段不超过3行\n- 结尾加上相关话题标签（#格式）\n- 风格：${values.style || '种草分享'}${viralHint}${extra}`;
       case ContentCategory.ECOMMERCE_DETAIL:
-        return `作为电商详情页设计专家，为产品"${values.description}"生成完整的电商详情页文案（${values.wordCount || 800}字）：\n1. 产品主标题（15字以内，吸睛）\n2. 副标题（30字以内）\n3. 核心卖点（3-5条，每条带图标符号）\n4. 产品详情描述（详细说明材质/功能/使用场景）\n5. 规格参数（如有）\n6. 购买引导语\n风格：${values.style || '专业电商'}。${values.requirements || ''}${viralHint}`;
+        return `作为电商详情页设计专家，为产品"${values.productName || values.description}"生成完整的电商详情页文案（${values.wordCount || 800}字）：\n1. 产品主标题（15字以内，吸睛）\n2. 副标题（30字以内）\n3. 核心卖点（3-5条，每条带图标符号）\n4. 产品详情描述（详细说明材质/功能/使用场景）\n5. 规格参数（如有）\n6. 购买引导语\n7. 针对目标人群的说服点与价格锚点话术\n风格：${values.style || '专业电商'}。${values.requirements || ''}${viralHint}${extra}`;
       case ContentCategory.SHORT_VIDEO:
-        return `作为短视频脚本专家，为主题"${values.description}"创作一个${values.duration || 30}秒的短视频脚本：\n1. 开场（0-3秒）：吸引注意力的hook\n2. 内容（3-${(values.duration || 30) - 5}秒）：核心内容展示\n3. 结尾（最后5秒）：行动号召\n配音风格：${values.voiceover || 'female-mandarin'}\n字幕：${values.subtitle || 'chinese'}\n请写出完整的口播文案和画面描述。${viralHint}`;
+        return `作为短视频脚本专家，为主题"${values.description}"创作一个${values.duration || 30}秒的短视频脚本：\n1. 开场（0-3秒）：吸引注意力的hook\n2. 内容（3-${(values.duration || 30) - 5}秒）：核心内容展示\n3. 结尾（最后5秒）：行动号召\n配音风格：${values.voiceover || 'female-mandarin'}\n字幕：${values.subtitle || 'chinese'}\n请写出完整的口播文案和画面描述。${viralHint}${extra}`;
       case ContentCategory.STORE_TOUR_VIDEO:
-        return `作为探店视频博主，为店铺"${values.description}"创作一个${values.duration || 30}秒探店视频脚本：\n- 第一视角探店体验\n- 展示店铺环境、特色产品/服务\n- 配音风格：${values.voiceover || 'female-mandarin'}\n写出完整口播文案。${viralHint}`;
+        return `作为探店视频博主，为店铺"${values.storeName || values.description}"创作一个${values.duration || 30}秒探店视频脚本：\n- 第一视角探店体验\n- 展示店铺环境、特色产品/服务\n- 真实评价（有好有坏，不要商业吹捧）\n- 配音风格：${values.voiceover || 'female-mandarin'}\n写出完整口播文案。${viralHint}${extra}`;
       case ContentCategory.SMART_EDIT:
-        return `作为专业视频剪辑导演，根据用户上传的视频素材，制定智能剪辑方案，主题/目标："${values.description}"。\n输出：\n1. 剪辑脚本：目标时长${values.duration || 30}秒，镜头结构（钩子→主体→高潮→CTA）\n2. 素材理解要点：每段素材的内容与可用剪辑点\n3. 节奏风格：${values.style || '强节奏卡点'}\n4. 配音与字幕需求\n5. BGM情绪与调色风格建议\n请输出结构化剪辑方案，供后续素材理解、镜头排序、FFmpeg合成使用。${viralHint}`;
+        return `作为专业视频剪辑导演，根据用户上传的视频素材，制定智能剪辑方案，主题/目标："${values.description}"。\n输出：\n1. 剪辑脚本：目标时长${values.duration || 30}秒，镜头结构（钩子→主体→高潮→CTA）\n2. 素材理解要点：每段素材的内容与可用剪辑点\n3. 节奏风格：${values.style || '强节奏卡点'}\n4. 配音与字幕需求\n5. BGM情绪与调色风格建议\n请输出结构化剪辑方案，供后续素材理解、镜头排序、FFmpeg合成使用。${viralHint}${extra}`;
+      case ContentCategory.CONTENT_CREATIVITY:
+        return `作为爆款内容策划专家，为主题"${values.description}"输出一份爆款内容创意方案：\n1. 爆款选题方向（3个，含理由）\n2. 标题方案（5个，强hook）\n3. 内容结构脚本（开头/中段/结尾）\n4. 情绪钩子与互动设计\n5. 目标平台优化建议\n6. 传播节奏规划\n要求：观点具体可执行，避免空话。${viralHint}${extra}`;
       default:
-        return `${values.description || '请生成内容'}${viralHint}`;
+        return `${values.description || '请生成内容'}${viralHint}${extra}`;
     }
   };
 
   const buildImagePrompt = (cat: ContentCategory, values: any, hint: any): string => {
     const viralHint = hint ? `，融入爆款视觉元素：${hint.keywords?.slice(0, 5).join('、') || '高辨识度'}` : '';
+    const extra = buildExtraContext(cat, values);
     switch (cat) {
       case ContentCategory.XIAOHONGSHU:
-        return `小红书风格精美配图，主题：${values.description}，清新自然，高颜值，适合社交媒体分享，${values.style || '生活美学'}风格，高清画质${viralHint}`;
+        return `小红书风格精美配图，主题：${values.description}，清新自然，高颜值，适合社交媒体分享，${values.style || '生活美学'}风格，高清画质${viralHint}${extra}`;
       case ContentCategory.IMAGE_GENERATION:
-        return `${values.description}，${values.style || '高质量写实'}风格，精美细节，专业摄影级画质，适合商用${viralHint}`;
+        return `${values.description}，${values.style || '高质量写实'}风格，构图角度：${values.composition || '自由构图'}，光影色调：${values.lighting || '自然光'}，质量：${values.imageQuality === 'ultra' ? '超高质量商用级' : values.imageQuality === 'high' ? '高质量精细' : '标准质量'}，精美细节，专业摄影级画质，适合商用${viralHint}${extra}`;
       case ContentCategory.ECOMMERCE_DETAIL:
-        return `电商产品图，${values.description}，白底/场景图，专业产品摄影，突出产品细节和质感，${values.style || '简约商务'}风格${viralHint}`;
+        return `电商产品图，${values.productName || values.description}，白底/场景图，专业产品摄影，突出产品细节和质感，${values.style || '简约商务'}风格${viralHint}${extra}`;
       default:
-        return `${values.description}，高质量，精美${viralHint}`;
+        return `${values.description}，高质量，精美${viralHint}${extra}`;
     }
   };
 
   const buildVideoPrompt = (cat: ContentCategory, values: any, hint: any): string => {
     const viralHint = hint ? `，强化爆款节奏：${hint.tips.slice(0, 2).join('；')}` : '';
+    const extra = buildExtraContext(cat, values);
     switch (cat) {
       case ContentCategory.ENTERPRISE_VIDEO:
-        return `企业宣传片，展示企业形象，${values.description}，大气专业，品牌调性，配${values.voiceover || 'male-mandarin'}配音${viralHint}`;
+        return `企业宣传片，展示企业形象，${values.companyName || values.description}，大气专业，品牌调性，配${values.voiceover || 'male-mandarin'}配音${viralHint}${extra}`;
       case ContentCategory.PRODUCT_VIDEO:
-        return `产品展示视频，${values.description}，突出产品卖点，动态展示，${values.style || '科技感'}风格${viralHint}`;
+        return `产品展示视频，${values.productName || values.description}，突出产品卖点，动态展示，${values.style || '科技感'}风格${viralHint}${extra}`;
       case ContentCategory.PERSON_MV_VIDEO:
-        return `MV风格音乐短视频，${values.description}，动感节奏，${values.style || '流行时尚'}风格${viralHint}`;
+        return `真人MV视频，歌曲《${values.songName || ''}》（${values.songStyle || '流行'}，演唱者：${values.singer || '未知'}），MV类型：${values.mvType || '故事叙事型'}。\n主题：${values.description || ''}\n要求：镜头与歌词节奏同步，画面自然真实（手机拍摄质感，无美颜滤镜），场景：${values.sceneSuggestion || '由AI推荐'}。${viralHint}${extra}`;
       case ContentCategory.CARTOON_VIDEO:
-        return `萌宠卡通创意短视频，${values.description}，可爱卡通风格，萌趣生动，画面活泼，${values.style || '卡通可爱'}风格，适合社交媒体传播，配${values.voiceover || 'female-mandarin'}配音${viralHint}`;
+        return `萌宠卡通创意短视频，角色设定：${values.petSetting || values.description}，可爱卡通风格，动画风格：${values.animationStyle || '2D卡通渲染'}，目标受众：${values.targetAudience || '全年龄'}，萌趣生动，画面活泼，适合社交媒体传播，配${values.voiceover || 'female-mandarin'}配音${viralHint}${extra}`;
+      case ContentCategory.SHORT_VIDEO:
+        return `真人拍摄级短视频，主题：${values.description || ''}，镜头节奏：${values.shotRhythm || '快剪电影级'}，配音：${values.voiceover || 'female-mandarin'}，字幕：${values.subtitle || 'chinese'}，时长${values.duration || 30}秒。要求反AI味：断句随机、口语化、有情绪起伏。${viralHint}${extra}`;
+      case ContentCategory.STORE_TOUR_VIDEO:
+        return `真人Vlog级探店视频，店铺：${values.storeName || values.description}，探店风格：${values.storeTourStyle || '真诚种草'}，保留环境原声，真实评价（有好有坏），时长${values.duration || 30}秒，配${values.voiceover || 'female-mandarin'}配音。${viralHint}${extra}`;
+      case ContentCategory.DIGITAL_HUMAN:
+        return `拟真数字人口播视频，形象偏好：${values.humanLook || '真人写实'}（${values.humanGender === 'male' ? '男' : '女'}性，${values.humanAge || '青年'}，着装：${values.humanOutfit || '商务' || '随性'}），口播文案：${values.speechScript || values.description || '由AI根据主题生成'}，口型同步率≥95%，自然微表情，目标平台：${values.targetPlatform || 'douyin'}。${viralHint}${extra}`;
       case ContentCategory.SMART_EDIT:
-        return `智能剪辑成片方案：${values.description}，目标时长${values.duration || 30}秒，${values.style || '强节奏卡点'}风格。要求：素材理解精准、剪辑点卡点对齐BGM、字幕双语、调色统一。${viralHint}`;
+        return `智能剪辑成片方案：${values.description}，目标时长${values.duration || 30}秒，卡点风格：${values.beatStyle || '强节奏卡点'}，目标平台：${values.editPlatform || 'douyin'}。要求：素材理解精准、剪辑点卡点对齐BGM、字幕双语、调色统一。${viralHint}${extra}`;
       default:
-        return `${values.description || '短视频'}${viralHint}`;
+        return `${values.description || '短视频'}${viralHint}${extra}`;
     }
   };
 
@@ -447,6 +552,33 @@ export default function AIFactoryPage() {
                 </Row>
               </>
             )}
+            {cfg.extraFields && cfg.extraFields.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0 16px' }}>
+                  <span style={{ width: 3, height: 16, borderRadius: 2, background: '#6d28d9', display: 'inline-block' }} />
+                  <Text strong style={{ fontSize: 14, color: '#6d28d9' }}>本功能专属需求</Text>
+                </div>
+                {cfg.extraFields.map(field => (
+                  <Form.Item
+                    key={field.name}
+                    label={<span>{field.label}{field.required && <span style={{ color: '#ff4d4f', marginLeft: 4 }}>*</span>}</span>}
+                    name={field.name}
+                    rules={field.required ? [{ required: true, message: `请输入${field.label}` }] : undefined}
+                  >
+                    {field.type === 'textarea' ? (
+                      <TextArea rows={3} placeholder={field.placeholder} />
+                    ) : field.type === 'select' ? (
+                      <Select options={field.options} placeholder={field.placeholder || `请选择${field.label}`} />
+                    ) : field.type === 'multiSelect' ? (
+                      <Select mode="multiple" options={field.options} placeholder={field.placeholder || `请选择${field.label}（可多选）`} />
+                    ) : (
+                      <Input placeholder={field.placeholder} />
+                    )}
+                  </Form.Item>
+                ))}
+                <Divider style={{ margin: '4px 0 20px' }} />
+              </>
+            )}
             <Form.Item label="风格" name="style">
               <Select options={[{ label: '专业', value: '专业' }, { label: '活泼', value: '活泼' }, { label: '商务', value: '商务' }, { label: '生活化', value: '生活化' }, { label: '科技感', value: '科技感' }, { label: '种草分享', value: '种草分享' }, { label: '简约', value: '简约' }, { label: '幽默', value: '幽默' }]} />
             </Form.Item>
@@ -555,7 +687,7 @@ export default function AIFactoryPage() {
             <List.Item
               actions={[
                 <Button type="link" onClick={() => { setActiveCategory(record.category); setGeneratedContent(record.content); form.setFieldsValue(record.config); setHistoryVisible(false); setShowCreator(true); }} key="use">使用</Button>,
-                <Button type="link" danger onClick={() => { const newHistory = generationHistory.filter(r => r.id !== record.id); setGenerationHistory(newHistory); localStorage.setItem('ai-factory-history', JSON.stringify(newHistory)); }} key="del">删除</Button>,
+                <Button type="link" danger onClick={() => { const newHistory = generationHistory.filter(r => r.id !== record.id); setGenerationHistory(newHistory); localStorage.setItem('ai-factory-history', JSON.stringify(newHistory)); apiClient.delete(`/ai-enhanced/history/${record.id}`).catch(() => { /* 静默 */ }); }} key="del">删除</Button>,
               ]}
             >
               <List.Item.Meta

@@ -78,8 +78,8 @@ export interface Candidate {
 // 前端展示状态映射
 export const CANDIDATE_STATUS_MAP: Record<CandidateStatus, { label: string; color: { bg: string; text: string } }> = {
   screening: { label: '筛选中', color: { bg: '#fef3c7', text: '#92400e' } },
-  matched: { label: '已匹配', color: { bg: '#dbeafe', text: '#1e40af' } },
-  contacted: { label: '已联系', color: { bg: '#e0e7ff', text: '#3730a3' } },
+  matched: { label: '已匹配', color: { bg: '#EDE9FE', text: '#4C1D95' } },
+  contacted: { label: '已联系', color: { bg: '#EDE9FE', text: '#3730a3' } },
   replied: { label: '已回复', color: { bg: '#dcfce7', text: '#166534' } },
   interview_scheduled: { label: '待面试', color: { bg: '#fce7f3', text: '#9d174d' } },
   interview_completed: { label: '面试完成', color: { bg: '#e0f2fe', text: '#0c4a6e' } },

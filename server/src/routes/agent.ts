@@ -281,7 +281,8 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const userId = (req as any).userId;
-      const { phone, name, password } = req.body;
+      const { phone, name, password, openingFee = 0 } = req.body;
+      const openingFeeAmount = parseFloat(openingFee) || 0;
 
       // 验证输入
       const errors = validationResult(req);
@@ -315,7 +316,7 @@ router.post(
           id: customerId,
           phone,
           name: name || phone,
-          password: hashPassword(password || phone.slice(-6)),
+          password: await hashPassword(password || phone.slice(-6)),
           role: 'customer',
           status: 'active',
           updatedAt: new Date(),
@@ -365,6 +366,35 @@ router.post(
         await prisma.user.delete({ where: { id: customerId } }).catch(() => {});
         console.error('初始化客户功能开关失败:', featError);
         return res.status(500).json({ success: false, message: '初始化客户功能开关失败' });
+      }
+
+      // 记录开通费用并计入当前代理商收益
+      if (openingFeeAmount > 0) {
+        try {
+          await prisma.$transaction(async (tx) => {
+            await tx.payment.create({
+              data: {
+                id: genUUID(),
+                type: 'customer_open',
+                amount: openingFeeAmount,
+                status: 'paid',
+                paymentMethod: 'offline',
+                agentId,
+                userId: customerId,
+                description: `代理商开通客户 ${name || phone} 收费`,
+                paidAt: new Date(),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              }
+            });
+            await tx.agent.update({
+              where: { id: agentId },
+              data: { totalRevenue: { increment: openingFeeAmount } }
+            });
+          });
+        } catch (paymentError: any) {
+          console.error('记录开通费用失败:', paymentError);
+        }
       }
 
       res.json({
@@ -489,7 +519,7 @@ router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', async (req: Reque
 
     await prisma.user.update({
       where: { id: customerId },
-      data: { password: hashPassword(generatedPassword) },
+      data: { password: await hashPassword(generatedPassword) },
     });
 
     res.json({

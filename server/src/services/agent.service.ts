@@ -205,7 +205,7 @@ export async function createCustomer(
     data: {
       phone,
       name: name || phone,
-      password: hashPassword(password || Math.random().toString(36).slice(-8)),
+      password: await hashPassword(password || Math.random().toString(36).slice(-8)),
       role: 'customer',
       UserAgentRelation: { create: { agentId } },
       status: 'active',
@@ -269,7 +269,7 @@ export async function resetCustomerPassword(
 
   await prisma.user.update({
     where: { id: customerId },
-    data: { password: hashPassword(newPassword || Math.random().toString(36).slice(-8)) },
+    data: { password: await hashPassword(newPassword || Math.random().toString(36).slice(-8)) },
   });
 }
 

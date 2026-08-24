@@ -504,6 +504,27 @@ export default function AdminAgentsPage() {
           >
             <Input type="number" step={0.05} min={0} max={1} placeholder="如：0.3 表示 30%" />
           </Form.Item>
+          <Form.Item
+            name="openingFee"
+            label="开通费用（元）"
+            initialValue={0}
+            rules={[
+              {
+                validator(_, value) {
+                  if (value === undefined || value === null || value === '') {
+                    return Promise.resolve();
+                  }
+                  const num = parseFloat(value);
+                  if (Number.isNaN(num) || num < 0) {
+                    return Promise.reject(new Error('请输入非负数'));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
+            <Input type="number" min={0} step={0.01} placeholder="请输入开通费用，0 表示免费" />
+          </Form.Item>
         </Form>
       </Modal>
 

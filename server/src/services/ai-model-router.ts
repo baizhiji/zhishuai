@@ -13,11 +13,11 @@ import { Request, Response } from 'express';
 
 // ==================== 模型配置 ====================
 
-// 腾讯云TokenHub模型列表
+// 腾讯云TokenHub模型列表（对齐蓝皮书统一标准，2026-08 在售模型）
 const TENCENT_MODELS = {
   hunyuan_instruct: {
-    id: 'hunyuan-2.0-instruct-20251111',
-    name: '混元日常',
+    id: 'hy3',
+    name: '混元Hy3日常',
     provider: 'tencent',
     type: 'chat',
     priority: 1,
@@ -28,8 +28,8 @@ const TENCENT_MODELS = {
     fallback: 'qwen_turbo',
   },
   hunyuan_thinking: {
-    id: 'hunyuan-2.0-thinking-20251109',
-    name: '混元思考',
+    id: 'hy3',
+    name: '混元Hy3思考',
     provider: 'tencent',
     type: 'reasoning',
     priority: 2,
@@ -40,8 +40,8 @@ const TENCENT_MODELS = {
     fallback: 'deepseek_r1',
   },
   kimi_k2: {
-    id: 'kimi-k2.6',
-    name: 'Kimi K2 长文',
+    id: 'kimi-k3',
+    name: 'Kimi K3 长文',
     provider: 'tencent',
     type: 'long_text',
     priority: 1,
@@ -52,8 +52,8 @@ const TENCENT_MODELS = {
     fallback: 'glm_5',
   },
   glm_5: {
-    id: 'glm-5',
-    name: 'GLM-5 Agent',
+    id: 'glm-5.2',
+    name: 'GLM-5.2 Agent',
     provider: 'tencent',
     type: 'agent',
     priority: 2,
@@ -65,8 +65,8 @@ const TENCENT_MODELS = {
     fallback: 'kimi_k2',
   },
   glm_5v: {
-    id: 'glm-5v-turbo',
-    name: 'GLM视觉',
+    id: 'hy-vision-2.0-instruct',
+    name: '混元视觉2.0',
     provider: 'tencent',
     type: 'vision',
     priority: 1,
@@ -93,8 +93,8 @@ const TENCENT_MODELS = {
 // 阿里云百炼模型列表
 const ALIYUN_MODELS = {
   qwen_turbo: {
-    id: 'qwen-turbo',
-    name: '千问快速',
+    id: 'qwen3.7-flash',
+    name: 'Qwen3.7快速',
     provider: 'aliyun',
     type: 'chat',
     priority: 1,
@@ -105,8 +105,8 @@ const ALIYUN_MODELS = {
     fallback: 'hunyuan_instruct',
   },
   qwen_plus: {
-    id: 'qwen-plus',
-    name: '千问专业',
+    id: 'qwen3.7-plus',
+    name: 'Qwen3.7专业',
     provider: 'aliyun',
     type: 'professional',
     priority: 2,
@@ -129,8 +129,8 @@ const ALIYUN_MODELS = {
     fallback: 'kimi_k2',
   },
   deepseek_r1: {
-    id: 'deepseek-r1-0528',
-    name: 'DeepSeek思考',
+    id: 'deepseek-v4-pro',
+    name: 'DeepSeek-V4思考',
     provider: 'aliyun',
     type: 'reasoning',
     priority: 2,

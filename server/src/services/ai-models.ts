@@ -43,7 +43,7 @@ export const AI_PROVIDERS = {
   },
   tokenhub: {
     name: '腾讯云TokenHub',
-    baseUrl: 'https://tokenhub.cloud.tencent.com/api/v1',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     models: {
       // 混元系列
       'hunyuan': { name: '混元-基础', type: 'chat', inputLimit: 32 * 1024, outputLimit: 8 * 1024 },

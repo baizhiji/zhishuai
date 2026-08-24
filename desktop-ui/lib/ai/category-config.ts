@@ -95,6 +95,17 @@ export interface ModelInfo {
 /**
  * 全部参与模型的注册信息（蓝皮书提及的 15 个核心模型）
  */
+/**
+ * P1-7 闲置模型标注：以下 key 当前未被 CATEGORY_PIPELINES 任何阶段引用（既非 primaryModel 也非 fallbackModel），
+ * 属于"备用/预留"资源。它们不参与流水线执行，但保留定义以兼容旧版本直连调用与未来扩展。
+ * 如需清理瘦身，可直接删除以下 key 及其对象定义：
+ * qwen3.7-max, qwen-max-aly, qwen3.7-plus, hy-image-lite, qwen-image-3.0-pro,
+ * hy-video-1.5, yt-video-2.0, hy-vision-2.0, vd-video-q3-turbo, happyhorse-1.1-t2v,
+ * doubao-seed-2.1-turbo, doubao-seed-2.0-pro, doubao-seed-1.6, doubao-seed-1.6-thinking,
+ * doubao-seed-2.0-lite, doubao-seedream-5.0-pro, doubao-seedream-5.0-lite,
+ * doubao-seedream-4.0, doubao-seededit-3.0-i2i, doubao-seedance-2.5, doubao-voice-clone-2.0,
+ * deepseek-v4-volcano, kimi-k2.7, minimax-m3, minimax-music-v2.6, fun-music-v1
+ */
 export const MODEL_INFO: Record<string, ModelInfo> = {
   // === 文案产线模型 ===
   'deepseek-v4-pro-tc': {

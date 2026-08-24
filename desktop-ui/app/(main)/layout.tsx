@@ -60,7 +60,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   const userMenuItems = [
     { key: 'login', label: <Link href="/login">登录</Link> },
-    { key: 'register', label: <Link href="/register">注册</Link> },
   ];
 
   return (
@@ -113,9 +112,6 @@ export default function MainLayout({ children }: MainLayoutProps) {
               </li>
               <li>
                 <Link href="/help#contact">联系我们</Link>
-              </li>
-              <li>
-                <Link href="/api-test">API测试</Link>
               </li>
             </ul>
           </div>

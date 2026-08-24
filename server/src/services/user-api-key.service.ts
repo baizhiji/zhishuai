@@ -48,7 +48,7 @@ export const PROVIDER_CONFIG = {
   },
   tokenhub: {
     name: '腾讯云 TokenHub',
-    baseUrl: 'https://tokenhub.cloud.tencent.com',
+    baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     type: 'tencent',
   },
   ark: {
@@ -58,16 +58,41 @@ export const PROVIDER_CONFIG = {
   },
 };
 
+// 服务商别名映射：标准命名（alibaba/tencent/volcano）→ 存储值（dashscope/tokenhub/ark）
+export const PROVIDER_ALIASES: Record<string, string> = {
+  dashscope: 'dashscope',
+  alibaba: 'dashscope',
+  tokenhub: 'tokenhub',
+  tencent: 'tokenhub',
+  ark: 'ark',
+  volcano: 'ark',
+};
+
+/**
+ * 归一化服务商标识：统一标准命名（alibaba/tencent/volcano）到存储值（dashscope/tokenhub/ark）
+ * 修复 provider 命名断裂：电脑版配置的 Key 可被后端代理（ai-client）按 tencent/alibaba/volcano 查到
+ */
+export function normalizeProvider(provider: string): 'dashscope' | 'tokenhub' | 'ark' {
+  return (PROVIDER_ALIASES[provider] || provider) as 'dashscope' | 'tokenhub' | 'ark';
+}
+
+// 获取服务商显示名（兼容别名与历史数据）
+function getProviderName(provider: string): string {
+  const normalized = normalizeProvider(provider);
+  return PROVIDER_CONFIG[normalized]?.name || provider;
+}
+
 /**
  * 获取用户的主 API Key
  */
-export async function getPrimaryApiKey(userId: string, provider: 'dashscope' | 'tokenhub' | 'ark') {
-  const config = PROVIDER_CONFIG[provider];
+export async function getPrimaryApiKey(userId: string, provider: string) {
+  const normalizedProvider = normalizeProvider(provider);
+  const config = PROVIDER_CONFIG[normalizedProvider];
   
   const apiKeyRecord = await prisma.apiKey.findFirst({
     where: {
       userId,
-      provider,
+      provider: normalizedProvider,
       status: 'active',
       isPrimary: true,
     },
@@ -88,7 +113,7 @@ export async function getPrimaryApiKey(userId: string, provider: 'dashscope' | '
   const anyKey = await prisma.apiKey.findFirst({
     where: {
       userId,
-      provider,
+      provider: normalizedProvider,
       status: 'active',
     },
     orderBy: { createdAt: 'desc' },
@@ -110,13 +135,14 @@ export async function getPrimaryApiKey(userId: string, provider: 'dashscope' | '
 /**
  * 获取用户的备用 API Key
  */
-export async function getSecondaryApiKey(userId: string, provider: 'dashscope' | 'tokenhub' | 'ark') {
-  const config = PROVIDER_CONFIG[provider];
+export async function getSecondaryApiKey(userId: string, provider: string) {
+  const normalizedProvider = normalizeProvider(provider);
+  const config = PROVIDER_CONFIG[normalizedProvider];
   
   const apiKeyRecord = await prisma.apiKey.findFirst({
     where: {
       userId,
-      provider,
+      provider: normalizedProvider,
       status: 'active',
       isSecondary: true,
     },
@@ -151,7 +177,7 @@ export async function getApiKeyList(userId: string) {
   return keys.map(key => ({
     id: key.id,
     provider: key.provider,
-    providerName: PROVIDER_CONFIG[key.provider as keyof typeof PROVIDER_CONFIG]?.name || key.provider,
+    providerName: getProviderName(key.provider),
     apiKey: maskKey(key.apiKey),
     secretKey: key.secretKey ? '******' : '',
     status: key.status,
@@ -170,15 +196,17 @@ export async function getApiKeyList(userId: string) {
  */
 export async function createApiKey(
   userId: string,
-  provider: 'dashscope' | 'tokenhub' | 'ark',
+  provider: string,
   apiKey: string,
   secretKey: string,
   isPrimary: boolean = true
 ) {
+  const normalizedProvider = normalizeProvider(provider);
+
   // 如果是主 Key，先取消其他主 Key
   if (isPrimary) {
     await prisma.apiKey.updateMany({
-      where: { userId, provider, isPrimary: true },
+      where: { userId, provider: normalizedProvider, isPrimary: true },
       data: { isPrimary: false },
     });
   }
@@ -190,7 +218,7 @@ export async function createApiKey(
   const record = await prisma.apiKey.create({
     data: {
       userId,
-      provider,
+      provider: normalizedProvider,
       apiKey: encryptedApiKey,
       secretKey: encryptedSecretKey,
       status: 'active',
@@ -203,7 +231,7 @@ export async function createApiKey(
   return {
     id: record.id,
     provider: record.provider,
-    providerName: PROVIDER_CONFIG[record.provider as keyof typeof PROVIDER_CONFIG]?.name || record.provider,
+    providerName: getProviderName(record.provider),
     status: record.status,
     isPrimary: record.isPrimary,
     createdAt: record.createdAt,
@@ -263,7 +291,7 @@ export const getApiKeyById = async (userId: string, keyId: string) => {
   return {
     id: key.id,
     provider: key.provider,
-    providerName: PROVIDER_CONFIG[key.provider as keyof typeof PROVIDER_CONFIG]?.name || key.provider,
+    providerName: getProviderName(key.provider),
     apiKey: maskKey(key.apiKey),
     status: key.status,
     isPrimary: key.isPrimary,
@@ -295,8 +323,8 @@ export async function toggleApiKey(userId: string, keyId: string, type: 'primary
   return true;
 }
 
-export async function testApiKey(provider: 'dashscope' | 'tokenhub' | 'ark', apiKey: string, secretKey: string): Promise<{ valid: boolean; message: string }> {
-  const config = PROVIDER_CONFIG[provider];
+export async function testApiKey(provider: string, apiKey: string, secretKey: string): Promise<{ valid: boolean; message: string }> {
+  const config = PROVIDER_CONFIG[normalizeProvider(provider)];
   
   try {
     const response = await fetch(`${config.baseUrl}/models`, {

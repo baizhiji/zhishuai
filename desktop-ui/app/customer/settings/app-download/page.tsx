@@ -27,12 +27,12 @@ interface AppVersion {
 }
 
 const DEFAULT_VERSION: AppVersion = {
-  version: '1.0.0',
+  version: '1.0.1',
   buildNumber: 1,
   minVersion: '1.0.0',
-  downloadUrl: '/app/zhishuai.apk',
-  changelog: '初始版本发布',
-  size: '45.6 MB',
+  downloadUrl: 'https://baizhiji.net/downloads/zhishuai.apk',
+  changelog: '紫色品牌视觉升级：APK 端 UI 全面与桌面安装版对齐，主色统一为品牌紫 #6D28D9；登录页与启动页 LOGO 更新为方案 B，修复 LOGO 圆角裁切问题。',
+  size: '70.0 MB',
   releaseDate: new Date().toISOString().split('T')[0],
   forceUpdate: false,
 };
@@ -68,7 +68,7 @@ export default function AppDownloadPage() {
   }, []);
 
   const downloadUrl =
-    typeof window !== 'undefined'
+    typeof window !== 'undefined' && !/^https?:\/\//.test(version.downloadUrl)
       ? `${window.location.origin}${version.downloadUrl}`
       : version.downloadUrl;
 

@@ -76,7 +76,7 @@ export default function PlanViewScreen({ route }: any) {
       <View style={styles.container}>
         <PageHeader title="方案详情" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#6D28D9" />
         </View>
       </View>
     );
@@ -148,7 +148,7 @@ export default function PlanViewScreen({ route }: any) {
                 <><Ionicons name="easel" size={20} color="#FFF" /><Text style={styles.downloadBtnText}>PPT</Text></>
               )}
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.downloadBtn, { backgroundColor: '#2563EB' }]} onPress={() => handleDownload('docx')} disabled={downloading !== null}>
+            <TouchableOpacity style={[styles.downloadBtn, { backgroundColor: '#6D28D9' }]} onPress={() => handleDownload('docx')} disabled={downloading !== null}>
               {downloading === 'docx' ? <ActivityIndicator size="small" color="#FFF" /> : (
                 <><Ionicons name="document-text" size={20} color="#FFF" /><Text style={styles.downloadBtnText}>DOCX</Text></>
               )}
@@ -175,18 +175,18 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 15, color: '#6B7280' },
 
   summaryCard: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#1F1B2E',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
   },
   summaryTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
-  summaryScenario: { fontSize: 14, color: '#93C5FD', backgroundColor: 'rgba(37,99,235,0.3)', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginBottom: 8 },
+  summaryScenario: { fontSize: 14, color: '#C4B5FD', backgroundColor: 'rgba(109,40,217,0.3)', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginBottom: 8 },
   summaryDate: { fontSize: 12, color: '#94A3B8' },
 
   sectionCard: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#F3F4F6' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sectionNumber: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#2563EB', justifyContent: 'center', alignItems: 'center' },
+  sectionNumber: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#6D28D9', justifyContent: 'center', alignItems: 'center' },
   sectionNumberText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
   sectionTitle: { flex: 1, fontSize: 15, fontWeight: '600', color: '#1F2937' },
   sectionContent: { fontSize: 14, color: '#374151', lineHeight: 22, marginTop: 12, paddingLeft: 38 },

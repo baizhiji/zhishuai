@@ -13,35 +13,29 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  Switch,
   ActionSheetIOS,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import * as VideoPicker from 'expo-video-thumbnails';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import PageHeader from '../components/PageHeader';
 
 // 导入服务
-import { 
-  ContentCategory, 
+import {
+  ContentCategory,
   contentCategoryConfig,
+  CategoryExtraField,
   styleOptions,
   imageSizeOptions,
   videoSizeOptions,
   subtitleOptions,
   voiceoverOptions,
   bgmOptions,
-  analysisDimensionOptions,
-  viralElementOptions,
-  digitalHumanOptions,
   generateText,
   generateImage,
   generateVideo,
-  analyzeVideo,
-  generateDigitalHumanVideo,
 } from '../services/content.service';
 
 type RootStackParamList = {
@@ -59,50 +53,31 @@ const STYLE_OPTIONS = [
   { label: '幽默', value: '幽默' },
 ];
 
-// 创作类型名称映射
-const CATEGORY_NAMES: Record<ContentCategory, string> = {
-  [ContentCategory.TITLE]: '标题生成',
-  [ContentCategory.TAGS]: '话题标签',
-  [ContentCategory.COPYWRITING]: '文案生成',
-  [ContentCategory.IMAGE_TO_TEXT]: '图转文',
-  [ContentCategory.XIAOHONGSHU]: '小红书图文',
-  [ContentCategory.IMAGE]: '图片生成',
-  [ContentCategory.ECOMMERCE]: '电商详情页',
-  [ContentCategory.VIDEO]: '短视频',
-  [ContentCategory.VIDEO_ANALYSIS]: '视频解析',
-  [ContentCategory.DIGITAL_HUMAN]: 'AI数字人视频',
-};
-
 export default function AICreateDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'AICreateDetail'>>();
   const { category } = route.params;
-  
+
   const config = contentCategoryConfig[category];
-  
+
   // 通用字段
   const [description, setDescription] = useState('');
   const [style, setStyle] = useState('专业');
   const [count, setCount] = useState(1);
   const [requirements, setRequirements] = useState('');
-  
+
   // 图片/视频字段
   const [size, setSize] = useState('1024x1024');
   const [duration, setDuration] = useState(30);
-  
+
   // 字幕配音音乐
   const [subtitle, setSubtitle] = useState('chinese');
   const [voiceover, setVoiceover] = useState('female-mandarin');
   const [bgm, setBgm] = useState('dynamic');
-  
-  // 视频解析字段
-  const [videoUrl, setVideoUrl] = useState('');
-  const [analysisDimensions, setAnalysisDimensions] = useState<string[]>([]);
-  const [viralElements, setViralElements] = useState<string[]>([]);
-  
-  // 数字人字段
-  const [digitalHumanId, setDigitalHumanId] = useState('system_male_1');
-  
+
+  // 专属字段值（key 为 CategoryExtraField.name）
+  const [extraValues, setExtraValues] = useState<Record<string, string>>({});
+
   // 统一文件上传状态（文档/图片/视频）
   const [uploadedFiles, setUploadedFiles] = useState<{
     type: 'document' | 'image' | 'video';
@@ -110,31 +85,31 @@ export default function AICreateDetailScreen() {
     name: string;
     size?: number;
   }[]>([]);
-  const [showUploadMenu, setShowUploadMenu] = useState(false);
-  
+
   // 生成状态
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);
-  
+
   // 弹窗状态
   const [showStylePicker, setShowStylePicker] = useState(false);
   const [showSizePicker, setShowSizePicker] = useState(false);
   const [showSubtitlePicker, setShowSubtitlePicker] = useState(false);
   const [showVoiceoverPicker, setShowVoiceoverPicker] = useState(false);
   const [showBgmPicker, setShowBgmPicker] = useState(false);
-  const [showDigitalHumanPicker, setShowDigitalHumanPicker] = useState(false);
+  // 专属 select/multiSelect 弹窗
+  const [activeSelectField, setActiveSelectField] = useState<CategoryExtraField | null>(null);
+  const [showExtraPicker, setShowExtraPicker] = useState(false);
 
   // 统一文件上传处理
   const handleUploadFile = useCallback(async (type: 'document' | 'image' | 'video') => {
     try {
       if (type === 'document') {
-        // 选择文档
         const result = await DocumentPicker.getDocumentAsync({
           type: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'],
           copyToCacheDirectory: true,
         });
-        
+
         if (!result.canceled && result.assets[0]) {
           const file = result.assets[0];
           setUploadedFiles(prev => [...prev, {
@@ -146,12 +121,11 @@ export default function AICreateDetailScreen() {
           Alert.alert('成功', `已添加文档：${file.name}`);
         }
       } else if (type === 'image') {
-        // 选择图片
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Images,
           quality: 0.8,
         });
-        
+
         if (!result.canceled && result.assets[0]) {
           const asset = result.assets[0];
           setUploadedFiles(prev => [...prev, {
@@ -162,13 +136,12 @@ export default function AICreateDetailScreen() {
           Alert.alert('成功', '已添加图片');
         }
       } else if (type === 'video') {
-        // 选择视频
         const result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ImagePicker.MediaTypeOptions.Videos,
           quality: 0.5,
           videoMaxDuration: 300,
         });
-        
+
         if (!result.canceled && result.assets[0]) {
           const asset = result.assets[0];
           setUploadedFiles(prev => [...prev, {
@@ -184,21 +157,6 @@ export default function AICreateDetailScreen() {
       Alert.alert('错误', '文件上传失败，请重试');
     }
   }, []);
-
-  // 显示上传选项菜单
-  const showUploadOptions = useCallback(() => {
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: ['取消', '上传文档', '上传图片', '上传视频'],
-        cancelButtonIndex: 0,
-      },
-      (buttonIndex) => {
-        if (buttonIndex === 1) handleUploadFile('document');
-        else if (buttonIndex === 2) handleUploadFile('image');
-        else if (buttonIndex === 3) handleUploadFile('video');
-      }
-    );
-  }, [handleUploadFile]);
 
   // 删除已上传文件
   const handleRemoveFile = useCallback((index: number) => {
@@ -218,87 +176,93 @@ export default function AICreateDetailScreen() {
     );
   }, []);
 
+  // 上传专属字段图片（imageUrl 类型，如数字人形象参考图）
+  const handleUploadExtraImage = useCallback(async (fieldName: string) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        setExtraValues(prev => ({ ...prev, [fieldName]: asset.uri }));
+      }
+    } catch (error) {
+      console.error('上传图片失败:', error);
+      Alert.alert('错误', '图片上传失败，请重试');
+    }
+  }, []);
+
+  // 设置专属字段值
+  const setExtraValue = useCallback((name: string, value: string) => {
+    setExtraValues(prev => ({ ...prev, [name]: value }));
+  }, []);
+
+  // 校验必填专属字段
+  const validateExtraFields = useCallback((): string | null => {
+    if (!config.extraFields) return null;
+    for (const field of config.extraFields) {
+      if (field.required && !(extraValues[field.name] || '').trim()) {
+        return `请填写${field.label}`;
+      }
+    }
+    return null;
+  }, [config.extraFields, extraValues]);
+
   // 处理生成
   const handleGenerate = useCallback(async () => {
-    if (!description.trim() && category !== ContentCategory.VIDEO_ANALYSIS) {
+    if (config.comingSoon) {
+      Alert.alert('提示', '该功能正在开发中，敬请期待');
+      return;
+    } else if (!description.trim()) {
       Alert.alert('提示', '请输入内容描述');
       return;
     }
-    
+
+    // 校验专属必填字段
+    const missing = validateExtraFields();
+    if (missing) {
+      Alert.alert('提示', missing);
+      return;
+    }
+
     setIsGenerating(true);
     setGeneratedContent(null);
     setGeneratedUrls([]);
-    
+
     try {
-      let result: any;
-      
       if (config.type === 'image') {
-        // 图片生成
         const res = await generateImage({
+          category,
           description,
           style,
           size,
+          extraValues,
         });
         setGeneratedUrls(res.output.results.map((r: any) => r.url));
       } else if (config.type === 'video') {
-        // 视频生成
-        if (category === ContentCategory.VIDEO_ANALYSIS) {
-          // 视频解析
-          if (!videoUrl.trim()) {
-            Alert.alert('提示', '请输入视频链接');
-            setIsGenerating(false);
-            return;
-          }
-          if (analysisDimensions.length === 0) {
-            Alert.alert('提示', '请选择分析维度');
-            setIsGenerating(false);
-            return;
-          }
-          const res = await analyzeVideo({
-            videoUrl,
-            analysisDimensions,
-            viralElements,
-            description,
-            size,
-          });
-          setGeneratedContent(res.output.analysis);
-          setGeneratedUrls([res.output.url]);
-        } else if (category === ContentCategory.DIGITAL_HUMAN) {
-          // AI数字人视频
-          const res = await generateDigitalHumanVideo({
-            description,
-            digitalHumanId,
-            wordCount: 500,
-            size,
-            duration,
-            subtitle,
-            voiceover,
-            bgm,
-          });
-          setGeneratedUrls([res.output.url]);
-        } else {
-          // 普通视频
-          const res = await generateVideo({
-            category,
-            description,
-            style,
-            size,
-            duration,
-            subtitle,
-            voiceover,
-            bgm,
-          });
-          setGeneratedUrls([res.output.url]);
-        }
+        const res = await generateVideo({
+          category,
+          description,
+          style,
+          size,
+          duration,
+          subtitle,
+          voiceover,
+          bgm,
+          extraValues,
+          imageUrl: extraValues['imageUrl'] || undefined,
+        });
+        setGeneratedUrls([res.output.url]);
       } else {
-        // 文本生成
         const res = await generateText({
           category,
           description,
           style,
-          wordCount: 500,
+          wordCount: count,
           requirements,
           count,
+          extraValues,
         });
         setGeneratedContent(res.output.text);
       }
@@ -308,7 +272,7 @@ export default function AICreateDetailScreen() {
     } finally {
       setIsGenerating(false);
     }
-  }, [category, description, style, count, requirements, size, duration, subtitle, voiceover, bgm, videoUrl, analysisDimensions, viralElements, digitalHumanId, config]);
+  }, [category, config, description, style, count, requirements, size, duration, subtitle, voiceover, bgm, extraValues, validateExtraFields]);
 
   // 保存内容
   const handleSave = useCallback(() => {
@@ -327,8 +291,7 @@ export default function AICreateDetailScreen() {
     title: string,
     options: { label: string; value: string }[],
     selectedValue: string,
-    onSelect: (value: string) => void,
-    groupBy?: string
+    onSelect: (value: string) => void
   ) => (
     <Modal visible={visible} transparent animationType="slide">
       <View style={pickerStyles.overlay}>
@@ -349,7 +312,7 @@ export default function AICreateDetailScreen() {
               >
                 <Text style={pickerStyles.optionText}>{item.label}</Text>
                 {selectedValue === item.value && (
-                  <Ionicons name="checkmark" size={20} color="#4F46E5" />
+                  <Ionicons name="checkmark" size={20} color="#6D28D9" />
                 )}
               </TouchableOpacity>
             )}
@@ -359,7 +322,7 @@ export default function AICreateDetailScreen() {
     </Modal>
   );
 
-  // 渲染标签选择器
+  // 渲染多选标签选择器
   const renderTagPicker = (
     visible: boolean,
     onClose: () => void,
@@ -401,57 +364,157 @@ export default function AICreateDetailScreen() {
     </Modal>
   );
 
+  // 渲染专属字段
+  const renderExtraFields = () => {
+    if (!config.extraFields || config.extraFields.length === 0) return null;
+    return (
+      <>
+        {config.extraFields.map(field => {
+          if (field.type === 'input' || field.type === 'textarea') {
+            return (
+              <View style={styles.field} key={field.name}>
+                <Text style={styles.fieldLabel}>
+                  {field.label}
+                  {field.required && <Text style={styles.requiredMark}> *</Text>}
+                </Text>
+                <TextInput
+                  style={field.type === 'textarea' ? styles.textArea : styles.input}
+                  placeholder={field.placeholder || `请输入${field.label}`}
+                  placeholderTextColor="#94a3b8"
+                  value={extraValues[field.name] || ''}
+                  onChangeText={(v) => setExtraValue(field.name, v)}
+                  multiline={field.type === 'textarea'}
+                  numberOfLines={field.type === 'textarea' ? 4 : 1}
+                  textAlignVertical={field.type === 'textarea' ? 'top' : undefined}
+                />
+              </View>
+            );
+          }
+          if (field.type === 'select' || field.type === 'multiSelect') {
+            const selected = extraValues[field.name] || '';
+            const selectedLabels = selected
+              .split(',')
+              .filter(Boolean)
+              .map(v => field.options?.find(o => o.value === v)?.label || v);
+            return (
+              <View style={styles.field} key={field.name}>
+                <Text style={styles.fieldLabel}>
+                  {field.label}
+                  {field.required && <Text style={styles.requiredMark}> *</Text>}
+                </Text>
+                <TouchableOpacity
+                  style={styles.selector}
+                  onPress={() => {
+                    setActiveSelectField(field);
+                    setShowExtraPicker(true);
+                  }}
+                >
+                  <Text style={[
+                    styles.selectorText,
+                    !selected && styles.selectorPlaceholder
+                  ]}>
+                    {selectedLabels.length > 0 ? selectedLabels.join('、') : `请选择${field.label}`}
+                  </Text>
+                  <Ionicons name="chevron-down" size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+            );
+          }
+          if (field.type === 'imageUrl') {
+            const uri = extraValues[field.name] || '';
+            return (
+              <View style={styles.field} key={field.name}>
+                <Text style={styles.fieldLabel}>
+                  {field.label}
+                  {field.required && <Text style={styles.requiredMark}> *</Text>}
+                </Text>
+                <TouchableOpacity
+                  style={styles.imageUrlSelector}
+                  onPress={() => handleUploadExtraImage(field.name)}
+                >
+                  {uri ? (
+                    <>
+                      <Image source={{ uri }} style={styles.imageUrlPreview} />
+                      <Text style={styles.imageUrlSelectedText}>点击更换图片</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="image-outline" size={22} color="#6D28D9" />
+                      <Text style={styles.imageUrlPlaceholder}>{field.placeholder || '上传图片'}</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            );
+          }
+          return null;
+        })}
+      </>
+    );
+  };
+
   // 渲染通用字段
   const renderCommonFields = () => (
     <>
-      {/* 统一文件上传入口（文档/图片/视频） */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>添加参考</Text>
-        
-        {/* 已上传文件列表 */}
-        {uploadedFiles.length > 0 && (
-          <View style={styles.uploadedFilesContainer}>
-            {uploadedFiles.map((file, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.uploadedFileItem}
-                onPress={() => handleRemoveFile(index)}
-              >
-                <Ionicons
-                  name={file.type === 'document' ? 'document-text' : file.type === 'image' ? 'image' : 'videocam'}
-                  size={16}
-                  color="#4F46E5"
-                />
-                <Text style={styles.uploadedFileName} numberOfLines={1}>
-                  {file.name}
-                </Text>
-                <Ionicons name="close" size={14} color="#ef4444" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-        
-        {/* 上传按钮 - 风格与其他选择器一致 */}
-        <TouchableOpacity
-          style={styles.uploadSelector}
-          onPress={showUploadOptions}
-        >
-          <Ionicons name="add-circle-outline" size={22} color="#4F46E5" />
-          <Text style={styles.uploadSelectorText}>上传文档/图片/视频</Text>
-        </TouchableOpacity>
-      </View>
+      {/* 统一文件上传入口（needUpload 类目） */}
+      {config.needUpload !== false && (
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>添加参考</Text>
+
+          {uploadedFiles.length > 0 && (
+            <View style={styles.uploadedFilesContainer}>
+              {uploadedFiles.map((file, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.uploadedFileItem}
+                  onPress={() => handleRemoveFile(index)}
+                >
+                  <Ionicons
+                    name={file.type === 'document' ? 'document-text' : file.type === 'image' ? 'image' : 'videocam'}
+                    size={16}
+                    color="#6D28D9"
+                  />
+                  <Text style={styles.uploadedFileName} numberOfLines={1}>
+                    {file.name}
+                  </Text>
+                  <Ionicons name="close" size={14} color="#ef4444" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={styles.uploadSelector}
+            onPress={() => {
+              ActionSheetIOS.showActionSheetWithOptions(
+                {
+                  options: ['取消', '上传文档', '上传图片', '上传视频'],
+                  cancelButtonIndex: 0,
+                },
+                (buttonIndex) => {
+                  if (buttonIndex === 1) handleUploadFile('document');
+                  else if (buttonIndex === 2) handleUploadFile('image');
+                  else if (buttonIndex === 3) handleUploadFile('video');
+                }
+              );
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={22} color="#6D28D9" />
+            <Text style={styles.uploadSelectorText}>上传文档/图片/视频</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* 内容描述 */}
       <View style={styles.field}>
         <Text style={styles.fieldLabel}>
-          {category === ContentCategory.IMAGE_TO_TEXT ? '图片描述' : '内容描述'}
+          内容描述
           {uploadedFiles.length > 0 && <Text style={styles.optionalLabel}>（参考文件已上传）</Text>}
         </Text>
         <TextInput
           style={styles.textArea}
-          placeholder={category === ContentCategory.IMAGE_TO_TEXT 
-            ? '描述图片内容或从上传的图片/视频中提取...'
-            : uploadedFiles.length > 0
+          placeholder={
+            uploadedFiles.length > 0
               ? '输入要生成的内容描述，或由AI根据上传文件自动生成...'
               : '输入要生成的内容描述、产品描述或参数...'}
           placeholderTextColor="#94a3b8"
@@ -463,27 +526,27 @@ export default function AICreateDetailScreen() {
         />
       </View>
 
-      {/* 风格选择 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>风格</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowStylePicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {STYLE_OPTIONS.find(s => s.value === style)?.label || '请选择'}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
+      {/* 风格选择（文本/图片类） */}
+      {config.type !== 'video' && (
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>风格</Text>
+          <TouchableOpacity
+            style={styles.selector}
+            onPress={() => setShowStylePicker(true)}
+          >
+            <Text style={styles.selectorText}>
+              {STYLE_OPTIONS.find(s => s.value === style)?.label || '请选择'}
+            </Text>
+            <Ionicons name="chevron-down" size={20} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+      )}
 
-      {/* 字数限制 - 部分类型显示 */}
-      {(category === ContentCategory.TITLE || 
-        category === ContentCategory.COPYWRITING || 
-        category === ContentCategory.XIAOHONGSHU ||
-        category === ContentCategory.ECOMMERCE ||
-        category === ContentCategory.IMAGE_TO_TEXT ||
-        category === ContentCategory.DIGITAL_HUMAN) && (
+      {/* 专属字段 */}
+      {renderExtraFields()}
+
+      {/* 字数限制 - needWordCount 类目 */}
+      {config.needWordCount && (
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>字数限制</Text>
           <TextInput
@@ -497,10 +560,8 @@ export default function AICreateDetailScreen() {
         </View>
       )}
 
-      {/* 额外要求 - 部分类型显示 */}
-      {(category === ContentCategory.COPYWRITING || 
-        category === ContentCategory.XIAOHONGSHU ||
-        category === ContentCategory.ECOMMERCE) && (
+      {/* 额外要求 - 文本类 */}
+      {config.type !== 'image' && config.type !== 'video' && (
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>额外要求</Text>
           <TextInput
@@ -515,384 +576,181 @@ export default function AICreateDetailScreen() {
           />
         </View>
       )}
-    </>
-  );
 
-  // 渲染图片/视频字段
-  const renderMediaFields = () => (
-    <>
-      {/* 尺寸选择 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>
-          {config.type === 'video' ? '视频尺寸' : '图片尺寸'}
-        </Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowSizePicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {config.type === 'video' 
-              ? videoSizeOptions.find(s => s.value === size)?.label 
-              : imageSizeOptions.find(s => s.value === size)?.label}
+      {/* 尺寸选择 - needSize 类目 */}
+      {config.needSize && (
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>
+            {config.type === 'video' ? '视频尺寸' : '图片尺寸'}
           </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-    </>
-  );
-
-  // 渲染视频额外字段
-  const renderVideoFields = () => (
-    <>
-      {/* 时长 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>视频时长（秒）</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="请输入时长（最多180秒）"
-          placeholderTextColor="#94a3b8"
-          value={duration.toString()}
-          onChangeText={(v) => setDuration(parseInt(v) || 30)}
-          keyboardType="numeric"
-        />
-      </View>
-
-      {/* 字幕 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>字幕</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowSubtitlePicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {subtitleOptions.find(s => s.value === subtitle)?.label}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-
-      {/* 配音 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>配音</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowVoiceoverPicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {voiceoverOptions.find(s => s.value === voiceover)?.label}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-
-      {/* 背景音乐 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>背景音乐</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowBgmPicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {bgmOptions.find(s => s.value === bgm)?.label}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-    </>
-  );
-
-  // 渲染视频解析字段
-  const renderVideoAnalysisFields = () => (
-    <>
-      {/* 视频链接 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>视频链接</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="输入短视频链接（抖音、快手、小红书、B站等）"
-          placeholderTextColor="#94a3b8"
-          value={videoUrl}
-          onChangeText={setVideoUrl}
-        />
-        <Text style={styles.fieldTip}>支持抖音、快手、小红书、视频号、B站等平台链接</Text>
-      </View>
-
-      {/* 分析维度 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>分析维度</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowSubtitlePicker(true)} // 复用标签选择器
-        >
-          <Text style={styles.selectorText}>
-            {analysisDimensions.length > 0 
-              ? `已选择 ${analysisDimensions.length} 项` 
-              : '点击选择分析维度'}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-
-      {/* 爆款元素 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>爆款元素</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowVoiceoverPicker(true)} // 复用标签选择器
-        >
-          <Text style={styles.selectorText}>
-            {viralElements.length > 0 
-              ? `已选择 ${viralElements.length} 项` 
-              : '点击选择爆款元素'}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-
-      {/* 内容描述 - 用于AI生成类似视频 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>内容描述（选填）</Text>
-        <TextInput
-          style={styles.textArea}
-          placeholder="输入要生成的视频描述，AI将基于解析结果生成类似视频..."
-          placeholderTextColor="#94a3b8"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={3}
-          textAlignVertical="top"
-        />
-      </View>
-
-      {/* 功能操作按钮 */}
-      <View style={styles.actionButtonsRow}>
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.downloadButton]}
-          onPress={() => {
-            if (!videoUrl.trim()) {
-              Alert.alert('提示', '请先输入视频链接');
-              return;
-            }
-            // 下载视频功能
-            Alert.alert('下载视频', '正在解析视频，请稍候...');
-          }}
-        >
-          <Ionicons name="download-outline" size={20} color="#fff" />
-          <Text style={styles.actionButtonText}>解析下载</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, styles.generateSimilarButton]}
-          onPress={() => {
-            if (!videoUrl.trim()) {
-              Alert.alert('提示', '请先输入视频链接');
-              return;
-            }
-            // AI生成类似视频
-            Alert.alert('AI生成', '正在基于解析结果生成类似视频...');
-          }}
-        >
-          <Ionicons name="sparkles-outline" size={20} color="#fff" />
-          <Text style={styles.actionButtonText}>AI生成类似视频</Text>
-        </TouchableOpacity>
-      </View>
-    </>
-  );
-
-  // 渲染数字人字段
-  const renderDigitalHumanFields = () => (
-    <>
-      {/* 选择数字人 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>选择数字人</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowDigitalHumanPicker(true)}
-        >
-          <View style={styles.digitalHumanPreview}>
-            {digitalHumanOptions.find(d => d.value === digitalHumanId)?.thumbnail && (
-              <Image 
-                source={{ uri: digitalHumanOptions.find(d => d.value === digitalHumanId)?.thumbnail }} 
-                style={styles.digitalHumanThumbnail}
-              />
-            )}
+          <TouchableOpacity
+            style={styles.selector}
+            onPress={() => setShowSizePicker(true)}
+          >
             <Text style={styles.selectorText}>
-              {digitalHumanOptions.find(d => d.value === digitalHumanId)?.label}
+              {config.type === 'video'
+                ? videoSizeOptions.find(s => s.value === size)?.label
+                : imageSizeOptions.find(s => s.value === size)?.label}
             </Text>
+            <Ionicons name="chevron-down" size={20} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* 时长 - needDuration 类目 */}
+      {config.needDuration && (
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>视频时长（秒）</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="请输入时长（最多180秒）"
+            placeholderTextColor="#94a3b8"
+            value={duration.toString()}
+            onChangeText={(v) => setDuration(parseInt(v) || 30)}
+            keyboardType="numeric"
+          />
+        </View>
+      )}
+
+      {/* 字幕/配音/音乐 - 视频类目 */}
+      {config.type === 'video' && (
+        <>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>字幕</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={() => setShowSubtitlePicker(true)}
+            >
+              <Text style={styles.selectorText}>
+                {subtitleOptions.find(s => s.value === subtitle)?.label}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
+            </TouchableOpacity>
           </View>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
 
-      {/* 尺寸 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>视频尺寸</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowSizePicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {videoSizeOptions.find(s => s.value === size)?.label}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>配音</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={() => setShowVoiceoverPicker(true)}
+            >
+              <Text style={styles.selectorText}>
+                {voiceoverOptions.find(s => s.value === voiceover)?.label}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
 
-      {/* 时长 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>视频时长（秒）</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="请输入时长（最多180秒）"
-          placeholderTextColor="#94a3b8"
-          value={duration.toString()}
-          onChangeText={(v) => setDuration(parseInt(v) || 30)}
-          keyboardType="numeric"
-        />
-      </View>
-
-      {/* 字幕 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>字幕</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowSubtitlePicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {subtitleOptions.find(s => s.value === subtitle)?.label}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-
-      {/* 配音 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>配音</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowVoiceoverPicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {voiceoverOptions.find(s => s.value === voiceover)?.label}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
-
-      {/* 背景音乐 */}
-      <View style={styles.field}>
-        <Text style={styles.fieldLabel}>背景音乐</Text>
-        <TouchableOpacity 
-          style={styles.selector}
-          onPress={() => setShowBgmPicker(true)}
-        >
-          <Text style={styles.selectorText}>
-            {bgmOptions.find(s => s.value === bgm)?.label}
-          </Text>
-          <Ionicons name="chevron-down" size={20} color="#64748b" />
-        </TouchableOpacity>
-      </View>
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>背景音乐</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={() => setShowBgmPicker(true)}
+            >
+              <Text style={styles.selectorText}>
+                {bgmOptions.find(s => s.value === bgm)?.label}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </>
+  );
+
+  // 预留功能占位
+  const renderComingSoon = () => (
+    <View style={styles.comingSoonCard}>
+      <Ionicons name="construct-outline" size={48} color="#94a3b8" />
+      <Text style={styles.comingSoonTitle}>功能开发中</Text>
+      <Text style={styles.comingSoonDesc}>
+        「{config.label}」正在加紧研发中，敬请期待后续版本上线
+      </Text>
+    </View>
   );
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <PageHeader title={CATEGORY_NAMES[category]} />
-      
+      <PageHeader title={config.label} />
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* 表单字段 */}
-        {renderCommonFields()}
-        
-        {/* 图片类型额外字段 */}
-        {category === ContentCategory.IMAGE && renderMediaFields()}
-        
-        {/* 视频类型额外字段 */}
-        {category === ContentCategory.VIDEO && (
+        {config.comingSoon ? (
+          renderComingSoon()
+        ) : (
           <>
-            {renderMediaFields()}
-            {renderVideoFields()}
-          </>
-        )}
-        
-        {/* 视频解析字段 */}
-        {category === ContentCategory.VIDEO_ANALYSIS && renderVideoAnalysisFields()}
-        
-        {/* 数字人字段 */}
-        {category === ContentCategory.DIGITAL_HUMAN && (
-          <>
-            {renderMediaFields()}
-            {renderDigitalHumanFields()}
-          </>
-        )}
+            {/* 表单字段 */}
+            {renderCommonFields()}
 
-        {/* 生成按钮 */}
-        <TouchableOpacity
-          style={[styles.generateBtn, isGenerating && styles.generateBtnDisabled]}
-          onPress={handleGenerate}
-          disabled={isGenerating}
-        >
-          {isGenerating ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Ionicons name="sparkles" size={20} color="#fff" />
-              <Text style={styles.generateBtnText}>开始生成</Text>
-            </>
-          )}
-        </TouchableOpacity>
+            {/* 生成按钮 */}
+            <TouchableOpacity
+              style={[styles.generateBtn, isGenerating && styles.generateBtnDisabled]}
+              onPress={handleGenerate}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Ionicons name="sparkles" size={20} color="#fff" />
+                  <Text style={styles.generateBtnText}>开始生成</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-        {/* 生成结果 */}
-        {generatedContent && (
-          <View style={styles.resultCard}>
-            <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>生成结果</Text>
-            </View>
-            <Text style={styles.resultContent}>{generatedContent}</Text>
-            <View style={styles.resultActions}>
-              <TouchableOpacity style={styles.actionBtn} onPress={handleCopy}>
-                <Ionicons name="copy-outline" size={18} color="#4F46E5" />
-                <Text style={styles.actionBtnText}>复制</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn} onPress={handleSave}>
-                <Ionicons name="bookmark-outline" size={18} color="#4F46E5" />
-                <Text style={styles.actionBtnText}>保存</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-
-        {/* 图片/视频结果 */}
-        {generatedUrls.length > 0 && (
-          <View style={styles.resultCard}>
-            <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>生成结果</Text>
-            </View>
-            {generatedUrls.map((url, index) => (
-              <View key={index} style={styles.mediaContainer}>
-                {config.type === 'image' ? (
-                  <Image source={{ uri: url }} style={styles.generatedImage} resizeMode="contain" />
-                ) : (
-                  <View style={styles.videoPlaceholder}>
-                    <Ionicons name="videocam" size={40} color="#64748b" />
-                    <Text style={styles.videoPlaceholderText}>视频生成中...</Text>
-                  </View>
-                )}
+            {/* 生成结果 */}
+            {generatedContent && (
+              <View style={styles.resultCard}>
+                <View style={styles.resultHeader}>
+                  <Text style={styles.resultTitle}>生成结果</Text>
+                </View>
+                <Text style={styles.resultContent}>{generatedContent}</Text>
                 <View style={styles.resultActions}>
-                  <TouchableOpacity style={styles.actionBtn} onPress={handleSave}>
-                    <Ionicons name="bookmark-outline" size={18} color="#4F46E5" />
-                    <Text style={styles.actionBtnText}>保存</Text>
-                  </TouchableOpacity>
                   <TouchableOpacity style={styles.actionBtn} onPress={handleCopy}>
-                    <Ionicons name="download-outline" size={18} color="#4F46E5" />
-                    <Text style={styles.actionBtnText}>下载</Text>
+                    <Ionicons name="copy-outline" size={18} color="#6D28D9" />
+                    <Text style={styles.actionBtnText}>复制</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionBtn} onPress={handleSave}>
+                    <Ionicons name="bookmark-outline" size={18} color="#6D28D9" />
+                    <Text style={styles.actionBtnText}>保存</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-            ))}
-          </View>
+            )}
+
+            {/* 图片/视频结果 */}
+            {generatedUrls.length > 0 && (
+              <View style={styles.resultCard}>
+                <View style={styles.resultHeader}>
+                  <Text style={styles.resultTitle}>生成结果</Text>
+                </View>
+                {generatedUrls.map((url, index) => (
+                  <View key={index} style={styles.mediaContainer}>
+                    {config.type === 'image' ? (
+                      <Image source={{ uri: url }} style={styles.generatedImage} resizeMode="contain" />
+                    ) : (
+                      <View style={styles.videoPlaceholder}>
+                        <Ionicons name="videocam" size={40} color="#64748b" />
+                        <Text style={styles.videoPlaceholderText}>视频生成中...</Text>
+                      </View>
+                    )}
+                    <View style={styles.resultActions}>
+                      <TouchableOpacity style={styles.actionBtn} onPress={handleSave}>
+                        <Ionicons name="bookmark-outline" size={18} color="#6D28D9" />
+                        <Text style={styles.actionBtnText}>保存</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.actionBtn} onPress={handleCopy}>
+                        <Ionicons name="download-outline" size={18} color="#6D28D9" />
+                        <Text style={styles.actionBtnText}>下载</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
         )}
 
         <View style={{ height: 100 }} />
@@ -907,18 +765,18 @@ export default function AICreateDetailScreen() {
         style,
         setStyle
       )}
-      
+
       {renderOptionPicker(
         showSizePicker,
         () => setShowSizePicker(false),
-        category === ContentCategory.IMAGE ? '选择图片尺寸' : '选择视频尺寸',
-        config.type === 'video' || category === ContentCategory.DIGITAL_HUMAN 
-          ? videoSizeOptions 
+        config.type === 'video' ? '选择视频尺寸' : '选择图片尺寸',
+        config.type === 'video'
+          ? videoSizeOptions
           : imageSizeOptions,
         size,
         setSize
       )}
-      
+
       {renderOptionPicker(
         showSubtitlePicker,
         () => setShowSubtitlePicker(false),
@@ -927,7 +785,7 @@ export default function AICreateDetailScreen() {
         subtitle,
         setSubtitle
       )}
-      
+
       {renderOptionPicker(
         showVoiceoverPicker,
         () => setShowVoiceoverPicker(false),
@@ -936,7 +794,7 @@ export default function AICreateDetailScreen() {
         voiceover,
         setVoiceover
       )}
-      
+
       {renderOptionPicker(
         showBgmPicker,
         () => setShowBgmPicker(false),
@@ -945,50 +803,56 @@ export default function AICreateDetailScreen() {
         bgm,
         setBgm
       )}
-      
-      {/* 数字人选择器（带缩略图） */}
-      <Modal visible={showDigitalHumanPicker} transparent animationType="slide">
-        <View style={pickerStyles.overlay}>
-          <View style={pickerStyles.content}>
-            <View style={pickerStyles.header}>
-              <Text style={pickerStyles.title}>选择数字人</Text>
-              <TouchableOpacity onPress={() => setShowDigitalHumanPicker(false)}>
-                <Ionicons name="close" size={24} color="#1e293b" />
-              </TouchableOpacity>
-            </View>
-            <FlatList
-              data={digitalHumanOptions}
-              keyExtractor={item => item.value}
-              numColumns={2}
-              columnWrapperStyle={styles.digitalHumanRow}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.digitalHumanCard,
-                    digitalHumanId === item.value && styles.digitalHumanCardSelected
-                  ]}
-                  onPress={() => {
-                    setDigitalHumanId(item.value);
-                    setShowDigitalHumanPicker(false);
-                  }}
-                >
-                  <Image 
-                    source={{ uri: item.thumbnail }} 
-                    style={styles.digitalHumanCardThumbnail}
-                  />
-                  <Text style={styles.digitalHumanCardLabel}>{item.label}</Text>
-                  <Text style={styles.digitalHumanCardType}>{item.type}</Text>
-                  {digitalHumanId === item.value && (
-                    <View style={styles.digitalHumanCardCheck}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4F46E5" />
-                    </View>
-                  )}
+
+      {/* 专属字段选择器（select 单选） */}
+      {renderOptionPicker(
+        showExtraPicker && activeSelectField?.type === 'select',
+        () => { setShowExtraPicker(false); setActiveSelectField(null); },
+        activeSelectField?.label || '选择',
+        activeSelectField?.options || [],
+        extraValues[activeSelectField?.name || ''] || '',
+        (value) => {
+          if (activeSelectField) setExtraValue(activeSelectField.name, value);
+        }
+      )}
+
+      {/* 专属字段选择器（multiSelect 多选） */}
+      {activeSelectField?.type === 'multiSelect' && (
+        <Modal visible={showExtraPicker} transparent animationType="slide">
+          <View style={pickerStyles.overlay}>
+            <View style={pickerStyles.content}>
+              <View style={pickerStyles.header}>
+                <Text style={pickerStyles.title}>{activeSelectField.label}（可多选）</Text>
+                <TouchableOpacity onPress={() => { setShowExtraPicker(false); setActiveSelectField(null); }}>
+                  <Text style={pickerStyles.doneBtn}>完成</Text>
                 </TouchableOpacity>
-              )}
-            />
+              </View>
+              <View style={pickerStyles.tagContainer}>
+                {(activeSelectField.options || []).map(item => {
+                  const current = (extraValues[activeSelectField.name] || '').split(',').filter(Boolean);
+                  const isSelected = current.includes(item.value);
+                  return (
+                    <TouchableOpacity
+                      key={item.value}
+                      style={[pickerStyles.tag, isSelected && pickerStyles.tagSelected]}
+                      onPress={() => {
+                        const next = isSelected
+                          ? current.filter(v => v !== item.value)
+                          : [...current, item.value];
+                        setExtraValue(activeSelectField.name, next.join(','));
+                      }}
+                    >
+                      <Text style={[pickerStyles.tagText, isSelected && pickerStyles.tagTextSelected]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -1011,6 +875,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1e293b',
     marginBottom: 8,
+  },
+  requiredMark: {
+    color: '#ef4444',
   },
   input: {
     backgroundColor: '#fff',
@@ -1047,12 +914,16 @@ const styles = StyleSheet.create({
   selectorText: {
     fontSize: 15,
     color: '#1e293b',
+    flex: 1,
+  },
+  selectorPlaceholder: {
+    color: '#94a3b8',
   },
   generateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#6D28D9',
     borderRadius: 12,
     paddingVertical: 16,
     gap: 8,
@@ -1102,7 +973,7 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 14,
-    color: '#4F46E5',
+    color: '#6D28D9',
   },
   mediaContainer: {
     marginBottom: 12,
@@ -1126,92 +997,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
   },
-  // 视频解析相关
   fieldTip: {
     fontSize: 12,
     color: '#94a3b8',
     marginTop: 6,
   },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-    marginBottom: 20,
-  },
-  actionButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 6,
-  },
-  downloadButton: {
-    backgroundColor: '#10B981',
-  },
-  generateSimilarButton: {
-    backgroundColor: '#8B5CF6',
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  // 数字人相关
-  digitalHumanPreview: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  digitalHumanThumbnail: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#f1f5f9',
-  },
-  digitalHumanRow: {
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  digitalHumanCard: {
-    width: '48%',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    marginBottom: 12,
-  },
-  digitalHumanCardSelected: {
-    borderColor: '#4F46E5',
-    backgroundColor: '#EEF2FF',
-  },
-  digitalHumanCardThumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#f1f5f9',
-    marginBottom: 8,
-  },
-  digitalHumanCardLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  digitalHumanCardType: {
-    fontSize: 11,
-    color: '#94a3b8',
-  },
-  digitalHumanCardCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  // 上传文件相关样式
   optionalLabel: {
     fontSize: 12,
     color: '#10B981',
@@ -1225,7 +1015,7 @@ const styles = StyleSheet.create({
   uploadedFileItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#F5F3FF',
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -1234,7 +1024,7 @@ const styles = StyleSheet.create({
   uploadedFileName: {
     flex: 1,
     fontSize: 12,
-    color: '#4F46E5',
+    color: '#6D28D9',
   },
   uploadSelector: {
     flexDirection: 'row',
@@ -1249,8 +1039,58 @@ const styles = StyleSheet.create({
   },
   uploadSelectorText: {
     fontSize: 14,
-    color: '#4F46E5',
+    color: '#6D28D9',
     fontWeight: '500',
+  },
+  imageUrlSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  imageUrlPreview: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  imageUrlPlaceholder: {
+    fontSize: 14,
+    color: '#6D28D9',
+    fontWeight: '500',
+  },
+  imageUrlSelectedText: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  comingSoonCard: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 40,
+    marginTop: 40,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  comingSoonTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  comingSoonDesc: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
@@ -1283,7 +1123,7 @@ const pickerStyles = StyleSheet.create({
   },
   doneBtn: {
     fontSize: 16,
-    color: '#4F46E5',
+    color: '#6D28D9',
     fontWeight: '500',
   },
   option: {
@@ -1313,7 +1153,7 @@ const pickerStyles = StyleSheet.create({
     marginBottom: 8,
   },
   tagSelected: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#6D28D9',
   },
   tagText: {
     fontSize: 14,

@@ -34,7 +34,6 @@ export const useNavigationStore = create<NavigationStore>()(
           '/share/track': 'share',
           // 账号与配置
           '/account/staff': 'account',
-          '/account/api': 'account',
           '/account/knowledge': 'account',
           '/account/log': 'account',
           // 系统设置

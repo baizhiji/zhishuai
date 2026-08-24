@@ -18,6 +18,7 @@ const LOCAL_STORAGE_KEYS: Record<string, string> = {
   dashscope: 'api_key_alibaba',
   tokenhub: 'api_key_tencent',
   volcano: 'api_key_volcano',
+  ark: 'api_key_volcano', // 后端将火山方舟归一化为 ark 存储，删除时兼容清理本地缓存
 };
 
 interface ApiKeyItem {

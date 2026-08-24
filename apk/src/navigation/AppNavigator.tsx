@@ -20,6 +20,7 @@ import { NavigationContext } from '../context/NavigationContext';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
+import LegalScreen from '../screens/auth/LegalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MediaOperationScreen from '../screens/MediaOperationScreen';
 import MaterialsScreen from '../screens/MaterialsScreen';
@@ -34,8 +35,6 @@ import SupportQRScreen from '../screens/SupportQRScreen';
 import AICreateCenterScreen from '../screens/AICreateCenterScreen';
 import AICreateDetailScreen from '../screens/AICreateDetailScreen';
 
-
-import { AICopyScreen, AIFeatureScreen, AIImageScreen, AIVideoScreen, AIEditScreen, DigitalHumanScreen, VoiceCloneScreen, AIChatScreen } from '../screens/ai';
 // 商业助手
 import BusinessAssistantScreen from '../screens/ai/BusinessAssistantScreen';
 import PlanGenerationScreen from '../screens/ai/PlanGenerationScreen';
@@ -59,20 +58,13 @@ export type RootStackParamList = {
   Statistics: undefined;
   Recruitment: undefined;
   Acquisition: undefined;
-  AIFeature: { category?: string };
-  AIImage: undefined;
-  AIVideo: { category?: string };
-  DigitalHuman: undefined;
-  AICopy: undefined;
-  AIEdit: undefined;
-  VoiceClone: undefined;
-  AIChat: undefined;
   AICreateDetail: { category: string };
   AICreateCenter: undefined;
   BusinessAssistant: undefined;
   PlanGeneration: { scenario: { id: string; name: string; description: string; icon: string; category: string } };
   PlanView: { planId: string; scenarioId: string };
   BusinessChat: undefined;
+  Legal: { type: 'terms' | 'privacy' };
 };
 
 export type MainTabParamList = {
@@ -141,7 +133,7 @@ const MainTabs = () => {
       <MainTab.Screen
         name="Create"
         component={BusinessAssistantScreen}
-        options={{ tabBarLabel: 'AI助手' }}
+        options={{ tabBarLabel: '商业助手' }}
       />
       <MainTab.Screen
         name="Profile"
@@ -183,7 +175,7 @@ const AppNavigator = () => {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color="#6D28D9" />
         <Text style={styles.loadingText}>加载中...</Text>
       </View>
     );
@@ -236,21 +228,6 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
           <RootStack.Screen
-            name="AIFeature"
-            component={AIFeatureScreen}
-            options={{ title: 'AI创作' }}
-          />
-          <RootStack.Screen
-            name="AIImage"
-            component={AIImageScreen}
-            options={{ title: '图片生成' }}
-          />
-          <RootStack.Screen
-            name="AIVideo"
-            component={AIVideoScreen}
-            options={{ title: '视频生成' }}
-          />
-          <RootStack.Screen
             name="Referral"
             component={ReferralScreen}
           />
@@ -262,7 +239,7 @@ const AppNavigator = () => {
           <RootStack.Screen
             name="Statistics"
             component={StatisticsScreen}
-            options={{ title: '数据统计' }}
+            options={{ title: '数据总览' }}
           />
           <RootStack.Screen
             name="Recruitment"
@@ -273,31 +250,6 @@ const AppNavigator = () => {
             name="Acquisition"
             component={AcquisitionScreen}
             options={{ title: '智能获客' }}
-          />
-          <RootStack.Screen
-            name="DigitalHuman"
-            component={DigitalHumanScreen}
-            options={{ title: 'AI数字人' }}
-          />
-          <RootStack.Screen
-            name="AICopy"
-            component={AICopyScreen}
-            options={{ title: 'AI文案' }}
-          />
-          <RootStack.Screen
-            name="AIEdit"
-            component={AIEditScreen}
-            options={{ title: 'AI剪辑' }}
-          />
-          <RootStack.Screen
-            name="AIChat"
-            component={AIChatScreen}
-            options={{ headerShown: false }}
-          />
-          <RootStack.Screen
-            name="VoiceClone"
-            component={VoiceCloneScreen}
-            options={{ title: '声音克隆' }}
           />
           <RootStack.Screen
             name="AICreateCenter"
@@ -335,6 +287,12 @@ const AppNavigator = () => {
             component={BusinessChatScreen}
             options={{ headerShown: false }}
           />
+          {/* 法律文档（用户协议/隐私政策） */}
+          <RootStack.Screen
+            name="Legal"
+            component={LegalScreen}
+            options={{ headerShown: false }}
+          />
         </RootStack.Navigator>
       </NavigationContainer>
     </NavigationContext.Provider>
@@ -347,7 +305,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F4F1FA',
   },
   loadingText: {
     marginTop: 16,

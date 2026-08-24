@@ -123,7 +123,7 @@ export async function createAgent(input: CreateAgentInput) {
 
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
-      data: { phone, password: hashPassword(password), name, role: 'agent' },
+      data: { phone, password: await hashPassword(password), name, role: 'agent' },
     });
 
     const agent = await tx.agent.create({
@@ -293,7 +293,7 @@ export async function createCustomer(input: CreateCustomerInput) {
     const newUser = await tx.user.create({
       data: {
         phone,
-        password: hashPassword(password || Math.random().toString(36).slice(-8)),
+        password: await hashPassword(password || Math.random().toString(36).slice(-8)),
         name: name || phone,
         role: 'customer',
       },

@@ -88,33 +88,33 @@ class AIChatService {
    * 获取诊断能力说明
    */
   async getDiagnosisCapabilities(): Promise<DiagnosisCapabilities> {
-    const response = await apiClient.get<{ success: boolean; data: DiagnosisCapabilities }>('/ai-chat/diagnosis/capabilities');
-    return response.data;
+    const response = await apiClient.get<DiagnosisCapabilities>('/ai-chat/diagnosis/capabilities');
+    return response;
   }
 
   /**
    * 发起诊断分析
    */
   async diagnose(request: DiagnosisRequest): Promise<DiagnosisResponse> {
-    const response = await apiClient.post<{ success: boolean; data: DiagnosisResponse }>('/ai-chat/diagnosis', {
+    const response = await apiClient.post<DiagnosisResponse>('/ai-chat/diagnosis', {
       request: request.request,
       industry: request.industry,
       data: request.data,
       analysisType: request.analysisType,
     });
-    return response.data;
+    return response;
   }
 
   /**
    * 发送对话消息
    */
   async chat(request: ChatRequest): Promise<ChatResponse> {
-    const response = await apiClient.post<{ success: boolean; data: ChatResponse }>('/ai-chat/chat', {
+    const response = await apiClient.post<ChatResponse>('/ai-chat/chat', {
       messages: request.messages,
       model: request.model,
       stream: request.stream || false,
     });
-    return response.data;
+    return response;
   }
 
   /**
@@ -171,30 +171,30 @@ class AIChatService {
    * 获取支持的模型列表
    */
   async getModels(): Promise<ModelInfo[]> {
-    const response = await apiClient.get<{ success: boolean; data: ModelInfo[] }>('/ai-chat/models');
-    return response.data;
+    const response = await apiClient.get<ModelInfo[]>('/ai-chat/models');
+    return response;
   }
 
   /**
    * 图片理解
    */
   async vision(request: VisionRequest): Promise<{ description: string }> {
-    const response = await apiClient.post<{ success: boolean; data: { description: string } }>('/ai-chat/vision', {
+    const response = await apiClient.post<{ description: string }>('/ai-chat/vision', {
       imageUrl: request.imageUrl,
       question: request.question,
     });
-    return response.data;
+    return response;
   }
 
   /**
    * 视频理解
    */
   async videoUnderstand(request: VideoUnderstandRequest): Promise<{ analysis: string }> {
-    const response = await apiClient.post<{ success: boolean; data: { analysis: string } }>('/ai-chat/video', {
+    const response = await apiClient.post<{ analysis: string }>('/ai-chat/video', {
       videoUrl: request.videoUrl,
       question: request.question,
     });
-    return response.data;
+    return response;
   }
 }
 

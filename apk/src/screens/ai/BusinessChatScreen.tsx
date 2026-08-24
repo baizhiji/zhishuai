@@ -27,10 +27,10 @@ interface Message {
 }
 
 const QUICK_QUESTIONS = [
-  '如何制定年度营销计划？',
-  '怎样降低企业运营成本？',
-  '小企业如何做好品牌建设？',
-  '如何评估一个新市场的机会？',
+  '我是刚起步的创业者，第一年怎么活下来并找到第一批客户？',
+  '我的企业年营收3000万，下一步如何突破到1个亿？',
+  '如何为我的产品制定一套完整的定价和营销方案？',
+  '我的实体店客流下降，请给我一份完整的经营改善方案？',
 ];
 
 export default function BusinessChatScreen() {
@@ -38,7 +38,7 @@ export default function BusinessChatScreen() {
     {
       id: 'welcome',
       role: 'assistant',
-      content: '您好！我是智枢AI商业顾问，可以帮您解答商业相关的问题。\n\n我可以为您提供以下方面的专业建议：\n• 创业规划与商业模式设计\n• 企业运营与管理优化\n• 市场营销与品牌推广\n• 财务分析与成本控制\n• 实体店经营与连锁管理\n\n请随时向我提问，我会尽力为您提供专业、具体的建议。',
+      content: '您好！我是智枢AI商业助手，覆盖企业从0（创业启动）到100（做大做强）全生命周期的商业问题。\n\n我可以为您提供以下专业支持：\n• 创业启动：市场机会、商业模式、MVP、启动资金\n• 生存发展：获客、现金流、定价、渠道冷启动\n• 成长扩张：组织、营销放量、融资、数字化转型\n• 规模经营：连锁复制、供应链、品牌、降本增效\n• 做大做强：资本运作、上市辅导、并购、国际化\n\n请描述您或您的企业所处阶段与具体问题，我会为您量身定制最贴合实际的完整方案。',
       timestamp: Date.now(),
     },
   ]);
@@ -106,7 +106,7 @@ export default function BusinessChatScreen() {
       <View style={[styles.messageRow, isUser && styles.messageRowUser]}>
         {!isUser && (
           <View style={styles.avatarBot}>
-            <Ionicons name="flash" size={16} color="#2563EB" />
+            <Ionicons name="flash" size={16} color="#6D28D9" />
           </View>
         )}
         <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.botBubble]}>
@@ -123,7 +123,7 @@ export default function BusinessChatScreen() {
 
   return (
     <View style={styles.container}>
-      <PageHeader title="商业顾问" />
+      <PageHeader title="商业助手" />
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F4F1FA',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#6D28D9',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 18,
   },
-  userBubble: { backgroundColor: '#2563EB', borderBottomRightRadius: 4 },
+  userBubble: { backgroundColor: '#6D28D9', borderBottomRightRadius: 4 },
   botBubble: { backgroundColor: '#FFFFFF', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#F3F4F6' },
 
   messageText: { fontSize: 15, color: '#374151', lineHeight: 22 },
@@ -261,10 +261,10 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#6D28D9',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
   },
-  sendBtnDisabled: { backgroundColor: '#93C5FD' },
+  sendBtnDisabled: { backgroundColor: '#C4B5FD' },
 });

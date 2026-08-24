@@ -20,7 +20,7 @@ export default function AdminSecurityPage() {
       const res = (await request.put('/auth/password', {
         oldPassword: values.oldPassword,
         newPassword: values.newPassword,
-      })) as unknown as { success: boolean; message?: string };
+      }, { timeout: 15000 })) as unknown as { success: boolean; message?: string };
       if (res.success !== false) {
         message.success('密码修改成功，请重新登录');
         form.resetFields();
@@ -29,7 +29,11 @@ export default function AdminSecurityPage() {
         message.error(res.message || '密码修改失败');
       }
     } catch (err: any) {
-      message.error(err?.response?.data?.message || err?.message || '密码修改失败');
+      if (err?.code === 'ECONNABORTED') {
+        message.error('请求超时，请稍后重试');
+      } else {
+        message.error(err?.response?.data?.message || err?.message || '密码修改失败');
+      }
     } finally {
       setLoading(false);
     }

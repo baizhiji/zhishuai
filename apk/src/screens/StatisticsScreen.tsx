@@ -1,267 +1,787 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator } from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  RefreshControl, ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import PageHeader from '../components/PageHeader';
-import { apiClient } from '../services/api.client';
+import { useTheme } from '../context/ThemeContext';
+import { dashboardStatsService } from '../services/dashboard-stats.service';
 
-const { width } = Dimensions.get('window');
+// ==================== 类型 ====================
 
-export default function StatisticsScreen() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'content' | 'platform'>('overview');
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('7d');
-  const [loading, setLoading] = useState(true);
-
-  // 真实API数据
-  const [overviewStats, setOverviewStats] = useState({ totalMaterials: 0, totalRecruitmentPosts: 0, totalAcquisitionTasks: 0, totalShareCodes: 0, totalShareRecords: 0 });
-  const [trendData, setTrendData] = useState<any[]>([]);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      const [overview, trend] = await Promise.all([
-        apiClient.get('/statistics/overview'),
-        apiClient.get('/statistics/trend?days=7'),
-      ]);
-      if (overview) setOverviewStats(overview);
-      if (trend && Array.isArray(trend)) {
-        setTrendData(trend.map((d: any) => ({
-          date: d.date ? d.date.slice(5) : '--',
-          views: d.value || 0,
-          likes: 0,
-        })));
-      }
-    } catch (e) {
-      console.log('获取统计数据失败');
-    } finally {
-      setLoading(false);
-    }
+interface CustomerSummary {
+  kpi: {
+    materials: { total: number; weekNew: number; trend: number };
+    pendingTickets: number;
+    aiUsage: { total: number; weekTokens: number };
+    leads: { total: number; weekNew: number; converted: number; trend: number };
+    shares: { total: number; scans: number; conversions: number };
+    candidates: { total: number; weekNew: number; hired: number };
   };
+  trend: Array<{ date: string; materials: number }>;
+  recentActivities: Array<{ time: string; type: string; content: string; status?: string }>;
+  generatedAt: string;
+}
 
-  const maxViews = trendData.length > 0 ? Math.max(...trendData.map((d: any) => d.views), 1) : 1;
+const EMPTY_SUMMARY: CustomerSummary = {
+  kpi: {
+    materials: { total: 0, weekNew: 0, trend: 0 },
+    pendingTickets: 0,
+    aiUsage: { total: 0, weekTokens: 0 },
+    leads: { total: 0, weekNew: 0, converted: 0, trend: 0 },
+    shares: { total: 0, scans: 0, conversions: 0 },
+    candidates: { total: 0, weekNew: 0, hired: 0 },
+  },
+  trend: [],
+  recentActivities: [],
+  generatedAt: new Date().toISOString(),
+};
 
-  const maxViews = trendData.length > 0 ? Math.max(...trendData.map((d: any) => d.views), 1) : 1;
+// ==================== 常量 ====================
+
+const numFmt = (n: number) => (n || 0).toLocaleString('zh-CN');
+
+const formatTokens = (n: number) => {
+  if (!n) return '0';
+  if (n >= 1000000) return `${(n / 1000000).toFixed(2)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+};
+
+const ACTIVITY_LABEL: Record<string, string> = {
+  material: '素材',
+  ai: 'AI创作',
+  ticket: '工单',
+  login: '登录',
+};
+
+const ACTIVITY_ICON: Record<string, string> = {
+  material: 'images-outline',
+  ai: 'sparkles-outline',
+  ticket: 'document-text-outline',
+  login: 'log-in-outline',
+};
+
+const ACTIVITY_COLOR: Record<string, string> = {
+  material: '#6d28d9',
+  ai: '#722ed1',
+  ticket: '#fa8c16',
+  login: '#8c8c8c',
+};
+
+const ACTIVITY_ROUTE: Record<string, string> = {
+  material: 'Materials',
+  ai: 'AICreateCenter',
+  ticket: 'Messages',
+  login: 'Messages',
+};
+
+// 日期格式化 YYYY-MM-DD
+const fmtDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// 时间格式化 YYYY-MM-DD HH:mm:ss
+const fmtDateTime = (iso: string) => {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '-';
+  return `${fmtDate(d)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+};
+
+// 最近 N 天的日期数组（用于补全趋势空位）
+const lastNDates = (n: number): string[] => {
+  const arr: string[] = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    arr.push(fmtDate(d));
+  }
+  return arr;
+};
+
+// ==================== 子组件 ====================
+
+function KpiCard({
+  icon,
+  color,
+  label,
+  value,
+  extra,
+  onPress,
+  theme,
+}: {
+  icon: string;
+  color: string;
+  label: string;
+  value: number;
+  extra: string;
+  onPress?: () => void;
+  theme: any;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.kpiCard, { backgroundColor: theme.card, borderColor: theme.border }]}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+    >
+      <View style={[styles.kpiIcon, { backgroundColor: `${color}18` }]}>
+        <Ionicons name={icon as any} size={20} color={color} />
+      </View>
+      <Text style={[styles.kpiLabel, { color: theme.textSecondary }]}>{label}</Text>
+      <Text style={[styles.kpiValue, { color: theme.text }]}>{numFmt(value)}</Text>
+      {extra ? <Text style={styles.kpiExtra} numberOfLines={1}>{extra}</Text> : null}
+    </TouchableOpacity>
+  );
+}
+
+function TrendChart({ trend, days, theme }: { trend: Array<{ date: string; materials: number }>; days: number; theme: any }) {
+  const dates = lastNDates(days);
+  const map = new Map(trend.map((t) => [t.date, t.materials]));
+  const data = dates.map((d) => ({ date: d, value: map.get(d) || 0 }));
+  const max = Math.max(...data.map((d) => d.value), 1);
 
   return (
-    <View style={styles.container}>
-      <PageHeader title="数据统计" />
-
-      {/* Tab栏 */}
-      <View style={styles.tabBar}>
-        {[
-          { key: 'overview', icon: 'pie-chart', label: '总览' },
-          { key: 'content', icon: 'document-text', label: '内容' },
-          { key: 'platform', icon: 'apps', label: '平台' },
-        ].map(tab => (
-          <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key as any)}>
-            <Ionicons name={tab.icon as any} size={18} color={activeTab === tab.key ? '#4F46E5' : '#94a3b8'} />
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
+    <View>
+      <View style={styles.chartArea}>
+        {data.map((d, i) => {
+          const h = d.value === 0 ? 3 : Math.max(6, Math.round((d.value / max) * 120));
+          return (
+            <View key={i} style={styles.chartCol}>
+              <View style={styles.barWrap}>
+                {d.value > 0 && <Text style={styles.barValue}>{d.value}</Text>}
+                <View
+                  style={[
+                    styles.bar,
+                    { height: h, backgroundColor: d.value === 0 ? theme.border : theme.primary },
+                  ]}
+                />
+              </View>
+              <Text style={styles.barLabel} numberOfLines={1}>
+                {d.date.slice(5)}
+              </Text>
+            </View>
+          );
+        })}
       </View>
-
-      {/* 时间筛选 */}
-      <View style={styles.timeFilter}>
-        {[
-          { key: '7d', label: '7天' },
-          { key: '30d', label: '30天' },
-          { key: '90d', label: '90天' },
-        ].map(item => (
-          <TouchableOpacity key={item.key} style={[styles.timeBtn, timeRange === item.key && styles.timeBtnActive]} onPress={() => setTimeRange(item.key as any)}>
-            <Text style={[styles.timeBtnText, timeRange === item.key && styles.timeBtnTextActive]}>{item.label}</Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.chartInfo}>
+        <View style={styles.chartDot} />
+        <Text style={[styles.chartInfoText, { color: theme.textSecondary }]}>每日新增素材</Text>
       </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* 总览 */}
-        {activeTab === 'overview' && (
-          <>
-            {/* 总数据卡片 */}
-            {loading ? (
-              <View style={styles.overviewCard}><ActivityIndicator size="large" color="#4F46E5" style={{padding: 40}} /></View>
-            ) : (
-            <View style={styles.overviewCard}>
-              <View style={styles.overviewRow}>
-                <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalMaterials}</Text>
-                  <Text style={styles.overviewLabel}>素材总数</Text>
-                </View>
-                <View style={styles.overviewDivider} />
-                <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalRecruitmentPosts}</Text>
-                  <Text style={styles.overviewLabel}>招聘岗位</Text>
-                </View>
-              </View>
-              <View style={styles.overviewRow}>
-                <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalAcquisitionTasks}</Text>
-                  <Text style={styles.overviewLabel}>获客任务</Text>
-                </View>
-                <View style={styles.overviewDivider} />
-                <View style={styles.overviewItem}>
-                  <Text style={styles.overviewValue}>{overviewStats.totalShareCodes}</Text>
-                  <Text style={styles.overviewLabel}>分享码</Text>
-                </View>
-              </View>
-            </View>
-            )}
-
-            {/* 趋势图 */}
-            <Text style={styles.sectionTitle}>数据趋势</Text>
-            <View style={styles.chartCard}>
-              <View style={styles.chartLegend}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#4F46E5' }]} />
-                  <Text style={styles.legendText}>浏览量</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
-                  <Text style={styles.legendText}>点赞</Text>
-                </View>
-              </View>
-              <View style={styles.chartContainer}>
-                {trendData.map((item, index) => (
-                  <View key={index} style={styles.chartBar}>
-                    <View style={styles.barGroup}>
-                      <View style={[styles.bar, styles.barViews, { height: (item.views / maxViews) * 120 }]} />
-                      <View style={[styles.bar, styles.barLikes, { height: (item.likes / maxViews * 1.5) * 120 }]} />
-                    </View>
-                    <Text style={styles.barLabel}>{item.date}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* 热门内容TOP5 */}
-            <Text style={styles.sectionTitle}>热门内容 TOP5</Text>
-            {loading ? (
-              <View style={styles.topContentCard}><ActivityIndicator size="small" color="#4F46E5" /><Text style={{color: '#94a3b8', textAlign: 'center', padding: 20}}>加载中...</Text></View>
-            ) : (
-              <View style={styles.topContentCard}>
-                <Text style={{color: '#94a3b8', textAlign: 'center', padding: 20}}>暂无内容数据，发布内容后将在此展示</Text>
-              </View>
-            )}
-          </>
-        )}
-
-        {/* 内容数据 */}
-        {activeTab === 'content' && (
-          <>
-            <Text style={styles.sectionTitle}>内容数据列表</Text>
-            <View style={styles.contentCard}>
-              <Text style={{color: '#94a3b8', textAlign: 'center', padding: 30, fontSize: 14}}>暂无内容数据{'\n'}发布内容后将在此展示效果数据</Text>
-            </View>
-          </>
-        )}
-
-        {/* 平台分布 */}
-        {activeTab === 'platform' && (
-          <>
-            <Text style={styles.sectionTitle}>各平台数据</Text>
-            <View style={styles.platformCard}>
-              <Text style={{color: '#94a3b8', textAlign: 'center', padding: 30, fontSize: 14}}>平台数据将在发布内容后自动汇总展示</Text>
-            </View>
-
-            <Text style={styles.sectionTitle}>平台对比</Text>
-            <View style={styles.compareCard}>
-              <View style={styles.compareHeader}>
-                <Text style={styles.compareTitle}>内容数量分布</Text>
-              </View>
-              <View style={styles.compareRow}>
-                <View style={styles.compareItem}>
-                  <Text style={styles.comparePlatform}>抖音</Text>
-                  <Text style={styles.compareValue}>0</Text>
-                </View>
-                <View style={styles.compareItem}>
-                  <Text style={styles.comparePlatform}>小红书</Text>
-                  <Text style={styles.compareValue}>0</Text>
-                </View>
-                <View style={styles.compareItem}>
-                  <Text style={styles.comparePlatform}>微信</Text>
-                  <Text style={styles.compareValue}>0</Text>
-                </View>
-              </View>
-            </View>
-          </>
-        )}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
     </View>
   );
 }
 
+// ==================== 主组件 ====================
+
+export default function StatisticsScreen() {
+  const navigation = useNavigation();
+  const { theme } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [data, setData] = useState<CustomerSummary>(EMPTY_SUMMARY);
+  const [tokenStats, setTokenStats] = useState<any>(null);
+  const [trendDays, setTrendDays] = useState<number>(7);
+
+  const fetchAll = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    try {
+      const [summary, stats, daily] = await Promise.allSettled([
+        dashboardStatsService.getCustomerStats(),
+        dashboardStatsService.getTokenStats(),
+        dashboardStatsService.getTokenDaily(30),
+      ]);
+
+      if (summary.status === 'fulfilled' && summary.value) {
+        setData(summary.value);
+      } else {
+        setData(EMPTY_SUMMARY);
+      }
+
+      if (stats.status === 'fulfilled' && stats.value) {
+        const todayStr = fmtDate(new Date());
+        const monthStartStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
+        const dailyData = daily.status === 'fulfilled' && Array.isArray(daily.value) ? daily.value : [];
+        const todayTokens = dailyData
+          .filter((d: any) => d.date === todayStr)
+          .reduce((s: number, d: any) => s + (d.tokens || 0), 0);
+        const monthTokens = dailyData
+          .filter((d: any) => d.date >= monthStartStr)
+          .reduce((s: number, d: any) => s + (d.tokens || 0), 0);
+        setTokenStats({
+          total: stats.value.total?.totalTokens || 0,
+          month: monthTokens,
+          today: todayTokens,
+          byProvider: stats.value.byProvider || [],
+        });
+      } else {
+        setTokenStats(null);
+      }
+    } catch (err) {
+      console.error('Failed to load dashboard:', err);
+      setData(EMPTY_SUMMARY);
+    }
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
+
+  const trendData = (data.trend || []).filter((t) => t.date);
+  const isFirstTimeUser =
+    !loading && data.kpi.materials.total === 0 && data.kpi.aiUsage.total === 0;
+
+  const goto = (screen: string) => {
+    (navigation as any).navigate(screen);
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <PageHeader title="数据总览" />
+      {loading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={theme.primary} />
+          <Text style={[styles.loadingText, { color: theme.textSecondary }]}>正在加载数据...</Text>
+        </View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={() => fetchAll(true)} tintColor={theme.primary} />
+          }
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ====== 顶部信息 ====== */}
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>数据总览</Text>
+              <Text style={[styles.headerSub, { color: theme.textSecondary }]}>
+                素材、创作、客户、Token 消耗等核心数据
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.refreshBtn, { backgroundColor: theme.primary }]}
+              onPress={() => fetchAll(true)}
+            >
+              <Ionicons name="refresh" size={15} color="#fff" />
+              <Text style={styles.refreshText}>刷新</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ====== 6 个核心 KPI ====== */}
+          <View style={styles.kpiGrid}>
+            <KpiCard
+              icon="document-text-outline"
+              color={theme.primary}
+              label="素材总数"
+              value={data.kpi.materials.total}
+              extra={data.kpi.materials.weekNew > 0 ? `本周新增 ${data.kpi.materials.weekNew}` : '点击查看内容中心'}
+              onPress={() => goto('Materials')}
+              theme={theme}
+            />
+            <KpiCard
+              icon="sparkles-outline"
+              color="#722ed1"
+              label="AI 创作次数"
+              value={data.kpi.aiUsage.total}
+              extra={data.kpi.aiUsage.weekTokens > 0 ? `本周消耗 ${formatTokens(data.kpi.aiUsage.weekTokens)} tokens` : '点击进入 AI 创作工厂'}
+              onPress={() => goto('AICreateCenter')}
+              theme={theme}
+            />
+            <KpiCard
+              icon="chatbubbles-outline"
+              color="#fa8c16"
+              label="待处理工单"
+              value={data.kpi.pendingTickets}
+              extra={data.kpi.pendingTickets > 0 ? '点击处理' : '一切正常'}
+              onPress={() => goto('Messages')}
+              theme={theme}
+            />
+            <KpiCard
+              icon="locate-outline"
+              color="#52c41a"
+              label="获客线索"
+              value={data.kpi.leads.total}
+              extra={
+                data.kpi.leads.weekNew > 0 || data.kpi.leads.converted > 0
+                  ? `${data.kpi.leads.weekNew > 0 ? `本周新增 ${data.kpi.leads.weekNew}` : ''}${data.kpi.leads.weekNew > 0 && data.kpi.leads.converted > 0 ? ' · ' : ''}${data.kpi.leads.converted > 0 ? `已转化 ${data.kpi.leads.converted}` : ''}`
+                  : '点击进入智能获客'
+              }
+              onPress={() => goto('Acquisition')}
+              theme={theme}
+            />
+            <KpiCard
+              icon="share-social-outline"
+              color="#13c2c2"
+              label="推荐分享"
+              value={data.kpi.shares.total}
+              extra={
+                data.kpi.shares.scans > 0
+                  ? `扫码 ${data.kpi.shares.scans} 次${data.kpi.shares.conversions > 0 ? ` · 转化 ${data.kpi.shares.conversions}` : ''}`
+                  : '点击进入推荐分享'
+              }
+              onPress={() => goto('Share')}
+              theme={theme}
+            />
+            <KpiCard
+              icon="people-outline"
+              color="#faad14"
+              label="招聘候选人"
+              value={data.kpi.candidates.total}
+              extra={
+                data.kpi.candidates.weekNew > 0
+                  ? `本周新增 ${data.kpi.candidates.weekNew}${data.kpi.candidates.hired > 0 ? ` · 已录用 ${data.kpi.candidates.hired}` : ''}`
+                  : '点击进入智能招聘'
+              }
+              onPress={() => goto('Recruitment')}
+              theme={theme}
+            />
+          </View>
+
+          {/* ====== Tokens 消耗统计 ====== */}
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleWrap}>
+                <View style={[styles.sectionDot, { backgroundColor: '#722ed1' }]} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>我的 Token 消耗</Text>
+              </View>
+              <Text style={[styles.sectionTag, { color: theme.textSecondary }]}>
+                {tokenStats ? '实时统计' : '暂无数据'}
+              </Text>
+            </View>
+            {tokenStats ? (
+              <View style={styles.tokenGrid}>
+                <View style={styles.tokenItem}>
+                  <Text style={[styles.tokenLabel, { color: theme.textSecondary }]}>总消耗</Text>
+                  <Text style={[styles.tokenValue, { color: '#722ed1' }]}>
+                    {formatTokens(tokenStats.total)} <Text style={[styles.tokenUnit, { color: theme.textSecondary }]}>tokens</Text>
+                  </Text>
+                </View>
+                <View style={styles.tokenItem}>
+                  <Text style={[styles.tokenLabel, { color: theme.textSecondary }]}>本月消耗</Text>
+                  <Text style={[styles.tokenValue, { color: theme.primary }]}>
+                    {formatTokens(tokenStats.month)} <Text style={[styles.tokenUnit, { color: theme.textSecondary }]}>tokens</Text>
+                  </Text>
+                </View>
+                <View style={styles.tokenItem}>
+                  <Text style={[styles.tokenLabel, { color: theme.textSecondary }]}>今日消耗</Text>
+                  <Text style={[styles.tokenValue, { color: '#52c41a' }]}>
+                    {formatTokens(tokenStats.today)} <Text style={[styles.tokenUnit, { color: theme.textSecondary }]}>tokens</Text>
+                  </Text>
+                </View>
+                <View style={styles.tokenItem}>
+                  <Text style={[styles.tokenLabel, { color: theme.textSecondary }]}>主要功能</Text>
+                  <View style={styles.providerList}>
+                    {(tokenStats.byProvider || []).slice(0, 2).map((p: any, i: number) => (
+                      <Text key={i} style={[styles.providerText, { color: theme.textSecondary }]}>
+                        {p.providerName || '服务商'}{' '}
+                        {formatTokens(p.totalTokens || 0)}（{p.callCount || 0}次）
+                      </Text>
+                    ))}
+                    {(!tokenStats.byProvider || tokenStats.byProvider.length === 0) && (
+                      <Text style={[styles.providerText, { color: theme.textSecondary }]}>暂无</Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <Text style={[styles.emptyTip, { color: theme.textSecondary }]}>
+                开始使用 AI 创作工厂后，将在这里显示您的 Token 消耗
+              </Text>
+            )}
+          </View>
+
+          {/* ====== 素材增长趋势 ====== */}
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleWrap}>
+                <Ionicons name="trending-up-outline" size={16} color={theme.primary} style={{ marginRight: 6 }} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>素材增长趋势</Text>
+              </View>
+              <View style={styles.segmented}>
+                {[7, 30].map((d) => (
+                  <TouchableOpacity
+                    key={d}
+                    style={[
+                      styles.segItem,
+                      trendDays === d && { backgroundColor: theme.primary },
+                    ]}
+                    onPress={() => setTrendDays(d)}
+                  >
+                    <Text
+                      style={[
+                        styles.segText,
+                        { color: trendDays === d ? '#fff' : theme.textSecondary },
+                      ]}
+                    >
+                      {d}天
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            {trendData.length === 0 ? (
+              <Text style={[styles.emptyTip, { color: theme.textSecondary }]}>
+                暂无趋势数据，开始创作素材后将显示
+              </Text>
+            ) : (
+              <TrendChart trend={trendData} days={trendDays} theme={theme} />
+            )}
+          </View>
+
+          {/* ====== 今日活动 ====== */}
+          <View style={[styles.sectionCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleWrap}>
+                <Ionicons name="time-outline" size={16} color="#fa8c16" style={{ marginRight: 6 }} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>今日活动</Text>
+              </View>
+            </View>
+            {(data.recentActivities || []).length === 0 ? (
+              <Text style={[styles.emptyTip, { color: theme.textSecondary }]}>今日暂无活动</Text>
+            ) : (
+              <View>
+                {(data.recentActivities || []).slice(0, 10).map((a, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[
+                      styles.activityItem,
+                      i < Math.min((data.recentActivities || []).length, 10) - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
+                    ]}
+                    onPress={() => ACTIVITY_ROUTE[a.type] && goto(ACTIVITY_ROUTE[a.type])}
+                  >
+                    <View style={[styles.activityIcon, { backgroundColor: `${ACTIVITY_COLOR[a.type] || '#8c8c8c'}18` }]}>
+                      <Ionicons name={(ACTIVITY_ICON[a.type] || 'ellipse-outline') as any} size={16} color={ACTIVITY_COLOR[a.type] || '#8c8c8c'} />
+                    </View>
+                    <View style={styles.activityBody}>
+                      <View style={styles.activityTop}>
+                        <View style={[styles.activityTag, { backgroundColor: `${ACTIVITY_COLOR[a.type] || '#8c8c8c'}15` }]}>
+                          <Text style={[styles.activityTagText, { color: ACTIVITY_COLOR[a.type] || '#8c8c8c' }]}>
+                            {ACTIVITY_LABEL[a.type] || a.type}
+                          </Text>
+                        </View>
+                        <Text style={[styles.activityTime, { color: theme.textSecondary }]}>{a.time}</Text>
+                      </View>
+                      <Text style={[styles.activityContent, { color: theme.text }]} numberOfLines={2}>
+                        {a.content}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+
+          {/* ====== 首次引导 ====== */}
+          {isFirstTimeUser && (
+            <View style={[styles.onboardCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={[styles.onboardTitle, { color: theme.text }]}>欢迎使用智枢 AI</Text>
+              <Text style={[styles.onboardDesc, { color: theme.textSecondary }]}>
+                三步快速上手：AI 创作工厂 → 内容中心 → 创建 API Key
+              </Text>
+              <View style={styles.onboardSteps}>
+                <TouchableOpacity style={[styles.onboardStep, { borderColor: theme.border }]} onPress={() => goto('AICreateCenter')}>
+                  <Ionicons name="sparkles" size={20} color="#722ed1" />
+                  <Text style={[styles.onboardStepTitle, { color: theme.text }]}>1. AI 创作工厂</Text>
+                  <Text style={[styles.onboardStepDesc, { color: theme.textSecondary }]}>一键生成爆款内容</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.onboardStep, { borderColor: theme.border }]} onPress={() => goto('Materials')}>
+                  <Ionicons name="document-text-outline" size={20} color={theme.primary} />
+                  <Text style={[styles.onboardStepTitle, { color: theme.text }]}>2. 内容中心</Text>
+                  <Text style={[styles.onboardStepDesc, { color: theme.textSecondary }]}>统一管理所有素材</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* ====== 底部提示 ====== */}
+          <Text style={styles.footerText}>数据更新于 {fmtDateTime(data.generatedAt)}</Text>
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+// ==================== 样式 ====================
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  tabBar: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6, gap: 4 },
-  tabActive: { backgroundColor: '#eef2ff', borderRadius: 8 },
-  tabText: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
-  tabTextActive: { color: '#4F46E5', fontWeight: '600' },
-  timeFilter: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  timeBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8, backgroundColor: '#f1f5f9' },
-  timeBtnActive: { backgroundColor: '#4F46E5' },
-  timeBtnText: { fontSize: 13, color: '#64748b' },
-  timeBtnTextActive: { color: '#fff', fontWeight: '500' },
-  content: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', color: '#334155', marginBottom: 12, marginTop: 8 },
-  overviewCard: { backgroundColor: '#4F46E5', borderRadius: 16, padding: 20, marginBottom: 16 },
-  overviewRow: { flexDirection: 'row', marginBottom: 16 },
-  overviewItem: { flex: 1, alignItems: 'center' },
-  overviewDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
-  overviewValue: { fontSize: 26, fontWeight: '700', color: '#fff' },
-  overviewLabel: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
-  chartCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 },
-  chartLegend: { flexDirection: 'row', justifyContent: 'flex-end', gap: 16, marginBottom: 16 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 12, color: '#64748b' },
-  chartContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 150, paddingTop: 10 },
-  chartBar: { flex: 1, alignItems: 'center' },
-  barGroup: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 120 },
-  bar: { width: 12, borderRadius: 4 },
-  barViews: { backgroundColor: '#4F46E5' },
-  barLikes: { backgroundColor: '#10b981' },
-  barLabel: { fontSize: 10, color: '#94a3b8', marginTop: 6 },
-  topContentCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center' },
-  rankBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  rankText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
-  topContentInfo: { flex: 1 },
-  topContentTitle: { fontSize: 14, fontWeight: '500', color: '#1e293b', marginBottom: 4 },
-  topContentMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  platformBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, gap: 3 },
-  platformText: { fontSize: 10, fontWeight: '500' },
-  ctrText: { fontSize: 11, color: '#64748b' },
-  topContentStats: { alignItems: 'flex-end', marginLeft: 12 },
-  topStatValue: { fontSize: 16, fontWeight: '600', color: '#1e293b' },
-  topStatLabel: { fontSize: 10, color: '#94a3b8' },
-  contentCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
-  contentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  contentTitleRow: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 },
-  platformBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  contentTitle: { fontSize: 14, fontWeight: '600', color: '#1e293b', flex: 1 },
-  ctrBadge: { fontSize: 12, color: '#4F46E5', fontWeight: '500', backgroundColor: '#eef2ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
-  contentStats: { flexDirection: 'row', justifyContent: 'space-between' },
-  contentStat: { alignItems: 'center', flex: 1 },
-  contentStatValue: { fontSize: 15, fontWeight: '600', color: '#1e293b', marginTop: 4 },
-  contentStatLabel: { fontSize: 10, color: '#94a3b8', marginTop: 2 },
-  platformCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
-  platformHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  platformDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-  platformName: { flex: 1, fontSize: 14, fontWeight: '500', color: '#1e293b' },
-  platformViews: { fontSize: 14, fontWeight: '600', color: '#1e293b', marginRight: 8 },
-  platformBar: { height: 8, backgroundColor: '#e2e8f0', borderRadius: 4, marginBottom: 6 },
-  platformBarFill: { height: '100%', borderRadius: 4 },
-  platformPercent: { fontSize: 12, color: '#64748b', textAlign: 'right' },
-  compareCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
-  compareHeader: { marginBottom: 16 },
-  compareTitle: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
-  compareRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  compareItem: { alignItems: 'center' },
-  compareIcon: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  comparePlatform: { fontSize: 12, color: '#64748b', marginBottom: 4 },
-  compareValue: { fontSize: 18, fontWeight: '700', color: '#1e293b' },
+  container: {
+    flex: 1,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  headerSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  refreshBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  refreshText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  kpiCard: {
+    width: '48.5%',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+  },
+  kpiIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  kpiLabel: {
+    fontSize: 12,
+  },
+  kpiValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  kpiExtra: {
+    fontSize: 11,
+    color: '#8c8c8c',
+    marginTop: 6,
+  },
+  sectionCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  sectionTag: {
+    fontSize: 12,
+  },
+  tokenGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tokenItem: {
+    width: '50%',
+    marginBottom: 12,
+  },
+  tokenLabel: {
+    fontSize: 12,
+  },
+  tokenValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  tokenUnit: {
+    fontSize: 11,
+    fontWeight: '400',
+  },
+  providerList: {
+    marginTop: 4,
+  },
+  providerText: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  emptyTip: {
+    fontSize: 13,
+    paddingVertical: 20,
+    textAlign: 'center',
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    borderRadius: 8,
+    padding: 2,
+  },
+  segItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  segText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  chartArea: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 150,
+  },
+  chartCol: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  barWrap: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  barValue: {
+    fontSize: 9,
+    color: '#999',
+    marginBottom: 2,
+  },
+  bar: {
+    width: '60%',
+    minWidth: 4,
+    borderRadius: 3,
+  },
+  barLabel: {
+    fontSize: 9,
+    color: '#999',
+    marginTop: 6,
+  },
+  chartInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  chartDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#6d28d9',
+    marginRight: 6,
+  },
+  chartInfoText: {
+    fontSize: 12,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  activityBody: {
+    flex: 1,
+  },
+  activityTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  activityTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  activityTagText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  activityTime: {
+    fontSize: 11,
+  },
+  activityContent: {
+    fontSize: 13,
+    marginTop: 4,
+  },
+  onboardCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+  },
+  onboardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  onboardDesc: {
+    fontSize: 12,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  onboardSteps: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  onboardStep: {
+    width: '48.5%',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    padding: 12,
+  },
+  onboardStepTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 6,
+  },
+  onboardStepDesc: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  footerText: {
+    textAlign: 'center',
+    color: '#bfbfbf',
+    fontSize: 12,
+    marginTop: 8,
+  },
 });

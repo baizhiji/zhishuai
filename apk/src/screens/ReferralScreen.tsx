@@ -66,8 +66,8 @@ export default function ReferralScreen() {
       return;
     }
     
-    const shareUrl = `https://zhishuai.com/register?code=${referralCode.code}`;
-    const shareText = `注册智枢AI，享专属优惠！\n邀请码：${referralCode.code}\n${shareUrl}`;
+    const shareUrl = `https://zhishuai.com/login`;
+    const shareText = `加入智枢AI，解锁智能创作与增长能力！\n我的推荐码：${referralCode.code}\n账号由管理员统一开通，请扫码或联系服务代理商。\n${shareUrl}`;
     
     try {
       await Share.share({
@@ -100,8 +100,8 @@ export default function ReferralScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <StatusBar barStyle="dark-content" backgroundColor="#EDE9FE" />
+        <ActivityIndicator size="large" color="#6D28D9" />
         <Text style={styles.loadingText}>加载中...</Text>
       </View>
     );
@@ -109,7 +109,7 @@ export default function ReferralScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
+      <StatusBar barStyle="dark-content" backgroundColor="#EDE9FE" />
       
       <View style={styles.header}>
         <Text style={styles.title}>转介绍</Text>
@@ -210,13 +210,13 @@ export default function ReferralScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F4F1FA',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F4F1FA',
   },
   loadingText: {
     marginTop: 12,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   header: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#EDE9FE',
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1E3A5F',
+    color: '#1F1B2E',
   },
   subtitle: {
     fontSize: 14,
@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   codeCard: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#6D28D9',
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   },
   shareButtonText: {
     fontSize: 14,
-    color: '#3B82F6',
+    color: '#6D28D9',
     marginLeft: 6,
     fontWeight: '500',
   },
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1E3A5F',
+    color: '#1F1B2E',
   },
   statLabel: {
     fontSize: 13,
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E3A5F',
+    color: '#1F1B2E',
     marginBottom: 12,
   },
   recordItem: {
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#6D28D9',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   recordName: {
     fontSize: 14,
-    color: '#1E3A5F',
+    color: '#1F1B2E',
     fontWeight: '500',
   },
   recordTime: {

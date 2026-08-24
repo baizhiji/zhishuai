@@ -12,7 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import PageHeader from '../components/PageHeader';
 
 // 导入服务
-import { ContentCategory } from '../services/content.service';
+import { ContentCategory, contentCategoryConfig } from '../services/content.service';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -20,78 +20,28 @@ type RootStackParamList = {
   AICreateDetail: { category: ContentCategory };
 };
 
-// 创作类型配置
-const CONTENT_TYPES = [
-  { 
-    id: ContentCategory.TITLE, 
-    name: '标题生成', 
-    icon: 'text', 
-    color: '#3B82F6', 
-    desc: '生成吸引人的标题' 
-  },
-  { 
-    id: ContentCategory.TAGS, 
-    name: '话题标签', 
-    icon: 'pricetags', 
-    color: '#8B5CF6', 
-    desc: '热门话题标签' 
-  },
-  { 
-    id: ContentCategory.COPYWRITING, 
-    name: '文案生成', 
-    icon: 'document-text', 
-    color: '#06B6D4', 
-    desc: '营销文案、推广语' 
-  },
-  { 
-    id: ContentCategory.IMAGE_TO_TEXT, 
-    name: '图转文', 
-    icon: 'image', 
-    color: '#10B981', 
-    desc: '图片内容识别' 
-  },
-  { 
-    id: ContentCategory.XIAOHONGSHU, 
-    name: '小红书', 
-    icon: 'heart', 
-    color: '#EF4444', 
-    desc: '小红书图文笔记' 
-  },
-  { 
-    id: ContentCategory.IMAGE, 
-    name: '图片生成', 
-    icon: 'images', 
-    color: '#F97316', 
-    desc: 'AI营销图片' 
-  },
-  { 
-    id: ContentCategory.ECOMMERCE, 
-    name: '电商详情页', 
-    icon: 'cart', 
-    color: '#DC2626', 
-    desc: '商品详情页' 
-  },
-  { 
-    id: ContentCategory.VIDEO, 
-    name: '短视频', 
-    icon: 'videocam', 
-    color: '#EC4899', 
-    desc: '自动字幕配音' 
-  },
-  { 
-    id: ContentCategory.VIDEO_ANALYSIS, 
-    name: '视频解析', 
-    icon: 'analytics', 
-    color: '#8B5CF6', 
-    desc: '爆款视频分析' 
-  },
-  { 
-    id: ContentCategory.DIGITAL_HUMAN, 
-    name: '数字人短视频', 
-    icon: 'person', 
-    color: '#6366F1', 
-    desc: '数字人口播短视频' 
-  },
+// 功能列表顺序（与电脑版 AI 创作工厂一致）
+const CONTENT_TYPES: {
+  id: ContentCategory;
+  icon: string;
+  color: string;
+  comingSoon?: boolean;
+  label?: string; // 覆盖显示名（合并功能块用）
+  desc?: string;  // 覆盖描述（合并功能块用）
+}[] = [
+  { id: ContentCategory.XIAOHONGSHU, icon: 'heart', color: '#EF4444' },
+  { id: ContentCategory.IMAGE_GENERATION, icon: 'image', color: '#F97316' },
+  { id: ContentCategory.ECOMMERCE_DETAIL, icon: 'cart', color: '#DC2626' },
+  { id: ContentCategory.SHORT_VIDEO, icon: 'videocam', color: '#EC4899' },
+  { id: ContentCategory.ENTERPRISE_VIDEO, icon: 'business', color: '#3B82F6' },
+  { id: ContentCategory.PRODUCT_VIDEO, icon: 'cube', color: '#EAB308' },
+  { id: ContentCategory.STORE_TOUR_VIDEO, icon: 'location', color: '#22C55E' },
+  { id: ContentCategory.PERSON_MV_VIDEO, icon: 'mic', color: '#A855F7' },
+  { id: ContentCategory.CARTOON_VIDEO, icon: 'paw', color: '#EB2F96' },
+  { id: ContentCategory.DIGITAL_HUMAN, icon: 'person', color: '#7C3AED' },
+  { id: ContentCategory.SMART_EDIT, icon: 'cut', color: '#8B5CF6' },
+  // AI漫剧 + AI短剧 合并为一个预留功能块（后续开发需要时再拆分为独立功能）
+  { id: ContentCategory.AI_COMIC, icon: 'film', color: '#06B6D4', comingSoon: true, label: 'AI漫剧/短剧', desc: 'AI漫剧与短剧视频创作，功能预留，敬请期待' },
 ];
 
 export default function AICreateCenterScreen() {
@@ -102,20 +52,37 @@ export default function AICreateCenterScreen() {
       <PageHeader title="AI创作中心" showBack={false} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.typeGrid}>
-          {CONTENT_TYPES.map(type => (
-            <TouchableOpacity
-              key={type.id}
-              style={styles.typeCard}
-              onPress={() => navigation.navigate('AICreateDetail', { category: type.id })}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.typeIcon, { backgroundColor: type.color + '15' }]}>
-                <Ionicons name={type.icon as any} size={28} color={type.color} />
-              </View>
-              <Text style={styles.typeName}>{type.name}</Text>
-              <Text style={styles.typeDesc}>{type.desc}</Text>
-            </TouchableOpacity>
-          ))}
+          {CONTENT_TYPES.map(type => {
+            const cfg = contentCategoryConfig[type.id];
+            const name = type.label || cfg?.label || '未命名功能';
+            const desc = type.desc || cfg?.description || '';
+            return (
+              <TouchableOpacity
+                key={type.id}
+                style={[
+                  styles.typeCard,
+                  type.comingSoon && styles.typeCardDisabled,
+                ]}
+                onPress={() => {
+                  if (type.comingSoon) return;
+                  navigation.navigate('AICreateDetail', { category: type.id });
+                }}
+                activeOpacity={0.7}
+                disabled={type.comingSoon}
+              >
+                <View style={[styles.typeIcon, { backgroundColor: type.color + '15' }]}>
+                  <Ionicons name={type.icon as any} size={28} color={type.color} />
+                </View>
+                <Text style={styles.typeName}>{name}</Text>
+                <Text style={styles.typeDesc} numberOfLines={2}>{desc}</Text>
+                {type.comingSoon && (
+                  <View style={styles.comingSoonBadge}>
+                    <Text style={styles.comingSoonText}>敬请期待</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -150,6 +117,9 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  typeCardDisabled: {
+    opacity: 0.6,
+  },
   typeIcon: {
     width: 56,
     height: 56,
@@ -168,5 +138,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     textAlign: 'center',
+  },
+  comingSoonBadge: {
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#e2e8f0',
+  },
+  comingSoonText: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '500',
   },
 });

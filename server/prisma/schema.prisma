@@ -40,6 +40,24 @@ model AIExample {
   @@index([type, platform])
 }
 
+model AiGenerationHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  feature   String   @default("ai-enhanced") // 来源模块：ai-enhanced / ai-factory
+  category  String? // 内容类目
+  title     String? // 标题（可选）
+  content   String   @db.Text
+  config    Json? // 生成参数
+  status    String   @default("success") // success / failed
+  provider  String? // 使用的 AI 提供商
+  model     String? // 使用的模型
+  source    String   @default("web") // 来源端：web / apk
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, feature, createdAt])
+}
+
 model AIUsageStats {
   id           String   @id @default(uuid())
   userId       String

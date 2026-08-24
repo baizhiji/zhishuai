@@ -5,21 +5,25 @@ const router = Router();
 
 // 默认版本配置
 const DEFAULT_VERSION = {
-  version: '1.0.0',
+  version: '1.0.1',
   buildNumber: 1,
   minVersion: '1.0.0',
-  downloadUrl: '/app/zhishuai.apk',
-  changelog: '初始版本发布',
-  size: '45.6 MB',
+  downloadUrl: 'https://baizhiji.net/downloads/zhishuai.apk',
+  changelog: '紫色品牌视觉升级：APK 端 UI 全面与桌面安装版对齐，主色统一为品牌紫 #6D28D9；登录页与启动页 LOGO 更新为方案 B，修复 LOGO 圆角裁切问题。',
+  size: '70.0 MB',
   releaseDate: new Date().toISOString().split('T')[0],
   forceUpdate: false,
 };
 
-// 获取最新版本信息
-router.get('/latest', async (_req, res) => {
+// 获取最新版本信息（默认 APK/Android，可通过 ?platform= 指定）
+router.get('/latest', async (req, res) => {
   try {
+    const platform = String(req.query.platform || 'android');
     const dbVersion = await (prisma as any).appVersion.findFirst({
-      where: { status: 'released' },
+      where: {
+        status: 'released',
+        platform: platform === 'all' ? undefined : platform,
+      },
       orderBy: { releasedAt: 'desc' },
     });
 
@@ -32,7 +36,7 @@ router.get('/latest', async (_req, res) => {
           minVersion: DEFAULT_VERSION.minVersion,
           downloadUrl: dbVersion.downloadUrl || DEFAULT_VERSION.downloadUrl,
           changelog: dbVersion.changelog || '',
-          size: DEFAULT_VERSION.size,
+          size: dbVersion.size || DEFAULT_VERSION.size,
           releaseDate: dbVersion.releasedAt?.toISOString().split('T')[0],
           forceUpdate: dbVersion.forceUpdate,
           id: dbVersion.id,

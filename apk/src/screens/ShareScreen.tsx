@@ -215,7 +215,7 @@ export default function ShareScreen() {
               <View style={styles.codeDisplay}>
                 <Text style={styles.codeText}>{myReferralCode}</Text>
                 <TouchableOpacity style={styles.copyBtn} onPress={handleCopyCode}>
-                  <Ionicons name="copy-outline" size={20} color="#4F46E5" />
+                  <Ionicons name="copy-outline" size={20} color="#6D28D9" />
                 </TouchableOpacity>
               </View>
               <Text style={styles.codeTip}>分享此推荐码，其他人扫码可一键发布您的视频</Text>
@@ -223,7 +223,7 @@ export default function ShareScreen() {
               {/* 操作按钮 */}
               <View style={styles.codeActions}>
                 <TouchableOpacity style={styles.codeActionBtn} onPress={handleShareCode}>
-                  <Ionicons name="share-social-outline" size={22} color="#4F46E5" />
+                  <Ionicons name="share-social-outline" size={22} color="#6D28D9" />
                   <Text style={styles.codeActionText}>分享推荐码</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
@@ -240,7 +240,7 @@ export default function ShareScreen() {
             <View style={styles.guideCard}>
               <Text style={styles.guideTitle}>使用说明</Text>
               <View style={styles.guideItem}>
-                <View style={[styles.guideStep, { backgroundColor: '#4F46E5' }]}>
+                <View style={[styles.guideStep, { backgroundColor: '#6D28D9' }]}>
                   <Text style={styles.guideStepText}>1</Text>
                 </View>
                 <Text style={styles.guideContent}>选择您发布的短视频，生成专属推荐码</Text>
@@ -518,11 +518,11 @@ export default function ShareScreen() {
 
                 <View style={modalStyles.codeActions}>
                   <TouchableOpacity style={styles.codeActionBtn} onPress={handleCopyCode}>
-                    <Ionicons name="copy-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="copy-outline" size={20} color="#6D28D9" />
                     <Text style={styles.codeActionText}>复制</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.codeActionBtn} onPress={handleShareCode}>
-                    <Ionicons name="share-outline" size={20} color="#4F46E5" />
+                    <Ionicons name="share-outline" size={20} color="#6D28D9" />
                     <Text style={styles.codeActionText}>分享</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.codeActionBtn, { backgroundColor: '#10B981' }]}>
@@ -558,14 +558,14 @@ const styles = StyleSheet.create({
   },
   tabActive: {
     borderBottomWidth: 2,
-    borderBottomColor: '#4F46E5',
+    borderBottomColor: '#6D28D9',
   },
   tabText: {
     fontSize: 14,
     color: '#64748b',
   },
   tabTextActive: {
-    color: '#4F46E5',
+    color: '#6D28D9',
     fontWeight: '600',
   },
   scrollView: {
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#6D28D9',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: '#6D28D9',
   },
   statLabel: {
     fontSize: 13,
@@ -665,17 +665,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#4F46E5',
+    borderColor: '#6D28D9',
     gap: 6,
   },
   createBtn: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5',
+    backgroundColor: '#6D28D9',
+    borderColor: '#6D28D9',
   },
   codeActionText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#4F46E5',
+    color: '#6D28D9',
   },
   // 使用说明
   guideCard: {
@@ -931,7 +931,7 @@ const styles = StyleSheet.create({
   codeStatBoxValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: '#6D28D9',
   },
   codeStatBoxLabel: {
     fontSize: 12,
@@ -1020,7 +1020,7 @@ const modalStyles = StyleSheet.create({
     marginLeft: 10,
   },
   submitBtn: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#6D28D9',
     borderRadius: 10,
     paddingVertical: 16,
     alignItems: 'center',

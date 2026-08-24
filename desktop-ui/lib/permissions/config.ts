@@ -68,7 +68,6 @@ export enum Permission {
 
   // 账号配置
   ACCOUNT_INFO = 'account.info',
-  ACCOUNT_API = 'account.api',
   ACCOUNT_KNOWLEDGE = 'account.knowledge',
   ACCOUNT_LOG = 'account.log',
   ACCOUNT_RECHARGE = 'account.recharge',
@@ -124,7 +123,6 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     Permission.SHARE_BOARD,
     Permission.MY_REFERRAL,
     Permission.ACCOUNT_INFO,
-    Permission.ACCOUNT_API,
     Permission.ACCOUNT_KNOWLEDGE,
     Permission.ACCOUNT_LOG,
     Permission.ACCOUNT_RECHARGE,

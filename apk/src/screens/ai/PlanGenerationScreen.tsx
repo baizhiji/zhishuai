@@ -36,7 +36,7 @@ interface ScenarioConfig {
 const SCENARIO_META: Record<string, ScenarioConfig> = {
   startup: {
     id: 'startup', name: '创业方案', description: '为新企业或项目制定完整的创业计划',
-    icon: { icon: 'bulb', color: '#2563EB' },
+    icon: { icon: 'bulb', color: '#6D28D9' },
     formLabels: ['企业/项目名称', '业务描述', '目标用户（选填）', '预算范围（选填）', '时间规划（选填）'],
     formPlaceholders: ['例如：AI智能客服SaaS平台', '详细描述你的创业想法、产品或服务', '谁是你的目标用户？', '例如：50-100万', '例如：6个月内完成MVP'],
   },
@@ -60,7 +60,7 @@ const SCENARIO_META: Record<string, ScenarioConfig> = {
   },
   competitive_analysis: {
     id: 'competitive_analysis', name: '竞品分析报告', description: '深度分析竞争对手',
-    icon: { icon: 'trophy', color: '#4F46E5' },
+    icon: { icon: 'trophy', color: '#6D28D9' },
     formLabels: ['企业/产品名称', '行业领域', '主要竞品名称', '你的差异化优势', '补充信息（选填）'],
     formPlaceholders: ['你的企业或产品名称', '你所在的行业和细分领域', '列出1-3个主要竞争对手', '你的核心竞争力和差异化', '其他背景信息'],
   },
@@ -189,7 +189,7 @@ export default function PlanGenerationScreen({ route, navigation }: any) {
       <View style={styles.container}>
         <PageHeader title={scenario.name} />
         <View style={styles.generatingContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#6D28D9" />
           <Text style={styles.generatingText}>{generatingText}</Text>
           <Text style={styles.generatingHint}>
             AI 正在综合运用商业知识和数据分析能力{'\n'}为您生成专业方案，预计需要20-60秒
@@ -205,7 +205,7 @@ export default function PlanGenerationScreen({ route, navigation }: any) {
       <View style={styles.container}>
         <PageHeader title={scenario.name} rightAction={
           <TouchableOpacity onPress={handleRegenerate}>
-            <Ionicons name="refresh" size={22} color="#2563EB" />
+            <Ionicons name="refresh" size={22} color="#6D28D9" />
           </TouchableOpacity>
         } />
 
@@ -228,7 +228,7 @@ export default function PlanGenerationScreen({ route, navigation }: any) {
               onPress={() => setExpandedSection(expandedSection === index ? null : index)}
             >
               <View style={styles.sectionHeader}>
-                <View style={[styles.sectionNumber, { backgroundColor: scenario.icon?.color || '#2563EB' }]}>
+                <View style={[styles.sectionNumber, { backgroundColor: scenario.icon?.color || '#6D28D9' }]}>
                   <Text style={styles.sectionNumberText}>{section.order + 1}</Text>
                 </View>
                 <Text style={styles.sectionTitle} numberOfLines={expandedSection === index ? undefined : 1}>
@@ -283,7 +283,7 @@ export default function PlanGenerationScreen({ route, navigation }: any) {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.downloadBtn, { backgroundColor: '#2563EB' }]}
+                style={[styles.downloadBtn, { backgroundColor: '#6D28D9' }]}
                 activeOpacity={0.7}
                 onPress={() => handleDownload('docx')}
                 disabled={downloading !== null}
@@ -319,8 +319,8 @@ export default function PlanGenerationScreen({ route, navigation }: any) {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* 场景说明 */}
         <View style={styles.infoCard}>
-          <View style={[styles.infoIcon, { backgroundColor: `${scenario.icon?.color || '#2563EB'}15` }]}>
-            <Ionicons name={scenario.icon?.icon || 'document-text'} size={28} color={scenario.icon?.color || '#2563EB'} />
+          <View style={[styles.infoIcon, { backgroundColor: `${scenario.icon?.color || '#6D28D9'}15` }]}>
+            <Ionicons name={scenario.icon?.icon || 'document-text'} size={28} color={scenario.icon?.color || '#6D28D9'} />
           </View>
           <Text style={styles.infoTitle}>{scenario.name}</Text>
           <Text style={styles.infoDesc}>{scenario.description}</Text>
@@ -455,19 +455,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2563EB',
+    backgroundColor: '#6D28D9',
     borderRadius: 14,
     paddingVertical: 16,
     marginTop: 20,
     gap: 8,
-    shadowColor: '#2563EB',
+    shadowColor: '#6D28D9',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   generateBtnDisabled: {
-    backgroundColor: '#93C5FD',
+    backgroundColor: '#C4B5FD',
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
 
   // Summary Card
   summaryCard: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#1F1B2E',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -489,8 +489,8 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 20, fontWeight: '700', color: '#FFFFFF', marginBottom: 4 },
   summaryScenario: {
     fontSize: 14,
-    color: '#93C5FD',
-    backgroundColor: 'rgba(37,99,235,0.3)',
+    color: '#C4B5FD',
+    backgroundColor: 'rgba(109,40,217,0.3)',
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 2,

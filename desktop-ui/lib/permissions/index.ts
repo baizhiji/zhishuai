@@ -269,12 +269,6 @@ export function getAllMenus(): MenuItem[] {
           permission: Permission.ACCOUNT_INFO,
         },
         {
-          key: 'account-api',
-          label: 'API密钥',
-          path: '/account/api',
-          permission: Permission.ACCOUNT_API,
-        },
-        {
           key: 'account-knowledge',
           label: '知识库',
           path: '/account/knowledge',

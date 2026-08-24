@@ -77,13 +77,13 @@ router.put('/password', authMiddleware, validate({ body: changePasswordSchema })
     if (!user) {
       return badRequest(res, '用户不存在');
     }
-    if (!verifyPassword(oldPassword, user.password)) {
+    if (!await verifyPassword(oldPassword, user.password)) {
       return badRequest(res, '原密码错误');
     }
 
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashPassword(newPassword) },
+      data: { password: await hashPassword(newPassword) },
     });
 
     ok(res, { message: '密码修改成功' });
@@ -265,7 +265,7 @@ router.post('/staff', authMiddleware, async (req: Request, res: Response) => {
         phone,
         name,
         role: role || 'staff',
-        password: hashPassword(Math.random().toString(36).slice(-8)),
+        password: await hashPassword(Math.random().toString(36).slice(-8)),
         updatedAt: new Date(),
       },
       select: {

@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { homeService, authService, TodayStats, ReferralStats } from '../services';
 import { featureService, FeatureSwitch, FEATURE_ROUTES, FEATURE_ICONS, FEATURE_COLORS } from '../services/feature.service';
+import { shareService, ShareStatistics } from '../services/share.service';
 import { useAppNavigation } from '../context/NavigationContext';
 
 interface FeatureItem {
@@ -24,12 +25,12 @@ interface FeatureItem {
 
 // 默认功能配置（后备方案）
 const DEFAULT_FEATURES: FeatureItem[] = [
-  { id: 'media', title: 'AI创作工厂', icon: 'sparkles', color: '#FFFFFF', bgColor: '#3B82F6', route: 'MediaOperation' },
+  { id: 'analytics', title: '数据总览', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#6D28D9', route: 'Statistics' },
+  { id: 'materials', title: '内容中心', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
+  { id: 'media', title: 'AI创作工厂', icon: 'sparkles', color: '#FFFFFF', bgColor: '#6D28D9', route: 'AICreateCenter' },
   { id: 'recruitment', title: '智能招聘', icon: 'people', color: '#FFFFFF', bgColor: '#8B5CF6', route: 'Recruitment' },
   { id: 'acquisition', title: '智能获客', icon: 'trending-up', color: '#FFFFFF', bgColor: '#10B981', route: 'Acquisition' },
   { id: 'share', title: '推荐分享', icon: 'share-social', color: '#FFFFFF', bgColor: '#F97316', route: 'Share' },
-  { id: 'materials', title: '内容中心', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
-  { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' },
 ];
 
 export default function HomeScreen() {
@@ -39,6 +40,7 @@ export default function HomeScreen() {
   const [expiryDate, setExpiryDate] = useState('');
   const [todayStats, setTodayStats] = useState<TodayStats | null>(null);
   const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
+  const [shareStats, setShareStats] = useState<ShareStatistics | null>(null);
   const [features, setFeatures] = useState<FeatureItem[]>(DEFAULT_FEATURES);
   const [featuresLoading, setFeaturesLoading] = useState(true);
 
@@ -60,14 +62,14 @@ export default function HomeScreen() {
               title: f.name,
               icon: (FEATURE_ICONS[f.code] || 'apps') as keyof typeof Ionicons.glyphMap,
               color: '#FFFFFF',
-              bgColor: FEATURE_COLORS[f.code] || '#6366F1',
+              bgColor: FEATURE_COLORS[f.code] || '#7C3AED',
               route: FEATURE_ROUTES[f.code] || 'Home',
             }));
           
-          // 添加内容中心和数据统计（固定功能）
-          featureItems.push(
-            { id: 'materials', title: '内容中心', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' },
-            { id: 'analytics', title: '数据统计', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#4F46E5', route: 'Statistics' }
+          // 数据总览和内容中心（固定功能，置于最前）
+          featureItems.unshift(
+            { id: 'analytics', title: '数据总览', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#6D28D9', route: 'Statistics' },
+            { id: 'materials', title: '内容中心', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' }
           );
           
           setFeatures(featureItems);
@@ -83,10 +85,11 @@ export default function HomeScreen() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [userInfo, stats, referral] = await Promise.all([
+      const [userInfo, stats, referral, share] = await Promise.all([
         loadUserInfo(),
         homeService.getTodayStats(),
         homeService.getReferralStats(),
+        shareService.getStatistics().catch(() => null),
         loadFeatures(),
       ]);
 
@@ -98,6 +101,7 @@ export default function HomeScreen() {
       }
       setTodayStats(stats);
       setReferralStats(referral);
+      setShareStats(share);
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -132,8 +136,8 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <StatusBar barStyle="dark-content" backgroundColor="#EDE9FE" />
+        <ActivityIndicator size="large" color="#6D28D9" />
         <Text style={styles.loadingText}>加载中...</Text>
       </View>
     );
@@ -141,7 +145,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#DBEAFE" />
+      <StatusBar barStyle="dark-content" backgroundColor="#EDE9FE" />
       
       {/* 头部区域 */}
       <View style={styles.header}>
@@ -155,7 +159,7 @@ export default function HomeScreen() {
             style={styles.avatarButton}
             onPress={() => navigateTo('Profile')}
           >
-            <Ionicons name="person-outline" size={22} color="#2563EB" />
+            <Ionicons name="person-outline" size={22} color="#6D28D9" />
           </TouchableOpacity>
         </View>
       </View>
@@ -167,7 +171,7 @@ export default function HomeScreen() {
       >
         {/* 今日数据卡片 */}
         <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>今日概览</Text>
+          <Text style={styles.statsTitle}>今日数据</Text>
           <View style={styles.statsRow}>
             <View style={[styles.statItem, styles.statBorder]}>
               <Text style={styles.statValue}>
@@ -183,12 +187,12 @@ export default function HomeScreen() {
             
             <View style={[styles.statItem, styles.statItemLast]}>
               <Text style={styles.statValue}>
-                {todayStats?.publishedToday || 0}
+                {shareStats?.totalScans || 0}
               </Text>
-              <Text style={styles.statLabel}>今日发布</Text>
+              <Text style={styles.statLabel}>推荐次数</Text>
               <View style={styles.statChange}>
                 <Text style={[styles.changeText, { color: '#64748B' }]}>
-                  共{todayStats?.totalPublished || 0}
+                  转化率 {shareStats?.conversionRate || '0%'}
                 </Text>
               </View>
             </View>
@@ -223,13 +227,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F4F1FA',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#F4F1FA',
   },
   loadingText: {
     marginTop: 12,
@@ -237,7 +241,7 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   header: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#EDE9FE',
     paddingTop: 50,
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -258,12 +262,12 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E3A5F',
+    color: '#1F1B2E',
     marginBottom: 4,
   },
   sloganText: {
     fontSize: 14,
-    color: '#3B82F6',
+    color: '#6D28D9',
   },
   avatarButton: {
     width: 44,
@@ -272,7 +276,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563EB',
+    shadowColor: '#6D28D9',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -287,7 +291,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginTop: 8,
-    shadowColor: '#2563EB',
+    shadowColor: '#6D28D9',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -296,7 +300,7 @@ const styles = StyleSheet.create({
   statsTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1E3A5F',
+    color: '#1F1B2E',
     marginBottom: 16,
   },
   statsRow: {
@@ -308,7 +312,7 @@ const styles = StyleSheet.create({
   },
   statBorder: {
     borderRightWidth: 1,
-    borderRightColor: '#E0E7FF',
+    borderRightColor: '#EDE9FE',
   },
   statItemLast: {
     flex: 1,
@@ -317,7 +321,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1E3A5F',
+    color: '#1F1B2E',
     marginBottom: 4,
   },
   statLabel: {
@@ -340,12 +344,12 @@ const styles = StyleSheet.create({
   },
   changeText: {
     fontSize: 11,
-    color: '#3B82F6',
+    color: '#6D28D9',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#1E3A5F',
+    color: '#1F1B2E',
     marginTop: 24,
     marginBottom: 12,
   },

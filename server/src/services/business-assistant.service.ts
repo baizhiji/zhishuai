@@ -10,9 +10,8 @@
  */
 
 import { prisma } from '../utils/db';
-import { getPrimaryApiKey, PROVIDER_CONFIG } from './user-api-key.service';
+import { getPrimaryApiKey } from './user-api-key.service';
 import { appendAIGCLabel } from './aigc-label.service';
-import axios from 'axios';
 import PptxGenJS from 'pptxgenjs';
 import PDFDocument from 'pdfkit';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } from 'docx';
@@ -305,53 +304,171 @@ export const BUSINESS_SCENARIOS: BusinessScenario[] = [
   },
 ];
 
+// ==================== 商业助手专属 AI 模型配置 ====================
+// 商业助手是移动端特有功能，独立于通用 AI 对话（ai-chat）的智能调度，
+// 配置专属"最强模型链路"；API Key 复用用户电脑端配置（按 userId 从数据库读取），
+// APK 端无需单独配置 Key / 模型。
+const BUSINESS_MODEL_CONFIG = {
+  // 各服务商调用网关（与 ai-chat 智能调度链路保持一致）
+  endpoints: {
+    tencent: {
+      baseUrl: 'https://tokenhub.tencentmaas.com/v1',
+      getKey: (userId: string) => getPrimaryApiKey(userId, 'tokenhub'),
+    },
+    aliyun: {
+      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      getKey: (userId: string) => getPrimaryApiKey(userId, 'dashscope'),
+    },
+    volcano: {
+      baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+      getKey: (userId: string) => getPrimaryApiKey(userId, 'ark'),
+    },
+  },
+  // 模型链路（按商业能力从强到次强排序，依次尝试、自动降级）
+  // 主  : 腾讯 GLM-5.2（1M 上下文 Agent 级，商业方案首选）
+  // 备1 : 阿里 DeepSeek-V4-Pro（深度推理）
+  // 备2 : 腾讯 混元Hy3（思考）
+  // 备3 : 阿里 Qwen3.7-Plus（专业内容）
+  // 备4 : 火山方舟 豆包 Seed 2.1 Pro（第三服务商兜底，OpenAI 兼容）
+  modelChain: [
+    { provider: 'tencent', model: 'glm-5.2', name: 'GLM-5.2' },
+    { provider: 'aliyun', model: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
+    { provider: 'tencent', model: 'hy3', name: '混元Hy3' },
+    { provider: 'aliyun', model: 'qwen3.7-plus', name: 'Qwen3.7-Plus' },
+    { provider: 'volcano', model: 'doubao-seed-2-1-pro-260628', name: '豆包 Seed 2.1 Pro' },
+  ],
+} as const;
+
+// ==================== 商业助手全链路专家提示词 ====================
+const BUSINESS_MASTER_SYSTEM_PROMPT = `你是【智枢AI商业助手】，中国顶级的商业顾问与创业导师，覆盖企业从0（创业启动）到100（做大做强）全生命周期的所有商业问题，给出最贴合实际、可直接落地的完美方案。
+
+## 全链路服务范围（企业生命周期 0→100）
+
+【阶段一 0-10 创业启动】市场机会识别、商业模式设计、MVP验证、启动资金测算、股权架构、注册合规、产品定义、团队组建
+【阶段二 10-30 生存发展】产品打磨、第一批客户获取、现金流管理、定价策略、渠道冷启动、人效提升、口碑运营
+【阶段三 30-60 成长扩张】组织架构搭建、管理机制与SOP、营销放量、融资规划（天使/VC）、第二增长曲线、数字化转型
+【阶段四 60-80 规模经营】多店/多市场复制、供应链优化、品牌升级、数据化经营、降本增效、并购整合、渠道矩阵
+【阶段五 80-100 做大做强】资本运作、股权融资/上市辅导、战略并购、国际化、生态布局、组织变革、传承与公司治理
+
+## 核心能力矩阵
+
+1. 战略与规划：战略制定、PEST分析、行业研究、竞争分析、增长战略
+2. 商业模式：价值主张、盈利模型、定价策略、渠道通路、收入结构、客户关系
+3. 市场营销：品牌定位、获客渠道、内容营销、私域运营、活动策划、投放优化
+4. 运营管理：流程再造、组织架构、KPI体系、供应链管理、成本控制、效率提升
+5. 财务与资本：财务分析、预算管理、现金流管理、融资估值、盈亏平衡、成本结构
+6. 人力资源：招聘选才、人才梯队、激励机制、绩效考核、企业文化建设
+7. 数字化转型：技术选型、系统建设、AI应用、数据驱动决策
+8. 风险与合规：风险识别、合规审查、危机应对、应急预案
+9. 实体经营：选址评估、选品逻辑、门店运营、坪效人效、连锁扩张
+10. 自媒体与流量：账号定位、内容创作、平台运营（抖音/小红书/视频号等）、涨粉变现、IP打造
+
+## 输出原则（必须严格遵守）
+
+1. 先判断用户所处阶段（0-10 / 10-30 / 30-60 / 60-80 / 80-100），结合阶段特征给出针对性建议
+2. 最贴合实际：结合行业常识与真实经营规律，禁止空泛套话、禁止虚构数据
+3. 每条建议必须可执行：给出具体步骤、量化指标（金额/人数/时间周期）、优先级排序
+4. 方案完整：覆盖"现状诊断 → 方案设计 → 执行步骤 → 风险预案 → 效果预期"完整链条
+5. 给出1-3个备选方案，并说明适用场景与取舍
+6. 若问题跨阶段，说明当前阶段优先做什么、下一阶段何时升级
+7. 用中文回答，条理清晰、重点突出、专业务实
+
+若用户询问与商业无关的问题，请友好引导回到商业咨询方向。`;
+
+// 方案生成统一质量增强要求（追加到 8 大场景 system prompt 之后）
+const BUSINESS_QUALITY_BOOST = `
+
+## 输出质量要求（必须严格遵守）
+1. 先判断用户企业所处阶段（0-10创业启动 / 10-30生存发展 / 30-60成长扩张 / 60-80规模经营 / 80-100做大做强），并据此调整建议侧重
+2. 最贴合实际：结合行业真实经营规律与通用数据，禁止空泛套话、禁止编造数据
+3. 每条建议给出具体步骤、量化指标（金额/人数/时间周期）、优先级排序
+4. 覆盖"现状诊断 → 方案设计 → 执行步骤 → 风险与预案 → 效果预期"完整链条
+5. 给出1-3个备选路径并说明取舍
+6. 明确下一阶段的升级方向（从当前阶段到下一阶段的关键动作与里程碑）`;
+
 // ==================== AI 调用 ====================
 
+/**
+ * 调用 AI 模型（商业助手专属模型链路，自动降级）
+ * - 依次尝试模型链路中的每个模型（GLM-5.2 → DeepSeek-V4-Pro → 混元Hy3 → Qwen3.7-Plus → 豆包Seed2.1）
+ * - 每个模型优先读取用户在该服务商配置的 API Key（复用电脑端配置，手机端无需单独配置）
+ * - 服务商无 Key 或调用失败时自动降级到下一个模型
+ */
 async function callAI(
   userId: string,
   messages: { role: string; content: string }[],
   options?: { temperature?: number; maxTokens?: number }
 ): Promise<string> {
-  // 优先使用用户的 API Key，找不到则使用系统默认
-  let apiConfig: { apiKey: string; secretKey: string; provider: string; baseUrl: string } | null = null;
+  const temperature = options?.temperature ?? 0.7;
+  const maxTokens = options?.maxTokens ?? 4096;
 
-  try {
-    apiConfig = await getPrimaryApiKey(userId, 'tokenhub');
-  } catch {
-    // ignore
-  }
+  let lastError: string | null = null;
 
-  if (!apiConfig) {
+  for (const modelCfg of BUSINESS_MODEL_CONFIG.modelChain) {
+    const endpoint = BUSINESS_MODEL_CONFIG.endpoints[modelCfg.provider];
+    if (!endpoint) continue;
+
+    // 1. 读取用户在该服务商配置的 API Key（复用电脑端配置）
+    let apiKey: string | null = null;
     try {
-      apiConfig = await getPrimaryApiKey(userId, 'dashscope');
+      const keyConfig = await endpoint.getKey(userId);
+      apiKey = keyConfig?.apiKey || null;
     } catch {
-      // ignore
+      apiKey = null;
     }
-  }
+    if (!apiKey) {
+      console.log(`[商业助手] 用户 ${userId} 未配置 ${modelCfg.provider} 的 API Key，跳过 ${modelCfg.name}`);
+      continue;
+    }
 
-  if (!apiConfig) {
-    throw new Error('未配置 AI 服务商 API Key，请在设置中配置腾讯云 TokenHub 或阿里云百炼 API Key');
-  }
-
-  const response = await axios.post(
-    `${apiConfig.baseUrl}/chat/completions`,
-    {
-      model: 'default',
-      messages,
-      temperature: options?.temperature ?? 0.7,
-      max_tokens: options?.maxTokens ?? 4096,
-    },
-    {
-      headers: {
+    // 2. 调用模型
+    try {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiConfig.apiKey}`,
-      },
-      timeout: 120000,
-    }
-  );
+        Authorization: `Bearer ${apiKey}`,
+      };
+      // 腾讯云 TokenHub 网关需要该标记头
+      if (modelCfg.provider === 'tencent') {
+        headers['X-TC-Provider'] = 'tokenhub';
+      }
 
-  const raw = response.data.choices[0].message.content;
-  return appendAIGCLabel(raw);
+      const controller = new AbortController();
+      const timeoutTimer = setTimeout(() => controller.abort(), 120000);
+      let response: Response;
+      try {
+        response = await fetch(`${endpoint.baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: modelCfg.model,
+            messages,
+            temperature,
+            max_tokens: maxTokens,
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        clearTimeout(timeoutTimer);
+      }
+
+      if (!response.ok) {
+        const errorData: any = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error?.message || `API 调用失败 (HTTP ${response.status})`);
+      }
+
+      const data: any = await response.json();
+      const raw = data?.choices?.[0]?.message?.content || '';
+      if (!raw) {
+        throw new Error('模型返回内容为空');
+      }
+      return appendAIGCLabel(raw);
+    } catch (err: any) {
+      lastError = err?.message || String(err);
+      console.warn(`[商业助手] 模型 ${modelCfg.name} 调用失败，自动降级: ${lastError}`);
+    }
+  }
+
+  throw new Error(lastError || '未配置 AI 服务商 API Key，请在电脑端「API Key 管理」中配置阿里云百炼、腾讯云 TokenHub 或火山方舟任一 API Key');
 }
 
 // ==================== 方案生成与解析 ====================
@@ -445,11 +562,11 @@ export const businessAssistantService = {
     if (request.additionalContext) userPrompt += `补充信息：${request.additionalContext}\n`;
 
     const messages = [
-      { role: 'system', content: scenario.prompts.system },
+      { role: 'system', content: scenario.prompts.system + BUSINESS_QUALITY_BOOST },
       { role: 'user', content: userPrompt },
     ];
 
-    const content = await callAI(request.userId, messages, { temperature: 0.8, maxTokens: 4096 });
+    const content = await callAI(request.userId, messages, { temperature: 0.8, maxTokens: 8192 });
 
     // 解析方案结构
     const sections = parseSections(content);
@@ -501,11 +618,11 @@ export const businessAssistantService = {
     const currentPlanText = existingContent?.fullContent || existingContent?.sections?.map((s: any) => s.content).join('\n') || '';
 
     const messages = [
-      { role: 'system', content: scenario.prompts.system },
+      { role: 'system', content: scenario.prompts.system + BUSINESS_QUALITY_BOOST },
       { role: 'user', content: `基于以下已有方案：\n\n${currentPlanText.slice(0, 2000)}\n\n${refinementPrompt}` },
     ];
 
-    const content = await callAI(request.userId, messages, { temperature: 0.7, maxTokens: 2048 });
+    const content = await callAI(request.userId, messages, { temperature: 0.7, maxTokens: 4096 });
 
     return { content };
   },
@@ -808,25 +925,11 @@ export const businessAssistantService = {
 
   /** 聊天问答（自由模式） */
   async chat(userId: string, messages: { role: string; content: string }[]): Promise<string> {
-    const systemPrompt = `你是一位专业的商业顾问助手（智枢AI），帮助用户解答商业相关的问题。
-你可以提供以下方面的专业建议：
-- 创业规划与商业模式设计
-- 企业运营与管理优化
-- 市场营销与品牌推广
-- 财务分析与成本控制
-- 人力资源与团队建设
-- 数字化转型与技术创新
-- 自媒体运营与内容营销
-- 实体店经营与连锁管理
-
-请根据用户问题提供专业、具体、可执行的建议。如果用户询问与商业无关的问题，请友好引导回到商业咨询方向。
-请用中文回答，条理清晰，具体实用。`;
-
     const allMessages = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: BUSINESS_MASTER_SYSTEM_PROMPT },
       ...messages,
     ];
 
-    return await callAI(userId, allMessages, { temperature: 0.7, maxTokens: 2048 });
+    return await callAI(userId, allMessages, { temperature: 0.7, maxTokens: 4096 });
   },
 };

@@ -42,6 +42,11 @@ router.post('/send-code', validate({ body: sendCodeSchema.shape.body }), async (
   try {
     const { phone, type = 'register' } = req.body;
 
+    // 生产环境禁止发送注册验证码（账号由管理员/代理商统一开通）
+    if (type === 'register' && process.env.NODE_ENV === 'production') {
+      return forbidden(res, '暂不支持自主注册，请联系管理员开通账号');
+    }
+
     // 检查发送频率（60秒内只能发送一次）
     const recentCode = await prisma.smsLog.findFirst({
       where: {
@@ -127,6 +132,11 @@ router.post('/send-code', validate({ body: sendCodeSchema.shape.body }), async (
 // 注册
 router.post('/register', validate({ body: registerSchema.shape.body }), async (req: Request, res: Response) => {
   try {
+    // 生产环境禁用自助注册（账号由管理员/代理商统一开通）
+    if (process.env.NODE_ENV === 'production') {
+      return forbidden(res, '暂不支持自主注册，请联系管理员开通账号');
+    }
+
     const { phone, password, code, name } = req.body;
 
     // 验证验证码：生产环境必须有短信配置并验证，开发环境无配置时可跳过
@@ -198,7 +208,7 @@ router.post('/register', validate({ body: registerSchema.shape.body }), async (r
       data: {
         id: userId,
         phone,
-        password: hashPassword(password),
+        password: await hashPassword(password),
         name: name || `用户${phone.slice(-4)}`,
         role: 'customer',
         status: 'active',
@@ -393,7 +403,7 @@ router.post('/reset-password', validate({ body: z.object({
     // 更新密码
     await prisma.user.update({
       where: { id: user.id },
-      data: { password: hashPassword(newPassword) },
+      data: { password: await hashPassword(newPassword) },
     });
 
     return ok(res, { message: '密码重置成功' });
@@ -418,7 +428,7 @@ router.post('/login', validate({ body: loginSchema.shape.body }), async (req: Re
     const user = await prisma.user.findUnique({ where: { phone } });
     
     // 验证密码
-    const isValidUser = user && verifyPassword(password, user.password);
+    const isValidUser = user && await verifyPassword(password, user.password);
 
     if (!isValidUser) {
       return unauthorized(res, '手机号或密码错误');
@@ -525,13 +535,13 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
       return notFound(res, '用户不存在');
     }
 
-    if (!verifyPassword(oldPassword, user.password)) {
+    if (!await verifyPassword(oldPassword, user.password)) {
       return badRequest(res, '原密码错误');
     }
 
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashPassword(newPassword) },
+      data: { password: await hashPassword(newPassword) },
     });
 
     ok(res, { message: '密码修改成功' });

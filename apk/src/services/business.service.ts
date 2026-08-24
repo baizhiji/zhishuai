@@ -48,7 +48,7 @@ const businessService = {
   /** 获取所有商业场景 */
   async getScenarios(): Promise<BusinessScenario[]> {
     const res = await apiClient.get('/business/scenarios');
-    return res.data.data;
+    return res || [];
   },
 
   /** 生成商业方案 */
@@ -62,7 +62,7 @@ const businessService = {
     additionalContext?: string;
   }): Promise<BusinessPlan> {
     const res = await apiClient.post('/business/generate-plan', params);
-    return res.data.data;
+    return res;
   },
 
   /** 优化方案 */
@@ -72,19 +72,19 @@ const businessService = {
     scenarioId: string;
   }): Promise<{ content: string }> {
     const res = await apiClient.post('/business/refine-plan', params);
-    return res.data.data;
+    return res;
   },
 
   /** 获取用户方案列表 */
   async getPlans(): Promise<BusinessPlan[]> {
     const res = await apiClient.get('/business/plans');
-    return res.data.data;
+    return res || [];
   },
 
   /** 获取方案详情 */
   async getPlanDetail(planId: string): Promise<BusinessPlanDetail> {
     const res = await apiClient.get(`/business/plans/${planId}`);
-    return res.data.data;
+    return res;
   },
 
   /** 获取导出链接 */
@@ -95,7 +95,7 @@ const businessService = {
   /** 自由问答 */
   async chat(messages: ChatMessage[]): Promise<{ reply: string }> {
     const res = await apiClient.post('/business/chat', { messages });
-    return res.data.data;
+    return res;
   },
 };
 

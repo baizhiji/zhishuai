@@ -170,7 +170,7 @@ export default function RecruitmentScreen() {
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Ionicons name={tab.icon as any} size={18} color={activeTab === tab.key ? '#4F46E5' : '#94a3b8'} />
+            <Ionicons name={tab.icon as any} size={18} color={activeTab === tab.key ? '#6D28D9' : '#94a3b8'} />
             <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
           </TouchableOpacity>
         ))}
@@ -181,7 +181,7 @@ export default function RecruitmentScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />}
       >
-        {loading && <ActivityIndicator size="large" color="#4F46E5" style={{ marginTop: 40 }} />}
+        {loading && <ActivityIndicator size="large" color="#6D28D9" style={{ marginTop: 40 }} />}
 
         {/* ===== 数据总览 ===== */}
         {activeTab === 'stats' && !loading && (
@@ -227,8 +227,8 @@ export default function RecruitmentScreen() {
                         <Text style={styles.resumeName}>{c.name}</Text>
                         <Text style={styles.resumePosition}>{c.jobTitle || c.location || '未知岗位'}</Text>
                       </View>
-                      <View style={[styles.matchBadge, { backgroundColor: (c.matchScore || 0) >= 80 ? '#dcfce7' : (c.matchScore || 0) >= 60 ? '#dbeafe' : '#fef3c7' }]}>
-                        <Text style={[styles.matchScore, { color: (c.matchScore || 0) >= 80 ? '#166534' : (c.matchScore || 0) >= 60 ? '#1e40af' : '#92400e' }]}>
+                      <View style={[styles.matchBadge, { backgroundColor: (c.matchScore || 0) >= 80 ? '#dcfce7' : (c.matchScore || 0) >= 60 ? '#EDE9FE' : '#fef3c7' }]}>
+                        <Text style={[styles.matchScore, { color: (c.matchScore || 0) >= 80 ? '#166534' : (c.matchScore || 0) >= 60 ? '#4C1D95' : '#92400e' }]}>
                           {c.matchScore || 0}%
                         </Text>
                       </View>
@@ -244,7 +244,7 @@ export default function RecruitmentScreen() {
 
             <TouchableOpacity style={styles.viewMoreBtn} onPress={() => setActiveTab('resumes')}>
               <Text style={styles.viewMoreText}>查看全部候选人</Text>
-              <Ionicons name="chevron-forward" size={16} color="#4F46E5" />
+              <Ionicons name="chevron-forward" size={16} color="#6D28D9" />
             </TouchableOpacity>
 
             {/* 在招岗位快速浏览 */}
@@ -266,10 +266,10 @@ export default function RecruitmentScreen() {
                   disabled={matchingJobId === job.id}
                 >
                   {matchingJobId === job.id ? (
-                    <ActivityIndicator size="small" color="#4F46E5" />
+                    <ActivityIndicator size="small" color="#6D28D9" />
                   ) : (
                     <>
-                      <Ionicons name="flash" size={14} color="#4F46E5" />
+                      <Ionicons name="flash" size={14} color="#6D28D9" />
                       <Text style={styles.aiMatchText}>AI匹配</Text>
                     </>
                   )}
@@ -323,10 +323,10 @@ export default function RecruitmentScreen() {
                         disabled={matchingJobId === job.id}
                       >
                         {matchingJobId === job.id ? (
-                          <ActivityIndicator size="small" color="#4F46E5" />
+                          <ActivityIndicator size="small" color="#6D28D9" />
                         ) : (
                           <>
-                            <Ionicons name="flash" size={12} color="#4F46E5" />
+                            <Ionicons name="flash" size={12} color="#6D28D9" />
                             <Text style={styles.aiMatchTextSmall}>AI匹配</Text>
                           </>
                         )}
@@ -384,8 +384,8 @@ export default function RecruitmentScreen() {
                     </View>
                   )}
                   <View style={styles.resumeFooter}>
-                    <View style={[styles.matchBadge, { backgroundColor: (c.matchScore || 0) >= 80 ? '#dcfce7' : (c.matchScore || 0) >= 60 ? '#dbeafe' : '#fef3c7' }]}>
-                      <Text style={[styles.matchScore, { color: (c.matchScore || 0) >= 80 ? '#166534' : (c.matchScore || 0) >= 60 ? '#1e40af' : '#92400e' }]}>
+                    <View style={[styles.matchBadge, { backgroundColor: (c.matchScore || 0) >= 80 ? '#dcfce7' : (c.matchScore || 0) >= 60 ? '#EDE9FE' : '#fef3c7' }]}>
+                      <Text style={[styles.matchScore, { color: (c.matchScore || 0) >= 80 ? '#166534' : (c.matchScore || 0) >= 60 ? '#4C1D95' : '#92400e' }]}>
                         匹配度 {c.matchScore || 0}%
                       </Text>
                     </View>
@@ -433,8 +433,8 @@ export default function RecruitmentScreen() {
                         </Text>
                       </View>
                     </View>
-                    <View style={[styles.matchBadge, { backgroundColor: (candidate?.matchScore || 0) >= 80 ? '#dcfce7' : '#dbeafe' }]}>
-                      <Text style={[styles.matchScore, { color: (candidate?.matchScore || 0) >= 80 ? '#166534' : '#1e40af' }]}>
+                    <View style={[styles.matchBadge, { backgroundColor: (candidate?.matchScore || 0) >= 80 ? '#dcfce7' : '#EDE9FE' }]}>
+                      <Text style={[styles.matchScore, { color: (candidate?.matchScore || 0) >= 80 ? '#166534' : '#4C1D95' }]}>
                         {candidate?.matchScore || 0}%
                       </Text>
                     </View>
@@ -561,8 +561,8 @@ export default function RecruitmentScreen() {
 
                   <View style={styles.resumeDetailSection}>
                     <Text style={styles.detailLabel}>匹配度</Text>
-                    <View style={[styles.matchBadgeLarge, { backgroundColor: (selectedCandidate.matchScore || 0) >= 80 ? '#dcfce7' : (selectedCandidate.matchScore || 0) >= 60 ? '#dbeafe' : '#fef3c7' }]}>
-                      <Text style={[styles.matchScoreLarge, { color: (selectedCandidate.matchScore || 0) >= 80 ? '#166534' : (selectedCandidate.matchScore || 0) >= 60 ? '#1e40af' : '#92400e' }]}>
+                    <View style={[styles.matchBadgeLarge, { backgroundColor: (selectedCandidate.matchScore || 0) >= 80 ? '#dcfce7' : (selectedCandidate.matchScore || 0) >= 60 ? '#EDE9FE' : '#fef3c7' }]}>
+                      <Text style={[styles.matchScoreLarge, { color: (selectedCandidate.matchScore || 0) >= 80 ? '#166534' : (selectedCandidate.matchScore || 0) >= 60 ? '#4C1D95' : '#92400e' }]}>
                         {selectedCandidate.matchScore || 0}%
                       </Text>
                     </View>
@@ -595,13 +595,13 @@ export default function RecruitmentScreen() {
                   <Text style={styles.actionTitle}>处理候选人</Text>
                   <View style={styles.actionRow}>
                     {selectedCandidate.status === 'matched' && (
-                      <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dbeafe' }]} onPress={() => handleUpdateStatus(selectedCandidate.id, 'contacted')}>
-                        <Ionicons name="chatbubble-ellipses" size={18} color="#1e40af" />
-                        <Text style={[styles.actionBtnText, { color: '#1e40af' }]}>联系候选人</Text>
+                      <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EDE9FE' }]} onPress={() => handleUpdateStatus(selectedCandidate.id, 'contacted')}>
+                        <Ionicons name="chatbubble-ellipses" size={18} color="#4C1D95" />
+                        <Text style={[styles.actionBtnText, { color: '#4C1D95' }]}>联系候选人</Text>
                       </TouchableOpacity>
                     )}
                     {(selectedCandidate.status === 'matched' || selectedCandidate.status === 'contacted' || selectedCandidate.status === 'replied') && (
-                      <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#e0e7ff' }]} onPress={() => handleUpdateStatus(selectedCandidate.id, 'interview_scheduled')}>
+                      <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EDE9FE' }]} onPress={() => handleUpdateStatus(selectedCandidate.id, 'interview_scheduled')}>
                         <Ionicons name="calendar" size={18} color="#3730a3" />
                         <Text style={[styles.actionBtnText, { color: '#3730a3' }]}>安排面试</Text>
                       </TouchableOpacity>
@@ -673,16 +673,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
   tabBar: { flexDirection: 'row', backgroundColor: '#fff', paddingHorizontal: 8, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 6, gap: 4 },
-  tabActive: { backgroundColor: '#eef2ff', borderRadius: 8 },
+  tabActive: { backgroundColor: '#F5F3FF', borderRadius: 8 },
   tabText: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
-  tabTextActive: { color: '#4F46E5', fontWeight: '600' },
+  tabTextActive: { color: '#6D28D9', fontWeight: '600' },
   content: { flex: 1, paddingHorizontal: 16, paddingTop: 16 },
   sectionTitle: { fontSize: 15, fontWeight: '600', color: '#334155', marginBottom: 12, marginTop: 8 },
 
   // 统计卡片
   statsGrid: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 14, alignItems: 'center' },
-  statValue: { fontSize: 22, fontWeight: '700', color: '#4F46E5' },
+  statValue: { fontSize: 22, fontWeight: '700', color: '#6D28D9' },
   statLabel: { fontSize: 11, color: '#64748b', marginTop: 4 },
   statSub: { fontSize: 10, color: '#64748b', marginTop: 2 },
 
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 13, color: '#94a3b8', marginTop: 8 },
 
   // 岗位卡片
-  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, gap: 8, marginBottom: 16 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#6D28D9', borderRadius: 10, padding: 14, gap: 8, marginBottom: 16 },
   addBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   jobCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
   jobCardCompact: { backgroundColor: '#fff', borderRadius: 12, padding: 12, marginBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -710,16 +710,16 @@ const styles = StyleSheet.create({
   applicantCount: { fontSize: 12, color: '#64748b' },
 
   // AI 匹配按钮
-  aiMatchBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  aiMatchText: { fontSize: 12, color: '#4F46E5', fontWeight: '600' },
-  aiMatchBtnSmall: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#eef2ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  aiMatchTextSmall: { fontSize: 11, color: '#4F46E5', fontWeight: '500' },
+  aiMatchBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F5F3FF', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  aiMatchText: { fontSize: 12, color: '#6D28D9', fontWeight: '600' },
+  aiMatchBtnSmall: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#F5F3FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  aiMatchTextSmall: { fontSize: 11, color: '#6D28D9', fontWeight: '500' },
 
   // 候选人卡片
   resumeCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
   resumeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 16, fontWeight: '600', color: '#4F46E5' },
+  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 16, fontWeight: '600', color: '#6D28D9' },
   resumeInfo: { flex: 1, marginLeft: 10 },
   resumeName: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
   resumePosition: { fontSize: 12, color: '#64748b', marginTop: 2 },
@@ -732,19 +732,19 @@ const styles = StyleSheet.create({
   resumeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   applyDate: { fontSize: 11, color: '#94a3b8' },
   viewMoreBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, gap: 4 },
-  viewMoreText: { fontSize: 14, color: '#4F46E5', fontWeight: '500' },
+  viewMoreText: { fontSize: 14, color: '#6D28D9', fontWeight: '500' },
 
   // 面试卡片
   interviewCard: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
   interviewHeader: { flexDirection: 'row', alignItems: 'center' },
-  interviewTime: { width: 50, alignItems: 'center', backgroundColor: '#eef2ff', borderRadius: 8, paddingVertical: 8 },
-  interviewDay: { fontSize: 18, fontWeight: '700', color: '#4F46E5' },
-  interviewMonth: { fontSize: 10, color: '#4F46E5' },
+  interviewTime: { width: 50, alignItems: 'center', backgroundColor: '#F5F3FF', borderRadius: 8, paddingVertical: 8 },
+  interviewDay: { fontSize: 18, fontWeight: '700', color: '#6D28D9' },
+  interviewMonth: { fontSize: 10, color: '#6D28D9' },
   interviewInfo: { flex: 1, marginLeft: 12 },
   interviewPosition: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
   interviewCandidate: { fontSize: 12, color: '#64748b', marginTop: 2 },
   interviewTags: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  interviewTag: { fontSize: 11, color: '#1e40af', backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  interviewTag: { fontSize: 11, color: '#4C1D95', backgroundColor: '#EDE9FE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
   interviewTime2: { fontSize: 12, color: '#64748b' },
 
   // 弹窗
@@ -757,20 +757,20 @@ const styles = StyleSheet.create({
   textArea: { height: 80, textAlignVertical: 'top' },
   selectRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
   selectItem: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f1f5f9' },
-  selectItemActive: { backgroundColor: '#e0e7ff' },
+  selectItemActive: { backgroundColor: '#EDE9FE' },
   selectText: { fontSize: 13, color: '#64748b' },
-  selectTextActive: { color: '#4F46E5', fontWeight: '500' },
+  selectTextActive: { color: '#6D28D9', fontWeight: '500' },
   salaryRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   salaryInput: { flex: 1 },
   salarySeparator: { fontSize: 16, color: '#64748b' },
   salaryUnit: { fontSize: 14, color: '#64748b' },
-  submitBtn: { backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 20 },
+  submitBtn: { backgroundColor: '#6D28D9', borderRadius: 10, padding: 14, alignItems: 'center', marginTop: 20 },
   submitBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
 
   // 候选人详情
   resumeDetailHeader: { alignItems: 'center', paddingVertical: 20 },
-  avatarLarge: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  avatarTextLarge: { fontSize: 28, fontWeight: '600', color: '#4F46E5' },
+  avatarLarge: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#EDE9FE', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  avatarTextLarge: { fontSize: 28, fontWeight: '600', color: '#6D28D9' },
   resumeDetailName: { fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 },
   resumeDetailSection: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   detailLabel: { fontSize: 12, color: '#94a3b8', marginBottom: 4 },
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   matchBadgeLarge: { alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, marginTop: 4 },
   matchScoreLarge: { fontSize: 18, fontWeight: '700' },
   skillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  skillTag: { fontSize: 13, color: '#4F46E5', backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  skillTag: { fontSize: 13, color: '#6D28D9', backgroundColor: '#F5F3FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   actionTitle: { fontSize: 15, fontWeight: '600', color: '#374151', marginTop: 20, marginBottom: 12 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, gap: 6 },
@@ -788,8 +788,8 @@ const styles = StyleSheet.create({
   timeline: { flexDirection: 'row', marginTop: 8 },
   timelineItem: { alignItems: 'center', flex: 1 },
   timelineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#e2e8f0' },
-  timelineDotActive: { backgroundColor: '#818cf8' },
-  timelineDotCurrent: { backgroundColor: '#4F46E5', width: 14, height: 14, borderRadius: 7 },
+  timelineDotActive: { backgroundColor: '#8B5CF6' },
+  timelineDotCurrent: { backgroundColor: '#6D28D9', width: 14, height: 14, borderRadius: 7 },
   timelineText: { fontSize: 9, color: '#94a3b8', marginTop: 4, textAlign: 'center' },
-  timelineTextActive: { color: '#4F46E5', fontWeight: '500' },
+  timelineTextActive: { color: '#6D28D9', fontWeight: '500' },
 });

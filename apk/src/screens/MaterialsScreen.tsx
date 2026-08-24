@@ -9,7 +9,7 @@ import { materialsService, Material } from '../services/materials.service';
 
 // 内容分类配置 - 与WEB端保持一致
 const categoryConfig: Record<string, { label: string; icon: string; color: string; type: string }> = {
-  title: { label: '标题', icon: 'text', color: '#3B82F6', type: 'text' },
+  title: { label: '标题', icon: 'text', color: '#6D28D9', type: 'text' },
   tags: { label: '话题/标签', icon: 'pricetags', color: '#8B5CF6', type: 'text' },
   copywriting: { label: '文案生成', icon: 'document-text', color: '#06B6D4', type: 'text' },
   'image-to-text': { label: '图转文', icon: 'image', color: '#10B981', type: 'text' },
@@ -18,7 +18,7 @@ const categoryConfig: Record<string, { label: string; icon: string; color: strin
   ecommerce: { label: '电商详情页', icon: 'cart', color: '#F97316', type: 'text' },
   video: { label: '短视频', icon: 'videocam', color: '#EC4899', type: 'video' },
   'video-analysis': { label: '视频解析', icon: 'film', color: '#84CC16', type: 'text' },
-  'digital-human': { label: '数字人短视频', icon: 'person', color: '#6366F1', type: 'video' },
+  'digital-human': { label: '数字人短视频', icon: 'person', color: '#7C3AED', type: 'video' },
 };
 
 // 本地素材类型(扩展自服务层的 Material 接口)
@@ -259,8 +259,8 @@ export default function MaterialsScreen() {
               <Ionicons name={category.icon as any} size={12} color={category.color} />
               <Text style={[styles.categoryText, { color: category.color }]}>{category.label}</Text>
             </View>
-            <View style={[styles.statusBadge, { backgroundColor: item.status === 'used' ? '#dcfce7' : '#dbeafe' }]}>
-              <Text style={[styles.statusText, { color: item.status === 'used' ? '#166534' : '#1e40af' }]}>
+            <View style={[styles.statusBadge, { backgroundColor: item.status === 'used' ? '#dcfce7' : '#EDE9FE' }]}>
+              <Text style={[styles.statusText, { color: item.status === 'used' ? '#166534' : '#4C1D95' }]}>
                 {item.status === 'used' ? '已使用' : '未使用'}
               </Text>
             </View>
@@ -338,14 +338,14 @@ export default function MaterialsScreen() {
           style={[styles.filterBtn, filterFavorites && styles.filterBtnActive]} 
           onPress={() => setFilterFavorites(!filterFavorites)}
         >
-          <Ionicons name={filterFavorites ? "star" : "star-outline"} size={20} color={filterFavorites ? '#f59e0b' : '#4F46E5'} />
+          <Ionicons name={filterFavorites ? "star" : "star-outline"} size={20} color={filterFavorites ? '#f59e0b' : '#6D28D9'} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFilterModal(true)}>
-          <Ionicons name="options-outline" size={20} color="#4F46E5" />
+          <Ionicons name="options-outline" size={20} color="#6D28D9" />
         </TouchableOpacity>
         {!isSelectMode && (
           <TouchableOpacity style={styles.filterBtn} onPress={() => setIsSelectMode(true)}>
-            <Ionicons name="checkbox-outline" size={20} color="#4F46E5" />
+            <Ionicons name="checkbox-outline" size={20} color="#6D28D9" />
           </TouchableOpacity>
         )}
       </View>
@@ -356,13 +356,13 @@ export default function MaterialsScreen() {
           {filterCategory !== 'all' && (
             <TouchableOpacity style={styles.filterChip} onPress={() => setFilterCategory('all')}>
               <Text style={styles.filterChipText}>{getCategoryInfo(filterCategory).label}</Text>
-              <Ionicons name="close" size={14} color="#4F46E5" />
+              <Ionicons name="close" size={14} color="#6D28D9" />
             </TouchableOpacity>
           )}
           {filterStatus !== 'all' && (
             <TouchableOpacity style={styles.filterChip} onPress={() => setFilterStatus('all')}>
               <Text style={styles.filterChipText}>{filterStatus === 'used' ? '已使用' : '未使用'}</Text>
-              <Ionicons name="close" size={14} color="#4F46E5" />
+              <Ionicons name="close" size={14} color="#6D28D9" />
             </TouchableOpacity>
           )}
         </View>
@@ -477,8 +477,8 @@ export default function MaterialsScreen() {
                       </View>
                     );
                   })()}
-                  <View style={[styles.statusBadge, { backgroundColor: selectedMaterial.status === 'used' ? '#dcfce7' : '#dbeafe' }]}>
-                    <Text style={[styles.statusText, { color: selectedMaterial.status === 'used' ? '#166534' : '#1e40af' }]}>
+                  <View style={[styles.statusBadge, { backgroundColor: selectedMaterial.status === 'used' ? '#dcfce7' : '#EDE9FE' }]}>
+                    <Text style={[styles.statusText, { color: selectedMaterial.status === 'used' ? '#166534' : '#4C1D95' }]}>
                       {selectedMaterial.status === 'used' ? '已使用' : '未使用'}
                     </Text>
                   </View>
@@ -505,16 +505,16 @@ export default function MaterialsScreen() {
                 <View style={styles.previewActions}>
                   {(selectedMaterial.url || selectedMaterial.thumbnail) && (
                     <TouchableOpacity style={styles.previewActionBtn} onPress={() => handleDownload(selectedMaterial)}>
-                      <Ionicons name="download-outline" size={18} color="#4F46E5" />
+                      <Ionicons name="download-outline" size={18} color="#6D28D9" />
                       <Text style={styles.previewActionText}>下载</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity style={styles.previewActionBtn} onPress={() => handleShare(selectedMaterial)}>
-                    <Ionicons name="share-social-outline" size={18} color="#4F46E5" />
+                    <Ionicons name="share-social-outline" size={18} color="#6D28D9" />
                     <Text style={styles.previewActionText}>分享</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.previewActionBtn} onPress={() => handleCopy(selectedMaterial.content)}>
-                    <Ionicons name="copy-outline" size={18} color="#4F46E5" />
+                    <Ionicons name="copy-outline" size={18} color="#6D28D9" />
                     <Text style={styles.previewActionText}>复制</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.previewActionBtn, styles.deleteBtn]} onPress={() => { handleDelete(selectedMaterial.id); setShowPreviewModal(false); }}>
@@ -536,10 +536,10 @@ const styles = StyleSheet.create({
   searchBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', gap: 10 },
   searchInput: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 10, paddingHorizontal: 12, height: 40, gap: 8 },
   searchTextInput: { flex: 1, fontSize: 14, color: '#1e293b' },
-  filterBtn: { width: 40, height: 40, backgroundColor: '#eef2ff', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  filterBtn: { width: 40, height: 40, backgroundColor: '#F5F3FF', borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   filterChips: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0', gap: 8 },
-  filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, gap: 6 },
-  filterChipText: { fontSize: 12, color: '#4F46E5' },
+  filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F3FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, gap: 6 },
+  filterChipText: { fontSize: 12, color: '#6D28D9' },
   listContent: { padding: 16 },
   materialCard: { backgroundColor: '#fff', borderRadius: 12, marginBottom: 12, overflow: 'hidden' },
   thumbnailContainer: { position: 'relative' },
@@ -571,11 +571,11 @@ const styles = StyleSheet.create({
   filterTitle: { fontSize: 14, fontWeight: '600', color: '#374151', marginHorizontal: 16, marginTop: 16, marginBottom: 10 },
   filterGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 8 },
   filterOption: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: '#f1f5f9', gap: 6 },
-  filterOptionActive: { backgroundColor: '#4F46E5' },
+  filterOptionActive: { backgroundColor: '#6D28D9' },
   filterOptionText: { fontSize: 13, color: '#64748b' },
   filterOptionTextActive: { color: '#fff' },
   filterCount: { fontSize: 11, color: '#94a3b8' },
-  applyBtn: { backgroundColor: '#4F46E5', borderRadius: 10, padding: 14, alignItems: 'center', marginHorizontal: 16, marginTop: 20 },
+  applyBtn: { backgroundColor: '#6D28D9', borderRadius: 10, padding: 14, alignItems: 'center', marginHorizontal: 16, marginTop: 20 },
   applyBtnText: { fontSize: 15, fontWeight: '600', color: '#fff' },
   previewContent: { padding: 16 },
   previewHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
@@ -583,19 +583,19 @@ const styles = StyleSheet.create({
   previewImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12 },
   previewText: { fontSize: 14, color: '#475569', lineHeight: 22, marginBottom: 12 },
   previewTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  previewTag: { fontSize: 12, color: '#4F46E5', backgroundColor: '#eef2ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
+  previewTag: { fontSize: 12, color: '#6D28D9', backgroundColor: '#F5F3FF', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
   previewTime: { fontSize: 12, color: '#94a3b8', marginBottom: 16 },
   previewActions: { flexDirection: 'row', gap: 12 },
-  previewActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eef2ff', paddingVertical: 12, borderRadius: 10, gap: 8 },
-  previewActionText: { fontSize: 14, fontWeight: '500', color: '#4F46E5' },
+  previewActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F3FF', paddingVertical: 12, borderRadius: 10, gap: 8 },
+  previewActionText: { fontSize: 14, fontWeight: '500', color: '#6D28D9' },
   // 新增样式
   selectModeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   selectModeTitle: { fontSize: 16, fontWeight: '600', color: '#1e293b', flex: 1, textAlign: 'center' },
-  selectAllText: { fontSize: 14, color: '#4F46E5', fontWeight: '500' },
+  selectAllText: { fontSize: 14, color: '#6D28D9', fontWeight: '500' },
   filterBtnActive: { backgroundColor: '#fef3c7' },
-  materialCardSelected: { borderWidth: 2, borderColor: '#4F46E5' },
+  materialCardSelected: { borderWidth: 2, borderColor: '#6D28D9' },
   checkbox: { position: 'absolute', top: 10, left: 10, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#cbd5e1', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', zIndex: 1 },
-  checkboxSelected: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
+  checkboxSelected: { backgroundColor: '#6D28D9', borderColor: '#6D28D9' },
   favoriteBtn: { position: 'absolute', top: 8, right: 8, zIndex: 1, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 20, padding: 4 },
   batchActions: { padding: 16, paddingBottom: 32 },
   batchActionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fee2e2', paddingVertical: 14, borderRadius: 10, gap: 8 },

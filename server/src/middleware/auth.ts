@@ -52,14 +52,15 @@ export const generateToken = (userId: string, role: string): string => {
   return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
 };
 
-export const hashPassword = (password: string): string => {
-  return bcrypt.hashSync(password, 12);
+// 异步 bcrypt 计算，避免同步哈希阻塞 Node 事件循环导致整个服务卡顿
+export const hashPassword = async (password: string): Promise<string> => {
+  return bcrypt.hash(password, 12);
 };
 
-export const verifyPassword = (password: string, hash: string): boolean => {
+export const verifyPassword = async (password: string, hash: string): Promise<boolean> => {
   // Try bcrypt first
   if (hash.startsWith('$2a$') || hash.startsWith('$2b$') || hash.startsWith('$2y$')) {
-    return bcrypt.compareSync(password, hash);
+    return bcrypt.compare(password, hash);
   }
   // Legacy SHA256 fallback (for passwords hashed before upgrade)
   // Previous secrets must be configured via env vars, never hardcoded

@@ -16,8 +16,86 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { randomUUID } from 'crypto';
 import { prisma } from '../utils/db';
+import QRCode from 'qrcode';
 
 const router = Router();
+
+// ─── 常量 ────────────────────────────────
+
+// 短链基础域名（api 子域已全量反代到后端服务）
+const API_URL = process.env.API_URL || 'https://api.baizhiji.net';
+const WEB_URL = process.env.WEB_URL || 'https://baizhiji.net';
+
+// 各平台转发链接域名规则（校验粘贴的链接是否属于所选平台）
+const PLATFORM_RULES: Record<string, { label: string; domains: string[] }> = {
+  douyin: { label: '抖音', domains: ['douyin.com', 'iesdouyin.com'] },
+  kuaishou: { label: '快手', domains: ['kuaishou.com', 'gifshow.com'] },
+  xiaohongshu: { label: '小红书', domains: ['xiaohongshu.com', 'xhslink.com'] },
+  video: { label: '视频号', domains: ['weixin.qq.com', 'channels.weixin.qq.com'] },
+};
+
+// ─── 辅助函数 ────────────────────────────────
+
+// 识别链接所属平台
+function detectPlatform(url: string): string | null {
+  if (!url) return null;
+  for (const [key, rule] of Object.entries(PLATFORM_RULES)) {
+    if (rule.domains.some(d => url.includes(d))) return key;
+  }
+  return null;
+}
+
+// 校验链接是否匹配所选平台，返回错误文案（null=通过）
+function validatePlatformLink(platforms: string[], url: string): string | null {
+  if (!url) return null;
+  const matched = platforms.some(p =>
+    PLATFORM_RULES[p] && PLATFORM_RULES[p].domains.some(d => url.includes(d))
+  );
+  return matched ? null : '视频链接与所选平台不匹配，请粘贴对应平台的分享/转发链接';
+}
+
+// 二维码内容 = 智枢中转短链（扫码后记录并 302 跳转平台视频）
+function buildQrContent(codeId: string): string {
+  return `${API_URL}/s/${codeId}`;
+}
+
+// 生成二维码图片（base64 PNG dataURL）
+function buildQrImage(content: string): Promise<string> {
+  return QRCode.toDataURL(content, { width: 320, margin: 1, errorCorrectionLevel: 'M' });
+}
+
+// 为分享码附加二维码内容与图片
+async function withQrInfo(code: any): Promise<any> {
+  const platforms = platformsToArray(code.platforms);
+  const qrContent = buildQrContent(code.id);
+  const qrCodeImage = await buildQrImage(qrContent);
+  return { ...code, platforms, qrContent, qrCodeImage, scanUrl: qrContent, qrCodeUrl: qrContent };
+}
+
+// 记录一次匿名扫码（中转短链被访问时调用，异常不阻塞跳转）
+async function recordAnonymousScan(code: any, req: Request): Promise<void> {
+  const ua = req.headers['user-agent'] || '';
+  let platform = platformsToArray(code.platforms)[0] || 'qrcode';
+  if (/douyin/i.test(ua)) platform = 'douyin';
+  else if (/kuaishou/i.test(ua)) platform = 'kuaishou';
+  else if (/xiaohongshu|red/i.test(ua)) platform = 'xiaohongshu';
+  else if (/MicroMessenger|WeChat|weixin/i.test(ua)) platform = 'video';
+
+  await prisma.shareRecord.create({
+    data: {
+      id: randomUUID(),
+      userId: code.userId,
+      qrCodeId: code.id,
+      scannerId: null, // 匿名访客，未关联智枢账号
+      platform,
+      status: 'scanned',
+      scannedAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+  await (prisma as any).shareQrCode.update({ where: { id: code.id }, data: { scanCount: { increment: 1 } } });
+  await (prisma as any).referralCode.updateMany({ where: { id: code.id }, data: { scanCount: { increment: 1 } } });
+}
 
 // ─── 响应辅助 ────────────────────────────────
 
@@ -29,9 +107,10 @@ function err(res: Response, status: number, message: string) {
   res.status(status).json({ code: status, message, data: null });
 }
 
-// 将存储的逗号分隔字符串转为数组返回给前端
-function platformsToArray(platforms: string | undefined | null): string[] {
+// 将存储的逗号分隔字符串转为数组返回给前端（幂等：已是数组时直接返回）
+function platformsToArray(platforms: string | string[] | undefined | null): string[] {
   if (!platforms) return [];
+  if (Array.isArray(platforms)) return platforms;
   return platforms.split(',').map(p => p.trim()).filter(Boolean);
 }
 
@@ -155,11 +234,11 @@ router.get('/codes', authMiddleware, async (req: Request, res: Response) => {
         const directScans = await (prisma as any).referralTrack.count({
           where: { codeId: code.id, type: 'scan' },
         });
-        return {
+        return withQrInfo({
           ...code,
           platforms: platformsToArray(code.platforms),
           directReferrals: directScans,
-        };
+        });
       })
     );
 
@@ -187,11 +266,11 @@ router.get('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
       where: { codeId: id, type: 'scan' },
     });
 
-    ok(res, {
+    ok(res, await withQrInfo({
       ...code,
       platforms: platformsToArray(code.platforms),
       directReferrals: directScans,
-    });
+    }));
   } catch (error: any) {
     err(res, 500, error.message);
   }
@@ -205,6 +284,12 @@ router.post('/codes', authMiddleware, async (req: Request, res: Response) => {
     const videoUrl = req.body.videoUrl || req.body.targetUrl || req.body.description || '';
     const platforms = req.body.platforms || (req.body.type ? [req.body.type] : ['douyin']);
     const sourceQrCodeId = req.body.sourceQrCodeId;
+
+    const platformList = Array.isArray(platforms) ? platforms : [platforms];
+    const linkError = validatePlatformLink(platformList, videoUrl);
+    if (linkError) {
+      return err(res, 400, linkError);
+    }
 
     const shareCode = await (prisma as any).shareQrCode.create({
       data: {
@@ -246,13 +331,11 @@ router.post('/codes', authMiddleware, async (req: Request, res: Response) => {
       }
     }
 
-    const scanUrl = `${process.env.WEB_URL || 'https://baizhiji.net'}/share/scan?code_id=${shareCode.id}&inviter_id=${userId}`;
+    const qrInfo = await withQrInfo(shareCode);
 
     ok(res, {
-      ...shareCode,
+      ...qrInfo,
       platforms: platformsToArray(shareCode.platforms),
-      scanUrl,
-      qrCodeUrl: scanUrl,
     });
   } catch (error: any) {
     err(res, 500, error.message);
@@ -267,6 +350,12 @@ router.put('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
     const title = req.body.title || '我的分享';
     const videoUrl = req.body.videoUrl || req.body.targetUrl || req.body.description || '';
     const platforms = req.body.platforms || (req.body.type ? [req.body.type] : ['douyin']);
+
+    const platformList = Array.isArray(platforms) ? platforms : [platforms];
+    const linkError = validatePlatformLink(platformList, videoUrl);
+    if (linkError) {
+      return err(res, 400, linkError);
+    }
 
     const existing = await (prisma as any).shareQrCode.findUnique({ where: { id } });
     if (!existing) {
@@ -296,7 +385,7 @@ router.put('/codes/:id', authMiddleware, async (req: Request, res: Response) => 
       },
     });
 
-    ok(res, { ...shareCode, platforms: platformsToArray(shareCode.platforms) });
+    ok(res, await withQrInfo({ ...shareCode, platforms: platformsToArray(shareCode.platforms) }));
   } catch (error: any) {
     err(res, 500, error.message);
   }
@@ -867,6 +956,24 @@ router.get('/my-code', authMiddleware, async (req: Request, res: Response) => {
     ok(res, { code: refCode.id.slice(0, 8).toUpperCase() });
   } catch (error: any) {
     err(res, 500, error.message);
+  }
+});
+
+// ─── 公共中转短链（扫码落地，无需登录） ──────────────
+// 二维码内容指向 {API_URL}/s/{codeId}，访问后记录匿名扫码并 302 跳转平台视频
+export const shareShortRoutes = Router();
+
+shareShortRoutes.get('/:codeId', async (req: Request, res: Response) => {
+  try {
+    const code = await (prisma as any).shareQrCode.findUnique({ where: { id: req.params.codeId } });
+    if (!code) {
+      return res.redirect(WEB_URL);
+    }
+    // 匿名扫码归因（异步记录，异常不阻塞跳转）
+    recordAnonymousScan(code, req).catch(() => {});
+    return res.redirect(302, code.videoUrl || WEB_URL);
+  } catch (e) {
+    return res.redirect(WEB_URL);
   }
 });
 

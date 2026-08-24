@@ -296,7 +296,7 @@ export default function HelpCenter() {
             <List
               dataSource={[
                 { title: '新手指南', href: '/help/getting-started' },
-                { title: 'AI 对话使用技巧', href: '/help/ai-chat-guide' },
+                { title: '商业助手使用技巧', href: '/help/ai-chat-guide' },
                 { title: '招聘助手操作手册', href: '/help/recruitment-guide' },
               ]}
               renderItem={item => (

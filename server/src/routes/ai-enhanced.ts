@@ -6,6 +6,7 @@ import { Router, Response } from 'express';
 import { chatCompletion } from '../services/ai-client';
 import { appendAIGCLabel, appendAIGCLabelShort } from '../services/aigc-label.service';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
+import { prisma } from '../utils/db';
 
 const router = Router();
 
@@ -17,20 +18,76 @@ const PLATFORM_LABELS: Record<string, string> = {
   weibo: '微博',
 };
 
-// 获取 AI 增强历史记录
+// 获取 AI 生成历史（Task 2：统一两端生成历史到服务器）
 router.get('/history', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    // 返回空列表 — AI 历史记录模型待实现
+    const userId = (req as any).userId;
+    const page = parseInt((req.query.page as string) || '1') || 1;
+    const pageSize = parseInt((req.query.pageSize as string) || '50') || 50;
+    const feature = req.query.feature as string | undefined;
+
+    const where: any = { userId };
+    if (feature) where.feature = feature;
+
+    const [items, total] = await Promise.all([
+      prisma.aiGenerationHistory.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.aiGenerationHistory.count({ where }),
+    ]);
+
     res.json({
       code: 200,
       message: 'success',
+      data: { items, total, page, pageSize },
+    });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+// 保存 AI 生成历史（APK / WEB 通用）
+router.post('/history', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { feature, category, title, content, config, status, provider, model, source } = req.body || {};
+    if (!content) {
+      res.status(400).json({ code: 400, message: 'content 不能为空', data: null });
+      return;
+    }
+
+    const record = await prisma.aiGenerationHistory.create({
       data: {
-        items: [],
-        total: 0,
-        page: parseInt((req.query.page as string) || '1'),
-        pageSize: parseInt((req.query.pageSize as string) || '20'),
+        userId,
+        feature: feature || 'ai-enhanced',
+        category: category || null,
+        title: title || null,
+        content,
+        config: config ?? undefined,
+        status: status || 'success',
+        provider: provider || null,
+        model: model || null,
+        source: source || 'web',
       },
     });
+
+    res.json({ code: 200, message: 'success', data: record });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+// 删除 AI 生成历史
+router.delete('/history/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    await prisma.aiGenerationHistory.deleteMany({ where: { id, userId } });
+    res.json({ code: 200, message: 'success', data: { id } });
   } catch (error: any) {
     res.status(500).json({ code: 500, message: error.message, data: null });
   }
@@ -182,23 +239,46 @@ router.post('/hashtags', authMiddleware, async (req: AuthRequest, res: Response)
   }
 });
 
+// 爆款内容创意（完整蓝图）：AI 创作工厂生成文本内容的核心方法论，对齐桌面端 viral_analysis 四维爆款分析
+const CREATIVE_SYSTEM_PROMPT = `你是爆款内容创意专家，负责把普通主题打磨成高传播、高互动的爆款内容。
+请按以下流程创作：
+1. 爆款潜力分析：从情绪钩子、信息差、身份标签、行动触发四个维度评估主题的爆款潜力，输出结构化分析
+2. 创意方向：基于分析提出3个差异化创意方向，每个方向包含核心概念、目标受众、预期传播路径
+3. 爆款标题：为最佳创意方向生成TOP3爆款标题（善用数字、悬念、身份标签、结果导向等公式）
+4. 完整正文：撰写完整正文，注意平台特有的语言风格、互动引导、话题标签
+5. 发布策略：给出发布建议（最佳发布时间、话题标签组合、互动引导策略）`;
+
+// 通用增强版：默认生成也注入爆款内容创作逻辑（四维爆款基因 + 标题策划 + 钩子结构）
+const DEFAULT_SYSTEM_PROMPT = (platformName: string) => `你是${platformName}平台的爆款内容创作专家，擅长把普通主题打磨成高传播、高互动的爆款内容。
+创作方法论（先分析后创作）：
+1. 爆款基因分析：从信息差、情绪价值、身份认同、行动诱因四个维度挖掘主题的爆款潜力，确定内容切入角度
+2. 标题策划：给出1个能引发点击的爆款标题（善用数字、悬念、身份标签、结果导向等公式）
+3. 正文创作：
+   - 开头用钩子快速抓住注意力（痛点/悬念/数据/故事）
+   - 正文结构清晰、信息密度高，适当使用emoji增强可读性
+   - 内容有干货，提供实用价值或情感共鸣
+   - 结尾引导互动（求赞/收藏/评论/关注）
+4. 整体符合${platformName}平台的内容调性和受众偏好
+
+输出格式：第一行输出【标题】+爆款标题，第二行起为完整正文。`;
+
 // 生成文章/帖子
 router.post('/post', authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
-    const { topic, platform = 'xiaohongshu' } = req.body;
+    const { topic, platform = 'xiaohongshu', contentType } = req.body;
     const userId = req.userId!;
     const platformName = PLATFORM_LABELS[platform] || platform;
 
-    const systemPrompt = `你是${platformName}平台的顶级内容创作者，擅长撰写高互动率的社交媒体帖子。
-创作要点：
-1. 开头用钩子吸引关注（痛点/悬念/数据/故事）
-2. 正文结构清晰，适当使用emoji增强可读性
-3. 内容有干货，提供实用价值或情感共鸣
-4. 结尾引导互动（求赞/收藏/评论/关注）
-5. 符合${platformName}平台的内容调性和受众偏好`;
+    // AI 创作工厂（APK/客户端）生成的文本类内容统一走"爆款内容创意"完整逻辑
+    const isCreativity = typeof contentType === 'string' && contentType.includes('creativity');
+    const systemPrompt = isCreativity
+      ? CREATIVE_SYSTEM_PROMPT
+      : DEFAULT_SYSTEM_PROMPT(platformName);
 
     const userPrompt = [
-      `请围绕以下主题撰写一篇${platformName}平台的社交媒体帖子：`,
+      isCreativity
+        ? '请围绕以下主题生成一份完整的爆款内容创意蓝图：'
+        : `请围绕以下主题撰写一篇${platformName}平台的爆款社交媒体帖子：`,
       '',
       `主题：${topic}`,
       '',

@@ -1,2 +1,0 @@
-npm notice run zhishuai-server@1.0.0 npx
-npm notice run tsc --noEmit

@@ -29,11 +29,11 @@ export const featureService = {
   // 获取用户的功能开关状态
   getUserFeatures: async (userId: string): Promise<FeatureSwitch[]> => {
     try {
-      const response = await apiClient.get<ApiResponse<FeatureSwitch[]>>(
+      const response = await apiClient.get<FeatureSwitch[]>(
         API_ENDPOINTS.FEATURES,
         { userId }
       );
-      return response.data?.data || [];
+      return response || [];
     } catch (error) {
       console.error('获取功能开关失败:', error);
       return getDefaultFeatures();
@@ -43,11 +43,11 @@ export const featureService = {
   // 获取用户可用的功能（简化版，供首页金刚区使用）
   getAvailableFeatures: async (userId: string): Promise<FeatureSwitch[]> => {
     try {
-      const response = await apiClient.get<ApiResponse<FeatureSwitch[]>>(
+      const response = await apiClient.get<FeatureSwitch[]>(
         API_ENDPOINTS.FEATURES_AVAILABLE,
         { userId }
       );
-      return response.data?.data || [];
+      return response || [];
     } catch (error) {
       console.error('获取可用功能失败:', error);
       return getDefaultFeatures().filter(f => f.enabled);
@@ -57,12 +57,12 @@ export const featureService = {
   // 获取单个功能开关状态
   getFeatureStatus: async (userId: string, featureCode: string): Promise<FeatureSwitch | null> => {
     try {
-      const response = await apiClient.get<ApiResponse<FeatureSwitch>>(
+      const response = await apiClient.get<FeatureSwitch>(
         API_ENDPOINTS.FEATURE_DETAIL,
         { userId },
         { featureCode }
       );
-      return response.data?.data || null;
+      return response || null;
     } catch (error) {
       console.error('获取功能状态失败:', error);
       return null;
@@ -216,11 +216,11 @@ export const FEATURE_ICONS: Record<string, keyof typeof import('@expo/vector-ico
 
 // 功能颜色映射
 export const FEATURE_COLORS: Record<string, string> = {
-  [FEATURE_CODES.MEDIA]: '#3B82F6',
+  [FEATURE_CODES.MEDIA]: '#6D28D9',
   [FEATURE_CODES.RECRUITMENT]: '#8B5CF6',
   [FEATURE_CODES.ACQUISITION]: '#10B981',
   [FEATURE_CODES.SHARE]: '#F97316',
   [FEATURE_CODES.REFERRAL]: '#EC4899',
   'materials': '#06B6D4',
-  'analytics': '#4F46E5',
+  'analytics': '#6D28D9',
 };

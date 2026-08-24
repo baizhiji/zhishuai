@@ -6,6 +6,8 @@ import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initNotifications } from './src/services/notification.service';
 import { initSyncStorage, getUnreadCount } from './src/utils/storage';
+import DiagErrorBoundary from './src/components/DiagErrorBoundary';
+import { logBoot } from './src/utils/diag';
 import * as Updates from 'expo-updates';
 
 // 更新检查结果组件
@@ -66,10 +68,11 @@ function AppLoader({ children }: { children: React.ReactNode }) {
   const checkForUpdates = async () => {
     try {
       if (!Updates.isEnabled) {
-        console.log('更新功能未启用');
+        logBoot('updates disabled, skip update check');
         return;
       }
 
+      logBoot('checkForUpdates start');
       const update = await Updates.checkForUpdateAsync();
       
       if (update.isAvailable) {
@@ -133,27 +136,34 @@ function AppLoader({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    logBoot('AppLoader mounted');
     const initialize = async () => {
       try {
         // 检查并下载更新
         await checkForUpdates();
-        
+        logBoot('checkForUpdates done');
+
         // 初始化同步存储
         await initSyncStorage();
-        
+        logBoot('initSyncStorage done');
+
         // 初始化通知服务
         await initNotifications();
-        
+        logBoot('initNotifications done');
+
         // 获取未读数量（用于后续显示）
         const unreadCount = getUnreadCount();
-        console.log('未读消息数量:', unreadCount);
-        
-        console.log('应用初始化完成');
+        logBoot('unreadCount=' + unreadCount);
+
+        logBoot('initialize complete');
       } catch (error) {
-        console.log('初始化失败:', error);
+        logBoot('initialize error: ' + (error instanceof Error ? error.message : String(error)));
       } finally {
         // 短暂延迟确保更新检查完成
-        setTimeout(() => setIsReady(true), 500);
+        setTimeout(() => {
+          logBoot('app ready');
+          setIsReady(true);
+        }, 500);
       }
     };
 
@@ -162,6 +172,8 @@ function AppLoader({ children }: { children: React.ReactNode }) {
 
   // 监听更新事件
   useEffect(() => {
+    if (!Updates.isEnabled) return;
+
     const subscription = Updates.addListener((event) => {
       console.log('更新事件:', event);
       
@@ -218,14 +230,20 @@ function AppContent() {
 }
 
 export default function App() {
+  useEffect(() => {
+    logBoot('App mounted');
+  }, []);
+
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <AppLoader>
-          <AppContent />
-        </AppLoader>
-      </AuthProvider>
-    </ThemeProvider>
+    <DiagErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppLoader>
+            <AppContent />
+          </AppLoader>
+        </AuthProvider>
+      </ThemeProvider>
+    </DiagErrorBoundary>
   );
 }
 

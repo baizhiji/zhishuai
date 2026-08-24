@@ -94,7 +94,7 @@ const AgentNavbar: React.FC = () => {
       const res = (await request.put('/account/password', {
         oldPassword: values.oldPassword,
         newPassword: values.newPassword,
-      })) as unknown as { success: boolean; message?: string };
+      }, { timeout: 15000 })) as unknown as { success: boolean; message?: string };
       if (res.success !== false) {
         message.success('密码修改成功');
         setPasswordModalOpen(false);
@@ -103,7 +103,11 @@ const AgentNavbar: React.FC = () => {
         message.error(res.message || '密码修改失败');
       }
     } catch (err: any) {
-      message.error(err?.response?.data?.message || err?.message || '密码修改失败');
+      if (err?.code === 'ECONNABORTED') {
+        message.error('请求超时，请稍后重试');
+      } else {
+        message.error(err?.response?.data?.message || err?.message || '密码修改失败');
+      }
     } finally {
       setPasswordLoading(false);
     }

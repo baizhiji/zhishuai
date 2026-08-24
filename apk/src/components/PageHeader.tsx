@@ -11,7 +11,7 @@ const SCREEN_TITLES: Record<string, string> = {
   Acquisition: '智能获客',
   AICreateCenter: 'AI创作中心',
   Materials: '内容中心',
-  Statistics: '数据统计',
+  Statistics: '数据总览',
   Settings: '设置',
   Share: '推荐分享',
   MediaOperation: 'AI创作工厂',

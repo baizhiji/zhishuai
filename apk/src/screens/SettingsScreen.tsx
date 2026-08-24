@@ -208,17 +208,17 @@ export default function SettingsScreen() {
           {
             title: '账号设置',
             items: [
-              { id: 'profile', title: '个人资料', subtitle: '头像、昵称、联系方式', icon: 'person-outline' as const, iconColor: '#2563EB', type: 'navigate' as const },
-              { id: 'security', title: '账号安全', subtitle: '修改密码、绑定手机', icon: 'shield-outline' as const, iconColor: '#3B82F6', type: 'navigate' as const },
+              { id: 'profile', title: '个人资料', subtitle: '头像、昵称、联系方式', icon: 'person-outline' as const, iconColor: '#6D28D9', type: 'navigate' as const },
+              { id: 'security', title: '账号安全', subtitle: '修改密码、绑定手机', icon: 'shield-outline' as const, iconColor: '#6D28D9', type: 'navigate' as const },
               { id: 'subscription', title: '服务到期', subtitle: userData?.expireDate ? `到期时间：${userData.expireDate}` : '查询套餐详情', icon: 'calendar-outline' as const, iconColor: '#D97706', type: 'navigate' as const },
             ]
           },
           {
             title: '偏好设置',
             items: [
-              { id: 'notifications', title: '推送通知', subtitle: '接收系统消息和活动提醒', icon: 'notifications-outline' as const, iconColor: '#3B82F6', type: 'toggle' as const },
+              { id: 'notifications', title: '推送通知', subtitle: '接收系统消息和活动提醒', icon: 'notifications-outline' as const, iconColor: '#6D28D9', type: 'toggle' as const },
               { id: 'sound', title: '声音', subtitle: '操作音效和语音播报', icon: 'volume-medium-outline' as const, iconColor: '#7C3AED', type: 'toggle' as const },
-              { id: 'darkMode', title: '深色模式', subtitle: '', icon: 'moon-outline' as const, iconColor: '#3B82F6', type: 'navigate' as const },
+              { id: 'darkMode', title: '深色模式', subtitle: '', icon: 'moon-outline' as const, iconColor: '#6D28D9', type: 'navigate' as const },
             ]
           },
           {

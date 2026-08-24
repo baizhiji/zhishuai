@@ -45,7 +45,7 @@ async function resolveApiKey(userId: string): Promise<string | null> {
   return null;
 }
 
-const TOKENHUB_BASE = 'https://tokenhub.cloud.tencent.com';
+const TOKENHUB_BASE = 'https://tokenhub.tencentmaas.com/v1';
 const TTS_MODEL = 'hunyuan-tts-1.5'; // 混元TTS模型
 
 // ============================================

@@ -106,9 +106,9 @@ export default function HomePage() {
             帮助企业实现智能化运营，降低人力成本，提升运营效率。
           </Paragraph>
           <Space size="large" className={styles.heroButtons}>
-            <Link href="/register">
+            <Link href="/login">
               <Button type="primary" size="large" icon={<RocketOutlined />}>
-                立即体验
+                立即登录
               </Button>
             </Link>
             <Link href="/features">
@@ -214,11 +214,11 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className={styles.cta}>
         <Title level={2}>准备好开始了吗？</Title>
-        <Paragraph>加入我们，开启智能化运营新时代，让 AI 为您赋能</Paragraph>
+        <Paragraph>智枢AI账号由管理员统一开通管理，请联系您的服务代理商或平台管理员开通账号</Paragraph>
         <Space size="large">
-          <Link href="/register">
+          <Link href="/login">
             <Button type="primary" size="large">
-              立即注册
+              立即登录
               <ArrowRightOutlined />
             </Button>
           </Link>

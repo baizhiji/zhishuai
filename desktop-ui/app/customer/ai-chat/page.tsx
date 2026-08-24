@@ -44,11 +44,11 @@ const QUICK_PROMPTS = [
 
 const MODEL_OPTIONS = [
   { value: 'auto', label: '智能选择', description: 'AI自动选择最适合的模型' },
-  { value: 'deepseek-r1-0528', label: 'DeepSeek R1', description: '深度推理，适合复杂分析' },
-  { value: 'kimi-k2.6', label: 'Kimi K2.6', description: '超长上下文，适合长文分析' },
-  { value: 'qwen-plus', label: '通义千问 Plus', description: '均衡性能，日常对话' },
-  { value: 'qwen-turbo', label: '通义千问 Turbo', description: '快速响应，效率优先' },
-  { value: 'hunyuan-2.0-instruct-20251111', label: '腾讯混元', description: '腾讯混元大模型' },
+  { value: 'deepseek_r1', label: 'DeepSeek-V4', description: '深度推理，适合复杂分析' },
+  { value: 'kimi_k2', label: 'Kimi K3', description: '超长上下文，适合长文分析' },
+  { value: 'qwen_plus', label: '通义千问 Plus', description: '均衡性能，日常对话' },
+  { value: 'qwen_turbo', label: '通义千问 Turbo', description: '快速响应，效率优先' },
+  { value: 'hunyuan_instruct', label: '腾讯混元', description: '腾讯混元大模型' },
 ];
 
 export default function AIChatPage() {
@@ -181,9 +181,9 @@ export default function AIChatPage() {
 
   return (
     <PageContainer
-      title="AI助手"
+      title="商业助手"
       description="基于多模型混合的智能诊断与对话系统，帮助您进行商业诊断、营销策划、运营优化"
-      breadcrumb={[{ title: 'AI助手' }]}
+      breadcrumb={[{ title: '商业助手' }]}
       loading={false}
       skeletonType="none"
       extra={
@@ -202,7 +202,7 @@ export default function AIChatPage() {
               <div style={{ maxWidth: 700, margin: '0 auto', paddingTop: 60 }}>
                 <div style={{ textAlign: 'center', marginBottom: 40 }}>
                   <Avatar size={72} icon={<RobotOutlined />} style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #722ed1 100%)', marginBottom: 20 }} />
-                  <Title level={2} style={{ marginBottom: 8 }}>欢迎使用智枢AI助手</Title>
+                  <Title level={2} style={{ marginBottom: 8 }}>欢迎使用智枢商业助手</Title>
                   <Paragraph type="secondary" style={{ fontSize: 15 }}>我可以帮助您进行商业诊断、营销策划、运营优化等全方位的智能分析</Paragraph>
                 </div>
                 <Divider>快捷提问</Divider>
@@ -305,8 +305,8 @@ export default function AIChatPage() {
       </Drawer>
 
       {/* 设置弹窗 */}
-      <Modal title="AI设置" open={showSettings} onCancel={() => setShowSettings(false)} footer={null}>
-        <Paragraph>AI对话功能使用多模型混合调度系统，根据问题类型自动选择最合适的模型。</Paragraph>
+      <Modal title="模型设置" open={showSettings} onCancel={() => setShowSettings(false)} footer={null}>
+        <Paragraph>商业助手使用多模型混合调度系统，根据问题类型自动选择最合适的模型。</Paragraph>
         <List header={<Text strong>可用模型</Text>} dataSource={MODEL_OPTIONS} renderItem={item => (
           <List.Item><List.Item.Meta title={item.label} description={item.description} /></List.Item>
         )} />

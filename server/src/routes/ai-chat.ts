@@ -78,32 +78,32 @@ const DIAGNOSIS_SYSTEM_PROMPT = `你是【智枢AI诊断专家】，拥有全行
 请以专业诊断顾问的身份，为用户提供全面、深入、可执行的诊断分析。`;
 
 const DIAGNOSIS_MODEL_CONFIG = {
-  deepAnalysis: 'deepseek-r1-0528',
-  longReport: 'kimi-k2.6',
-  quickDiagnosis: 'hunyuan-2.0-instruct-20251111',
+  deepAnalysis: 'deepseek-v4-pro',
+  longReport: 'kimi-k3',
+  quickDiagnosis: 'hy3',
 };
 
-// 模型配置
+// 模型配置（对齐蓝皮书统一标准，2026-08 在售模型）
 const MODEL_CONFIG = {
   aliyun: {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     models: {
-      daily: { id: 'qwen-turbo', name: 'qwen-turbo', type: 'text' },
-      copywriting: { id: 'qwen-plus', name: 'qwen-plus', type: 'text' },
+      daily: { id: 'qwen3.7-flash', name: 'qwen3.7-flash', type: 'text' },
+      copywriting: { id: 'qwen3.7-plus', name: 'qwen3.7-plus', type: 'text' },
       longText: { id: 'qwen-long', name: 'qwen-long', type: 'text' },
-      reasoning: { id: 'deepseek-r1-0528', name: 'deepseek-r1', type: 'reasoning' },
+      reasoning: { id: 'deepseek-v4-pro', name: 'deepseek-v4-pro', type: 'reasoning' },
     }
   },
   tencent: {
     baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     models: {
-      daily: { id: 'hunyuan-2.0-instruct-20251111', name: 'hunyuan-instruct', type: 'text' },
-      thinking: { id: 'hunyuan-2.0-thinking-20251109', name: 'hunyuan-thinking', type: 'reasoning' },
-      longText: { id: 'kimi-k2.6', name: 'Kimi K2', type: 'text' },
-      agent: { id: 'glm-5', name: 'GLM-5', type: 'agent' },
-      vision: { id: 'glm-5v-turbo', name: 'GLM视觉', type: 'vision' },
-      video: { id: 'youtu-vita', name: '优图VITA', type: 'video' },
-      image: { id: 'hy-image-v3.0', name: '混元图像V3.0', type: 'image' },
+      daily: { id: 'hy3', name: 'hy3', type: 'text' },
+      thinking: { id: 'hy3', name: 'hy3', type: 'reasoning' },
+      longText: { id: 'kimi-k3', name: 'kimi-k3', type: 'text' },
+      agent: { id: 'glm-5.2', name: 'glm-5.2', type: 'agent' },
+      vision: { id: 'hy-vision-2.0-instruct', name: 'hy-vision-2.0-instruct', type: 'vision' },
+      video: { id: 'youtu-vita', name: 'youtu-vita', type: 'video' },
+      image: { id: 'vidu-image-q2', name: 'Vidu-Image-Q2', type: 'image' },
     }
   }
 };

@@ -7,8 +7,12 @@ import {
   deleteApiKey, 
   toggleApiKey, 
   getApiKeyById,
-  testApiKey 
+  testApiKey,
+  normalizeProvider
 } from '../services/user-api-key.service';
+
+// 允许的服务商（含标准命名 alibaba/tencent/volcano 与存储值 dashscope/tokenhub/ark）
+const ALLOWED_PROVIDERS = ['dashscope', 'tokenhub', 'ark', 'alibaba', 'tencent', 'volcano'];
 
 const router = Router();
 
@@ -54,8 +58,8 @@ router.post('/keys', authMiddleware, async (req: Request, res: Response) => {
     const { provider, apiKey, secretKey, isSecondary } = req.body;
     
     // 验证参数
-    if (!provider || !['dashscope', 'tokenhub'].includes(provider)) {
-      return res.status(400).json({ success: false, message: '请选择服务商（dashscope 或 tokenhub）' });
+    if (!provider || !ALLOWED_PROVIDERS.includes(provider)) {
+      return res.status(400).json({ success: false, message: '请选择服务商（阿里云百炼/腾讯云TokenHub/火山方舟）' });
     }
     if (!apiKey) {
       return res.status(400).json({ success: false, message: '请输入API Key' });
@@ -63,14 +67,17 @@ router.post('/keys', authMiddleware, async (req: Request, res: Response) => {
     if (!secretKey) {
       return res.status(400).json({ success: false, message: '请输入Secret Key' });
     }
+
+    // 归一化服务商命名（alibaba/tencent/volcano → dashscope/tokenhub/ark），统一存储
+    const normalizedProvider = normalizeProvider(provider);
     
     // 先测试Key是否有效
-    const testResult = await testApiKey(provider, apiKey, secretKey);
+    const testResult = await testApiKey(normalizedProvider, apiKey, secretKey);
     if (!testResult.valid) {
       return res.status(400).json({ success: false, message: 'API Key验证失败：' + testResult.message });
     }
     
-    const newKey = await createApiKey(userId, provider, apiKey, secretKey, !isSecondary);
+    const newKey = await createApiKey(userId, normalizedProvider, apiKey, secretKey, !isSecondary);
     
     res.json({
       success: true,

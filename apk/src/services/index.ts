@@ -9,8 +9,6 @@ export {
   generateText,
   generateImage,
   generateVideo,
-  analyzeVideo,
-  generateDigitalHumanVideo,
   saveToMaterials,
   getGenerationHistory,
   saveGenerationHistory,
@@ -21,10 +19,6 @@ export {
   subtitleOptions,
   voiceoverOptions,
   bgmOptions,
-  bannerOverlayOptions,
-  digitalHumanOptions,
-  analysisDimensionOptions,
-  viralElementOptions,
 } from './content.service';
 export { referralService, type ReferralCode, type ReferralRecord, type ReferralStats } from './referral.service';
 export { shareService, type ShareCode, type ShareRecord, type ShareStatistics } from './share.service';

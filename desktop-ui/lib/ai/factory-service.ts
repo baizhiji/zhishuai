@@ -32,6 +32,35 @@ import {
   injectHumanStyle,
 } from './anti-ai-flavor';
 
+// ─── 违禁内容零逃逸扫描（P0-1）────────────────
+
+export interface BlockedHit {
+  category: string;
+}
+
+const BLOCKED_PATTERNS: Array<{ regex: RegExp; category: string }> = [
+  { regex: /色情|淫秽|裸体|性交|卖淫|嫖娼/i, category: '色情' },
+  { regex: /赌博|赌场|博彩|六合彩|押注/i, category: '赌博' },
+  { regex: /毒品|大麻|海洛因|冰毒|摇头丸|吸毒/i, category: '毒品' },
+  { regex: /枪支|弹药|爆炸物|管制刀具/i, category: '管制武器' },
+  { regex: /恐怖主义|恐怖分子|ISIS|圣战/i, category: '恐怖主义' },
+  { regex: /贩卖人口|器官买卖|人体器官/i, category: '人口贩卖' },
+  { regex: /洗钱|非法集资|传销|庞氏骗局/i, category: '非法金融' },
+  { regex: /诈骗|钓鱼|木马|黑客.*攻击|DDoS|入侵.*系统/i, category: '网络犯罪' },
+  { regex: /自杀|自残|割腕|跳楼.*方法/i, category: '自残风险' },
+  { regex: /暴恐|血腥|分尸|残肢|虐杀/i, category: '暴力血腥' },
+];
+
+/** 对文本做本地违禁词硬扫描（不依赖 LLM，保证零逃逸） */
+export function scanBlockedContent(text: string): BlockedHit[] {
+  if (!text) return [];
+  const hits: BlockedHit[] = [];
+  for (const p of BLOCKED_PATTERNS) {
+    if (p.regex.test(text)) hits.push({ category: p.category });
+  }
+  return hits;
+}
+
 // ─── 类型定义 ────────────────────────────────
 
 export interface GenerateTextParams {
@@ -434,6 +463,7 @@ export interface PipelineTaskResult {
   provider: string;
   duration: number;
   outputPreview: string;
+  output?: string;
   error?: string;
 }
 
@@ -453,6 +483,22 @@ export interface PipelineResponse {
     provider?: string;
     message?: string;
   };
+}
+
+/** 将 Blob 转为 base64 Data URL（用于火山方舟 TTS 二进制音频返回） */
+async function blobToDataUrl(blob: Blob): Promise<string | null> {
+  try {
+    const buf = await blob.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return `data:${blob.type || 'audio/mpeg'};base64,${btoa(binary)}`;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -499,6 +545,7 @@ export async function generateWithLocalPipeline(
             provider: PROVIDER_INFO[fbInfo.provider].label,
             duration: Date.now() - phaseStart,
             outputPreview: (result.data || '').slice(0, 120),
+            output: result.data,
           });
           if (result.data) accumulatedText = result.data;
           continue;
@@ -542,6 +589,26 @@ export async function generateWithLocalPipeline(
   }
 
   const successCount = tasks.filter(t => t.success).length;
+  // P0-1 零逃逸收口：最终输出再次硬扫描，命中则整单判为失败并置空 finalOutput
+  const finalBlockedHits = scanBlockedContent(accumulatedText);
+  if (finalBlockedHits.length > 0) {
+    tasks.push({
+      phase: 'final_safety', label: '最终安全校验',
+      success: false, modelName: 'local-scan', provider: '本地规则',
+      duration: 0, outputPreview: '',
+      error: `最终输出命中违禁内容（${finalBlockedHits.map(h => h.category).join('、')}），已拦截`,
+    });
+    return {
+      success: false,
+      data: {
+        totalDuration: Date.now() - startTime,
+        successCount, totalCount: tasks.length,
+        finalOutput: '',
+        tasks,
+        message: `生成内容未通过安全校验（命中：${finalBlockedHits.map(h => h.category).join('、')}），已拦截展示`,
+      },
+    };
+  }
   return {
     success: successCount > 0,
     data: {
@@ -666,6 +733,11 @@ async function executePhase(
     }
 
     case 'compliance_check': {
+      // P0-1 零逃逸：先做本地违禁词硬拦截，命中直接中断流水线，不依赖 LLM 判定
+      const blockedHits = scanBlockedContent(accumulatedText);
+      if (blockedHits.length > 0) {
+        throw new Error(`内容安全审查未通过（命中：${blockedHits.map(h => h.category).join('、')}），本次生成已拦截`);
+      }
       const sysPrompt = `你是一个内容合规审核员。检查内容是否违反广告法、是否涉及敏感话题、是否存在虚假宣传。如果是智能剪辑成片，还需输出 AIGC 标识文案（蓝皮书要求：成片包含"本视频由AI辅助剪辑"标识）与合规报告。`;
       const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], { ...phaseParams, temperature: 0.1 }, apiKey);
       return { data: content };
@@ -706,6 +778,27 @@ async function executePhase(
             const ttsJson = await ttsResp.json();
             const audioUrl = ttsJson.data?.[0]?.url || ttsJson.url || '';
             if (audioUrl) return { data: `[配音完成] ${audioUrl}` };
+          }
+        } catch { /* fall through */ }
+      }
+      // 火山方舟 TTS（OpenAI 兼容 /audio/speech 端点，返回二进制音频）
+      if (modelInfo.provider === 'volcano') {
+        const ttsUrl = `${PROVIDER_INFO.volcano.baseUrl}/audio/speech`;
+        try {
+          const ttsResp = await fetch(ttsUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: modelInfo.modelId,
+              input: accumulatedText.slice(0, 500),
+              voice: params.voice || 'zh_female_shuangkuaisoprano_moon_bigtts',
+              response_format: 'mp3',
+            }),
+          });
+          if (ttsResp.ok) {
+            const blob = await ttsResp.blob();
+            const dataUrl = await blobToDataUrl(blob);
+            if (dataUrl) return { data: `[配音完成] ${dataUrl}` };
           }
         } catch { /* fall through */ }
       }
@@ -1137,7 +1230,7 @@ export async function generateText(
   // 未配置 API Key，提示用户先配置
   return {
     success: false,
-    error: '请先在「系统设置 → API Key」中配置阿里云百炼或腾讯云 TokenHub 的 API Key，即可使用 AI 创作功能',
+    error: '请先在「系统设置 → API Key」中配置阿里云百炼、腾讯云 TokenHub 或火山方舟任一 API Key，即可使用 AI 创作功能',
     provider: '',
     model: '',
   };
@@ -1574,18 +1667,65 @@ export const dialectVoiceMap: Record<string, { provider: string; voiceId: string
 
 export interface ViralAnalysisResult { topic: string; platform: string; geneAnalysis: any; viralScore: any; rating: string; }
 
-export async function analyzeViralTopic(topic: string, platform = 'douyin', targetAudience?: string): Promise<{ success: boolean; data?: ViralAnalysisResult }> {
+/** 从 LLM 输出中稳健提取 JSON 对象 */
+function extractJsonFromText(text: string): Record<string, unknown> | null {
+  if (!text) return null;
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw = fenced ? fenced[1] : text;
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start === -1 || end <= start) return null;
   try {
-    const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-    const resp = await fetch(`${API_BASE}/api/content-creativity/analyze`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic, platform, targetAudience }),
-    });
-    const json = await resp.json();
-    if (json.success) return { success: true, data: json.data };
-    throw new Error(json.error?.message || '分析失败');
-  } catch (error: any) {
-    console.error('[ViralAnalyze] API error:', error.message);
-    return { success: false };
+    return JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>;
+  } catch {
+    return null;
   }
+}
+
+export async function analyzeViralTopic(topic: string, platform = 'douyin', targetAudience?: string): Promise<{ success: boolean; data?: ViralAnalysisResult }> {
+  // P0-3：改为本地 LLM 爆款基因分析（原实现请求的 /api/content-creativity/analyze 服务端端点不存在）
+  const apiKeys = getUserApiKeys();
+  const providers: AiProvider[] = ['tencent', 'alibaba', 'volcano'];
+  const modelIds: Record<AiProvider, string> = {
+    tencent: 'deepseek-v4-pro-202606',
+    alibaba: 'qwen3.8-max',
+    volcano: 'doubao-seed-2-1-pro-260628',
+  };
+  for (const p of providers) {
+    if (!apiKeys[p]) continue;
+    try {
+      const sysPrompt = `你是一位顶级爆款内容分析师，擅长从传播学与用户心理学拆解内容的爆款基因。
+针对给定主题与平台，只输出严格的 JSON（禁止输出 JSON 以外的任何文字），结构如下：
+{
+  "geneAnalysis": {
+    "hooks": ["3个可落地的前3秒钩子"],
+    "emotions": ["3个情绪切入点"],
+    "structure": "一句话的内容结构建议（如：悬念开头→层层递进→反差结尾）",
+    "keywords": ["6个SEO与流量关键词"]
+  },
+  "viralScore": { "total": 0到40的整数，越接近40爆款潜力越高 },
+  "rating": "一句话评级结论"
+}`;
+      const userPrompt = `主题：${topic}\n平台：${platform}${targetAudience ? `\n目标人群：${targetAudience}` : ''}`;
+      const content = await callChatAPI(p, modelIds[p], [
+        { role: 'system', content: sysPrompt },
+        { role: 'user', content: userPrompt },
+      ], { temperature: 0.5, maxTokens: 2000 }, apiKeys[p]);
+      const parsed = extractJsonFromText(content);
+      if (parsed) {
+        return {
+          success: true,
+          data: {
+            topic, platform,
+            geneAnalysis: (parsed as any).geneAnalysis || {},
+            viralScore: (parsed as any).viralScore || { total: 0 },
+            rating: String((parsed as any).rating || ''),
+          },
+        };
+      }
+    } catch (e: any) {
+      console.error('[ViralAnalyze] provider error:', e?.message);
+    }
+  }
+  return { success: false };
 }

@@ -230,7 +230,7 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
   const user = await prisma.user.create({
     data: {
       phone,
-      password: hashPassword(password),
+      password: await hashPassword(password),
       name: name || `用户${phone.slice(-4)}`,
       role: 'customer',
       status: 'active',
@@ -326,7 +326,7 @@ export async function resetPassword(input: ResetPasswordInput): Promise<void> {
     }),
     prisma.user.update({
       where: { id: user.id },
-      data: { password: hashPassword(newPassword) },
+      data: { password: await hashPassword(newPassword) },
     }),
   ]);
 }
@@ -343,7 +343,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
 
   const user = await prisma.user.findUnique({ where: { phone } });
 
-  const isValidUser = user && verifyPassword(password, user.password);
+  const isValidUser = user && await verifyPassword(password, user.password);
   if (!isValidUser) {
     throw new AuthError('手机号或密码错误', 401);
   }
@@ -444,13 +444,13 @@ export async function changePassword(
     throw new AuthError('用户不存在', 404);
   }
 
-  if (!verifyPassword(oldPassword, user.password)) {
+  if (!await verifyPassword(oldPassword, user.password)) {
     throw new AuthError('原密码错误', 400);
   }
 
   await prisma.user.update({
     where: { id: userId },
-    data: { password: hashPassword(newPassword) },
+    data: { password: await hashPassword(newPassword) },
   });
 }
 

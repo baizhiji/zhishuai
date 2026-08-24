@@ -95,6 +95,16 @@ class Request {
       if (result?.success === true) {
         return result.data as T;
       }
+
+      // 后端返回 {success: false, message: '...'} 时，统一按错误抛出
+      if (result?.success === false) {
+        throw {
+          code: result?.code ?? 400,
+          message: result?.message || '操作失败',
+          data: result?.data ?? null,
+        };
+      }
+
       if (result?.code === 0 || result?.code === 200) {
         return result.data as T;
       }

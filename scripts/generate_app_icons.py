@@ -264,11 +264,26 @@ def generate():
         generated.append((f"android/{density}/ic_launcher_foreground.png", fg_size, "vertical", fg_path))
 
     # 3. APK / Expo assets
+    # 主图标：商店/桌面图标，纵向布局
     write_png(make_icon(1024, "vertical"), os.path.join(APK_DIR, "icon.png"))
     generated.append(("apk/assets/icon.png", 1024, "vertical", os.path.join(APK_DIR, "icon.png")))
 
+    # 自适应图标前景：透明底，内容缩进安全区避免被系统形状裁切
     write_png(make_icon(1024, "vertical", transparent=True, safe_scale=0.60), os.path.join(APK_DIR, "adaptive-icon.png"))
     generated.append(("apk/assets/adaptive-icon.png", 1024, "vertical", os.path.join(APK_DIR, "adaptive-icon.png")))
+
+    # App 内 LOGO（登录页展示）：安全区 0.72，避免圆角裁切文字/节点
+    write_png(make_icon(512, "vertical", safe_scale=0.72), os.path.join(APK_DIR, "logo.png"))
+    generated.append(("apk/assets/logo.png", 512, "vertical", os.path.join(APK_DIR, "logo.png")))
+
+    # 启动页 LOGO：更大尺寸、更保守安全区 0.72，适配各品牌手机圆角
+    write_png(make_icon(1024, "vertical", safe_scale=0.72), os.path.join(APK_DIR, "splash-icon.png"))
+    generated.append(("apk/assets/splash-icon.png", 1024, "vertical", os.path.join(APK_DIR, "splash-icon.png")))
+
+    # 4. Desktop-UI Web 端登录页 LOGO（/logo.png 60px 展示）：与 APK 同一安全区规格，避免圆角裁切
+    DESKTOP_UI_LOGO = os.path.join(BASE_DIR, "desktop-ui", "public", "logo.png")
+    write_png(make_icon(512, "vertical", safe_scale=0.72), DESKTOP_UI_LOGO)
+    generated.append(("desktop-ui/public/logo.png", 512, "vertical", DESKTOP_UI_LOGO))
 
     # 4. ICO multi-resolution for Windows
     # NOTE: Pillow >= 12 requires all append frames to share the same size when

@@ -57,6 +57,7 @@ backend/dist
 backend/logs
 
 # 5.1 scripts 下的测试临时产物（自动更新签名测试等）
+scripts/__pycache__/
 scripts/desktop-run*.log
 scripts/deploy-run*.log
 scripts/run*.log

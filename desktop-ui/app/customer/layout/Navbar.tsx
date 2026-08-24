@@ -553,27 +553,38 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       }
       
       const token = localStorage.getItem('token');
-      await fetch('/api/account/password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          oldPassword: values.oldPassword,
-          newPassword: values.newPassword,
-        }),
-      }).then(async res => {
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || '修改失败');
-        return data;
-      });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15000);
+      try {
+        await fetch('/api/account/password', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            oldPassword: values.oldPassword,
+            newPassword: values.newPassword,
+          }),
+          signal: controller.signal,
+        }).then(async res => {
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || data.message || '修改失败');
+          return data;
+        });
+      } finally {
+        clearTimeout(timer);
+      }
 
       message.success('密码修改成功');
       setPasswordModalVisible(false);
       passwordForm.resetFields();
     } catch (error: any) {
-      message.error(error.message || '密码修改失败');
+      if (error?.name === 'AbortError') {
+        message.error('请求超时，请稍后重试');
+      } else {
+        message.error(error.message || '密码修改失败');
+      }
     }
   };
 

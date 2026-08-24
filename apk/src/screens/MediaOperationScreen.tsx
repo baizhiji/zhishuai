@@ -32,7 +32,7 @@ export default function MediaOperationScreen() {
       id: 'ai-create',
       title: 'AI创作中心',
       icon: 'sparkles',
-      color: '#4F46E5',
+      color: '#6D28D9',
       route: 'AICreateCenter',
     },
   ];

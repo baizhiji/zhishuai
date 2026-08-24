@@ -167,6 +167,25 @@ class DashboardStatsService {
       return null;
     }
   }
+
+  // 获取 Token 使用统计 —— 对齐 WEB 端 GET /api/token-stats/stats
+  async getTokenStats(): Promise<any> {
+    try {
+      return await apiClient.get('/token-stats/stats');
+    } catch {
+      return null;
+    }
+  }
+
+  // 获取每日 Token 消耗 —— 对齐 WEB 端 GET /api/token-stats/daily?days=N
+  async getTokenDaily(days = 30): Promise<any[]> {
+    try {
+      const response = await apiClient.get<any[]>('/token-stats/daily', { days });
+      return response || [];
+    } catch {
+      return [];
+    }
+  }
 }
 
 export const dashboardStatsService = new DashboardStatsService();

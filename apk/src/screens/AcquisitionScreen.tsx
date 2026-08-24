@@ -4,7 +4,7 @@ import {
   Modal, TextInput, Alert, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { PageHeader } from '../components/PageHeader';
+import PageHeader from '../components/PageHeader';
 import { acquisitionService } from '../services/acquisition.service';
 import type { AcquisitionTask, AcquisitionLead, StatsData, LeadStatus } from '../services/acquisition.service';
 
@@ -62,15 +62,25 @@ export default function AcquisitionScreen() {
   const loadData = useCallback(async (silent = false) => {
     if (!user?.id) return;
     if (!silent) setLoading(true);
+    setRefreshing(true);
     try {
       const [statsRes, tasksRes, leadsRes] = await Promise.all([
         acquisitionService.getStats(),
         acquisitionService.getTasks({ pageSize: 50 }),
         acquisitionService.getLeads({ pageSize: 50 }),
       ]);
-      setStats(statsRes);
-      setTasks(tasksRes.tasks || []);
-      setLeads(leadsRes.leads || []);
+      setStats(statsRes ?? {
+        totalTasks: 0,
+        runningTasks: 0,
+        totalLeads: 0,
+        newLeads: 0,
+        contactedLeads: 0,
+        convertedLeads: 0,
+        invalidLeads: 0,
+        conversionRate: 0,
+      });
+      setTasks(tasksRes?.tasks ?? []);
+      setLeads(leadsRes?.leads ?? []);
     } catch (e: any) {
       if (!silent) Alert.alert('加载失败', e.message || '请稍后重试');
       console.error('获客数据加载失败:', e);

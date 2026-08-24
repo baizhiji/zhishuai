@@ -29,12 +29,12 @@ interface ScenarioIconMap {
 }
 
 const SCENARIO_CONFIG: ScenarioIconMap = {
-  startup: { icon: 'bulb', color: '#2563EB', bg: '#EFF6FF' },
+  startup: { icon: 'bulb', color: '#6D28D9', bg: '#F4F1FA' },
   operations: { icon: 'settings', color: '#059669', bg: '#ECFDF5' },
   diagnosis: { icon: 'pulse', color: '#EA580C', bg: '#FFF7ED' },
   media_operations: { icon: 'phone-portrait', color: '#7C3AED', bg: '#F5F3FF' },
   product_promotion: { icon: 'megaphone', color: '#DC2626', bg: '#FEF2F2' },
-  competitive_analysis: { icon: 'trophy', color: '#4F46E5', bg: '#EEF2FF' },
+  competitive_analysis: { icon: 'trophy', color: '#6D28D9', bg: '#F5F3FF' },
   brick_and_mortar: { icon: 'storefront', color: '#0D9488', bg: '#F0FDFA' },
   marketing: { icon: 'trending-up', color: '#D946EF', bg: '#FDF4FF' },
 };
@@ -107,7 +107,7 @@ export default function BusinessAssistantScreen() {
       <View style={styles.container}>
         <PageHeader title="商业助手" />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563EB" />
+          <ActivityIndicator size="large" color="#6D28D9" />
           <Text style={styles.loadingText}>加载中...</Text>
         </View>
       </View>
@@ -138,9 +138,9 @@ export default function BusinessAssistantScreen() {
             style={styles.apiKeyTip}
             onPress={() => navigation.navigate('Settings')}
           >
-            <Ionicons name="key-outline" size={14} color="#93C5FD" />
-            <Text style={styles.apiKeyTipText}>使用前请先在设置中配置 API Key</Text>
-            <Ionicons name="chevron-forward" size={14} color="#93C5FD" />
+            <Ionicons name="key-outline" size={14} color="#C4B5FD" />
+            <Text style={styles.apiKeyTipText}>AI服务已启用，自动复用电脑端配置的API</Text>
+            <Ionicons name="chevron-forward" size={14} color="#C4B5FD" />
           </TouchableOpacity>
         </View>
 
@@ -225,7 +225,7 @@ export default function BusinessAssistantScreen() {
             </View>
             <View style={styles.freeChatText}>
               <Text style={styles.freeChatTitle}>自由问答</Text>
-              <Text style={styles.freeChatSubtitle}>直接与商业顾问对话，获取即时建议</Text>
+              <Text style={styles.freeChatSubtitle}>直接与商业助手对话，获取即时建议</Text>
             </View>
           </View>
           <Ionicons name="chevron-forward" size={22} color="#9CA3AF" />
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
 
   // Hero Banner
   heroBanner: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#1F1B2E',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(37,99,235,0.15)',
+    backgroundColor: 'rgba(109,40,217,0.15)',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   apiKeyTipText: {
     flex: 1,
     fontSize: 12,
-    color: '#93C5FD',
+    color: '#C4B5FD',
   },
 
   // Search
@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   categoryChipActive: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
+    backgroundColor: '#6D28D9',
+    borderColor: '#6D28D9',
   },
   categoryText: { fontSize: 14, color: '#6B7280' },
   categoryTextActive: { color: '#FFFFFF', fontWeight: '600' },
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   planContent: { flex: 1, marginRight: 8 },
   planName: { fontSize: 15, fontWeight: '600', color: '#1F2937', marginBottom: 3 },
   planMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  planScenario: { fontSize: 12, color: '#2563EB', backgroundColor: '#EFF6FF', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
+  planScenario: { fontSize: 12, color: '#6D28D9', backgroundColor: '#F4F1FA', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 },
   planDate: { fontSize: 11, color: '#9CA3AF' },
   planSummary: { fontSize: 12, color: '#6B7280', lineHeight: 17 },
 });

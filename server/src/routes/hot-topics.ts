@@ -29,7 +29,7 @@ async function resolveApiKey(userId: string): Promise<{ key: string; model: stri
     if (thKey?.apiKey) return {
       key: thKey.apiKey,
       model: 'hunyuan-2.0-instruct-20251111',
-      baseUrl: 'https://tokenhub.cloud.tencent.com',
+      baseUrl: 'https://tokenhub.tencentmaas.com/v1',
       headers: { 'X-TC-Provider': 'tokenhub' },
     };
   } catch {}

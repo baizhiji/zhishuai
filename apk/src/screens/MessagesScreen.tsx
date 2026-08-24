@@ -25,13 +25,13 @@ interface Message {
 const TYPE_ICON_MAP: Record<string, { icon: string; color: string; bg: string }> = {
   ai: { icon: 'sparkles', color: '#f59e0b', bg: '#fef3c7' },
   order: { icon: 'card', color: '#10b981', bg: '#d1fae5' },
-  system: { icon: 'settings', color: '#6366f1', bg: '#e0e7ff' },
+  system: { icon: 'settings', color: '#7C3AED', bg: '#EDE9FE' },
   activity: { icon: 'gift', color: '#ec4899', bg: '#fce7f3' },
 };
 
 const TABS = [
   { key: 'all', label: '全部', icon: 'list' },
-  { key: 'ai', label: 'AI助手', icon: 'sparkles' },
+  { key: 'ai', label: '商业助手', icon: 'sparkles' },
   { key: 'order', label: '订单', icon: 'card' },
   { key: 'activity', label: '活动', icon: 'gift' },
   { key: 'system', label: '系统', icon: 'settings' },
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f6f8',
   },
   tabActive: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F5F3FF',
   },
   tabLabel: {
     fontSize: 12,

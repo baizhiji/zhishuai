@@ -201,14 +201,14 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>业务</Text>
           <View style={[styles.menuGroup, { backgroundColor: theme.card }]}>
             <MenuItem icon="gift-outline" iconColor="#F59E0B" title="转介绍" subtitle={`已邀请 ${referralStats?.totalInvites || 0} 人`} onPress={() => navigate?.('Referral')} />
-            <MenuItem icon="qr-code-outline" iconColor="#3B82F6" title="在线客服" subtitle="扫码添加企业微信咨询" onPress={() => navigate?.('SupportQR')} />
+            <MenuItem icon="qr-code-outline" iconColor="#6D28D9" title="在线客服" subtitle="扫码添加企业微信咨询" onPress={() => navigate?.('SupportQR')} />
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>设置</Text>
           <View style={[styles.menuGroup, { backgroundColor: theme.card }]}>
-            <MenuItem icon="moon-outline" iconColor="#3B82F6" title="深色模式" subtitle={getThemeModeText()} onPress={() => setDarkModeModalVisible(true)} showArrow={false} />
+            <MenuItem icon="moon-outline" iconColor="#6D28D9" title="深色模式" subtitle={getThemeModeText()} onPress={() => setDarkModeModalVisible(true)} showArrow={false} />
             <MenuItem icon="cloud-download-outline" iconColor="#06B6D4" title="检查更新" subtitle="当前版本 v1.0.0" onPress={handleCheckUpdate} />
             <MenuItem icon="help-circle-outline" iconColor="#64748B" title="帮助与反馈" subtitle="帮助文档、意见反馈" onPress={() => {
               Alert.alert('帮助与反馈', '请选择：', [

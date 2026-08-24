@@ -11,6 +11,8 @@ export interface ShareCode {
   activeCount: number;
   status: 'active' | 'paused' | 'expired';
   qrCode?: string;
+  qrContent?: string;
+  qrCodeImage?: string;
   createdAt: string;
   updatedAt: string;
 }
