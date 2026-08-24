@@ -447,26 +447,49 @@ export const subtitleOptions = [
   { label: '中英双语', value: 'bilingual' },
 ];
 
-// 配音选项（含方言）
+// 配音选项（含方言与男女，全部映射到真实 TTS 音色）
 export const voiceoverOptions = [
   { label: '无配音', value: 'none' },
   { label: '男声-普通话', value: 'male-mandarin' },
   { label: '女声-普通话', value: 'female-mandarin' },
+  { label: '男声-四川话', value: 'male-sichuan' },
+  { label: '女声-四川话', value: 'female-sichuan' },
   { label: '男声-粤语', value: 'male-cantonese' },
   { label: '女声-粤语', value: 'female-cantonese' },
   { label: '男声-英语', value: 'male-english' },
   { label: '女声-英语', value: 'female-english' },
-  { label: '四川话', value: 'sichuan' },
-  { label: '东北话', value: 'dongbei' },
-  { label: '上海话', value: 'shanghai' },
-  { label: '闽南话', value: 'minnan' },
-  { label: '河南话', value: 'henan' },
-  { label: '湖南话', value: 'hunan' },
-  { label: '陕西话', value: 'shaanxi' },
-  { label: '天津话', value: 'tianjin' },
+  { label: '上海话(女)', value: 'shanghai' },
+  { label: '北京话(男)', value: 'beijing' },
+  { label: '南京话(男)', value: 'nanjing' },
+  { label: '陕西话(男)', value: 'shaanxi' },
+  { label: '闽南语(男)', value: 'minnan' },
+  { label: '天津话(男)', value: 'tianjin' },
 ];
 
-// 背景音乐选项
+// 配音值 → 中文描述（用于拼入生成 prompt，避免把英文枚举值泄漏给视频模型）
+export const voiceoverPromptMap: Record<string, string> = {
+  'male-mandarin': '男声普通话',
+  'female-mandarin': '女声普通话',
+  'male-sichuan': '男声四川话',
+  'female-sichuan': '女声四川话',
+  'male-cantonese': '男声粤语',
+  'female-cantonese': '女声粤语',
+  'male-english': '男声英语',
+  'female-english': '女声英语',
+  shanghai: '上海话（女声）',
+  beijing: '北京话（男声）',
+  nanjing: '南京话（男声）',
+  shaanxi: '陕西话（男声）',
+  minnan: '闽南语（男声）',
+  tianjin: '天津话（男声）',
+};
+
+/** 取配音值的中文描述；无配音（none）/未知值返回空字符串 */
+export function getVoiceoverLabel(value?: string): string {
+  return value ? voiceoverPromptMap[value] || '' : '';
+}
+
+// 背景音乐选项（9 种风格，与蓝皮书第十一章对齐）
 export const bgmOptions = [
   { label: '无背景音乐', value: 'none' },
   { label: '欢快', value: 'happy' },
@@ -476,6 +499,9 @@ export const bgmOptions = [
   { label: '悬疑', value: 'suspense' },
   { label: '科技', value: 'tech' },
   { label: '古典', value: 'classical' },
+  { label: '抒情', value: 'lyrical' },
+  { label: '商务', value: 'business' },
+  { label: '清新', value: 'cheerful' },
 ];
 
 // 视频尺寸选项
@@ -498,6 +524,19 @@ export const bannerOverlayOptions = [
   { label: '弹幕风格', value: 'bullet-comment', description: '从右到左飘过的弹幕文字' },
   { label: '品牌角标', value: 'brand-logo', description: '角落品牌Logo标识' },
   { label: '进度提示', value: 'progress-hint', description: '预告接下来内容' },
+];
+
+// 横幅/贴片视觉样式（蓝皮书 11.4.4：8 种视觉样式预设 + auto 自动推荐）
+export const bannerStyleOptions = [
+  { label: '自动推荐（按视频内容智能匹配）', value: 'auto' },
+  { label: '简约白', value: 'minimal-white', description: '白底黑字，留白多，高级简约' },
+  { label: '商务蓝', value: 'corporate-blue', description: '深蓝底白字，沉稳专业' },
+  { label: '潮流渐变', value: 'gradient-pop', description: '蓝紫/粉橙渐变，年轻潮流' },
+  { label: '赛博朋克', value: 'cyberpunk', description: '霓虹粉青，故障风科技感' },
+  { label: '文艺手写', value: 'handwritten', description: '米黄底手写体，文艺清新' },
+  { label: '复古报刊', value: 'retro-newsprint', description: '报纸黄底衬线字，复古质感' },
+  { label: '霓虹夜店', value: 'neon-night', description: '深黑底霓虹字，夜店氛围' },
+  { label: '清新自然', value: 'fresh-nature', description: '淡绿底圆润字，清新自然' },
 ];
 
 // 图片尺寸选项

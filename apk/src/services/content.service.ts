@@ -158,6 +158,7 @@ export enum ContentCategory {
   SMART_EDIT = 'smart-edit',
   AI_SKETCH = 'ai-sketch',   // 预留
   AI_COMIC = 'ai-comic',     // 预留
+  CONTENT_CREATIVITY = 'content-creativity', // 电脑版：内容创意/爆款选题
 }
 
 // 内容分类配置
@@ -436,11 +437,21 @@ export const contentCategoryConfig: Record<ContentCategory, {
     needDuration: true,
     needImageUrl: true,
     extraFields: [
-      { name: 'imageUrl', label: '形象参考图片', type: 'imageUrl', placeholder: '上传人物形象参考图（可选）', promptLabel: '形象参考图片' },
-      { name: 'look', label: '形象风格', type: 'select', options: digitalHumanLookOptions, promptLabel: '形象风格' },
-      { name: 'gender', label: '性别', type: 'select', options: digitalHumanGenderOptions, promptLabel: '性别' },
-      { name: 'ageGroup', label: '年龄段', type: 'select', options: digitalHumanAgeOptions, promptLabel: '年龄段' },
+      { name: 'imageUrl', label: '形象参考图片', type: 'imageUrl', placeholder: '选填但建议上传（数字人实际需要人物形象图驱动）', promptLabel: '形象参考图片' },
+      { name: 'humanLook', label: '数字人形象偏好', type: 'select', options: digitalHumanLookOptions, promptLabel: '数字人形象偏好' },
+      { name: 'humanGender', label: '性别', type: 'select', options: digitalHumanGenderOptions, promptLabel: '数字人性别' },
+      { name: 'humanAge', label: '年龄感', type: 'select', options: digitalHumanAgeOptions, promptLabel: '数字人年龄感' },
+      { name: 'humanOutfit', label: '着装风格', type: 'input', placeholder: '例如：商务西装 / 休闲卫衣 / 正装主播', promptLabel: '着装风格' },
+      { name: 'speechScript', label: '口播文案', type: 'textarea', placeholder: '可选。粘贴完整口播文案；不填则由AI根据描述生成', promptLabel: '口播文案' },
+      { name: 'targetPlatform', label: '目标平台', type: 'select', options: editPlatformOptions, promptLabel: '目标平台' },
     ],
+  },
+  [ContentCategory.CONTENT_CREATIVITY]: {
+    label: '内容创意',
+    color: '#722ED1',
+    icon: 'bulb',
+    description: '爆款选题与创意点子生成，适合公众号、短视频等全平台内容策划',
+    type: 'text',
   },
 }
 
@@ -455,9 +466,10 @@ export const styleOptions = [
   { label: '幽默', value: '幽默' },
 ]
 
-// 图片尺寸选项
+// 图片尺寸选项（含 2048 高清档，能力对齐电脑版/蓝皮书）
 export const imageSizeOptions = [
   { label: '正方形 1:1 (1024×1024)', value: '1024x1024' },
+  { label: '正方形 1:1 (2048×2048)', value: '2048x2048' },
   { label: '横版 16:9 (1280×720)', value: '1280x720' },
   { label: '竖版 9:16 (720×1280)', value: '720x1280' },
   { label: '横版 4:3 (1024×768)', value: '1024x768' },
@@ -478,24 +490,47 @@ export const subtitleOptions = [
   { label: '双语', value: 'bilingual' },
 ]
 
-// 配音选项（含方言）
+// 配音选项（与电脑版一致，方言全部带男女标注，映射到真实 TTS 音色）
 export const voiceoverOptions = [
   { label: '无配音', value: 'none' },
-  { label: '女声-普通话', value: 'female-mandarin' },
   { label: '男声-普通话', value: 'male-mandarin' },
-  { label: '女声-粤语', value: 'female-cantonese' },
+  { label: '女声-普通话', value: 'female-mandarin' },
+  { label: '男声-四川话', value: 'male-sichuan' },
+  { label: '女声-四川话', value: 'female-sichuan' },
   { label: '男声-粤语', value: 'male-cantonese' },
-  { label: '女声-英文', value: 'female-english' },
-  { label: '男声-英文', value: 'male-english' },
-  { label: '四川话', value: 'sichuan' },
-  { label: '东北话', value: 'dongbei' },
-  { label: '上海话', value: 'shanghai' },
-  { label: '闽南话', value: 'minnan' },
-  { label: '河南话', value: 'henan' },
-  { label: '湖南话', value: 'hunan' },
-  { label: '陕西话', value: 'shaanxi' },
-  { label: '天津话', value: 'tianjin' },
+  { label: '女声-粤语', value: 'female-cantonese' },
+  { label: '男声-英语', value: 'male-english' },
+  { label: '女声-英语', value: 'female-english' },
+  { label: '上海话(女)', value: 'shanghai' },
+  { label: '北京话(男)', value: 'beijing' },
+  { label: '南京话(男)', value: 'nanjing' },
+  { label: '陕西话(男)', value: 'shaanxi' },
+  { label: '闽南语(男)', value: 'minnan' },
+  { label: '天津话(男)', value: 'tianjin' },
 ]
+
+// 配音值 → 中文描述（拼入生成 prompt 用，避免英文枚举值泄漏给视频模型）
+export const voiceoverPromptMap: Record<string, string> = {
+  'male-mandarin': '男声普通话',
+  'female-mandarin': '女声普通话',
+  'male-sichuan': '男声四川话',
+  'female-sichuan': '女声四川话',
+  'male-cantonese': '男声粤语',
+  'female-cantonese': '女声粤语',
+  'male-english': '男声英语',
+  'female-english': '女声英语',
+  shanghai: '上海话（女声）',
+  beijing: '北京话（男声）',
+  nanjing: '南京话（男声）',
+  shaanxi: '陕西话（男声）',
+  minnan: '闽南语（男声）',
+  tianjin: '天津话（男声）',
+}
+
+/** 取配音值的中文描述；无配音（none）/未知值返回空字符串 */
+export function getVoiceoverLabel(value?: string): string {
+  return value ? voiceoverPromptMap[value] || '' : ''
+}
 
 // 背景音乐选项
 export const bgmOptions = [
@@ -509,6 +544,74 @@ export const bgmOptions = [
   { label: '科技', value: 'tech' },
   { label: '古典', value: 'classical' },
 ]
+
+// 横幅/贴片叠加选项（与电脑版一致）
+export const bannerOverlayOptions = [
+  { label: '无横幅', value: 'none', description: '不使用任何叠加元素' },
+  { label: '片头标题', value: 'opening-title', description: '视频开头的标题展示，居中大字' },
+  { label: '人名标注条', value: 'lower-third', description: '画面下方的人名、职位、地点等信息条' },
+  { label: '片尾落款', value: 'closing-credits', description: '视频结尾的品牌Logo+口号' },
+  { label: '行动号召', value: 'call-to-action', description: '引导用户点击、关注、购买的提示条' },
+  { label: '水印', value: 'watermark', description: '半透明品牌水印，全程显示' },
+  { label: '场景分隔', value: 'scene-divider', description: '场景切换时的过渡提示文字' },
+  { label: '说话气泡', value: 'speech-bubble', description: '模拟对话的气泡框' },
+  { label: '弹幕风格', value: 'bullet-comment', description: '从右到左飘过的弹幕文字' },
+  { label: '品牌角标', value: 'brand-logo', description: '角落品牌Logo标识' },
+  { label: '进度提示', value: 'progress-hint', description: '预告接下来内容' },
+]
+
+/** 横幅/贴片选项值转中文标签（用于 UI 展示） */
+export function getBannerOverlayLabel(value: string): string {
+  return bannerOverlayOptions.find(o => o.value === value)?.label || value
+}
+
+/** 将横幅/贴片选项列表转为 prompt 描述（与电脑版 buildVideoPrompt 的 bannerMap 一致） */
+export function buildBannerOverlayDesc(banners?: string[]): string {
+  if (!banners || banners.length === 0) return ''
+  const bannerMap: Record<string, string> = {
+    'opening-title': '视频开头居中显示大字标题，渐变蓝紫背景，持续3秒',
+    'lower-third': '画面底部有人名/职位信息标注条，深色半透明背景，约出现5秒',
+    'closing-credits': '视频结尾底部显示品牌落款和口号，淡入淡出效果',
+    'call-to-action': '底部显示醒目红色行动号召按钮，引导用户点击',
+    watermark: '右下角半透明品牌水印"@智枢AI"，全程显示',
+    'scene-divider': '场景切换时显示章节过渡提示文字',
+    'speech-bubble': '底部左侧显示对话气泡框，模拟角色说话',
+    'bullet-comment': '画面顶部有弹幕文字从右到左飘过',
+    'brand-logo': '右上角显示品牌Logo角标，全程显示',
+    'progress-hint': '显示"接下来"的进度提示文字',
+  }
+  const descs = banners.filter(b => b !== 'none').map(b => bannerMap[b] || b).filter(Boolean)
+  return descs.length > 0 ? `视频叠加元素：${descs.join('；')}` : ''
+}
+
+// 横幅/贴片视觉样式选项（蓝皮书 11.4.4：8 种视觉样式预设 + auto 自动推荐，与电脑版一致）
+export const bannerStyleOptions = [
+  { label: '自动推荐', value: 'auto', description: '按视频内容智能匹配' },
+  { label: '简约白', value: 'minimal-white', description: '白底黑字，留白多，高级简约' },
+  { label: '商务蓝', value: 'corporate-blue', description: '深蓝底白字，沉稳专业' },
+  { label: '潮流渐变', value: 'gradient-pop', description: '蓝紫/粉橙渐变，年轻潮流' },
+  { label: '赛博朋克', value: 'cyberpunk', description: '霓虹粉青，故障风科技感' },
+  { label: '文艺手写', value: 'handwritten', description: '米黄底手写体，文艺清新' },
+  { label: '复古报刊', value: 'retro-newsprint', description: '报纸黄底衬线字，复古质感' },
+  { label: '霓虹夜店', value: 'neon-night', description: '深黑底霓虹字，夜店氛围' },
+  { label: '清新自然', value: 'fresh-nature', description: '淡绿底圆润字，清新自然' },
+]
+
+/** 横幅/贴片视觉样式转 prompt 描述 */
+export function buildBannerStyleDesc(style?: string): string {
+  if (!style || style === 'auto') return ''
+  const styleMap: Record<string, string> = {
+    'minimal-white': '简约白：白底黑字、留白多、高级简约',
+    'corporate-blue': '商务蓝：深蓝底白字、沉稳专业',
+    'gradient-pop': '潮流渐变：蓝紫/粉橙渐变、年轻潮流',
+    cyberpunk: '赛博朋克：霓虹粉青、故障风科技感',
+    handwritten: '文艺手写：米黄底手写体、文艺清新',
+    'retro-newsprint': '复古报刊：报纸黄底衬线字、复古质感',
+    'neon-night': '霓虹夜店：深黑底霓虹字、夜店氛围',
+    'fresh-nature': '清新自然：淡绿底圆润字、清新自然',
+  }
+  return styleMap[style] ? `叠加元素视觉风格：${styleMap[style]}` : ''
+}
 
 // 生成内容请求参数
 export interface GenerateTextParams {
@@ -541,10 +644,14 @@ export interface GenerateVideoParams {
   voiceover?: string
   bgm?: string
   overlayBanners?: string[]
+  /** 横幅/贴片视觉样式（蓝皮书 11.4.4：8 种预设 + auto 自动推荐） */
+  bannerStyle?: string
   /** 专属字段值 */
   extraValues?: Record<string, string>
   /** 数字人口播图片（needImageUrl 类目） */
   imageUrl?: string
+  /** 用户已上传的视频 URL（优先作为成片底片，与电脑版行为一致） */
+  videoUrl?: string
 }
 
 // 生成记录
@@ -610,7 +717,7 @@ export async function generateImage(params: GenerateImageParams): Promise<{ outp
     const extra = buildExtraFieldsPrompt(params.extraValues);
     const response = await apiClient.post('/ai-chat/image', {
       prompt: `生成一张${params.style || '写实'}风格的图片，主题：${params.description}${extra}`,
-      size: params.size || '1024x1024',
+      size: params.size || '2048x2048',
     });
     const imageUrl = response?.url || response?.imageUrl || response?.data?.url || '';
     return { output: { results: imageUrl ? [{ url: imageUrl }] : [] } };
@@ -620,28 +727,127 @@ export async function generateImage(params: GenerateImageParams): Promise<{ outp
   }
 }
 
-// 生成视频（对齐 WEB 端 ai-chat 路由，后端无直接视频生成端点）
+/** 将相对路径 URL 补全为服务器绝对地址（配音合成需绝对 URL） */
+function toAbsoluteUrl(url: string): string {
+  if (!url) return url;
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${API_CONFIG.SERVER_URL}${url.startsWith('/') ? url : `/${url}`}`;
+}
+
+// 生成视频：先出脚本，再调用服务端真实视频生成（可灵→混元→Seedance→万相四路降级；
+// 数字人走 TTS+形象图驱动专用模型）。无 Key 或生成失败时回退用户上传素材，选了口播配音再附着真实配音。
 export async function generateVideo(params: GenerateVideoParams): Promise<{ output: { url: string } }> {
   try {
     const extra = buildExtraFieldsPrompt(params.extraValues);
+    const voiceoverDesc = params.voiceover === 'none' ? '' : getVoiceoverLabel(params.voiceover)
     const topicParts = [
       `请为以下内容生成${params.style || '通用'}风格视频脚本，时长${params.duration || 15}秒：${params.description}`,
       params.subtitle ? `字幕要求：${params.subtitle}` : '',
-      params.voiceover ? `配音要求：${params.voiceover}` : '',
+      voiceoverDesc ? `配音要求：${voiceoverDesc}配音` : '',
       params.bgm ? `背景音乐：${params.bgm}` : '',
+      buildBannerOverlayDesc(params.overlayBanners),
+      buildBannerStyleDesc(params.bannerStyle),
       params.imageUrl ? `出镜形象参考图片：${params.imageUrl}` : '',
       extra,
     ].filter(Boolean);
-    const response = await apiClient.post('/ai-enhanced/post', {
-      topic: topicParts.join('\n'),
-      style: params.style,
-      size: params.size,
-      duration: params.duration,
-    });
-    const videoUrl = response?.url || response?.videoUrl || response?.data?.url || '';
-    return { output: { url: videoUrl } };
+    const topic = topicParts.join('\n');
+
+    // 智能剪辑：有素材视频时优先服务端 FFmpeg 拼接成片（能力对齐电脑版，交付最终 MP4）
+    if (params.category === ContentCategory.SMART_EDIT && params.videoUrl) {
+      try {
+        const composeRes = await apiClient.post('/video-edit/compose', {
+          clips: [toAbsoluteUrl(params.videoUrl)],
+          size: params.size || '1080x1920',
+        });
+        const composedUrl = composeRes?.videoUrl || composeRes?.data?.videoUrl || '';
+        if (composedUrl) return { output: { url: toAbsoluteUrl(composedUrl) } };
+      } catch (e) {
+        // 服务端成片失败则降级常规流程
+      }
+    }
+
+    // 1) 先生成口播文案，作为视频模型理解内容 / 数字人 TTS 的朗读文本
+    let scriptText = params.description;
+    try {
+      const scriptRes = await apiClient.post('/ai-enhanced/post', {
+        topic,
+        style: params.style,
+        size: params.size,
+        duration: params.duration,
+      });
+      scriptText = scriptRes?.content || scriptRes?.script || scriptRes?.text || scriptRes?.data?.content || scriptText;
+    } catch (e) {
+      // 文案生成失败不阻塞成片
+    }
+
+    // 2) 用户已上传素材：直接作为成片底片（与电脑版行为一致），仅处理配音
+    if (params.videoUrl) {
+      let finalUrl = toAbsoluteUrl(params.videoUrl);
+      if (finalUrl && params.voiceover && params.voiceover !== 'none') {
+        try {
+          const attachRes = await apiClient.post('/video-voice/attach', {
+            videoUrl: finalUrl,
+            voiceover: params.voiceover,
+            topic,
+          });
+          const voicedUrl = attachRes?.videoUrl || attachRes?.data?.videoUrl || '';
+          if (voicedUrl) finalUrl = toAbsoluteUrl(voicedUrl);
+        } catch (e) {
+          // 配音合成失败静默回退原视频
+        }
+      }
+      return { output: { url: finalUrl } };
+    }
+
+    // 3) 无用户素材：调用服务端真实视频生成（复用电脑端配置的 API Key，多模型自动降级）
+    const isDigitalHuman = params.category === ContentCategory.DIGITAL_HUMAN;
+    let finalUrl = '';
+    try {
+      const videoBody: {
+        prompt: string
+        text: string
+        size?: string
+        duration?: number
+        model?: string
+        imageUrl?: string
+      } = {
+        prompt: topic,
+        text: scriptText,
+        size: params.size,
+        duration: params.duration,
+      };
+      if (isDigitalHuman) {
+        videoBody.model = 'yt-video-humanactor';
+        if (params.imageUrl) videoBody.imageUrl = params.imageUrl;
+      }
+      const videoRes = await apiClient.post('/ai-enhanced/video', videoBody);
+      finalUrl = videoRes?.videoUrl || videoRes?.data?.videoUrl || '';
+    } catch (e) {
+      // 后端生成失败（未配置 Key / 无可用模型）时静默，走最终兜底
+    }
+    finalUrl = toAbsoluteUrl(finalUrl);
+
+    // 4) 兜底 + 配音：无成片则保留用户上传素材；非数字人成片且选了口播配音时再附着真实配音
+    if (!finalUrl) {
+      finalUrl = toAbsoluteUrl(params.videoUrl || '');
+    }
+    if (finalUrl && params.voiceover && params.voiceover !== 'none' && !isDigitalHuman) {
+      try {
+        const attachRes = await apiClient.post('/video-voice/attach', {
+          videoUrl: finalUrl,
+          voiceover: params.voiceover,
+          topic,
+        });
+        const voicedUrl = attachRes?.videoUrl || attachRes?.data?.videoUrl || '';
+        if (voicedUrl) finalUrl = toAbsoluteUrl(voicedUrl);
+      } catch (e) {
+        // 配音合成失败静默回退原视频
+      }
+    }
+    return { output: { url: finalUrl } };
   } catch {
-    return { output: { url: '' } };
+    // 生成失败时，若用户已上传视频则保留该视频作为成片
+    return { output: { url: toAbsoluteUrl(params.videoUrl || '') } };
   }
 }
 
@@ -688,8 +894,8 @@ export async function saveToMaterials(
   title: string,
   content: string
 ): Promise<boolean> {
-  const response = await apiClient.post('/materials', { category, title, content });
-  return (response as any)?.success || false;
+  const response = await apiClient.post('/materials', { type: category, title, content });
+  return Boolean((response as any)?.id);
 }
 
 // 获取创作历史（本地缓存）

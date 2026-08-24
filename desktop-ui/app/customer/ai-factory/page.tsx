@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Card, Typography, Button, Space, Input, Form, Select, InputNumber,
+  Card, Typography, Button, Space, Input, Form, Select, InputNumber, Radio,
   message, Tag, Image, Progress, Divider, Empty, List, Drawer, Upload,
   Row, Col, Badge, Tooltip,
 } from 'antd';
@@ -14,7 +14,7 @@ import {
   CopyOutlined, PlusOutlined, ExperimentOutlined, LoadingOutlined,
   BulbOutlined, StarOutlined, WarningOutlined,
 } from '@ant-design/icons';
-import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions, bannerOverlayOptions } from '@/lib/content/types';
+import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions, bannerOverlayOptions, bannerStyleOptions, getVoiceoverLabel } from '@/lib/content/types';
 import { generateText, generateImage, generateVideo, generateWithLocalPipeline, analyzeViralTopic, type ContentTypeSlug } from '@/lib/ai/factory-service';
 import { CATEGORY_TIPS } from '@/lib/ai/category-config';
 import { apiClient } from '@/lib/api';
@@ -125,6 +125,7 @@ export default function AIFactoryPage() {
   const [activeCategory, setActiveCategory] = useState<ContentCategory>(ContentCategory.XIAOHONGSHU);
   const [form] = Form.useForm();
   const [generating, setGenerating] = useState(false);
+  const [quickMode, setQuickMode] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [savingToCenter, setSavingToCenter] = useState(false);
@@ -247,6 +248,16 @@ export default function AIFactoryPage() {
       const imgResults: string[] = [];
 
       for (let i = 0; i < count; i++) {
+        // 快速模式（蓝皮书 1.5：快速模式默认仅生成脚本，完整生成默认全链路）
+        if (quickMode) {
+          const prompt = buildTextPrompt(activeCategory, values, viralAnalysis);
+          const result = await generateText({ prompt, maxTokens: values.wordCount || 800 }, getTaskKey(activeCategory));
+          if (result.success) results.push(result.data as string);
+          setProvider(result.provider);
+          setModel(result.model);
+          setProgress(Math.round(((i + 1) / count) * 95));
+          continue;
+        }
         // P0-2：全类目优先走多阶段流水线（此前流水线从未被接线，仅直连单次调用）
         const taskKey = getTaskKey(activeCategory);
         const pipelinePrompt = cfg.type === 'image'
@@ -301,13 +312,16 @@ export default function AIFactoryPage() {
           setModel(result.model);
         } else if (cfg.type === 'video') {
           const prompt = buildVideoPrompt(activeCategory, values, viralAnalysis);
+          const isSmartEdit = activeCategory === ContentCategory.SMART_EDIT;
+          const materialUrls = values.files?.map((f: any) => f.url || f.name).filter(Boolean) || [];
           const result = await generateVideo({
             prompt,
-            images: values.files?.map((f: any) => f.url || f.name).filter(Boolean),
+            images: materialUrls,
             imageUrl: values.imageUrl,
+            clips: isSmartEdit ? materialUrls : undefined,
             duration: values.duration || 30, size: values.size,
             voiceover: values.voiceover, subtitle: values.subtitle, bgm: values.bgm,
-            overlayBanners: values.overlayBanners || [],
+            overlayBanners: values.overlayBanners || [], bannerStyle: values.bannerStyle,
           }, getTaskKey(activeCategory));
           if (result.success && result.data) results.push(result.data as string);
           setProvider(result.provider);
@@ -353,7 +367,7 @@ export default function AIFactoryPage() {
         config: values, timestamp: Date.now(), status: 'success', provider, model,
       });
 
-      message.success(`${cfg.label}生成完成！`);
+      message.success(`${cfg.label}生成完成！${estimateCost([...results, ...imgResults].join(''))}`);
       if (viralAnalysis) setViralScoreForTask(viralAnalysis);
     } catch (error: any) {
       clearInterval(progressInterval);
@@ -362,6 +376,15 @@ export default function AIFactoryPage() {
     } finally {
       setGenerating(false);
     }
+  };
+
+  // 轻量成本估算（蓝皮书 6.3）：按输出字符数近似估算 token 并计费，仅作参考
+  const estimateCost = (text: string): string => {
+    const chars = text?.length || 0;
+    const tokens = Math.ceil(chars / 2);
+    const cost = (tokens / 1000000) * 1.2; // 按约 ¥1.2/百万 token 近似
+    if (cost < 0.001) return '';
+    return `估算成本 ≈ ¥${cost.toFixed(4)}`;
   };
 
   // 将类目专属字段格式化为提示词上下文（排除负向提示词，它单独传给图像接口）
@@ -382,6 +405,12 @@ export default function AIFactoryPage() {
     return parts.length ? `\n\n【本功能专属需求】\n${parts.join('\n')}` : '';
   };
 
+  // 配音中文描述：真实 TTS 链路按此音色合成；'none'/未选时按类目回退默认音色
+  const voiceoverDesc = (values: any, fallback: string): string => {
+    if (values.voiceover === 'none') return '';
+    return getVoiceoverLabel(values.voiceover) || getVoiceoverLabel(fallback) || fallback;
+  };
+
   const buildTextPrompt = (cat: ContentCategory, values: any, hint: any): string => {
     const viralHint = hint
       ? `\n\n【爆款基因注入】本主题爆款评分：${hint.score}/40（${hint.rating}）\n${hint.tips.join('\n')}\n${hint.keywords?.length ? `关键词：${hint.keywords.slice(0, 8).join('、')}` : ''}\n请在生成时主动借鉴以上爆款基因，强化hook、情绪、节奏。`
@@ -393,9 +422,9 @@ export default function AIFactoryPage() {
       case ContentCategory.ECOMMERCE_DETAIL:
         return `作为电商详情页设计专家，为产品"${values.productName || values.description}"生成完整的电商详情页文案（${values.wordCount || 800}字）：\n1. 产品主标题（15字以内，吸睛）\n2. 副标题（30字以内）\n3. 核心卖点（3-5条，每条带图标符号）\n4. 产品详情描述（详细说明材质/功能/使用场景）\n5. 规格参数（如有）\n6. 购买引导语\n7. 针对目标人群的说服点与价格锚点话术\n风格：${values.style || '专业电商'}。${values.requirements || ''}${viralHint}${extra}`;
       case ContentCategory.SHORT_VIDEO:
-        return `作为短视频脚本专家，为主题"${values.description}"创作一个${values.duration || 30}秒的短视频脚本：\n1. 开场（0-3秒）：吸引注意力的hook\n2. 内容（3-${(values.duration || 30) - 5}秒）：核心内容展示\n3. 结尾（最后5秒）：行动号召\n配音风格：${values.voiceover || 'female-mandarin'}\n字幕：${values.subtitle || 'chinese'}\n请写出完整的口播文案和画面描述。${viralHint}${extra}`;
+        return `作为短视频脚本专家，为主题"${values.description}"创作一个${values.duration || 30}秒的短视频脚本：\n1. 开场（0-3秒）：吸引注意力的hook\n2. 内容（3-${(values.duration || 30) - 5}秒）：核心内容展示\n3. 结尾（最后5秒）：行动号召\n配音风格：${voiceoverDesc(values, 'female-mandarin') ? `${voiceoverDesc(values, 'female-mandarin')}配音` : '无配音'}\n字幕：${values.subtitle || 'chinese'}\n请写出完整的口播文案和画面描述。${viralHint}${extra}`;
       case ContentCategory.STORE_TOUR_VIDEO:
-        return `作为探店视频博主，为店铺"${values.storeName || values.description}"创作一个${values.duration || 30}秒探店视频脚本：\n- 第一视角探店体验\n- 展示店铺环境、特色产品/服务\n- 真实评价（有好有坏，不要商业吹捧）\n- 配音风格：${values.voiceover || 'female-mandarin'}\n写出完整口播文案。${viralHint}${extra}`;
+        return `作为探店视频博主，为店铺"${values.storeName || values.description}"创作一个${values.duration || 30}秒探店视频脚本：\n- 第一视角探店体验\n- 展示店铺环境、特色产品/服务\n- 真实评价（有好有坏，不要商业吹捧）\n- 配音风格：${voiceoverDesc(values, 'female-mandarin') ? `${voiceoverDesc(values, 'female-mandarin')}配音` : '无配音'}\n写出完整口播文案。${viralHint}${extra}`;
       case ContentCategory.SMART_EDIT:
         return `作为专业视频剪辑导演，根据用户上传的视频素材，制定智能剪辑方案，主题/目标："${values.description}"。\n输出：\n1. 剪辑脚本：目标时长${values.duration || 30}秒，镜头结构（钩子→主体→高潮→CTA）\n2. 素材理解要点：每段素材的内容与可用剪辑点\n3. 节奏风格：${values.style || '强节奏卡点'}\n4. 配音与字幕需求\n5. BGM情绪与调色风格建议\n请输出结构化剪辑方案，供后续素材理解、镜头排序、FFmpeg合成使用。${viralHint}${extra}`;
       case ContentCategory.CONTENT_CREATIVITY:
@@ -425,17 +454,17 @@ export default function AIFactoryPage() {
     const extra = buildExtraContext(cat, values);
     switch (cat) {
       case ContentCategory.ENTERPRISE_VIDEO:
-        return `企业宣传片，展示企业形象，${values.companyName || values.description}，大气专业，品牌调性，配${values.voiceover || 'male-mandarin'}配音${viralHint}${extra}`;
+        return `企业宣传片，展示企业形象，${values.companyName || values.description}，大气专业，品牌调性${voiceoverDesc(values, 'male-mandarin') ? `，配${voiceoverDesc(values, 'male-mandarin')}配音` : ''}${viralHint}${extra}`;
       case ContentCategory.PRODUCT_VIDEO:
         return `产品展示视频，${values.productName || values.description}，突出产品卖点，动态展示，${values.style || '科技感'}风格${viralHint}${extra}`;
       case ContentCategory.PERSON_MV_VIDEO:
         return `真人MV视频，歌曲《${values.songName || ''}》（${values.songStyle || '流行'}，演唱者：${values.singer || '未知'}），MV类型：${values.mvType || '故事叙事型'}。\n主题：${values.description || ''}\n要求：镜头与歌词节奏同步，画面自然真实（手机拍摄质感，无美颜滤镜），场景：${values.sceneSuggestion || '由AI推荐'}。${viralHint}${extra}`;
       case ContentCategory.CARTOON_VIDEO:
-        return `萌宠卡通创意短视频，角色设定：${values.petSetting || values.description}，可爱卡通风格，动画风格：${values.animationStyle || '2D卡通渲染'}，目标受众：${values.targetAudience || '全年龄'}，萌趣生动，画面活泼，适合社交媒体传播，配${values.voiceover || 'female-mandarin'}配音${viralHint}${extra}`;
+        return `萌宠卡通创意短视频，角色设定：${values.petSetting || values.description}，可爱卡通风格，动画风格：${values.animationStyle || '2D卡通渲染'}，目标受众：${values.targetAudience || '全年龄'}，萌趣生动，画面活泼，适合社交媒体传播${voiceoverDesc(values, 'female-mandarin') ? `，配${voiceoverDesc(values, 'female-mandarin')}配音` : ''}${viralHint}${extra}`;
       case ContentCategory.SHORT_VIDEO:
-        return `真人拍摄级短视频，主题：${values.description || ''}，镜头节奏：${values.shotRhythm || '快剪电影级'}，配音：${values.voiceover || 'female-mandarin'}，字幕：${values.subtitle || 'chinese'}，时长${values.duration || 30}秒。要求反AI味：断句随机、口语化、有情绪起伏。${viralHint}${extra}`;
+        return `真人拍摄级短视频，主题：${values.description || ''}，镜头节奏：${values.shotRhythm || '快剪电影级'}${voiceoverDesc(values, 'female-mandarin') ? `，配音：${voiceoverDesc(values, 'female-mandarin')}配音` : ''}，字幕：${values.subtitle || 'chinese'}，时长${values.duration || 30}秒。要求反AI味：断句随机、口语化、有情绪起伏。${viralHint}${extra}`;
       case ContentCategory.STORE_TOUR_VIDEO:
-        return `真人Vlog级探店视频，店铺：${values.storeName || values.description}，探店风格：${values.storeTourStyle || '真诚种草'}，保留环境原声，真实评价（有好有坏），时长${values.duration || 30}秒，配${values.voiceover || 'female-mandarin'}配音。${viralHint}${extra}`;
+        return `真人Vlog级探店视频，店铺：${values.storeName || values.description}，探店风格：${values.storeTourStyle || '真诚种草'}，保留环境原声，真实评价（有好有坏），时长${values.duration || 30}秒${voiceoverDesc(values, 'female-mandarin') ? `，配${voiceoverDesc(values, 'female-mandarin')}配音` : ''}。${viralHint}${extra}`;
       case ContentCategory.DIGITAL_HUMAN:
         return `拟真数字人口播视频，形象偏好：${values.humanLook || '真人写实'}（${values.humanGender === 'male' ? '男' : '女'}性，${values.humanAge || '青年'}，着装：${values.humanOutfit || '商务' || '随性'}），口播文案：${values.speechScript || values.description || '由AI根据主题生成'}，口型同步率≥95%，自然微表情，目标平台：${values.targetPlatform || 'douyin'}。${viralHint}${extra}`;
       case ContentCategory.SMART_EDIT:
@@ -550,6 +579,7 @@ export default function AIFactoryPage() {
                 <Row gutter={16}>
                   <Col span={12}><Form.Item label="背景音乐" name="bgm"><Select options={bgmOptions} placeholder="选择BGM" /></Form.Item></Col>
                   <Col span={12}><Form.Item label="横幅/贴片" name="overlayBanners"><Select mode="multiple" options={bannerOverlayOptions} placeholder="选择叠加元素（可多选）" maxTagCount={2} /></Form.Item></Col>
+                  <Col span={12}><Form.Item label="横幅视觉样式" name="bannerStyle"><Select options={bannerStyleOptions} placeholder="选择横幅视觉样式（默认自动推荐）" /></Form.Item></Col>
                 </Row>
               </>
             )}
@@ -585,6 +615,12 @@ export default function AIFactoryPage() {
             </Form.Item>
             <Form.Item label="额外要求" name="requirements"><TextArea rows={2} placeholder="其他特殊需求（可选）" /></Form.Item>
             <Form.Item label="生成数量" name="count"><InputNumber min={1} max={10} style={{ width: '100%' }} placeholder="1-10" /></Form.Item>
+            <Form.Item label="生成模式" tooltip="快速模式仅生成脚本/文案，完整生成执行图片/视频全链路（默认）">
+              <Radio.Group value={quickMode} onChange={e => setQuickMode(e.target.value)} buttonStyle="solid">
+                <Radio.Button value={false}>完整生成</Radio.Button>
+                <Radio.Button value={true}>仅生成脚本</Radio.Button>
+              </Radio.Group>
+            </Form.Item>
             <Button type="primary" icon={generating ? <LoadingOutlined /> : <SendOutlined />} onClick={handleGenerate} loading={generating} size="large" block>
               {generating ? 'AI正在生成...' : `开始生成${cfg.label}`}
             </Button>

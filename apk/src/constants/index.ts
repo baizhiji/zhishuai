@@ -19,7 +19,7 @@ export const FEATURES = [
   { id: 'media', name: 'AI创作工厂', icon: 'newspaper-outline', color: '#6D28D9', description: 'AI图文、图片、视频创作' },
   { id: 'recruitment', name: '智能招聘', icon: 'briefcase-outline', color: '#7C3AED', description: 'AI驱动的智能招聘' },
   { id: 'acquisition', name: '智能获客', icon: 'trending-up-outline', color: '#10B981', description: '精准客户发现' },
-  { id: 'referral', name: '推荐分享', icon: 'share-social-outline', color: '#D97706', description: '推荐奖励系统' },
+  { id: 'share', name: '推荐分享', icon: 'share-social-outline', color: '#D97706', description: '推荐分享系统' },
   { id: 'materials', name: '内容中心', icon: 'images-outline', color: '#EC4899', description: '内容管理' },
   { id: 'analytics', name: '数据统计', icon: 'stats-chart-outline', color: '#0891B2', description: '数据报表' },
 ];

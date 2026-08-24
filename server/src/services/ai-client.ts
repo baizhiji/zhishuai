@@ -86,6 +86,8 @@ export interface TTSParams {
   speed?: number;
   volume?: number;
   format?: 'mp3' | 'wav' | 'pcm';
+  /** 阿里云百炼 TTS 模型：qwen-tts（默认，标准音色）/ qwen3-tts-flash（方言与多音色） */
+  model?: string;
 }
 
 /** TTS 结果 */
@@ -143,6 +145,54 @@ const PROVIDER_STORAGE_ALIASES: Record<string, string[]> = {
   alibaba: ['alibaba', 'dashscope'],
   volcano: ['volcano', 'ark'],
 };
+
+// ==================== AI 视频生成（文本转视频） ====================
+
+export type VideoProvider = 'tencent' | 'alibaba' | 'volcano';
+
+export interface VideoGenerationParams {
+  /** 视频主题/脚本提示词 */
+  prompt: string;
+  /** 指定 Provider（默认按候选顺序降级） */
+  provider?: VideoProvider;
+  /** 指定模型（如 kl-video-v3 / yt-video-humanactor） */
+  model?: string;
+  /** 画幅：1280*720 / 1920*1080 / 720*1280 等 */
+  size?: string;
+  /** 时长（秒），默认 5 */
+  duration?: number;
+  /** 参考图 URL 列表（图生视频） */
+  images?: string[];
+  /** 数字人形象图 URL */
+  imageUrl?: string;
+  /** 数字人口播文案（自动 TTS 配音） */
+  text?: string;
+  /** 配音音色 */
+  voice?: string;
+}
+
+export interface VideoGenerationResult {
+  url: string;
+  provider: VideoProvider;
+  providerLabel: string;
+  model: string;
+}
+
+interface VideoModelCandidate {
+  provider: VideoProvider;
+  model: string;
+  label: string;
+}
+
+/** 视频模型降级候选列表：可灵 v3 → 混元视频 → Seedance → Wan2.7 */
+const VIDEO_MODEL_CANDIDATES: VideoModelCandidate[] = [
+  { provider: 'tencent', model: 'kl-video-v3', label: '腾讯云·可灵' },
+  { provider: 'tencent', model: 'hy-video-1.5', label: '腾讯云·混元视频' },
+  { provider: 'volcano', model: 'doubao-seedance-2-5-pro-260628', label: '火山方舟·Seedance' },
+  { provider: 'alibaba', model: 'wan2.7', label: '阿里云百炼·Wan' },
+];
+
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 /** 平台配置 - 用于内容创意增强 */
 const PLATFORM_OPTIMIZATIONS: Record<string, {
@@ -204,6 +254,9 @@ const PLATFORM_OPTIMIZATIONS: Record<string, {
 // ==================== 加密工具 ====================
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'zhishuai-default-key-32chars!!';
+if (process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
+  console.warn('[SECURITY] 生产环境未配置 ENCRYPTION_KEY，正在使用内置默认密钥！请立即在服务器环境变量中配置 ENCRYPTION_KEY。');
+}
 const IV_LENGTH = 16;
 
 function decrypt(text: string): string {
@@ -928,16 +981,16 @@ export class AIClient {
     params: TTSParams
   ): Promise<TTSResult> {
     const startTime = Date.now();
-    const { text, voice = 'default', speed = 1.0, format = 'mp3' } = params;
+    const { text, voice = 'default', speed = 1.0, format = 'mp3', model = 'qwen-tts' } = params;
 
-    // 优先尝试阿里云百炼 TTS（使用 multimodal-generation 端点 + qwen-tts）
+    // 优先尝试阿里云百炼 TTS（使用 multimodal-generation 端点 + qwen-tts / qwen3-tts-flash）
     try {
       const aliCredentials = await this.resolveApiCredentials(userId, 'alibaba');
       const aliBaseUrl = 'https://dashscope.aliyuncs.com';
       const axiosInstance = this.getAxiosInstance(aliBaseUrl);
 
       const response = await axiosInstance.post('/api/v1/services/aigc/multimodal-generation/generation', {
-        model: 'qwen-tts',
+        model,
         input: { text },
         parameters: { voice, format },
       }, {
@@ -953,7 +1006,7 @@ export class AIClient {
         providerId: 'alibaba',
         providerName: '阿里云百炼',
         endpoint: '/api/v1/services/aigc/multimodal-generation/generation',
-        model: 'qwen-tts',
+        model,
         duration,
         status: 'success',
       });
@@ -1107,6 +1160,292 @@ export class AIClient {
       scenes: [],
     };
   }
+
+  // ==================== AI 视频生成（文本转视频） ====================
+
+  /**
+   * 视频生成：文本转视频（可灵/混元/Seedance/Wan 四路降级）
+   * 数字人模型 yt-video-humanactor 需要 imageUrl + text（自动 TTS 配音）
+   */
+  async generateVideo(
+    userId: string,
+    params: VideoGenerationParams
+  ): Promise<VideoGenerationResult> {
+    const credentials = await this.resolveApiCredentials(userId, params.provider);
+    const provider = credentials.provider as VideoProvider;
+
+    // 确定候选模型列表（用户指定则单模型，否则按 Provider 全量降级）
+    let candidates: VideoModelCandidate[];
+    if (params.model) {
+      const matched = VIDEO_MODEL_CANDIDATES.find(m => m.model === params.model);
+      candidates = matched
+        ? [{ provider: matched.provider, model: matched.model, label: matched.label }]
+        : [{ provider, model: params.model, label: params.model }];
+    } else {
+      candidates = VIDEO_MODEL_CANDIDATES.filter(m => m.provider === provider)
+        .concat(VIDEO_MODEL_CANDIDATES.filter(m => m.provider !== provider));
+    }
+
+    let lastError: Error | null = null;
+    for (const candidate of candidates) {
+      const startedAt = Date.now();
+      try {
+        const url = await this.callVideoGeneration(userId, credentials, candidate, params);
+        if (!url) {
+          throw new Error(`${candidate.label} 未返回视频地址`);
+        }
+        await this.logUsage({
+          userId,
+          providerId: candidate.provider,
+          providerName: candidate.label,
+          endpoint: '/video/generations',
+          model: candidate.model,
+          duration: Date.now() - startedAt,
+          status: 'success',
+        });
+        await this.updateKeyStats(credentials.keyId, true);
+        return { url, provider: candidate.provider, providerLabel: candidate.label, model: candidate.model };
+      } catch (err: any) {
+        lastError = err;
+        await this.logUsage({
+          userId,
+          providerId: candidate.provider,
+          providerName: candidate.label,
+          endpoint: '/video/generations',
+          model: candidate.model,
+          duration: Date.now() - startedAt,
+          status: 'failed',
+          errorMsg: err.message,
+        });
+      }
+    }
+    await this.updateKeyStats(credentials.keyId, false);
+    throw lastError || new Error('视频生成失败：请检查 API Key 或稍后重试');
+  }
+
+  /**
+   * 调用单一路视频生成 API（submit + poll）
+   */
+  private async callVideoGeneration(
+    userId: string,
+    credentials: { apiKey: string; baseUrl: string },
+    candidate: VideoModelCandidate,
+    params: VideoGenerationParams
+  ): Promise<string> {
+    const { provider, model } = candidate;
+    const { apiKey } = credentials;
+    const baseUrl = credentials.baseUrl || this.getProviderBaseUrl(provider);
+
+    // 数字人模型：必须提供形象图 + 音频（先用 TTS 合成配音）
+    if (model === 'yt-video-humanactor') {
+      const imageUrl = params.imageUrl || params.images?.[0];
+      if (!imageUrl) {
+        throw new Error('数字人需要上传一张人物照片作为形象');
+      }
+      const tts = await this.textToSpeech(userId, {
+        text: (params.text || params.prompt).slice(0, 500),
+        voice: params.voice || 'zhixiaobai',
+      });
+      if (!tts.url) {
+        throw new Error('数字人 TTS 未返回音频 URL');
+      }
+      return this.submitTencentVideo(baseUrl, apiKey, model, params.prompt, {
+        imageUrl,
+        audioUrl: tts.url,
+      });
+    }
+
+    if (provider === 'tencent') {
+      return this.submitTencentVideo(baseUrl, apiKey, model, params.prompt, {
+        size: params.size,
+        duration: params.duration,
+        imageUrl: params.imageUrl || params.images?.[0],
+      });
+    }
+
+    if (provider === 'alibaba') {
+      return this.submitAlibabaVideo(baseUrl, apiKey, model, params.prompt, params);
+    }
+
+    if (provider === 'volcano') {
+      return this.submitVolcanoVideo(baseUrl, apiKey, model, params.prompt, {
+        imageUrl: params.imageUrl || params.images?.[0],
+      });
+    }
+
+    throw new Error(`不支持的 provider: ${provider}`);
+  }
+
+  /**
+   * 获取视频 API 的 origin（后端 baseUrl 为 OpenAI 兼容路径，视频端点需基于 origin 拼接）
+   */
+  private getVideoOrigin(baseUrl: string, provider: string): string {
+    if (provider === 'tencent') return baseUrl.replace(/\/v1$/, '');
+    if (provider === 'alibaba') return baseUrl.replace(/\/compatible-mode\/v1$/, '');
+    return baseUrl; // volcano: https://ark.cn-beijing.volces.com/api/v3
+  }
+
+  /**
+   * 腾讯云 TokenHub 视频（submit + poll）
+   */
+  private async submitTencentVideo(
+    baseUrl: string,
+    apiKey: string,
+    model: string,
+    prompt: string,
+    opts: { size?: string; duration?: number; imageUrl?: string; audioUrl?: string }
+  ): Promise<string> {
+    const origin = this.getVideoOrigin(baseUrl, 'tencent');
+    const axiosInstance = this.getAxiosInstance(origin);
+    const submitBody: Record<string, any> = {
+      model,
+      prompt,
+      duration: opts.duration || 5,
+      size: opts.size || '1280x720',
+    };
+    if (opts.imageUrl) {
+      submitBody.image_url = opts.imageUrl;
+    }
+    // 数字人模型：TokenHub 要求 image_url + audio_url，不接受 duration/size/text
+    if (model === 'yt-video-humanactor') {
+      if (!opts.imageUrl || !opts.audioUrl) {
+        throw new Error('数字人需要形象图与配音音频');
+      }
+      submitBody.image_url = opts.imageUrl;
+      submitBody.audio_url = opts.audioUrl;
+      delete submitBody.duration;
+      delete submitBody.size;
+      delete submitBody.text;
+    }
+
+    const submitResp = await axiosInstance.post('/v1/api/video/submit', submitBody, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    const submitJson = submitResp.data;
+    const taskId = submitJson.task_id || submitJson.id || submitJson.request_id;
+    if (!taskId) {
+      return submitJson.video_url || submitJson.url || '';
+    }
+
+    // 轮询任务状态（最多 3 分钟）
+    for (let i = 0; i < 60; i++) {
+      await sleep(3000);
+      const pollResp = await axiosInstance.post('/v1/api/video/query', { task_id: taskId }, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      const pollJson = pollResp.data;
+      const status = pollJson.status || pollJson.state;
+      if (status === 'succeeded' || status === 'completed' || status === 'success') {
+        return pollJson.video_url || pollJson.url || pollJson.output?.video_url || '';
+      }
+      if (status === 'failed' || status === 'error') {
+        throw new Error(`腾讯云视频任务失败: ${pollJson.error || pollJson.message || JSON.stringify(pollJson).slice(0, 300)}`);
+      }
+    }
+    throw new Error('腾讯云视频生成超时（3分钟）');
+  }
+
+  /**
+   * 阿里云百炼视频（异步 task + poll）
+   */
+  private async submitAlibabaVideo(
+    baseUrl: string,
+    apiKey: string,
+    model: string,
+    prompt: string,
+    params: VideoGenerationParams
+  ): Promise<string> {
+    const origin = this.getVideoOrigin(baseUrl, 'alibaba');
+    const axiosInstance = this.getAxiosInstance(origin);
+    const sizeMap: Record<string, [string, string]> = {
+      '1280*720': ['720P', '16:9'], '1280x720': ['720P', '16:9'],
+      '1920*1080': ['1080P', '16:9'], '1920x1080': ['1080P', '16:9'],
+      '720*1280': ['720P', '9:16'], '720x1280': ['720P', '9:16'],
+      '1080*1920': ['1080P', '9:16'], '1080x1920': ['1080P', '9:16'],
+      '1024*1024': ['720P', '1:1'], '1024x1024': ['720P', '1:1'],
+    };
+    const rawSize = params.size || '1280*720';
+    const [resolution, ratio] = sizeMap[rawSize] || ['720P', '16:9'];
+    const body = {
+      model,
+      input: { prompt },
+      parameters: { resolution, ratio, duration: params.duration || 5 },
+    };
+    const submitResp = await axiosInstance.post(
+      '/api/v1/services/aigc/video-generation/video-synthesis',
+      body,
+      { headers: { Authorization: `Bearer ${apiKey}`, 'X-DashScope-Async': 'enable' } }
+    );
+    const submitJson = submitResp.data;
+    const taskId = submitJson.output?.task_id || submitJson.request_id || '';
+    if (!taskId) {
+      // 少数模型可能同步返回
+      return submitJson.output?.video_url || submitJson.output?.results?.[0]?.url || '';
+    }
+
+    // 异步轮询（最多 5 分钟）
+    for (let i = 0; i < 60; i++) {
+      await sleep(5000);
+      const pollResp = await axiosInstance.get(`/api/v1/tasks/${taskId}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      const pollJson = pollResp.data;
+      const status = pollJson.output?.task_status || pollJson.status || '';
+      if (status === 'SUCCEEDED' || status === 'succeeded' || status === 'completed' || status === 'success') {
+        return pollJson.output?.video_url || pollJson.output?.results?.[0]?.url || '';
+      }
+      if (status === 'FAILED' || status === 'failed' || status === 'error') {
+        throw new Error(`阿里云视频任务失败: ${pollJson.output?.message || pollJson.message || JSON.stringify(pollJson).slice(0, 300)}`);
+      }
+    }
+    throw new Error('阿里云视频生成超时（5分钟）');
+  }
+
+  /**
+   * 火山方舟视频（Seedance，submit + poll）
+   */
+  private async submitVolcanoVideo(
+    baseUrl: string,
+    apiKey: string,
+    model: string,
+    prompt: string,
+    opts: { imageUrl?: string }
+  ): Promise<string> {
+    const origin = this.getVideoOrigin(baseUrl, 'volcano');
+    const axiosInstance = this.getAxiosInstance(origin);
+    const content: Array<Record<string, any>> = [{ type: 'text', text: prompt }];
+    if (opts.imageUrl) {
+      content.push({ type: 'image_url', image_url: { url: opts.imageUrl } });
+    }
+    const submitResp = await axiosInstance.post('/contents/generations/tasks', { model, content }, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    const submitJson = submitResp.data;
+    const taskId = submitJson.id || submitJson.task_id;
+    if (!taskId) {
+      // 可能同步返回
+      const videoUrl = submitJson.output?.video_url || submitJson.video_url || submitJson.url || '';
+      if (videoUrl) return videoUrl;
+      throw new Error('火山方舟视频任务提交未返回 task id');
+    }
+
+    // 轮询任务状态（最多 5 分钟）
+    for (let i = 0; i < 60; i++) {
+      await sleep(5000);
+      const pollResp = await axiosInstance.get(`/contents/generations/tasks/${taskId}`, {
+        headers: { Authorization: `Bearer ${apiKey}` },
+      });
+      const pollJson = pollResp.data;
+      const status = pollJson.status || pollJson.state || pollJson.output?.status || '';
+      if (status === 'succeeded' || status === 'completed' || status === 'success') {
+        return pollJson.output?.video_url || pollJson.video_url || pollJson.url || pollJson.output?.url || '';
+      }
+      if (status === 'failed' || status === 'error' || status === 'cancelled') {
+        throw new Error(`火山方舟视频任务失败: ${pollJson.error?.message || pollJson.message || JSON.stringify(pollJson).slice(0, 300)}`);
+      }
+    }
+    throw new Error('火山方舟视频生成超时（5分钟）');
+  }
 }
 
 // ==================== 导出单例 ====================
@@ -1153,6 +1492,16 @@ export async function generateVideoScript(
   params: VideoScriptParams
 ): Promise<VideoScriptResult> {
   return aiClient.generateVideoScript(userId, params);
+}
+
+/**
+ * 视频生成：文本转视频（便捷函数）
+ */
+export async function generateVideo(
+  userId: string,
+  params: VideoGenerationParams
+): Promise<VideoGenerationResult> {
+  return aiClient.generateVideo(userId, params);
 }
 
 export default aiClient;

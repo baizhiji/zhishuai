@@ -108,6 +108,15 @@ class AuthService {
     }
   }
 
+  // 修改密码
+  async updatePassword(data: {
+    oldPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }): Promise<void> {
+    await apiClient.put(API_ENDPOINTS.UPDATE_PASSWORD, data);
+  }
+
   // 检查登录状态
   isLoggedIn(): boolean {
     return TokenStorage.isLoggedIn();

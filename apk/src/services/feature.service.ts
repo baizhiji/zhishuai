@@ -169,19 +169,7 @@ export function getDefaultFeatures(): FeatureSwitch[] {
         { id: '4-2', featureCode: 'share', code: 'effect_track', name: '效果追踪', description: '扫码/下载数据追踪', enabled: true, sortOrder: 2 },
       ],
     },
-    {
-      id: '5',
-      code: 'referral',
-      name: '转介绍',
-      description: '推荐下载APP、奖励记录',
-      icon: 'person-add',
-      enabled: true,
-      sortOrder: 5,
-      subFeatures: [
-        { id: '5-1', featureCode: 'referral', code: 'my_referral', name: '我的推荐', description: '查看推荐用户', enabled: true, sortOrder: 1 },
-        { id: '5-2', featureCode: 'referral', code: 'reward_record', name: '奖励记录', description: '查看推荐奖励', enabled: true, sortOrder: 2 },
-      ],
-    },
+
   ];
 }
 
@@ -191,7 +179,6 @@ export const FEATURE_CODES = {
   RECRUITMENT: 'recruitment',
   ACQUISITION: 'acquisition',
   SHARE: 'share',
-  REFERRAL: 'referral',
 } as const;
 
 // 功能路由映射
@@ -200,7 +187,6 @@ export const FEATURE_ROUTES: Record<string, string> = {
   [FEATURE_CODES.RECRUITMENT]: 'Recruitment',
   [FEATURE_CODES.ACQUISITION]: 'Acquisition',
   [FEATURE_CODES.SHARE]: 'Share',
-  [FEATURE_CODES.REFERRAL]: 'Referral',
 };
 
 // 功能图标映射
@@ -209,7 +195,6 @@ export const FEATURE_ICONS: Record<string, keyof typeof import('@expo/vector-ico
   [FEATURE_CODES.RECRUITMENT]: 'people',
   [FEATURE_CODES.ACQUISITION]: 'trending-up',
   [FEATURE_CODES.SHARE]: 'share-social',
-  [FEATURE_CODES.REFERRAL]: 'person-add',
   'materials': 'images',
   'analytics': 'stats-chart',
 };
@@ -220,7 +205,6 @@ export const FEATURE_COLORS: Record<string, string> = {
   [FEATURE_CODES.RECRUITMENT]: '#8B5CF6',
   [FEATURE_CODES.ACQUISITION]: '#10B981',
   [FEATURE_CODES.SHARE]: '#F97316',
-  [FEATURE_CODES.REFERRAL]: '#EC4899',
   'materials': '#06B6D4',
   'analytics': '#6D28D9',
 };

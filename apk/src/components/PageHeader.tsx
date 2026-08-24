@@ -15,8 +15,6 @@ const SCREEN_TITLES: Record<string, string> = {
   Settings: '设置',
   Share: '推荐分享',
   MediaOperation: 'AI创作工厂',
-
-  Referral: '转介绍',
 };
 
 interface PageHeaderProps {

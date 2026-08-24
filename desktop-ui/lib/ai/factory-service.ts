@@ -31,6 +31,7 @@ import {
   qualityScore,
   injectHumanStyle,
 } from './anti-ai-flavor';
+import request from '@/lib/request';
 
 // ─── 违禁内容零逃逸扫描（P0-1）────────────────
 
@@ -93,7 +94,15 @@ export interface GenerateVideoParams {
   bgm?: string;
   /** 横幅/贴片叠加层ID列表，传 ['auto'] 使用推荐组合 */
   overlayBanners?: string[];
+  /** 横幅/贴片视觉样式（蓝皮书 11.4.4：8 种预设 + auto 自动推荐） */
+  bannerStyle?: string;
   videoType?: 'portrait' | 'product' | 'scene' | 'digital-human' | 'mv' | 'enterprise';
+  /** 智能剪辑：素材视频URL列表（服务端 FFmpeg 拼接成片） */
+  clips?: string[];
+  /** 智能剪辑：字幕文案 */
+  subtitleText?: string;
+  /** 智能剪辑：BGM 音频URL */
+  bgmUrl?: string;
 }
 
 export interface GenerateResult {
@@ -1458,8 +1467,38 @@ export async function generateVideo(
 ): Promise<GenerateResult> {
   const apiKeys = getUserApiKeys();
 
-  // 智能剪辑：走多阶段流水线（脚本→素材理解→镜头编排→配音→字幕→BGM→调色→FFmpeg合成→合规）
+  // 智能剪辑：优先服务端 FFmpeg 拼接成片（交付最终 MP4），无素材时走多阶段流水线方案
   if (slug === 'smartEdit') {
+    // 1. 有素材视频 URL 时，调用服务端成片接口
+    const materialVideos = (params.clips || []).filter(Boolean);
+    const token = getAuthToken();
+    if (materialVideos.length > 0 && token) {
+      try {
+        const resp = await fetch('/api/video-edit/compose', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            clips: materialVideos,
+            subtitleText: params.subtitleText,
+            bgmUrl: params.bgmUrl,
+            size: params.size || '1080x1920',
+          }),
+        });
+        const json = await resp.json();
+        if (json.success && json.data?.videoUrl) {
+          return {
+            success: true,
+            data: json.data.videoUrl,
+            provider: '智能剪辑成片',
+            model: '服务端 FFmpeg 合成',
+          };
+        }
+        console.warn('[smartEdit] 服务端成片失败，降级流水线方案:', json.error?.message);
+      } catch (e) {
+        console.warn('[smartEdit] 服务端成片不可用，降级流水线方案:', (e as Error).message);
+      }
+    }
+    // 2. 降级：多阶段流水线（脚本→素材理解→镜头编排→配音→字幕→BGM→调色→FFmpeg合成→合规）
     const materialList = [...(params.images || []), params.imageUrl].filter(Boolean);
     const inputWithMaterials = materialList.length > 0
       ? `【视频素材清单】\n${materialList.join('\n')}\n\n${params.prompt}`
@@ -1480,6 +1519,12 @@ export async function generateVideo(
   // 构建增强 prompt（注入字幕/配音/横幅配置）
   const enhancedPrompt = buildVideoPrompt(params);
 
+  // 真实配音合成：数字人在 API 层已用 audio_url 驱动配音，这里跳过
+  const withVoiceover = async (url: string) =>
+    params.voiceover && params.voiceover !== 'none' && slug !== 'digitalHuman'
+      ? attachRealVoiceover(url, params, apiKeys)
+      : url;
+
   if (slug) {
     const config = getCategoryConfig(slug);
     if (config) {
@@ -1490,14 +1535,14 @@ export async function generateVideo(
         if (modelInfo && apiKeys[modelInfo.provider]) {
           try {
             const url = await callVideoAPI(modelInfo.provider, modelInfo.modelId, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[modelInfo.provider]);
-            return { success: true, data: url, provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
+            return { success: true, data: await withVoiceover(url), provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
           } catch {
             if (vidPhase.fallbackModel) {
               const fbInfo = MODEL_INFO[vidPhase.fallbackModel];
               if (fbInfo && apiKeys[fbInfo.provider]) {
                 try {
                   const url = await callVideoAPI(fbInfo.provider, fbInfo.modelId, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[fbInfo.provider]);
-                  return { success: true, data: url, provider: PROVIDER_INFO[fbInfo.provider].label, model: fbInfo.displayName };
+                  return { success: true, data: await withVoiceover(url), provider: PROVIDER_INFO[fbInfo.provider].label, model: fbInfo.displayName };
                 } catch { /* fall through */ }
               }
             }
@@ -1517,7 +1562,7 @@ export async function generateVideo(
     if (!apiKeys[p]) continue;
     try {
       const url = await callVideoAPI(p, model, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[p]);
-      return { success: true, data: url, provider: PROVIDER_INFO[p].label, model: name };
+      return { success: true, data: await withVoiceover(url), provider: PROVIDER_INFO[p].label, model: name };
     } catch { continue; }
   }
 
@@ -1545,17 +1590,17 @@ function buildVideoPrompt(params: GenerateVideoParams): string {
     const voiceMap: Record<string, string> = {
       'male-mandarin': '使用男声普通话配音',
       'female-mandarin': '使用女声普通话配音',
+      'male-sichuan': '使用男声四川话方言配音',
+      'female-sichuan': '使用女声四川话方言配音',
       'male-cantonese': '使用男声粤语配音',
       'female-cantonese': '使用女声粤语配音',
       'male-english': '使用男声英语配音',
       'female-english': '使用女声英语配音',
-      sichuan: '使用四川话方言配音',
-      dongbei: '使用东北话方言配音',
       shanghai: '使用上海话方言配音',
-      minnan: '使用闽南话方言配音',
-      henan: '使用河南话方言配音',
-      hunan: '使用湖南话方言配音',
+      beijing: '使用北京话方言配音',
+      nanjing: '使用南京话方言配音',
       shaanxi: '使用陕西话方言配音',
+      minnan: '使用闽南语方言配音',
       tianjin: '使用天津话方言配音',
     };
     parts.push(voiceMap[params.voiceover] || '');
@@ -1596,6 +1641,21 @@ function buildVideoPrompt(params: GenerateVideoParams): string {
     if (bannerDescs.length > 0) {
       parts.push(`视频叠加元素：${bannerDescs.join('；')}`);
     }
+  }
+
+  // 横幅视觉样式（蓝皮书 11.4.4：8 种预设；auto 时交由模型自动匹配）
+  const bannerStyleMap: Record<string, string> = {
+    'minimal-white': '简约白：白底黑字、留白多、高级简约',
+    'corporate-blue': '商务蓝：深蓝底白字、沉稳专业',
+    'gradient-pop': '潮流渐变：蓝紫/粉橙渐变、年轻潮流',
+    cyberpunk: '赛博朋克：霓虹粉青、故障风科技感',
+    handwritten: '文艺手写：米黄底手写体、文艺清新',
+    'retro-newsprint': '复古报刊：报纸黄底衬线字、复古质感',
+    'neon-night': '霓虹夜店：深黑底霓虹字、夜店氛围',
+    'fresh-nature': '清新自然：淡绿底圆润字、清新自然',
+  };
+  if (params.bannerStyle && bannerStyleMap[params.bannerStyle]) {
+    parts.push(`叠加元素视觉风格：${bannerStyleMap[params.bannerStyle]}`);
   }
 
   return parts.filter(Boolean).join('。');
@@ -1646,22 +1706,112 @@ export { hasApiKey, getCategoryKeyCoverage, PROVIDER_INFO, MODEL_INFO, CATEGORY_
 
 // ─── 方言配音映射 ────────────────────────────
 
+/**
+ * 方言配音映射 → 阿里云百炼 Qwen3-TTS-Flash 真实音色
+ * （Qwen3-TTS-Flash 2025-11-27 快照支持 51 种音色，含 北京/上海/四川/南京/陕西/闽南/天津/粤语 等方言）
+ */
 export const dialectVoiceMap: Record<string, { provider: string; voiceId: string; label: string }> = {
-  'male-mandarin': { provider: 'alibaba', voiceId: 'zhimi_emo', label: '男声-普通话' },
-  'female-mandarin': { provider: 'alibaba', voiceId: 'xiaoyun', label: '女声-普通话' },
-  'male-cantonese': { provider: 'tencent', voiceId: '101001', label: '男声-粤语' },
-  'female-cantonese': { provider: 'tencent', voiceId: '101002', label: '女声-粤语' },
-  'sichuan': { provider: 'alibaba', voiceId: 'sicuan_male', label: '四川话' },
-  'dongbei': { provider: 'alibaba', voiceId: 'dongbei_male', label: '东北话' },
-  'shanghai': { provider: 'tencent', voiceId: '101003', label: '上海话' },
-  'minnan': { provider: 'tencent', voiceId: '101004', label: '闽南话' },
-  'henan': { provider: 'alibaba', voiceId: 'henan_male', label: '河南话' },
-  'hunan': { provider: 'alibaba', voiceId: 'hunan_male', label: '湖南话' },
-  'shaanxi': { provider: 'tencent', voiceId: '101005', label: '陕西话' },
-  'tianjin': { provider: 'tencent', voiceId: '101006', label: '天津话' },
-  'male-english': { provider: 'alibaba', voiceId: 'en_male', label: '男声-英语' },
-  'female-english': { provider: 'alibaba', voiceId: 'en_female', label: '女声-英语' },
+  'male-mandarin': { provider: 'alibaba', voiceId: 'Ethan', label: '男声-普通话' },
+  'female-mandarin': { provider: 'alibaba', voiceId: 'Cherry', label: '女声-普通话' },
+  'male-sichuan': { provider: 'alibaba', voiceId: 'Eric', label: '男声-四川话' },
+  'female-sichuan': { provider: 'alibaba', voiceId: 'Sunny', label: '女声-四川话' },
+  'male-cantonese': { provider: 'alibaba', voiceId: 'Rocky', label: '男声-粤语' },
+  'female-cantonese': { provider: 'alibaba', voiceId: 'Kiki', label: '女声-粤语' },
+  'male-english': { provider: 'alibaba', voiceId: 'Aiden', label: '男声-英语' },
+  'female-english': { provider: 'alibaba', voiceId: 'Jennifer', label: '女声-英语' },
+  shanghai: { provider: 'alibaba', voiceId: 'Jada', label: '上海话(女)' },
+  beijing: { provider: 'alibaba', voiceId: 'Dylan', label: '北京话(男)' },
+  nanjing: { provider: 'alibaba', voiceId: 'Li', label: '南京话(男)' },
+  shaanxi: { provider: 'alibaba', voiceId: 'Marcus', label: '陕西话(男)' },
+  minnan: { provider: 'alibaba', voiceId: 'Roy', label: '闽南语(男)' },
+  tianjin: { provider: 'alibaba', voiceId: 'Peter', label: '天津话(男)' },
 };
+
+/** 配音合成使用的 TTS 模型 */
+const VOICEOVER_TTS_MODEL = 'qwen3-tts-flash';
+
+/**
+ * 真实配音合成链路（解决"配音只进 prompt、音色不可控"问题）：
+ * 口播文案生成 → 阿里云 Qwen3-TTS-Flash 合成音频 → 服务端 FFmpeg 合入视频。
+ * 任一步失败均静默回退原视频，不影响成片交付。
+ */
+
+/** 根据视频 prompt 生成 120-220 字自然口语化口播文案 */
+async function generateVoiceoverScript(prompt: string, apiKeys: Record<string, string>): Promise<string> {
+  const candidates: { provider: AiProvider; modelId: string }[] = [
+    { provider: 'alibaba', modelId: 'qwen3.7-max' },
+    { provider: 'tencent', modelId: 'deepseek-v4-pro-202606' },
+  ];
+  for (const { provider, modelId } of candidates) {
+    if (!apiKeys[provider]) continue;
+    try {
+      const script = await callChatAPI(provider, modelId, [
+        { role: 'system', content: '你是一名短视频口播文案编剧。根据主题写一段自然、口语化、有感染力的口播旁白文案。直接输出文案本身，不要标题、不要序号、不要任何解释，控制在 120-220 字。' },
+        { role: 'user', content: `主题与要求：\n${prompt.slice(0, 1500)}\n\n请输出口播旁白文案：` },
+      ], { temperature: 0.8, maxTokens: 500 }, apiKeys[provider]);
+      const cleaned = (script || '').replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '').trim();
+      if (cleaned.length >= 20) return cleaned;
+    } catch {
+      /* 尝试下一个 provider */
+    }
+  }
+  return '';
+}
+
+/** 阿里云百炼 Qwen3-TTS-Flash 语音合成，返回音频 URL */
+async function synthesizeTTSAudio(text: string, voiceId: string, apiKey: string): Promise<string> {
+  if (!apiKey) return '';
+  const ttsUrl = `${PROVIDER_INFO.alibaba.baseUrl}${PROVIDER_INFO.alibaba.multimodalImageEndpoint}`;
+  const resp = await fetch(ttsUrl, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: VOICEOVER_TTS_MODEL,
+      input: { text: text.slice(0, 500) },
+      parameters: { voice: voiceId, format: 'mp3' },
+    }),
+  });
+  if (!resp.ok) throw new Error(`TTS (${resp.status}): ${await resp.text()}`);
+  const json = await resp.json();
+  return json.output?.audio?.url || json.output?.audio_url || json.output?.url || '';
+}
+
+/** 调服务端 FFmpeg 将配音音频合入视频，返回带配音的成片 URL */
+async function muxVoiceover(videoUrl: string, audioUrl: string): Promise<string> {
+  // request 拦截器已解包 { success, data }，此处 resp.data 即 { videoUrl }
+  // 注意：request baseURL 已含 /api，路径不能再带 /api 前缀，否则会拼成 /api/api/...
+  const resp: any = await request.post('/video-voice/synthesize', { videoUrl, audioUrl }, { timeout: 300000 });
+  const result = resp?.data || {};
+  if (!result.videoUrl) return '';
+  const base = (request.defaults.baseURL || '') as string;
+  try {
+    if (base.startsWith('http')) return new URL(result.videoUrl, base).href;
+  } catch {
+    /* 继续按页面 origin 拼接 */
+  }
+  if (typeof window !== 'undefined') return new URL(result.videoUrl, window.location.origin).href;
+  return result.videoUrl;
+}
+
+/** 主入口：生成视频后附加真实配音；任一步失败静默回退原视频 */
+async function attachRealVoiceover(
+  videoUrl: string,
+  params: GenerateVideoParams,
+  apiKeys: Record<string, string>
+): Promise<string> {
+  const voice = params.voiceover ? dialectVoiceMap[params.voiceover] : undefined;
+  if (!voice) return videoUrl;
+  try {
+    const script = await generateVoiceoverScript(params.prompt, apiKeys);
+    if (!script) return videoUrl;
+    const audioUrl = await synthesizeTTSAudio(script, voice.voiceId, apiKeys.alibaba);
+    if (!audioUrl) return videoUrl;
+    const muxed = await muxVoiceover(videoUrl, audioUrl);
+    return muxed || videoUrl;
+  } catch {
+    return videoUrl;
+  }
+}
 
 // ─── 内容创意增强 API ──────────────────────
 

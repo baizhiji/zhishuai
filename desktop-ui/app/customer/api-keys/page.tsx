@@ -56,6 +56,8 @@ export default function ApiKeysPage() {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const [showHelp, setShowHelp] = useState(true);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [balanceMap, setBalanceMap] = useState<Record<string, { balance: number | null; unit: string; message?: string }>>({});
 
   const loadKeys = useCallback(async () => {
     try {
@@ -111,6 +113,26 @@ export default function ApiKeysPage() {
   useEffect(() => {
     loadKeys();
   }, [loadKeys]);
+
+  // 加载所有服务端 Key 的余额（蓝皮书 6.2 第 3 条）
+  const loadBalances = useCallback(async (keyList: ApiKeyItem[]) => {
+    const serverKeys = keyList.filter(k => !k.id.startsWith('local-'));
+    const next: Record<string, { balance: number | null; unit: string; message?: string }> = {};
+    await Promise.all(
+      serverKeys.map(async k => {
+        try {
+          const res = await fetch(`/api/ai-config/keys/${k.id}/balance`, { headers: getAuthHeaders() });
+          const json = await res.json();
+          if (json.success) next[k.id] = json.data;
+        } catch { /* 单个 Key 余额失败不影响其他 */ }
+      })
+    );
+    setBalanceMap(next);
+  }, []);
+
+  useEffect(() => {
+    if (keys.length > 0) loadBalances(keys);
+  }, [keys, loadBalances]);
 
   const handleAdd = async (values: Record<string, string | boolean>) => {
     setSubmitting(true);
@@ -198,6 +220,29 @@ export default function ApiKeysPage() {
     navigator.clipboard.writeText(key).then(() => message.success('已复制'));
   };
 
+  const handleTest = async (record: ApiKeyItem) => {
+    if (record.id.startsWith('local-')) {
+      message.info('该Key仅存于浏览器本地缓存，无法在服务端测试；请删除后重新添加以完成服务端保存');
+      return;
+    }
+    setTestingId(record.id);
+    try {
+      const res = await fetch(`/api/ai-config/keys/${record.id}/test`, {
+        method: 'POST', headers: getAuthHeaders(),
+      });
+      const json = await res.json();
+      if (json.success && json.valid) {
+        message.success(`${record.providerName} 连接正常：${json.message || 'API Key 验证成功'}`);
+      } else {
+        message.error(`${record.providerName} 连接失败：${json.message || json.error || '验证失败'}`);
+      }
+    } catch (error: unknown) {
+      message.error(`${record.providerName} 测试失败：${(error as Error).message || '网络错误'}`);
+    } finally {
+      setTestingId(null);
+    }
+  };
+
   const totalUsage = keys.reduce((sum, k) => sum + k.usage, 0);
   const activeKeys = keys.filter(k => k.status === 'active').length;
 
@@ -233,12 +278,47 @@ export default function ApiKeysPage() {
       ),
     },
     {
-      title: '使用次数', dataIndex: 'usage', key: 'usage', width: 100,
+      title: '用量明细', dataIndex: 'usage', key: 'usage', width: 170,
+      render: (usage: number, record: ApiKeyItem) => (
+        <Space direction="vertical" size={0}>
+          <span>{usage} 次调用</span>
+          {record.failCount > 0 && <Text type="danger" style={{ fontSize: 11 }}>失败 {record.failCount} 次</Text>}
+          {record.lastUsedAt && (
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              最近使用 {new Date(record.lastUsedAt).toLocaleString()}
+            </Text>
+          )}
+        </Space>
+      ),
     },
     {
-      title: '操作', key: 'action', width: 220,
+      title: '余额', dataIndex: 'id', key: 'balance', width: 150,
+      render: (_: unknown, record: ApiKeyItem) => {
+        const b = balanceMap[record.id];
+        if (record.id.startsWith('local-')) {
+          return <Text type="secondary" style={{ fontSize: 12 }}>本地缓存</Text>;
+        }
+        if (!b) return <Text type="secondary" style={{ fontSize: 12 }}>—</Text>;
+        if (b.balance === null) return <Text type="secondary" style={{ fontSize: 12 }}>{b.message || '不支持查询'}</Text>;
+        return (
+          <Text style={{ fontSize: 12 }}>
+            <span style={{ color: '#16a34a', fontWeight: 500 }}>¥ {b.balance.toFixed(2)}</span>
+            <span style={{ color: '#999' }}> / {b.unit}</span>
+          </Text>
+        );
+      },
+    },
+    {
+      title: '操作', key: 'action', width: 280,
       render: (_: unknown, record: ApiKeyItem) => (
         <Space size="small" wrap>
+          <Button
+            type="link" size="small" icon={<ApiOutlined />}
+            loading={testingId === record.id}
+            onClick={() => handleTest(record)}
+          >
+            测试连接
+          </Button>
           {!record.isPrimary && (
             <Button type="link" size="small" onClick={() => handleSetPrimary(record.id)}>
               设为主Key

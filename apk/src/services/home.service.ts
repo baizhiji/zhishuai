@@ -17,12 +17,6 @@ export interface TodayStats {
   resumesReviewed: number; // 已查看简历
 }
 
-// 转介绍统计
-export interface ReferralStats {
-  totalInvites: number; // 累计邀请人数
-  activeInvites: number; // 有效邀请人数
-}
-
 // 智能招聘统计
 export interface RecruitmentStats {
   totalJobs: number; // 职位数
@@ -36,16 +30,6 @@ class HomeService {
   async getTodayStats(): Promise<TodayStats | null> {
     try {
       const data = await apiClient.get<TodayStats>(API_ENDPOINTS.ACQUISITION_STATS);
-      return data;
-    } catch {
-      return null;
-    }
-  }
-
-  // 获取转介绍统计
-  async getReferralStats(): Promise<ReferralStats | null> {
-    try {
-      const data = await apiClient.get<ReferralStats>(API_ENDPOINTS.REFERRAL_STATS);
       return data;
     } catch {
       return null;

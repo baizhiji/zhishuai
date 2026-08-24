@@ -17,6 +17,7 @@ import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { useAppNavigation } from '../context/NavigationContext';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/api.client';
+import { APP_VERSION } from '../services/version';
 import PageHeader from '../components/PageHeader';
 
 interface SettingItem {
@@ -62,7 +63,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const displayName = userData?.name || user?.name || '用户';
+  const displayName = userData?.name || user?.nickname || '用户';
   const displayPhone = userData?.phone || user?.phone || '138****0000';
   const displayPhoneMask = displayPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
   const avatarChar = displayName.charAt(0);
@@ -98,8 +99,14 @@ export default function SettingsScreen() {
           { text: '确定', style: 'destructive', onPress: () => logout() },
         ]
       );
-    } else if (item.type === 'navigate' && item.id === 'accountSecurity') {
-      Alert.alert('账号安全', '跳转到账号安全页面');
+    } else if (item.type === 'navigate' && item.id === 'security') {
+      navigate?.('ChangePassword');
+    } else if (item.type === 'navigate' && item.id === 'apiConfig') {
+      Alert.alert(
+        'AI 模型配置',
+        '为避免在手机端暴露和泄露 AI 服务商的 API Key，手机端不提供单独配置入口，统一复用电脑端（网页版）「我的-API 配置」中已保存的服务商密钥。\n\n如需更换或新增模型密钥，请登录电脑端智枢AI进行配置，手机端将自动同步使用。',
+        [{ text: '知道了' }]
+      );
     } else {
       Alert.alert(item.title, `跳转到${item.title}页面`);
     }
@@ -211,6 +218,7 @@ export default function SettingsScreen() {
               { id: 'profile', title: '个人资料', subtitle: '头像、昵称、联系方式', icon: 'person-outline' as const, iconColor: '#6D28D9', type: 'navigate' as const },
               { id: 'security', title: '账号安全', subtitle: '修改密码、绑定手机', icon: 'shield-outline' as const, iconColor: '#6D28D9', type: 'navigate' as const },
               { id: 'subscription', title: '服务到期', subtitle: userData?.expireDate ? `到期时间：${userData.expireDate}` : '查询套餐详情', icon: 'calendar-outline' as const, iconColor: '#D97706', type: 'navigate' as const },
+              { id: 'apiConfig', title: 'AI 模型配置', subtitle: '复用电脑端配置的 API Key', icon: 'key-outline' as const, iconColor: '#6D28D9', type: 'navigate' as const },
             ]
           },
           {
@@ -226,7 +234,7 @@ export default function SettingsScreen() {
             items: [
               { id: 'help', title: '帮助中心', subtitle: '常见问题和使用教程', icon: 'help-circle-outline' as const, iconColor: '#0891B2', type: 'navigate' as const },
               { id: 'feedback', title: '意见反馈', subtitle: '提交问题和建议', icon: 'chatbubbles-outline' as const, iconColor: '#EA580C', type: 'navigate' as const },
-              { id: 'about', title: '关于我们', subtitle: '版本 1.0.0', icon: 'information-circle-outline' as const, iconColor: '#475569', type: 'navigate' as const },
+              { id: 'about', title: '关于我们', subtitle: `版本 ${APP_VERSION}`, icon: 'information-circle-outline' as const, iconColor: '#475569', type: 'navigate' as const },
               { id: 'logout', title: '退出登录', subtitle: `当前账号：${displayPhoneMask}`, icon: 'log-out-outline' as const, iconColor: '#DC2626', type: 'action' as const },
             ]
           },

@@ -36,11 +36,13 @@ router.get('/qrcode', async (req: Request, res: Response) => {
     const setting = await prisma.setting.findFirst({
       where: { key: 'support_qrcode' },
     });
+    const defaultUrl = process.env.SUPPORT_QRCODE_URL || '';
+    const url = setting?.value || defaultUrl;
     res.json({
       success: true,
       data: {
-        url: setting?.value || '',
-        description: setting ? '已配置企业微信二维码' : '尚未配置二维码',
+        url,
+        description: url ? '企业微信客服二维码' : '尚未配置二维码',
       },
     });
   } catch (err: any) {

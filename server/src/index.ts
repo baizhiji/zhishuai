@@ -29,6 +29,8 @@ import ticketRoutes from './routes/ticket';
 import scriptRoutes from './routes/script';
 import digitalHumanRoutes from './routes/digital-human';
 import voiceCloneRoutes from './routes/voice-clone';
+import videoVoiceRoutes from './routes/video-voice';
+import videoEditRoutes from './routes/video-edit';
 import dashboardStatsRoutes from './routes/dashboard-stats';
 import referralRoutes from './routes/referral';
 import aiConfigRoutes from './routes/ai-config';
@@ -37,6 +39,7 @@ import aiEnhancedRoutes from './routes/ai-enhanced';
 import aiWorkflowRoutes from './routes/ai-workflow';
 import tokenStatsRoutes from './routes/token-stats';
 import exportRoutes from './routes/export';
+import { setupMaterialCleanup } from './services/material-cleanup';
 
 const app = express();
 const prisma = new PrismaClient();
@@ -96,6 +99,10 @@ app.use(globalLimiter);
 
 app.use(express.json({ limit: '10mb' }));
 
+// 静态资源：上传产物（配音成片等，nginx 亦会代理 /api 至此）
+import path from 'path';
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), { maxAge: '1d', immutable: false }));
+
 // 将prisma添加到请求中
 app.use((req, res, next) => {
   (req as any).prisma = prisma;
@@ -121,6 +128,8 @@ app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/scripts', scriptRoutes);
 app.use('/api/digital-human', digitalHumanRoutes);
 app.use('/api/voice-clone', voiceCloneRoutes);
+app.use('/api/video-voice', videoVoiceRoutes);
+app.use('/api/video-edit', videoEditRoutes);
 app.use('/api/dashboard-stats', dashboardStatsRoutes);
 
 app.use('/api/admin', adminAgentsRoutes);
@@ -226,5 +235,8 @@ process.on('uncaughtException', (err) => {
 app.listen(PORT, () => {
   console.log(`智枢AI后端服务运行在 http://localhost:${PORT}`);
 });
+
+// 生成内容 10 天过期自动清理
+setupMaterialCleanup(prisma);
 
 export { prisma };

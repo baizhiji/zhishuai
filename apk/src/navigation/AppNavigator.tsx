@@ -26,8 +26,8 @@ import MediaOperationScreen from '../screens/MediaOperationScreen';
 import MaterialsScreen from '../screens/MaterialsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
-import ReferralScreen from '../screens/ReferralScreen';
 import StatisticsScreen from '../screens/StatisticsScreen';
+import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import RecruitmentScreen from '../screens/RecruitmentScreen';
 import AcquisitionScreen from '../screens/AcquisitionScreen';
 import ShareScreen from '../screens/ShareScreen';
@@ -53,8 +53,8 @@ export type RootStackParamList = {
   Materials: undefined;
   Messages: undefined;
   Notifications: undefined;
-  Referral: undefined;
   Share: undefined;
+  ChangePassword: undefined;
   Statistics: undefined;
   Recruitment: undefined;
   Acquisition: undefined;
@@ -81,7 +81,7 @@ const SCREEN_TITLES: Record<string, string> = {
   Settings: '设置',
   Materials: '内容中心',
   Messages: '消息',
-  Referral: '转介绍',
+  ChangePassword: '修改密码',
   AICreateCenter: 'AI创作中心',
   MediaOperation: 'AI创作工厂',
 };
@@ -228,8 +228,9 @@ const AppNavigator = () => {
             options={{ headerShown: false }}
           />
           <RootStack.Screen
-            name="Referral"
-            component={ReferralScreen}
+            name="ChangePassword"
+            component={ChangePasswordScreen}
+            options={{ title: '修改密码', headerShown: false }}
           />
           <RootStack.Screen
             name="MediaOperation"

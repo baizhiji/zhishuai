@@ -13,7 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Linking } from 'react-native';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
-import { authService, referralService, updateService, UserInfo, ReferralStats } from '../services';
+import { authService, updateService, UserInfo } from '../services';
+import { APP_VERSION } from '../services/version';
 import { useAppNavigation } from '../context/NavigationContext';
 
 interface MenuItemProps {
@@ -57,7 +58,6 @@ export default function ProfileScreen() {
   const { navigate } = useAppNavigation();
   const [loading, setLoading] = useState(true);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [darkModeModalVisible, setDarkModeModalVisible] = useState(false);
 
@@ -77,12 +77,6 @@ export default function ProfileScreen() {
         }
       }
       setUserInfo(user);
-      try {
-        const stats = await referralService.getStats();
-        setReferralStats(stats);
-      } catch (e) {
-        console.log('获取转介绍统计失败');
-      }
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -117,7 +111,7 @@ export default function ProfileScreen() {
       if (result.hasUpdate) {
         Alert.alert(
           '发现新版本',
-          `新版本: v${result.latestVersion}\n更新内容:\n${result.releaseNotes || '暂无更新说明'}\n\n是否立即更新?`,
+          `新版本: v${result.versionInfo?.version}\n更新内容:\n${result.versionInfo?.releaseNotes || '暂无更新说明'}\n\n是否立即更新?`,
           [
             { text: '稍后', style: 'cancel' },
             { text: '立即更新', onPress: () => updateService.downloadAndInstall(result.versionInfo!.downloadUrl) }
@@ -143,8 +137,6 @@ export default function ProfileScreen() {
       default: return '跟随系统';
     }
   };
-
-  const handleReferral = () => navigate?.('Referral');
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -185,22 +177,8 @@ export default function ProfileScreen() {
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.section}>
-          <TouchableOpacity style={[styles.referralCard, { backgroundColor: theme.primary }]} onPress={handleReferral}>
-            <View style={styles.referralLeft}>
-              <Ionicons name="gift" size={28} color="#FFFFFF" />
-            </View>
-            <View style={styles.referralContent}>
-              <Text style={styles.referralTitle}>转介绍</Text>
-              <Text style={styles.referralSubtitle}>已邀请 {referralStats?.totalInvites || 0} 人</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>业务</Text>
           <View style={[styles.menuGroup, { backgroundColor: theme.card }]}>
-            <MenuItem icon="gift-outline" iconColor="#F59E0B" title="转介绍" subtitle={`已邀请 ${referralStats?.totalInvites || 0} 人`} onPress={() => navigate?.('Referral')} />
             <MenuItem icon="qr-code-outline" iconColor="#6D28D9" title="在线客服" subtitle="扫码添加企业微信咨询" onPress={() => navigate?.('SupportQR')} />
           </View>
         </View>
@@ -209,7 +187,7 @@ export default function ProfileScreen() {
           <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>设置</Text>
           <View style={[styles.menuGroup, { backgroundColor: theme.card }]}>
             <MenuItem icon="moon-outline" iconColor="#6D28D9" title="深色模式" subtitle={getThemeModeText()} onPress={() => setDarkModeModalVisible(true)} showArrow={false} />
-            <MenuItem icon="cloud-download-outline" iconColor="#06B6D4" title="检查更新" subtitle="当前版本 v1.0.0" onPress={handleCheckUpdate} />
+            <MenuItem icon="cloud-download-outline" iconColor="#06B6D4" title="检查更新" subtitle={`当前版本 v${APP_VERSION}`} onPress={handleCheckUpdate} />
             <MenuItem icon="help-circle-outline" iconColor="#64748B" title="帮助与反馈" subtitle="帮助文档、意见反馈" onPress={() => {
               Alert.alert('帮助与反馈', '请选择：', [
                 { text: '帮助文档', onPress: () => Linking.openURL('https://help.zhishuai.com') },
@@ -217,7 +195,7 @@ export default function ProfileScreen() {
                 { text: '取消', style: 'cancel' }
               ]);
             }} />
-            <MenuItem icon="information-circle-outline" iconColor="#64748B" title="关于我们" subtitle="用AI赋能企业，让商业更智能" onPress={() => Alert.alert('关于我们', '智枢AI v1.0.0\n用AI赋能企业，让商业更智能')} />
+            <MenuItem icon="information-circle-outline" iconColor="#64748B" title="关于我们" subtitle="用AI赋能企业，让商业更智能" onPress={() => Alert.alert('关于我们', `智枢AI v${APP_VERSION}\n用AI赋能企业，让商业更智能`)} />
           </View>
         </View>
 
@@ -239,11 +217,11 @@ export default function ProfileScreen() {
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setDarkModeModalVisible(false)}>
           <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>选择主题模式</Text>
-            {[
-              { mode: 'light' as ThemeMode, label: '浅色模式', icon: 'sunny-outline' },
-              { mode: 'dark' as ThemeMode, label: '深色模式', icon: 'moon-outline' },
-              { mode: 'system' as ThemeMode, label: '跟随系统', icon: 'phone-portrait-outline' },
-            ].map((item) => (
+            {([
+              { mode: 'light' as ThemeMode, label: '浅色模式', icon: 'sunny-outline' as const },
+              { mode: 'dark' as ThemeMode, label: '深色模式', icon: 'moon-outline' as const },
+              { mode: 'system' as ThemeMode, label: '跟随系统', icon: 'phone-portrait-outline' as const },
+            ] as const).map((item) => (
               <TouchableOpacity
                 key={item.mode}
                 style={[styles.themeOption, themeMode === item.mode && { backgroundColor: theme.primaryLight }]}
@@ -276,11 +254,6 @@ const styles = StyleSheet.create({
   content: { flex: 1 },
   section: { paddingHorizontal: 16, paddingTop: 16 },
   sectionTitle: { fontSize: 13, fontWeight: '600', marginBottom: 8, marginLeft: 4 },
-  referralCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, padding: 16 },
-  referralLeft: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  referralContent: { flex: 1 },
-  referralTitle: { fontSize: 17, fontWeight: '600', color: '#FFFFFF' },
-  referralSubtitle: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   menuGroup: { borderRadius: 12, overflow: 'hidden' },
   menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16 },
   menuIcon: { width: 36, height: 36, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 12 },

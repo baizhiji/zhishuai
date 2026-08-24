@@ -3,8 +3,9 @@
  * 使用统一 AI 客户端 (腾讯云TokenHub/阿里云百炼)
  */
 import { Router, Response } from 'express';
-import { chatCompletion } from '../services/ai-client';
+import { chatCompletion, generateVideo } from '../services/ai-client';
 import { appendAIGCLabel, appendAIGCLabelShort } from '../services/aigc-label.service';
+import { checkContentQuality } from '../services/ai-quality';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { prisma } from '../utils/db';
 
@@ -297,7 +298,68 @@ router.post('/post', authMiddleware, async (req: AuthRequest, res: Response) => 
       creativity: 0.7,
     });
 
-    res.json({ code: 200, message: 'success', data: { content: appendAIGCLabel(result) } });
+    const rawContent = appendAIGCLabel(result);
+
+    // 质量关卡（蓝皮书四大横切模块：质量优先）——不阻断主流程，低分记录日志并在响应中提示
+    let quality: any = null;
+    try {
+      quality = await checkContentQuality(rawContent, platform);
+      if (!quality.passed) {
+        console.warn(`[ai-enhanced] 内容质量分偏低(${quality.score}): ${quality.issues.join('; ')}`);
+      }
+    } catch {
+      /* 质量检查失败不影响主流程 */
+    }
+
+    res.json({ code: 200, message: 'success', data: { content: rawContent, quality } });
+  } catch (error: any) {
+    res.status(500).json({ code: 500, message: error.message, data: null });
+  }
+});
+
+// 视频生成：文本转视频（可灵/混元/Seedance/Wan 四路降级）
+// 请求体：{ prompt, provider?, model?, size?, duration?, images?, imageUrl?, text?, voice? }
+router.post('/video', authMiddleware, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const {
+      prompt,
+      provider,
+      model,
+      size,
+      duration,
+      images,
+      imageUrl,
+      text,
+      voice,
+    } = req.body || {};
+    if (!prompt) {
+      res.status(400).json({ code: 400, message: 'prompt 不能为空', data: null });
+      return;
+    }
+
+    const result = await generateVideo(userId, {
+      prompt,
+      provider,
+      model,
+      size,
+      duration,
+      images,
+      imageUrl,
+      text,
+      voice,
+    });
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        videoUrl: result.url,
+        provider: result.provider,
+        providerLabel: result.providerLabel,
+        model: result.model,
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ code: 500, message: error.message, data: null });
   }

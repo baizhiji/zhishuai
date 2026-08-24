@@ -23,7 +23,7 @@ interface Material {
   title: string;
   content: string;
   images?: string[];
-  status: 'unused' | 'used';
+  downloadedAt?: string;
   timestamp: number;
 }
 
@@ -55,7 +55,7 @@ export default function MaterialLibraryPage() {
         title: m.title as string,
         content: (m.content as string) || '',
         images: (m.images as string[]) || [],
-        status: (m.used ? 'used' : 'unused') as 'used' | 'unused',
+        downloadedAt: (m.downloadedAt as string) || undefined,
         timestamp: new Date(m.createdAt as string).getTime(),
       }));
       setMaterials(list);
@@ -68,7 +68,7 @@ export default function MaterialLibraryPage() {
 
   const filteredMaterials = materials.filter(material => {
     const categoryMatch = filterCategoryState === 'all' || material.category === filterCategoryState;
-    const statusMatch = filterStatus === 'all' || material.status === filterStatus;
+    const statusMatch = filterStatus === 'all' || (filterStatus === 'downloaded' ? !!material.downloadedAt : !material.downloadedAt);
     const searchMatch =
       !searchText ||
       material.title.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -91,7 +91,7 @@ export default function MaterialLibraryPage() {
     message.success('已复制到剪贴板');
   };
 
-  const handleDownload = (material: Material) => {
+  const handleDownload = async (material: Material) => {
     if (material.images && material.images.length > 0) {
       material.images.forEach((imgUrl, idx) => {
         fetch(imgUrl)
@@ -109,6 +109,7 @@ export default function MaterialLibraryPage() {
           });
       });
       message.success(`正在下载 ${material.images.length} 张图片`);
+      await markDownloaded(material);
       return;
     }
     const categoryConfig = contentCategoryConfig[material.category];
@@ -124,6 +125,18 @@ export default function MaterialLibraryPage() {
       URL.revokeObjectURL(url);
     }
     message.success('已下载');
+    await markDownloaded(material);
+  };
+
+  // 下载成功后标记已下载状态
+  const markDownloaded = async (material: Material) => {
+    try {
+      const now = new Date().toISOString();
+      await request.put(`/api/materials/${material.id}`, { downloadedAt: now });
+      setMaterials(prev => prev.map(m => (m.id === material.id ? { ...m, downloadedAt: now } : m)));
+    } catch {
+      // 标记失败不阻塞下载流程
+    }
   };
 
   const handlePreview = (material: Material) => {
@@ -204,12 +217,12 @@ export default function MaterialLibraryPage() {
     },
     {
       title: '状态',
-      dataIndex: 'status',
+      dataIndex: 'downloadedAt',
       key: 'status',
       width: 80,
-      render: (status: string) => (
-        <Tag color={status === 'used' ? 'green' : 'blue'}>
-          {status === 'used' ? '已使用' : '未使用'}
+      render: (downloadedAt?: string) => (
+        <Tag color={downloadedAt ? 'green' : 'blue'}>
+          {downloadedAt ? '已下载' : '未下载'}
         </Tag>
       ),
     },
@@ -273,10 +286,10 @@ export default function MaterialLibraryPage() {
           {contentCategoryConfig[material.category]?.label}
         </Tag>
         <Tag
-          color={material.status === 'used' ? 'green' : 'blue'}
+          color={material.downloadedAt ? 'green' : 'blue'}
           style={{ position: 'absolute', top: 8, right: 8 }}
         >
-          {material.status === 'used' ? '已使用' : '未使用'}
+          {material.downloadedAt ? '已下载' : '未下载'}
         </Tag>
       </div>
       {/* 信息区域 */}
@@ -351,8 +364,8 @@ export default function MaterialLibraryPage() {
           <Col span={4}>
             <Select placeholder="选择状态" value={filterStatus} onChange={setFilterStatus} style={{ width: '100%' }} allowClear>
               <Select.Option value="all">全部状态</Select.Option>
-              <Select.Option value="unused">未使用</Select.Option>
-              <Select.Option value="used">已使用</Select.Option>
+              <Select.Option value="undownloaded">未下载</Select.Option>
+              <Select.Option value="downloaded">已下载</Select.Option>
             </Select>
           </Col>
         </Row>
@@ -398,8 +411,8 @@ export default function MaterialLibraryPage() {
               <Tag color={contentCategoryConfig[previewMaterial.category]?.color}>
                 {contentCategoryConfig[previewMaterial.category]?.label}
               </Tag>
-              <Tag color={previewMaterial.status === 'used' ? 'green' : 'blue'}>
-                {previewMaterial.status === 'used' ? '已使用' : '未使用'}
+              <Tag color={previewMaterial.downloadedAt ? 'green' : 'blue'}>
+                {previewMaterial.downloadedAt ? '已下载' : '未下载'}
               </Tag>
               {previewMaterial.images && previewMaterial.images.length > 0 && (
                 <Tag color="orange">{previewMaterial.images.length} 张图片</Tag>

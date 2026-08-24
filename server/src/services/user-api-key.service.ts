@@ -11,8 +11,11 @@
 import crypto from 'crypto';
 import { prisma } from '../utils/db';
 
-// 加密密钥（生产环境应从环境变量读取）
+// 加密密钥（生产环境必须通过环境变量 ENCRYPTION_KEY 配置）
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'zhishuai-default-key-32chars!!';
+if (process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
+  console.warn('[SECURITY] 生产环境未配置 ENCRYPTION_KEY，正在使用内置默认密钥！请立即在服务器环境变量中配置 ENCRYPTION_KEY 并重新加密存量 Key。');
+}
 const IV_LENGTH = 16;
 
 // 加密函数
@@ -323,6 +326,17 @@ export async function toggleApiKey(userId: string, keyId: string, type: 'primary
   return true;
 }
 
+/**
+ * 测试已保存的 API Key 是否有效（服务端解密后测试，前端无需回传密钥）
+ */
+export async function testApiKeyById(userId: string, keyId: string): Promise<{ valid: boolean; message: string }> {
+  const key = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+  if (!key) return { valid: false, message: 'API Key 不存在' };
+  return testApiKey(key.provider, decrypt(key.apiKey), decrypt(key.secretKey));
+}
+
 export async function testApiKey(provider: string, apiKey: string, secretKey: string): Promise<{ valid: boolean; message: string }> {
   const config = PROVIDER_CONFIG[normalizeProvider(provider)];
   
@@ -342,5 +356,49 @@ export async function testApiKey(provider: string, apiKey: string, secretKey: st
     }
   } catch (error: any) {
     return { valid: false, message: `连接失败: ${error.message}` };
+  }
+}
+
+export interface ApiKeyBalance {
+  balance: number | null;
+  unit: string;
+  message?: string;
+}
+
+/**
+ * 查询 API Key 余额（蓝皮书 6.2 第 3 条）
+ * 目前仅阿里云百炼提供余额查询接口，其余服务商返回 null + 提示
+ */
+export async function getApiKeyBalance(userId: string, keyId: string): Promise<ApiKeyBalance> {
+  const key = await prisma.apiKey.findFirst({
+    where: { id: keyId, userId },
+  });
+  if (!key) throw new Error('API Key 不存在');
+
+  // 仅阿里云百炼支持余额查询
+  if (key.provider !== 'dashscope') {
+    return { balance: null, unit: '元', message: '该服务商暂不支持余额查询' };
+  }
+
+  const rawKey = decrypt(key.apiKey);
+  try {
+    const resp = await fetch('https://dashscope.aliyuncs.com/api/v1/balance', {
+      headers: {
+        'Authorization': `Bearer ${rawKey}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!resp.ok) {
+      return { balance: null, unit: '元', message: `余额查询失败（HTTP ${resp.status}）` };
+    }
+    const data: any = await resp.json();
+    const b = data?.balance?.[0];
+    if (b && typeof b.available_balance === 'string') {
+      const balance = parseFloat(b.available_balance);
+      return { balance: isNaN(balance) ? null : balance, unit: '元' };
+    }
+    return { balance: null, unit: '元', message: '暂无法解析余额' };
+  } catch (error: any) {
+    return { balance: null, unit: '元', message: `余额查询失败: ${error.message}` };
   }
 }

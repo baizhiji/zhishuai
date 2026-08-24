@@ -13,10 +13,13 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  ActionSheetIOS,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Clipboard from 'expo-clipboard';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,10 +36,14 @@ import {
   subtitleOptions,
   voiceoverOptions,
   bgmOptions,
+  bannerOverlayOptions,
+  bannerStyleOptions,
   generateText,
   generateImage,
   generateVideo,
+  saveToMaterials,
 } from '../services/content.service';
+import { materialsService } from '../services/materials.service';
 
 type RootStackParamList = {
   AICreateDetail: { category: ContentCategory };
@@ -67,13 +74,19 @@ export default function AICreateDetailScreen() {
   const [requirements, setRequirements] = useState('');
 
   // 图片/视频字段
-  const [size, setSize] = useState('1024x1024');
+  const [size, setSize] = useState('2048x2048');
   const [duration, setDuration] = useState(30);
 
   // 字幕配音音乐
   const [subtitle, setSubtitle] = useState('chinese');
   const [voiceover, setVoiceover] = useState('female-mandarin');
   const [bgm, setBgm] = useState('dynamic');
+  // 横幅/贴片叠加元素（可多选）
+  const [overlayBanners, setOverlayBanners] = useState<string[]>([]);
+  // 横幅/贴片视觉样式（蓝皮书 11.4.4：8 种预设 + auto 自动推荐）
+  const [bannerStyle, setBannerStyle] = useState('auto');
+  // 生成模式：false=完整生成（默认全链路），true=快速（仅生成脚本/文案）
+  const [quickMode, setQuickMode] = useState(false);
 
   // 专属字段值（key 为 CategoryExtraField.name）
   const [extraValues, setExtraValues] = useState<Record<string, string>>({});
@@ -97,9 +110,13 @@ export default function AICreateDetailScreen() {
   const [showSubtitlePicker, setShowSubtitlePicker] = useState(false);
   const [showVoiceoverPicker, setShowVoiceoverPicker] = useState(false);
   const [showBgmPicker, setShowBgmPicker] = useState(false);
+  const [showBannerOverlayPicker, setShowBannerOverlayPicker] = useState(false);
+  const [showBannerStylePicker, setShowBannerStylePicker] = useState(false);
   // 专属 select/multiSelect 弹窗
   const [activeSelectField, setActiveSelectField] = useState<CategoryExtraField | null>(null);
   const [showExtraPicker, setShowExtraPicker] = useState(false);
+  // 上传类型选择弹窗
+  const [showUploadPicker, setShowUploadPicker] = useState(false);
 
   // 统一文件上传处理
   const handleUploadFile = useCallback(async (type: 'document' | 'image' | 'video') => {
@@ -118,7 +135,7 @@ export default function AICreateDetailScreen() {
             name: file.name,
             size: file.size,
           }]);
-          Alert.alert('成功', `已添加文档：${file.name}`);
+          Alert.alert('成功', `已上传文档：${file.name}`);
         }
       } else if (type === 'image') {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -133,7 +150,7 @@ export default function AICreateDetailScreen() {
             uri: asset.uri,
             name: `图片_${Date.now()}.jpg`,
           }]);
-          Alert.alert('成功', '已添加图片');
+          Alert.alert('成功', '已上传图片');
         }
       } else if (type === 'video') {
         const result = await ImagePicker.launchImageLibraryAsync({
@@ -149,7 +166,7 @@ export default function AICreateDetailScreen() {
             uri: asset.uri,
             name: `视频_${Date.now()}.mp4`,
           }]);
-          Alert.alert('成功', '已添加视频');
+          Alert.alert('成功', '已上传视频');
         }
       }
     } catch (error) {
@@ -198,6 +215,19 @@ export default function AICreateDetailScreen() {
     setExtraValues(prev => ({ ...prev, [name]: value }));
   }, []);
 
+  // 切换横幅/贴片选项（选"无横幅"时清空其他，选其他时移除"无横幅"）
+  const toggleBanner = useCallback((value: string) => {
+    setOverlayBanners(prev => {
+      if (value === 'none') {
+        return prev.includes('none') ? [] : ['none'];
+      }
+      const next = prev.includes(value)
+        ? prev.filter(v => v !== value)
+        : [...prev.filter(v => v !== 'none'), value];
+      return next;
+    });
+  }, []);
+
   // 校验必填专属字段
   const validateExtraFields = useCallback((): string | null => {
     if (!config.extraFields) return null;
@@ -230,6 +260,28 @@ export default function AICreateDetailScreen() {
     setGeneratedContent(null);
     setGeneratedUrls([]);
 
+    // 快速模式（蓝皮书 1.5：快速模式默认仅生成脚本/文案，完整生成默认全链路）
+    if (quickMode) {
+      try {
+        const res = await generateText({
+          category,
+          description,
+          style,
+          wordCount: count,
+          requirements,
+          count,
+          extraValues,
+        });
+        setGeneratedContent(res.output.text);
+      } catch (error) {
+        console.error('生成失败:', error);
+        Alert.alert('错误', '内容生成失败，请重试');
+      } finally {
+        setIsGenerating(false);
+      }
+      return;
+    }
+
     try {
       if (config.type === 'image') {
         const res = await generateImage({
@@ -241,6 +293,32 @@ export default function AICreateDetailScreen() {
         });
         setGeneratedUrls(res.output.results.map((r: any) => r.url));
       } else if (config.type === 'video') {
+        // 用户上传了视频时，先上传到服务器作为配音底片（能力对齐电脑版）
+        const uploadedVideo = uploadedFiles.find(f => f.type === 'video');
+        let uploadedVideoUrl = '';
+        if (uploadedVideo) {
+          try {
+            const up = await materialsService.uploadFile(uploadedVideo.uri, 'video');
+            uploadedVideoUrl = up?.url || '';
+          } catch (e) {
+            // 上传失败不阻塞生成
+          }
+        }
+        // 数字人形象参考图：本地图先上传换取服务器 URL（与电脑版行为一致，供后端数字人模型驱动）
+        const localImage = extraValues['imageUrl'] || '';
+        let imageUrl = '';
+        if (localImage) {
+          if (/^https?:\/\//i.test(localImage)) {
+            imageUrl = localImage;
+          } else {
+            try {
+              const up = await materialsService.uploadFile(localImage, 'image');
+              imageUrl = up?.url || '';
+            } catch (e) {
+              // 上传失败不阻塞生成
+            }
+          }
+        }
         const res = await generateVideo({
           category,
           description,
@@ -250,8 +328,11 @@ export default function AICreateDetailScreen() {
           subtitle,
           voiceover,
           bgm,
+          overlayBanners,
+          bannerStyle,
           extraValues,
-          imageUrl: extraValues['imageUrl'] || undefined,
+          imageUrl: imageUrl || undefined,
+          videoUrl: uploadedVideoUrl || undefined,
         });
         setGeneratedUrls([res.output.url]);
       } else {
@@ -265,6 +346,22 @@ export default function AICreateDetailScreen() {
           extraValues,
         });
         setGeneratedContent(res.output.text);
+        // 图文类目（小红书图文/电商详情页）：文案生成后自动配图，能力对齐电脑版 mixed 全链路
+        if (config.type === 'mixed') {
+          try {
+            const imgRes = await generateImage({
+              category,
+              description,
+              style,
+              size,
+              extraValues,
+            });
+            const urls = (imgRes.output.results || []).map((r: any) => r.url).filter(Boolean);
+            if (urls.length > 0) setGeneratedUrls(urls);
+          } catch (e) {
+            // 配图失败不阻塞文案产出
+          }
+        }
       }
     } catch (error) {
       console.error('生成失败:', error);
@@ -272,17 +369,72 @@ export default function AICreateDetailScreen() {
     } finally {
       setIsGenerating(false);
     }
-  }, [category, config, description, style, count, requirements, size, duration, subtitle, voiceover, bgm, extraValues, validateExtraFields]);
+  }, [category, config, description, style, count, requirements, size, duration, subtitle, voiceover, bgm, overlayBanners, bannerStyle, quickMode, extraValues, uploadedFiles, validateExtraFields]);
 
-  // 保存内容
-  const handleSave = useCallback(() => {
-    Alert.alert('成功', '内容已保存到内容中心');
-  }, []);
+  // 保存到内容中心
+  const handleSave = useCallback(async (content?: string) => {
+    const text = (content ?? generatedContent ?? '').trim();
+    if (!text) {
+      Alert.alert('提示', '暂无内容可保存');
+      return;
+    }
+    const title = `${config.label}_${description.trim().slice(0, 15) || '生成内容'}`;
+    try {
+      const ok = await saveToMaterials(category, title, text);
+      if (ok) {
+        Alert.alert('成功', '内容已保存到内容中心');
+      } else {
+        Alert.alert('提示', '保存失败，请重试');
+      }
+    } catch (error) {
+      console.error('保存到内容中心失败:', error);
+      Alert.alert('错误', '保存失败，请重试');
+    }
+  }, [category, config.label, description, generatedContent]);
 
-  // 复制内容
-  const handleCopy = useCallback(() => {
-    Alert.alert('提示', '内容已复制到剪贴板');
-  }, []);
+  // 复制内容到剪贴板
+  const handleCopy = useCallback(async (content?: string) => {
+    const text = (content ?? generatedContent ?? '').trim();
+    if (!text) {
+      Alert.alert('提示', '暂无内容可复制');
+      return;
+    }
+    try {
+      await Clipboard.setStringAsync(text);
+      Alert.alert('成功', '内容已复制到剪贴板');
+    } catch (error) {
+      console.error('复制失败:', error);
+      Alert.alert('错误', '复制失败，请重试');
+    }
+  }, [generatedContent]);
+
+  // 下载图片/视频到相册或分享
+  const handleDownload = useCallback(async (url: string) => {
+    try {
+      const isVideo = config.type === 'video';
+      const filename = `${config.label.replace(/\s/g, '')}_${Date.now()}.${isVideo ? 'mp4' : 'jpg'}`;
+      const fileUri = `${FileSystem.cacheDirectory}${filename}`;
+      const { uri } = await FileSystem.downloadAsync(url, fileUri);
+      if (isVideo) {
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, { mimeType: 'video/mp4' });
+        } else {
+          Alert.alert('成功', '视频已下载到本地');
+        }
+      } else {
+        const perm = await MediaLibrary.requestPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert('提示', '需要相册权限才能保存图片');
+          return;
+        }
+        await MediaLibrary.saveToLibraryAsync(uri);
+        Alert.alert('成功', '图片已保存到相册');
+      }
+    } catch (error) {
+      console.error('下载失败:', error);
+      Alert.alert('错误', '下载失败，请重试');
+    }
+  }, [config.label, config.type]);
 
   // 渲染选项选择器
   const renderOptionPicker = (
@@ -317,6 +469,39 @@ export default function AICreateDetailScreen() {
               </TouchableOpacity>
             )}
           />
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // 渲染上传类型选择弹窗（跨平台替代 ActionSheetIOS）
+  const renderUploadPicker = () => (
+    <Modal visible={showUploadPicker} transparent animationType="slide">
+      <View style={pickerStyles.overlay}>
+        <View style={pickerStyles.content}>
+          <View style={pickerStyles.header}>
+            <Text style={pickerStyles.title}>选择上传类型</Text>
+            <TouchableOpacity onPress={() => setShowUploadPicker(false)}>
+              <Ionicons name="close" size={24} color="#1e293b" />
+            </TouchableOpacity>
+          </View>
+          {([
+            { type: 'document', label: '上传文档', icon: 'document-text-outline' },
+            { type: 'image', label: '上传图片', icon: 'image-outline' },
+            { type: 'video', label: '上传视频', icon: 'videocam-outline' },
+          ] as const).map(item => (
+            <TouchableOpacity
+              key={item.type}
+              style={pickerStyles.option}
+              onPress={() => { setShowUploadPicker(false); handleUploadFile(item.type); }}
+            >
+              <View style={pickerStyles.uploadOptionLeft}>
+                <Ionicons name={item.icon} size={20} color="#6D28D9" />
+                <Text style={pickerStyles.optionText}>{item.label}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#cbd5e1" />
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     </Modal>
@@ -459,7 +644,7 @@ export default function AICreateDetailScreen() {
       {/* 统一文件上传入口（needUpload 类目） */}
       {config.needUpload !== false && (
         <View style={styles.field}>
-          <Text style={styles.fieldLabel}>添加参考</Text>
+          <Text style={styles.fieldLabel}>上传素材</Text>
 
           {uploadedFiles.length > 0 && (
             <View style={styles.uploadedFilesContainer}>
@@ -485,19 +670,7 @@ export default function AICreateDetailScreen() {
 
           <TouchableOpacity
             style={styles.uploadSelector}
-            onPress={() => {
-              ActionSheetIOS.showActionSheetWithOptions(
-                {
-                  options: ['取消', '上传文档', '上传图片', '上传视频'],
-                  cancelButtonIndex: 0,
-                },
-                (buttonIndex) => {
-                  if (buttonIndex === 1) handleUploadFile('document');
-                  else if (buttonIndex === 2) handleUploadFile('image');
-                  else if (buttonIndex === 3) handleUploadFile('video');
-                }
-              );
-            }}
+            onPress={() => setShowUploadPicker(true)}
           >
             <Ionicons name="add-circle-outline" size={22} color="#6D28D9" />
             <Text style={styles.uploadSelectorText}>上传文档/图片/视频</Text>
@@ -653,6 +826,42 @@ export default function AICreateDetailScreen() {
               <Ionicons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
           </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>横幅/贴片</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={() => setShowBannerOverlayPicker(true)}
+            >
+              <Text
+                style={[
+                  styles.selectorText,
+                  overlayBanners.length === 0 && styles.selectorPlaceholder
+                ]}
+                numberOfLines={1}
+              >
+                {overlayBanners.length > 0
+                  ? overlayBanners
+                    .map(b => bannerOverlayOptions.find(o => o.value === b)?.label || b)
+                    .join('、')
+                  : '选择叠加元素（可多选）'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>横幅视觉样式</Text>
+            <TouchableOpacity
+              style={styles.selector}
+              onPress={() => setShowBannerStylePicker(true)}
+            >
+              <Text style={styles.selectorText}>
+                {bannerStyleOptions.find(s => s.value === bannerStyle)?.label}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
         </>
       )}
     </>
@@ -684,6 +893,29 @@ export default function AICreateDetailScreen() {
             {/* 表单字段 */}
             {renderCommonFields()}
 
+            {/* 生成模式切换（快速=仅生成脚本/文案；完整=全链路，能力对齐蓝皮书 1.5） */}
+            <View style={styles.modeRow}>
+              <TouchableOpacity
+                style={[styles.modeChip, !quickMode && styles.modeChipActive]}
+                onPress={() => setQuickMode(false)}
+              >
+                <Text style={[styles.modeChipText, !quickMode && styles.modeChipTextActive]}>
+                  完整生成
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modeChip, quickMode && styles.modeChipActive]}
+                onPress={() => setQuickMode(true)}
+              >
+                <Text style={[styles.modeChipText, quickMode && styles.modeChipTextActive]}>
+                  快速
+                </Text>
+              </TouchableOpacity>
+              {quickMode && (
+                <Text style={styles.modeHint}>仅生成脚本/文案，不执行图片/视频全链路</Text>
+              )}
+            </View>
+
             {/* 生成按钮 */}
             <TouchableOpacity
               style={[styles.generateBtn, isGenerating && styles.generateBtnDisabled]}
@@ -708,11 +940,11 @@ export default function AICreateDetailScreen() {
                 </View>
                 <Text style={styles.resultContent}>{generatedContent}</Text>
                 <View style={styles.resultActions}>
-                  <TouchableOpacity style={styles.actionBtn} onPress={handleCopy}>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleCopy()}>
                     <Ionicons name="copy-outline" size={18} color="#6D28D9" />
                     <Text style={styles.actionBtnText}>复制</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionBtn} onPress={handleSave}>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleSave()}>
                     <Ionicons name="bookmark-outline" size={18} color="#6D28D9" />
                     <Text style={styles.actionBtnText}>保存</Text>
                   </TouchableOpacity>
@@ -737,11 +969,11 @@ export default function AICreateDetailScreen() {
                       </View>
                     )}
                     <View style={styles.resultActions}>
-                      <TouchableOpacity style={styles.actionBtn} onPress={handleSave}>
+                      <TouchableOpacity style={styles.actionBtn} onPress={() => handleSave(url)}>
                         <Ionicons name="bookmark-outline" size={18} color="#6D28D9" />
                         <Text style={styles.actionBtnText}>保存</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.actionBtn} onPress={handleCopy}>
+                      <TouchableOpacity style={styles.actionBtn} onPress={() => handleDownload(url)}>
                         <Ionicons name="download-outline" size={18} color="#6D28D9" />
                         <Text style={styles.actionBtnText}>下载</Text>
                       </TouchableOpacity>
@@ -804,6 +1036,24 @@ export default function AICreateDetailScreen() {
         setBgm
       )}
 
+      {renderTagPicker(
+        showBannerOverlayPicker,
+        () => setShowBannerOverlayPicker(false),
+        '选择横幅/贴片（可多选）',
+        bannerOverlayOptions,
+        overlayBanners,
+        toggleBanner
+      )}
+
+      {renderOptionPicker(
+        showBannerStylePicker,
+        () => setShowBannerStylePicker(false),
+        '选择横幅视觉样式',
+        bannerStyleOptions,
+        bannerStyle,
+        setBannerStyle
+      )}
+
       {/* 专属字段选择器（select 单选） */}
       {renderOptionPicker(
         showExtraPicker && activeSelectField?.type === 'select',
@@ -853,6 +1103,9 @@ export default function AICreateDetailScreen() {
           </View>
         </Modal>
       )}
+
+      {/* 上传类型选择弹窗 */}
+      {renderUploadPicker()}
     </KeyboardAvoidingView>
   );
 }
@@ -918,6 +1171,40 @@ const styles = StyleSheet.create({
   },
   selectorPlaceholder: {
     color: '#94a3b8',
+  },
+  modeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  modeChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginRight: 10,
+    backgroundColor: '#f8fafc',
+  },
+  modeChipActive: {
+    backgroundColor: '#6D28D9',
+    borderColor: '#6D28D9',
+  },
+  modeChipText: {
+    fontSize: 13,
+    color: '#475569',
+  },
+  modeChipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  modeHint: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 4,
+    width: '100%',
   },
   generateBtn: {
     flexDirection: 'row',
@@ -1138,6 +1425,11 @@ const pickerStyles = StyleSheet.create({
   optionText: {
     fontSize: 16,
     color: '#1e293b',
+  },
+  uploadOptionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   tagContainer: {
     flexDirection: 'row',

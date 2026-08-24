@@ -648,6 +648,7 @@ model Material {
   fileUrl        String?
   status         String    @default("unused")
   thumbnail      String?
+  downloadedAt   DateTime?
   usedCount      Int       @default(0)
   publishedAt    DateTime?
   contentHash    String?

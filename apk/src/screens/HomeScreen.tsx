@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { homeService, authService, TodayStats, ReferralStats } from '../services';
+import { homeService, authService, TodayStats } from '../services';
 import { shareService, ShareStatistics } from '../services/share.service';
 import { useAppNavigation } from '../context/NavigationContext';
 
@@ -38,7 +38,6 @@ export default function HomeScreen() {
   const [userName, setUserName] = useState('用户');
   const [expiryDate, setExpiryDate] = useState('');
   const [todayStats, setTodayStats] = useState<TodayStats | null>(null);
-  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
   const [shareStats, setShareStats] = useState<ShareStatistics | null>(null);
   const [features, setFeatures] = useState<FeatureItem[]>(DEFAULT_FEATURES);
   const [featuresLoading, setFeaturesLoading] = useState(true);
@@ -56,13 +55,12 @@ export default function HomeScreen() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [userInfo, stats, referral, share] = await Promise.all([
+      const [userInfo, stats, share] = await Promise.all([
         loadUserInfo(),
         homeService.getTodayStats(),
-        homeService.getReferralStats(),
         shareService.getStatistics().catch(() => null),
-        loadFeatures(),
       ]);
+      await loadFeatures();
 
       if (userInfo) {
         setUserName(userInfo.name);
@@ -71,7 +69,6 @@ export default function HomeScreen() {
         }
       }
       setTodayStats(stats);
-      setReferralStats(referral);
       setShareStats(share);
     } catch (error) {
       console.error('加载数据失败:', error);

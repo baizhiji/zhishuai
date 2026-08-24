@@ -2,7 +2,7 @@
  * 版本更新服务
  */
 import { apiClient } from './api.client';
-import { API_CONFIG } from './api.config';
+import { APP_VERSION } from './version';
 
 export interface VersionInfo {
   version: string;
@@ -23,7 +23,7 @@ export interface UpdateCheckResult {
  * 获取当前应用版本信息
  */
 export const getCurrentVersion = (): string => {
-  return '1.0.0';
+  return APP_VERSION;
 };
 
 /**
@@ -32,10 +32,22 @@ export const getCurrentVersion = (): string => {
 export const checkForUpdate = async (): Promise<UpdateCheckResult> => {
   const currentVersion = getCurrentVersion();
   try {
-    const response = await apiClient.get<VersionInfo>(
-      `${API_CONFIG.BASE_URL}/version/latest`
-    );
-    const versionInfo = response as unknown as VersionInfo;
+    const data = await apiClient.get<{
+      version: string;
+      buildNumber?: number | string;
+      releaseDate?: string;
+      changelog?: string;
+      downloadUrl?: string;
+      forceUpdate?: boolean;
+    }>('/version/latest');
+    const versionInfo: VersionInfo = {
+      version: data.version,
+      buildNumber: String(data.buildNumber ?? ''),
+      releaseDate: data.releaseDate || '',
+      releaseNotes: data.changelog || '',
+      downloadUrl: data.downloadUrl || '',
+      isMandatory: data.forceUpdate ?? false,
+    };
     return {
       hasUpdate: versionInfo.version !== currentVersion,
       versionInfo,

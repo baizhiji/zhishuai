@@ -13,6 +13,8 @@ import {
   getAllModelsList 
 } from '../services/ai-model-router';
 import { appendAIGCLabel, AIGC_LABEL } from '../services/aigc-label.service';
+import { generateImage } from '../services/ai-client';
+import { imageSafetyService, promptInjectionGuard } from '../services/content-safety/image-safety.service';
 
 const router = Router();
 
@@ -424,41 +426,41 @@ router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 图像生成
+// 图像生成（三引擎自动择优降级链：腾讯 HY-Image → 阿里 wan2.7 → 火山，见 ai-client.generateImage）
 router.post('/image', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { prompt, size = '1024x1024', quality = 'standard' } = req.body;
+    const { prompt, size = '1024x1024' } = req.body;
 
     if (!prompt) {
       res.status(400).json({ error: '提示词不能为空' });
       return;
     }
 
-    const apiKey = await resolveApiKey(userId, 'tencent');
-    if (!apiKey) {
-      res.status(400).json({ error: 'API Key未配置', message: '请先配置腾讯云TokenHub API Key' });
-      return;
+    // 生成前违禁画面检测（蓝皮书四大横切模块：违禁内容检测）
+    const safety = imageSafetyService.checkPrompt(prompt, { platform: ['douyin', 'xiaohongshu', 'wechat_video'] });
+    if (safety.level === 'blocked') {
+      return res.status(400).json({ error: '提示词包含违禁内容，请修改后重试', details: safety.detected });
+    }
+    // 提示词注入防护
+    const injection = promptInjectionGuard.detect(safety.sanitizedPrompt || prompt);
+    if (!injection.safe) {
+      return res.status(400).json({ error: '检测到提示词注入攻击' });
     }
 
-    const response = await fetch(`${MODEL_CONFIG.tencent.baseUrl}/images/generations`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'X-TC-Provider': 'tokenhub',
+    const result = await generateImage(userId, { prompt: safety.sanitizedPrompt || prompt, size, n: 1 });
+    if (!result.url) {
+      throw new Error('图像生成失败，请检查 API Key 配置');
+    }
+
+    res.json({
+      success: true,
+      data: {
+        imageUrl: result.url,
+        urls: result.urls,
+        revisedPrompt: result.revised_prompt,
       },
-      body: JSON.stringify({
-        model: MODEL_CONFIG.tencent.models.image.id,
-        prompt, size, quality, n: 1,
-      }),
     });
-
-    const data: any = await response.json();
-    const imageUrl = data?.data?.[0]?.url;
-    if (!imageUrl) throw new Error('图像生成失败');
-
-    res.json({ success: true, data: { imageUrl, revisedPrompt: data.data?.[0]?.revised_prompt } });
   } catch (error: any) {
     console.error('图像生成错误:', error);
     res.status(500).json({ error: error.message });

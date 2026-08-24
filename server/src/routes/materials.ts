@@ -51,7 +51,11 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     const where: any = { userId };
     if (type) where.type = type;
-    if (status) where.used = status === 'used';
+    if (status) {
+      if (status === 'downloaded') where.downloadedAt = { not: null };
+      else if (status === 'undownloaded') where.downloadedAt = null;
+      else where.status = status; // 兼容旧语义 used/unused
+    }
     if (keyword) {
       where.OR = [
         { title: { contains: String(keyword) } },
@@ -81,14 +85,21 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { title, type, content } = req.body;
+    const { title, type, content, thumbnail, fileType, fileUrl } = req.body;
+    if (!title || !type) {
+      res.status(400).json({ success: false, error: '缺少必填字段 title/type' });
+      return;
+    }
 
     const material = await prisma.material.create({
       data: {
         userId,
-        title,
-        type,
-        content,
+        title: String(title),
+        type: String(type),
+        content: content ? String(content) : undefined,
+        thumbnail: thumbnail ? String(thumbnail) : undefined,
+        fileType: fileType ? String(fileType) : undefined,
+        fileUrl: fileUrl ? String(fileUrl) : undefined,
         status: 'unused',
       },
     });
@@ -104,7 +115,15 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
-    const updateData = req.body;
+    const allowedFields = ['title', 'type', 'content', 'status', 'downloadedAt', 'thumbnail', 'fileType', 'fileUrl'];
+    const updateData: Record<string, unknown> = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) updateData[key] = req.body[key];
+    }
+    if (Object.keys(updateData).length === 0) {
+      res.status(400).json({ success: false, error: '没有可更新的字段' });
+      return;
+    }
 
     const material = await prisma.material.update({
       where: { id, userId },
@@ -122,6 +141,20 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { id } = req.params;
+
+    const existing = await prisma.material.findFirst({ where: { id, userId } });
+    if (!existing) {
+      res.status(404).json({ success: false, error: '素材不存在' });
+      return;
+    }
+    // 清理关联的上传文件
+    if (existing.content && existing.content.includes('/uploads/materials/')) {
+      const filename = existing.content.split('/uploads/materials/').pop();
+      if (filename && !filename.includes('/') && !filename.includes('..')) {
+        const filePath = path.join(uploadDir, filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    }
 
     await prisma.material.delete({ where: { id, userId } });
 

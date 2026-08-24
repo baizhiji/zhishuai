@@ -1,4 +1,177 @@
 
+## 2026-08-24 会话（深夜，第三轮）：复核未闭环能力全部修复（P0 成片/配图 + P1 余额/双模式/降级链 + P2 横切死代码）
+
+### 已实现（server，tsc 通过，待部署）
+- **智能剪辑成片接口**：`server/src/routes/video-edit.ts` 新增 `POST /api/video-edit/compose`（authMiddleware）——body {clips(1-10 URL), subtitleText?, bgmUrl?, size?, fps?} → 下载素材→逐段归一化(scale+pad+fps+yuv420p)→concat→可选 ASS 字幕→可选 BGM 混流→返回 `/uploads/video-edit/xxx.mp4`；ffmpeg 探测（ffmpeg-static 优先回退系统）、素材 500MB 上限、工作目录清理、URL 协议白名单；已挂载 `server/src/index.ts`
+- **余额接口**：`server/src/routes/ai-config.ts` 新增 `GET /keys/:id/balance`（服务端解密调平台余额查询，支持平台数据/本地计算/错误信息三种返回）
+- **图片降级链挂载**：`server/src/routes/ai-chat.ts` /image 挂载 ai-client 三引擎 generateImage（vidu-image-q2→可图→混元），保留单模型回退
+- **横切死代码接线**：`ai-chat.ts` /image 生成前接入 imageSafetyService.checkPrompt（blocked 拒绝/warning 用 sanitizedPrompt）+ promptInjectionGuard；`ai-enhanced.ts` /post 生成后接入 checkContentQuality（低分打日志并在响应附带 quality，不阻断）
+- **配音幂等**：`server/src/routes/video-voice.ts` attach 增加 TTS 音频缓存（同音色+同文案复用），避免重复扣费
+- **AES 密钥**：key.service 生产环境无 KEY_ENCRYPTION_KEY 时启动告警
+
+### 已实现（desktop-ui，tsc 通过）
+- api-keys 页新增"余额"列（批量拉 /keys/:id/balance）+ 类目覆盖表格入口
+- ai-factory 页新增"完整生成/仅生成脚本"双模式 Radio；生成成功提示含成本估算
+- 智能剪辑类目：有素材视频时调 `/api/video-edit/compose` 服务端成片，失败降级流水线方案
+- BGM 补齐 11 项（含抒情/商务/清新）；横幅新增 8 视觉样式 bannerStyleOptions + 表单字段 + buildVideoPrompt 注入
+- GenerateVideoParams 新增 clips/subtitleText/bgmUrl/bannerStyle
+
+### 已实现（apk，lint 0 错误；tsc 无新增错误，既有遗留错误与本次无关）
+- content.service.ts：imageSizeOptions 加 2048 档、generateImage 默认 2048x2048；bannerStyleOptions + buildBannerStyleDesc + GenerateVideoParams.bannerStyle + generateVideo 注入；generateVideo 智能剪辑分支调 /video-edit/compose 服务端成片
+- AICreateDetailScreen.tsx：mixed 类目（小红书图文/电商详情页）文案生成后自动配图；快速/完整双模式切换（modeChip UI + quickMode 分支）；默认尺寸 2048x2048；横幅视觉样式选择器
+
+### 剩余待办
+- AI漫剧/短剧按用户确认保持占位（预留功能）
+- 部署：server/desktop-ui 变更需 scp + pm2 restart + verify-login.sh；APK 打包发布
+- 生产服务器需确认安装 ffmpeg（或 server 依赖安装 ffmpeg-static）
+
+## 2026-08-24 会话（深夜，第二轮）：AI 创作工厂全功能复核（12 卡片 + 模型配置 + 四大横切 + 视频配置系统）
+
+### 用户问题
+"电脑端和手机端的 AI 创作工厂里所有功能是不是都能满足该功能的需求，并得到最终该功能最终需要得到的结果"（不只视频类，含 AI 模型配置等全部要求）
+
+### 复核方法
+- 读取蓝皮书 v3.1 三大铁律/10 类目产线/四大横切/六章 API Key/十一章视频配置
+- 派 3 个 code-explorer 子代理并行深核查：电脑端（desktop-ui）、APK 端（apk）、后端（server）
+
+### 核查结论（已更新 docs/AI创作工厂两端功能核查报告_20260824.md）
+总体：大部分功能可产出最终交付物，但非全部满足，仍有 4 类未闭环。
+- **P0 交付物铁律违反**：①APK 端小红书图文/电商详情页 mixed 类目落 generateText 只产文案不产配图（电脑端✓有配图）②智能剪辑两端均不产出剪辑成片（电脑端 local_compose 仅 FFmpeg 指令清单、APK 端退化普通视频）③AI漫剧/短剧两端仅 comingSoon 占位
+- **P1 蓝皮书硬性要求缺失**：API Key 余额显示、类目 Key 覆盖（getCategoryKeyCoverage 已实现未接线）、成本估算、快速/完整双模式、后端图片三引擎 generateImage 未挂载对外接口（/ai-chat/image 仅单模型 vidu-image-q2）
+- **P2 横切死代码**：后端去AI化 humanizePrompt、图片安全 imageSafetyService、质量关卡 ai-quality 均未被调用；横幅 8 样式缺失；电脑端流水线主路径未注入配音/字幕/BGM/横幅；AES 默认密钥硬编码；配音非幂等
+- 已闭环：视频类目两端真实生成、数字人 TTS+形象图、配音/字幕/BGM/横幅表单、API Key 测试连接、主/备 Key、鉴权全部 authMiddleware
+- 关键架构认知：蓝皮书 7.2 规定编排后端执行，故 APK 端横切依赖后端，后端死代码才是关键缺口
+
+### 待办
+- P0/P1 修复项见报告第六章；其中 #5（类目覆盖接线）与 #8（图片降级链挂载）改动小，可优先
+
+## 2026-08-24 会话（深夜）：APK 视频类目真实视频生成 + 数字人字段对齐 + API Key 页补全
+
+### 需求背景
+- 用户要求核查电脑端/APK 端 AI 创作工厂全部功能是否都能产出最终结果；随后确认"APK 端不新增 AI 模型配置入口"（复用电脑端 Key 的安全设计，配置入口放设置里，创作工厂顶部不放按钮）
+
+### server 改造（已实现，待部署）
+- `server/src/services/ai-client.ts`：新增 `VIDEO_MODEL_CANDIDATES`（kl-video-v3→hy-video-1.5→Seedance→wan2.7 四路降级）、`VideoGenerationParams`/`VideoGenerationResult` 类型、公共方法 `generateVideo(userId, params)`（按凭证 provider 过滤候选 + 逐路降级 + logUsage/updateKeyStats）、私有 `callVideoGeneration`（数字人 `yt-video-humanactor` 先 textToSpeech 再提交 audio_url）/`getVideoOrigin`（处理 baseUrl 带 /v1 后缀）/`submitTencentVideo`/`submitAlibabaVideo`/`submitVolcanoVideo`（submit+poll 异步轮询）；文件末尾导出便捷函数 `generateVideo`
+- `server/src/routes/ai-enhanced.ts`：新增 `POST /video`（authMiddleware），body {prompt, provider?, model?, size?, duration?, images?, imageUrl?, text?, voice?}，响应 `{videoUrl, provider, providerLabel, model}`
+- `server/src/services/user-api-key.service.ts`：新增 `testApiKeyById(userId, keyId)`（服务端解密后调用 testApiKey，前端无需回传密钥）
+- `server/src/routes/ai-config.ts`：新增 `POST /keys/:id/test`（测试已保存 Key 连接，返回 {success, valid, message}）
+
+### apk 改造（已实现）
+- `apk/src/services/content.service.ts`：
+  - DIGITAL_HUMAN extraFields 对齐电脑端 6 字段：look→humanLook、gender→humanGender、ageGroup→humanAge，新增 humanOutfit（着装 input）、speechScript（口播文案 textarea）、targetPlatform（目标平台 select）；imageUrl 保留并标注"选填但建议上传（数字人实际需要人物形象图驱动）"
+  - `generateVideo` 重写：①先生成口播文案（/ai-enhanced/post）②用户已上传素材直接作底片+配音附着 ③无素材时调后端 `/ai-enhanced/video` 真实生成（数字人传 model=yt-video-humanactor + imageUrl + text，非数字人走四路降级）④失败兜底回退用户视频，非数字人成片选配音时再附着配音
+- `apk/src/screens/AICreateDetailScreen.tsx`：视频分支新增"数字人形象图本地文件先 uploadFile(uri,'image') 上传换取服务器 URL"逻辑（与电脑版行为一致）
+- `apk/src/screens/SettingsScreen.tsx`：账号设置新增"AI 模型配置"说明项（复用电脑端 Key 的安全设计弹窗，id: apiConfig）
+
+### desktop-ui 改造（已实现）
+- `desktop-ui/app/customer/api-keys/page.tsx`：新增 `testingId` 状态 + `handleTest`（调 `POST /api/ai-config/keys/:id/test`，local- 前缀本地缓存 Key 提示需删除重加）；操作列新增"测试连接"按钮；使用次数列升级为"用量明细"（调用次数/失败次数/最近使用时间）
+
+### 验证
+- server / desktop-ui `npx tsc --noEmit` 通过；APK 三个改动文件 lint 0 错误、tsc 无新增错误（既有遗留错误与本次无关）
+- 核查报告已更新：`docs/AI创作工厂两端功能核查报告_20260824.md`（3 缺口全部闭环：P0 视频真实生成、P1 数字人字段对齐、P2 API Key 页补全；配置入口按确认意见收敛）
+- 待办：server 与 desktop-ui 改动需部署到远端 150.109.60.130（scp + pm2 restart）+ verify-login.sh 验证；APK 端需打包发布后生效
+
+## 2026-08-24 会话（晚间）：APK 配音能力对齐电脑版 + APK 配音选项同步（已部署验证）
+
+### 需求背景
+- 用户问"页面语言选项里有没有显示具体男女"，确认电脑版全带男女标注；随后要求"把手机版这方面的能力提升到电脑版一样"——APK 端此前只是把配音写进 prompt，无真实配音链路
+
+### APK 端同步配音选项（第一轮，已改未部署）
+- `apk/src/services/content.service.ts`：voiceoverOptions 与电脑版完全对齐（全部带男女标注、删东北/河南/湖南、新增 male-sichuan/female-sichuan/beijing/nanjing）；新增 voiceoverPromptMap + getVoiceoverLabel；generateVideo 的裸英文值拼 prompt 改为中文描述（none 跳过）
+
+### APK 端真实配音链路（第二轮，服务端代理，已部署生产）
+- 方案：移动端无法本地 ffmpeg/配 API Key，故把电脑版"脚本生成+TTS+合流"整条链路服务化，APK 零配置调一个端点
+- **server/src/services/ai-client.ts**：TTSParams 加 `model?: string`，textToSpeech 阿里云分支默认 qwen-tts（兼容），配音链路传 qwen3-tts-flash（方言多音色）
+- **server/src/routes/video-voice.ts**：新增 `POST /api/video-voice/attach`（authMiddleware）——body { videoUrl, voiceover, topic?, script? } → 校验（http/https、voiceover 在 DIALECT_VOICE_MAP，15 个音色与电脑版 dialectVoiceMap 完全一致）→ 口播文案（chatCompletion：qwen3.7-max 优先回退 deepseek-v4-pro-202606；客户端可传 script 覆盖）→ textToSpeech(qwen3-tts-flash) → 下载+ffmpeg 合流 → 返回 { videoUrl: /uploads/video-voice/xxx.mp4, script }；任一步失败返回明确错误，客户端静默回退原视频
+- **apk/src/services/content.service.ts**：GenerateVideoParams 加 `videoUrl?`（用户上传视频作为配音底片）；generateVideo 集成 attach——finalUrl 非空且选了口播配音时调 /video-voice/attach，成功用配音成片失败回退原视频；新增 toAbsoluteUrl 把相对路径补全；外层 catch 保留上传视频
+- **apk/src/screens/AICreateDetailScreen.tsx**：视频类目生成前，若用户上传了视频先 materialsService.uploadFile(uri,'video') 拿 URL 传给 generateVideo（作配音底片）；handleGenerate 依赖数组加 uploadedFiles
+
+### 部署与验证 ✓
+- 本地 server tsc --noEmit 通过；4 个改动文件 lint 0 错误
+- scp 上传远端：video-voice.ts（routes/）、ai-client.ts（services/）；**踩坑**：scp 多文件按 basename 放置，ai-client.ts 曾被误放到 routes/，已 mv 修正到 services/
+- 远端 tsc 通过 → pm2 restart zhishuai-api（第 196 次重启，online）
+- verify-login.sh：admin 200 / 测试账号 401 / 注册 403 ✓
+- 新端点验证：POST /api/video-voice/attach 无 token 返回 401 未授权 ✓
+- 待办：APK 端需打包发布后用户侧生效；APK 端视频生成仍走 /ai-enhanced/post（无真实视频模型），真实配音能力优先作用于"用户上传视频+选配音"场景
+
+## 2026-08-24 会话（AI 创作工厂真实配音链路）：真实 TTS 合成 + 方言男女音色
+
+### 需求背景
+- 用户指出"选好配音后只是把配音文本拼进 prompt 交给视频模型，由模型自己生成带配音的成片"，要求补上真实配音能力 + 解决方言配音的男女选择问题
+
+### 方案（解决"配音只进 prompt、音色不可控"）
+- 链路：LLM 生成 120-220 字口播文案 → 阿里云百炼 Qwen3-TTS-Flash 合成 mp3 → 服务端 FFmpeg 把配音音频合入视频模型产出的画面 → 返回带真实人声的成片
+- 数字人（digitalHuman）跳过合成：其 API 层已用 audio_url 驱动配音
+- 任一步失败静默回退原视频，不影响成片交付
+
+### desktop-ui 改造
+- `lib/content/types.ts`：voiceoverOptions 方言全部带性别 —— 新增 `male-sichuan`/`female-sichuan`（四川话男/女）、`male-cantonese`/`female-cantonese`（粤语男/女）原有；删 `dongbei`/`henan`/`hunan`（阿里无对应音色）；`shanghai` 改标上海话(女)；新增 `beijing`/`nanjing`（北京/南京话男声）；新增 `voiceoverPromptMap` + `getVoiceoverLabel()`（配音值→中文描述，避免英文枚举泄漏进 prompt）
+- `lib/ai/factory-service.ts`：
+  - `buildVideoPrompt` 的 voiceMap 同步更新；`dialectVoiceMap` 全部替换为 Qwen3-TTS-Flash 官方音色（男声普通话 Ethan / 女声普通话 Cherry / 四川男 Eric / 四川女 Sunny / 粤男 Rocky / 粤女 Kiki / 沪女 Jada / 京男 Dylan / 宁男 Li / 陕男 Marcus / 闽男 Roy / 津男 Peter / 英男 Aiden / 英女 Jennifer）
+  - 新增 `attachRealVoiceover()` 主入口 + `generateVoiceoverScript()`（qwen3.7-max 优先，回退腾讯 deepseek-v4-pro-202606）+ `synthesizeTTSAudio()`（DashScope multimodal-generation + qwen3-tts-flash）+ `muxVoiceover()`（POST /api/video-voice/synthesize）
+  - `generateVideo` 集成 `withVoiceover` 闭包，3 处返回点全部包一层
+  - 修复：request baseURL 已含 /api，muxVoiceover 路径写 `/video-voice/synthesize`，不能带 /api 前缀（否则拼成 /api/api/...）
+- `app/customer/ai-factory/page.tsx`：buildVideoPrompt/buildTextPrompt 中 6 处 `${values.voiceover}` 裸值全部替换为中文描述（新增 voiceoverDesc helper，'none' 时跳过配音描述），import getVoiceoverLabel
+
+### server 改造（已部署生产）
+- 新增 `src/routes/video-voice.ts`：POST `/api/video-voice/synthesize`（authMiddleware 鉴权），body {videoUrl, audioUrl}，校验 http/https → 下载两文件到 uploads/video-voice/ → FFmpeg 合成（视频流 copy，失败降级 libx264 转码；`-af apad -shortest` 保证不截断视频）→ 返回 `/uploads/video-voice/xxx.mp4`；失败清理全部临时文件
+- `src/index.ts`：挂载 `/api/video-voice` + `/uploads` 静态服务（express.static）
+- `package.json`：新增依赖 `ffmpeg-static@^5.2.0`
+- FFmpeg 探测：优先 ffmpeg-static，回退系统 ffmpeg；本地开发发现 ffmpeg-static 二进制下载超时（GitHub ETIMEDOUT），本地系统 ffmpeg `D:\LZAIGC\server\ffmpeg\bin\ffmpeg.exe` 回退可用
+
+### 部署与验证 ✓
+- 已 scp 上传远端：server/src/routes/video-voice.ts、server/src/index.ts、server/package.json（index.ts 与 video-voice.ts 因路径写错曾误传 server/ 根目录，已 mv 修正到 src/ 下）
+- 远端 npm install 成功，ffmpeg-static 二进制下载成功（ffmpeg 7.0.2-static，位于 node_modules/ffmpeg-static/ffmpeg）
+- pm2 restart zhishuai-api（第 195 次重启）→ online
+- verify-login.sh：admin 200 / 测试代理商 401 / 测试客户 401 / 自助注册 403（代理/客户 401 为测试脚本账号过时，见下条记忆，非本次改动导致）
+- 新接口探测：POST /api/video-voice/synthesize 无 token 返回 401（路由已注册+鉴权生效）；/uploads 静态服务 404 正常响应
+- 本机 desktop-ui + server `npx tsc --noEmit` 全通过，read_lints 0 错误
+
+### 未完成/注意事项
+- **APK 端已同步**（用户确认页面语言选项时发现）：`apk/src/services/content.service.ts` 的 voiceoverOptions 方言原本无性别标注且用旧 value（sichuan/dongbei/henan/hunan），已同步为与电脑版一致（全部带男女标注、移除东北/河南/湖南、新增 male-sichuan 等）；新增 voiceoverPromptMap + getVoiceoverLabel；generateVideo 的 `配音要求：${params.voiceover}` 裸英文值改为中文描述（none 跳过）。APK 端 lint 0 错误（tsc 报错均为既有遗留，与本次无关）。APK 未做真实 TTS 链路（移动端走 /ai-enhanced/post）
+- desktop-ui 改动需随桌面版下次打包发布（3.1.1 已是最新线上版）；未提交 git（用户未要求）
+- 生产验证真实配音链路需：配置阿里云 DashScope API Key + 真实视频生成后人工确认成片带人声
+- 方言覆盖说明：阿里方言音色当前支持 四川/粤/沪/京/宁/陕/闽/津，东北/河南/湖南无官方音色故选项已移除
+
+## 2026-08-24 会话（内容中心功能改造）：分类统一 + 下载/删除完善 + 已下载状态 + 10天过期清理
+
+### 需求背景
+- 压缩前会话延续任务：① desktop-ui 与 APK 内容中心分类体系与 AI 创作工厂统一（ContentCategory 对齐）② 下载/删除功能完善 ③ 状态栏"已使用/未使用"→"已下载/未下载" ④ 生成内容 10 天过期自动清理
+
+### 后端改造（server，已部署生产）
+- `prisma/schema.prisma`：Material 新增 `downloadedAt DateTime?`（已 `prisma db push` 同步生产库）
+- `routes/materials.ts`：
+  - 修复 GET `/` status 过滤 Bug（原 `where.used` 引用不存在的字段，筛选必 500）→ 支持 `downloaded/undownloaded`（按 downloadedAt），兼容旧 `used/unused`
+  - POST `/` 增加必填校验 + 字段白名单（title/type/content/thumbnail/fileType/fileUrl）
+  - PUT `/:id` 改为字段白名单，防注入 userId 等
+  - DELETE `/:id` 增加归属校验 + 清理 uploads/materials 关联文件
+- 新增 `services/material-cleanup.ts`：删除 createdAt 超 10 天的素材（含关联文件），启动执行一次 + 每 6 小时执行一次；已在 `index.ts` 接入
+- 注意：生产 server 用 tsx 直接跑 src/，改源码 + `pm2 restart zhishuai-api` 即生效，无需编译
+
+### desktop-ui 改造（源码已同步远端 + 远端 next build 验证通过）
+- `app/customer/materials/page.tsx`：Material 接口 status→downloadedAt；状态列/网格卡片/预览弹窗改"已下载/未下载"；筛选选项改未下载/已下载（status=undownloaded/downloaded）；下载成功后 PUT 标记 downloadedAt 并回写本地列表
+- 注：生产 nginx 网页版已下线（根路径返回下载引导页），out/ 仅供桌面版打包，本次未重新部署 out
+
+### APK 改造（代码已完成，暂不构建发布）
+- `services/content.service.ts`：ContentCategory 枚举补 `CONTENT_CREATIVITY='content-creativity'` + contentCategoryConfig 补配置（紫色/lightbulb 图标）；`saveToMaterials` 修复字段 `category`→`type` + 返回值改判 `response.id`
+- `services/materials.service.ts`：Material.type 放宽为 string、加 downloadedAt；`getMaterials` 响应解包修复 `items`→`list`（后端返回 data.list）；新增 `batchDelete`
+- `screens/MaterialsScreen.tsx`：删除本地旧 categoryConfig 改用统一 contentCategoryConfig；`res.list`；状态筛选/标签改已下载/未下载（downloadedAt）；下载完善（媒体存相册/文本写 txt 分享）并标记 downloadedAt；批量删除接后端 batch-delete；复制用真实剪贴板（`expo-clipboard` 已安装）；修复 tags 未定义崩溃隐藏 Bug
+- `screens/AICreateDetailScreen.tsx`（本次续会话完成）：修复"保存到内容中心/复制/下载"均为假实现（只弹窗）的 Bug —— handleSave 真实调用 `saveToMaterials(category, title, content)`（文本存内容、媒体存 URL）；handleCopy 用 `expo-clipboard` 真实复制；新增 handleDownload（图片下载到相册 / 视频下载并分享）；媒体区"下载"按钮原误绑 handleCopy 已修正为 handleDownload；渲染区按钮全部改箭头函数显式传参，避免 onPress 事件对象被误当参数
+- `screens/MaterialsScreen.tsx` 类型修复：handlePreview/handleDownload/handleShare/renderMaterial 参数统一由 `Material` 改为扩展的 `LocalMaterial`（消除 category/isFavorite/createTime 的 TS 报错）
+- APK 本次改动的 4 个文件（AICreateDetailScreen/MaterialsScreen/content.service/materials.service）tsc 编译无错误；其余历史 tsc 错误（App.tsx/AuthContext/services/index.ts 等）为遗留，与本次无关
+
+### 部署与验证 ✓
+- 已上传远端：server/src/routes/materials.ts、server/src/index.ts、server/src/services/material-cleanup.ts、server/prisma/schema.prisma、desktop-ui/app/customer/materials/page.tsx（覆盖前均已 .bak 备份）
+- 远端：prisma generate + db push 成功（94ms）→ pm2 restart zhishuai-api（194 重启次数）
+- verify-login.sh：admin 200 / 测试代理商 401 / 测试客户 401 / 自助注册 403 ✓
+- 新增 `scripts/verify-materials-api.py`（内容中心 API 交叉验证）：列表 200、downloaded/undownloaded 筛选 200、创建→PUT downloadedAt→downloaded 筛选命中→undownloaded 排除→DELETE 清理，全链路 PASS ✓
+- desktop-ui 远端 `next build` 成功（/customer/materials 正常产出 4.41 kB）
+
+### 未完成/注意事项
+- APK 端未构建发布（需 EAS build 才能上线，1.1.1 已是最新线上版）；expo-clipboard 为新增依赖
+- desktop-ui out 未重新部署（网页版已下线，桌面版 3.1.1 打包时自然包含本次改动）
+- 本次 git 未提交（用户未要求提交）
+
 ## 2026-08-24 会话（晚间）：上线确认执行（桌面版 3.1.1 发布 + 前端 out 部署 + 数据库清理）
 
 ### 本次登录错误提示修复（已随 3.1.1 发布）
@@ -1337,7 +1510,7 @@
 
 2. **智能招聘**（第二优先级，效率工具）：全自动AI猎头。只要客户输入招聘条件，系统自动搜索符合条件的应聘人员，自动打招呼、持续沟通（除非对方明确拒绝），直到邀请对方发送联系方式或前来面试。不只是"简历筛选"，而是从搜索→沟通→邀约的全自动化招聘机器人。
 
-3. **智能获客**（第三优先级，增长引擎）：全平台潜客采集与自动引流。覆盖抖音、快手、小红书、B站等主流平台（目标全平台），支持直播间采集意向客户、碰一碰商家爆店、天眼查企业获客、高德地图商家获客。根据用户设定的行业和距离精准搜索潜在客户（在各平台留言、询问、咨询的人），自动根据其留言内容进行沟通引流，发送用户自定义的企业微信二维码。
+3. **智能获客**（第三优先级，增长引擎）：平台账号授权 + 智能跟评引流。**已确认范围（2026-08-14 收敛）：抖音、快手、小红书 3 平台**——视频号因无跟评交互入口已移除；B站/直播间采集/碰一碰/天眼查/高德/行业距离等早期愿景已收敛下线。实现：Playwright 真实扫码授权登录 → 同平台多账号矩阵（每账号独立 cookies/频控/发送）→ 在目标内容评论区生成合规话术评论引流，附企业微信二维码。
 
 4. **推荐分享**（第四优先级，裂变增长）：将客户发布的短视频生成专属二维码，其他人扫码即可一键转发到各平台，追踪推荐效果，实现用户裂变增长。含转介绍功能（在"我的"里通过二维码形式推荐下载智枢AI APK）。
 

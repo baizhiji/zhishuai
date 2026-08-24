@@ -11,13 +11,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
-import { useAppNavigation } from '../context/NavigationContext';
 import PageHeader from '../components/PageHeader';
 import { getApiBaseUrl } from '../services/api.config';
 
 export default function SupportQRScreen() {
   const { theme } = useTheme();
-  const { goBack } = useAppNavigation();
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,15 +29,19 @@ export default function SupportQRScreen() {
       setLoading(true);
       setError(null);
       const baseUrl = getApiBaseUrl();
-      const response = await fetch(`${baseUrl}/api/v1/support/qrcode`);
-      const data = await response.json();
-      if (data.success && data.data?.qrCodeUrl) {
-        setQrCodeUrl(data.data.qrCodeUrl);
+      const response = await fetch(`${baseUrl}/api/support/qrcode`);
+      const result = await response.json();
+      // 后端返回 { success: true, data: { url } }
+      const data = result.data ?? result;
+      const url = data?.url ?? data?.qrCodeUrl ?? '';
+
+      if (response.ok && url) {
+        setQrCodeUrl(url);
       } else {
         setError('暂无客服二维码，请稍后再试');
       }
     } catch (err) {
-      setError('网络请求失败，请检查网络连接');
+      setError(err instanceof Error ? err.message : '网络请求失败，请检查网络连接');
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,7 @@ export default function SupportQRScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
-        <PageHeader title="在线客服" onBack={goBack} />
+        <PageHeader title="在线客服" />
         <ActivityIndicator size="large" color={theme.primary} />
         <Text style={[styles.loadingText, { color: theme.textSecondary }]}>加载中...</Text>
       </View>
@@ -63,7 +65,7 @@ export default function SupportQRScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <PageHeader title="在线客服" onBack={goBack} />
+      <PageHeader title="在线客服" />
 
       <View style={styles.content}>
         {error ? (

@@ -5,25 +5,32 @@ export interface Material {
   id: string;
   title: string;
   content: string;
-  type: 'title' | 'topic' | 'copywriting' | 'image' | 'video' | 'link';
+  type: string; // ContentCategory 枚举值（与电脑版 15 分类对齐）
   thumbnail?: string;
   url?: string;
   tags?: string[];
-  status: 'unused' | 'used';
+  status?: 'unused' | 'used';
+  downloadedAt?: string; // 已下载时间，存在即"已下载"
   createdAt: string;
   updatedAt: string;
 }
 
 class MaterialsService {
-  // 获取素材列表
+  // 获取素材列表（后端返回 data.list，非 data.items）
   async getMaterials(params?: {
-    type?: Material['type'];
-    status?: Material['status'];
+    type?: string;
+    status?: string; // downloaded | undownloaded
     keyword?: string;
     page?: number;
     pageSize?: number;
-  }): Promise<{ items: Material[]; total: number }> {
-    const response = await apiClient.get<{ items: Material[]; total: number }>('/materials', params);
+  }): Promise<{ list: Material[]; total: number }> {
+    const response = await apiClient.get<{ list: Material[]; total: number }>('/materials', params);
+    return response;
+  }
+
+  // 批量删除
+  async batchDelete(ids: string[]): Promise<{ success: boolean }> {
+    const response = await apiClient.post<{ success: boolean }>('/materials/batch-delete', { ids });
     return response;
   }
 

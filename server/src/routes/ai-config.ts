@@ -8,7 +8,9 @@ import {
   toggleApiKey, 
   getApiKeyById,
   testApiKey,
-  normalizeProvider
+  testApiKeyById,
+  normalizeProvider,
+  getApiKeyBalance
 } from '../services/user-api-key.service';
 
 // 允许的服务商（含标准命名 alibaba/tencent/volcano 与存储值 dashscope/tokenhub/ark）
@@ -86,6 +88,31 @@ router.post('/keys', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// 测试已保存的 API Key 连接是否有效（服务端解密测试，前端无需回传密钥）
+router.post('/keys/:id/test', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+
+    const result = await testApiKeyById(userId, id);
+    res.json({ success: true, valid: result.valid, message: result.message });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// 查询 API Key 余额（蓝皮书 6.2 第 3 条）
+router.get('/keys/:id/balance', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { id } = req.params;
+    const balance = await getApiKeyBalance(userId, id);
+    res.json({ success: true, data: balance });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
