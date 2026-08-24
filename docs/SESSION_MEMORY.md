@@ -22,8 +22,14 @@
 
 ### 剩余待办
 - AI漫剧/短剧按用户确认保持占位（预留功能）
-- 部署：server/desktop-ui 变更需 scp + pm2 restart + verify-login.sh；APK 打包发布
-- 生产服务器需确认安装 ffmpeg（或 server 依赖安装 ffmpeg-static）
+
+### 已部署（2026-08-24 晚间执行完成）
+- **server 部署完成**：scp package.json + src 全部改动（含 video-edit.ts/video-voice.ts/material-cleanup.ts 新文件，正确放入 routes/services 子目录）→ 远端 npm install（ffmpeg-static）→ pm2 restart zhishuai-api → verify-login.sh 三角色登录通过 → 新路由 /api/video-edit/compose、/api/video-voice/synthesize、/api/video-voice/attach 均注册成功（无鉴权返回 401）
+- **desktop-ui out 部署**：next build 完成 → 备份旧 out → scp out 到 /var/www/zhishuai/web/out
+- **git 推送**：全部改动已 commit + push（`7809486..748f8e5 main -> main`）
+- **桌面版 3.2.0 发布**：tauri build nsis → 签名 → scp zhishuai_3.2.0_x64-setup.exe(+.sig) 到 downloads/ → appVersion 表插入 3.2.0(buildNumber 320, SHA256 0A4C26CD..., 签名已存) → latest.json 验证返回 3.2.0 → 外网 https://baizhiji.net/downloads/zhishuai_3.2.0_x64-setup.exe 200
+- **文档同步**：SESSION_MEMORY 2.1 智能获客段已按 08-14 确认收敛为抖音/快手/小红书 3 平台；蓝皮书 4.8 推荐分享段已按实际实现（分享码裂变 + 转介绍链路 + AI 辅助可选）重写
+- **APK 1.2.0**：EAS 构建进行中（build ID db819459-399e-4b0e-baf0-7e90d23bbdf9），待完成后上传 downloads/zhishuai.apk + appVersion 表插入
 
 ## 2026-08-24 会话（深夜，第二轮）：AI 创作工厂全功能复核（12 卡片 + 模型配置 + 四大横切 + 视频配置系统）
 
