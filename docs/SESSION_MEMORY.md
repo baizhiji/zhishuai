@@ -16,13 +16,21 @@
    - appVersion 表已确认完整：desktop 3.1.0（buildNumber 310, released 2026-08-24T03:11）+ android 1.1.0（buildNumber 110, released 2026-08-24T03:49）
    - latest.json 已发布 3.1.0（签名完整，url=https://baizhiji.net/downloads/zhishuai_3.1.0_x64-setup.exe）
    - 服务器 scripts/ 目录还缺新脚本（insert-appversion-3.1.0.js 等），等 CI deploy 阶段 git pull 后补齐（幂等脚本，无需执行）
-4. **verify-login.sh 修正（已提交待推送）**：admin 密码 123456 → 20061218（本地提交 87d9801，等 CI #43 完成后推送触发 #44 全绿）
+4. **verify-login.sh 修正（已推送）**：admin 密码 123456 → 20061218（87d9801）+ API 就绪等待轮询（d185fef，修复 pm2 restart 后 130ms 即验证导致的 curl 000 连接失败竞态）+ 所有 curl 加 --max-time 防挂起
    - ⚠️ 注意：服务器跑脚本时 node 的 require 基于脚本位置找 node_modules，需 `NODE_PATH=/var/www/zhishuai/server/node_modules` 或 cd 到 server 下执行
+5. **签名 secrets 配置（完成）**：GitHub Actions secrets 已配置 `TAURI_SIGNING_PRIVATE_KEY`（私钥文件内容 348B）+ `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`（zhishuai-2026-sign），Tauri 官方支持直接存私钥内容（无需 base64: 前缀）
+   - ⚠️ 教训：JS 调 secrets PUT API 时 key_id 必须 String() 转换（3380204578043523366 超过 2^53 安全整数导致 422）
+6. **CI 签名能力修复（已推送）**：tauri.conf.json bundle 加 `"createUpdaterArtifacts": true`（3966aa3），否则 `tauri build` 不生成 .sig 签名文件
 
 ### CI 状态
-- push 1dc5fca 触发 CI/CD Pipeline #43（2026-08-24T05:56Z）：lint/typecheck/security-audit 6 个 job 全过，Build(server) 过，Build(desktop-ui) 进行中；随后 desktop-build(Windows 3.1.0) → deploy-desktop(上传安装包) → deploy(git pull + server 构建 + pm2 restart + verify-login.sh)
-- #43 deploy job 的 verify-login.sh 会因旧密码失败（不影响服务器部署，部署在验证前已完成）
-- 待办：等 #43 完成 → push 87d9801 → #44 全绿 → 更新本记忆
+- #43（05:56Z, 1dc5fca）：deploy 因 verify-login.sh 旧密码失败（服务器部署本身成功）
+- #44（06:31Z, 2f676d3）：lint/audit/build 全绿；desktop-build 成功（Windows 首次构建约 15min）；deploy-desktop 上传成功；deploy 失败——根因 pm2 restart 后 130ms 即跑 verify-login.sh，curl 返回 000（API 未就绪竞态）；且 CI 上传的 `智枢AI_3.1.0_x64-setup.exe` 无 .sig（缺 createUpdaterArtifacts）
+- #45（06:50Z, 3966aa3）：**全部 job 通过**（lint/audit/build/deploy/desktop-build/deploy-desktop 全绿）。desktop-build 生成签名：服务器 downloads/ 新增 `智枢AI_3.1.0_x64-setup.exe` + `.sig`（15:05 上传）
+- **CI 签名验证（完成）**：用 pynacl 实现 minisign 验证，CI 产物的主签名 Ed25519 over blake2b-512(file) 与 tauri.conf.json 公钥匹配 → **CI 签名链路完整有效**
+  - ⚠️ Tauri v2 .sig 文件 = 整个签名文本的 base64（解码后 untrusted comment 为 "signature from tauri secret key"，签名块前缀是 **大写 "ED"** + keyid(8) + sig(64)，签名对象是 blake2b-512 文件哈希而非原始数据）；tauri.conf.json 的 pubkey 也是标准公钥文件整体 base64
+  - ⚠️ Tauri v2 CLI 无 `tauri signer verify` 子命令，验证需用 minisign/pynacl
+- **生产链路确认（完成）**：latest.json HTTP 200（version 3.1.0, url=zhishuai_3.1.0_x64-setup.exe, sig 420B），downloads/ 4 个文件全部可访问；现有自动更新链路（手动签名版）完好，CI 签名包为冗余不冲突
+- ⚠️ 已知优化项：CI 桌面产物为中文名 `智枢AI_<ver>_x64-setup.exe`，与服务器 latest.json/下载目录的 ASCII 名 `zhishuai_<ver>_x64-setup.exe` 不一致；未来发布新版本需统一命名（改 CI 重命名 + server 动态读签名，或手动处理）。另备份的 zhishuai.key.pub 为单行 base64 嵌套格式，标准验证需用 tauri.conf.json 的 pubkey 值
 
 ### 生产账号（沿用）
 - admin: 18601655222 / 20061218；agent: 18100090667 / 123456；customer: 13800000001 / 密码未知
