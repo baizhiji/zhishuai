@@ -1,4 +1,32 @@
 
+## 2026-08-24 会话：商用就绪剩余事项收尾（git 同步 + 签名私钥备份 + 发布流程确认）
+
+### 背景
+用户确认"可以商用"后，要求把评估中列出的剩余事项全部完成。剩余事项：①git 历史分叉同步 ②桌面端签名私钥备份 ③发布流程确认（CI/版本表/安装包）。
+
+### 完成事项
+1. **git 同步（完成）**：
+   - 本地 155 个文件未提交改动全部按逻辑分组提交（实际合并为 1 个大提交 835ae63，因 PowerShell 中文引号解析失败导致分组未生效，内容完整）
+   - 历史分叉（本地 ahead14/behind5）：远端 5 个提交与本地提交内容部分重叠（此前用 API 脚本推送产生等效 hash），通过 `git merge origin/main` 整合，冲突 16 个文件全部以本地 HEAD（已部署生产版本）为准解决，merge commit `1dc5fca`
+   - `git push origin main` 成功：`8f19774..1dc5fca main -> main`，本地与远端完全同步
+   - `.gitignore` 补充忽略 `apk/dist-test/` 和 `scripts/__pycache__/`
+   - ⚠️ 教训：PowerShell 中 git commit 消息含中文引号/括号会导致整条命令 parse error 不执行；git status 大量文件时，`git add -A` 暂存全部后分组提交需先 `git reset`
+2. **签名私钥备份（完成）**：Tauri updater minisign 密钥对备份到 `C:\Users\Administrator\Documents\zhishuai-secrets-backup\`（zhishuai.key 348B + zhishuai.key.pub 152B + SHA256SUMS.txt 校验清单，指纹 B310C844C88FEAD8）。⚠️ 建议再做异地备份（加密云盘），丢失后无法发布新桌面版本
+3. **发布流程确认（完成）**：
+   - appVersion 表已确认完整：desktop 3.1.0（buildNumber 310, released 2026-08-24T03:11）+ android 1.1.0（buildNumber 110, released 2026-08-24T03:49）
+   - latest.json 已发布 3.1.0（签名完整，url=https://baizhiji.net/downloads/zhishuai_3.1.0_x64-setup.exe）
+   - 服务器 scripts/ 目录还缺新脚本（insert-appversion-3.1.0.js 等），等 CI deploy 阶段 git pull 后补齐（幂等脚本，无需执行）
+4. **verify-login.sh 修正（已提交待推送）**：admin 密码 123456 → 20061218（本地提交 87d9801，等 CI #43 完成后推送触发 #44 全绿）
+   - ⚠️ 注意：服务器跑脚本时 node 的 require 基于脚本位置找 node_modules，需 `NODE_PATH=/var/www/zhishuai/server/node_modules` 或 cd 到 server 下执行
+
+### CI 状态
+- push 1dc5fca 触发 CI/CD Pipeline #43（2026-08-24T05:56Z）：lint/typecheck/security-audit 6 个 job 全过，Build(server) 过，Build(desktop-ui) 进行中；随后 desktop-build(Windows 3.1.0) → deploy-desktop(上传安装包) → deploy(git pull + server 构建 + pm2 restart + verify-login.sh)
+- #43 deploy job 的 verify-login.sh 会因旧密码失败（不影响服务器部署，部署在验证前已完成）
+- 待办：等 #43 完成 → push 87d9801 → #44 全绿 → 更新本记忆
+
+### 生产账号（沿用）
+- admin: 18601655222 / 20061218；agent: 18100090667 / 123456；customer: 13800000001 / 密码未知
+
 ## 2026-08-24 会话：修改密码卡顿根因修复 + 全系统流畅度优化（已部署验证）
 
 ### 用户问题
