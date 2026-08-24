@@ -30,7 +30,11 @@
   - ⚠️ Tauri v2 .sig 文件 = 整个签名文本的 base64（解码后 untrusted comment 为 "signature from tauri secret key"，签名块前缀是 **大写 "ED"** + keyid(8) + sig(64)，签名对象是 blake2b-512 文件哈希而非原始数据）；tauri.conf.json 的 pubkey 也是标准公钥文件整体 base64
   - ⚠️ Tauri v2 CLI 无 `tauri signer verify` 子命令，验证需用 minisign/pynacl
 - **生产链路确认（完成）**：latest.json HTTP 200（version 3.1.0, url=zhishuai_3.1.0_x64-setup.exe, sig 420B），downloads/ 4 个文件全部可访问；现有自动更新链路（手动签名版）完好，CI 签名包为冗余不冲突
-- ⚠️ 已知优化项：CI 桌面产物为中文名 `智枢AI_<ver>_x64-setup.exe`，与服务器 latest.json/下载目录的 ASCII 名 `zhishuai_<ver>_x64-setup.exe` 不一致；未来发布新版本需统一命名（改 CI 重命名 + server 动态读签名，或手动处理）。另备份的 zhishuai.key.pub 为单行 base64 嵌套格式，标准验证需用 tauri.conf.json 的 pubkey 值
+- #46（07:16Z, d8fad75）：**遗留优化项已实施且全部验证通过**（CI 产物命名统一 + server 动态签名）——desktop-build 新增 "Rename installer to ASCII name" 步骤：将 `智枢AI_<ver>_x64-setup.exe(.sig)` 重命名为 `zhishuai_<ver>_<arch>-setup.exe(.sig)`（架构从文件名提取）；deploy-desktop 新增 "Clean legacy Chinese-name installers" 步骤清理旧中文名；server `version.ts` 新增 `readDesktopSignature()`（signature 优先取 appVersion 表，缺失时从 `DOWNLOADS_DIR`（默认 `../downloads`，可用环境变量覆盖）读同名 .sig）+ 修复默认 URL 拼接为 `zhishuai_<ver>_<archShort>-setup.exe`（x86_64→x64 归一化）
+- **#46 验证结果**：lint/audit/build/deploy 全绿（verify-login 通过）；desktop-build 重命名产物 `zhishuai_3.1.0_x64-setup.exe` + `.sig` 上传 downloads/；服务器中文名文件已清除；CI 产物主签名经 pynacl 验证有效（Ed25519 over blake2b-512(file)）
+- ⚠️ **签名漂移处置（重要）**：CI 重新构建的 exe 与手动发布版内容不同（构建环境差异，3,663,190B vs 3,659,375B）→ 数据库 appVersion 存的旧签名与 CI 产物不匹配 → **已清空数据库 desktop 3.1.0 的 signature（2026-08-24，运维操作）**，latest.json 现走动态读取 downloads/.sig，签名与文件严格一致。后续每次 CI 构建上传后签名自动跟随，无需维护数据库 signature（发布新版本 appVersion 记录可不填 signature/downloadUrl）
+- 遗留优化项状态：**已全部完成**（命名统一 + 动态签名 + URL 修复 + 服务器目录清理）
+- ⚠️ 备注：备份的 zhishuai.key.pub 为单行 base64 嵌套格式，标准验证需用 tauri.conf.json 的 pubkey 值；发布新版本流程简化——仅需升级 tauri.conf.json version + appVersion 表建 desktop 记录（可不填 downloadUrl/signature，latest.json 自动生成 URL + 动态读 .sig）
 
 ### 生产账号（沿用）
 - admin: 18601655222 / 20061218；agent: 18100090667 / 123456；customer: 13800000001 / 密码未知
