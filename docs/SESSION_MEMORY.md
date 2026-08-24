@@ -27,9 +27,20 @@
 - verify-login.sh：admin 登录 200，测试代理商/客户 401，自助注册 403
 - baizhiji.net 根 200、downloads 200、api/latest 200
 
-### 待办
-- git 提交推送本次全部改动（版本号/图标/前端修复/APK 修复）
-- APK 端（HomeScreen + api.client.ts 修复）待后续构建
+### git 提交推送（已完成）
+- 提交 `6f300fd`（69 文件，337+/-103）已推送 `c82b128..6f300fd main -> main`，工作区干净
+- 含：版本号 4 处 3.1.1 + APK app.json 1.1.1/versionCode 4 + 登录提示修复 + 图标全套 + favicon.ico + gen_favicon.ps1
+- 经验：commit 消息用英文避免 PowerShell 中文引号 parse error
+
+### APK 1.1.1 已发布（2026-08-24 18:49，生产）
+- 版本：apk/app.json version 1.1.1 + versionCode 4（patch 档：登录错误提示修复 + 首页交互优化）
+- 构建：`EAS_NO_VCS=1 npx eas build --platform android --profile preview --no-wait --json`，Build ID `d7f35fee-08ff-4b13-83af-36d5c0572c6e`（⚠️ 提交输出 JSON 里末尾的 id `520e55a6...` 不是 buildId，须以 `eas build:list` 里的为准）
+- 上线：服务器 curl 下载 EAS 产物覆盖 `/var/www/zhishuai/downloads/zhishuai.apk`（73,480,816B≈70.0MB，sha256 `bbb2e8c6...53cf43`）
+- AppVersion 表已插 android 1.1.1（buildNumber 111，脚本 `scripts/insert-appversion-apk-1.1.1.ts` 幂等）
+- 验证通过：`/api/version/latest` 返回 `{version:1.1.1, buildNumber:111, downloadUrl, changelog, size:"70.0 MB"}`；APK 下载 HTTP 200 content-length 一致；sha256 一致
+
+### 全部上线确认完毕 ✓
+桌面 3.1.1 + 前端 out + 数据库清理 + git 同步 + APK 1.1.1 全部完成，待办清零
 
 ## 2026-08-24 会话（下午）：上线前全面检查修复（部分已部署，前端待重新构建部署）
 
