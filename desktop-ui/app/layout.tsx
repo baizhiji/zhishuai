@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   description: '一站式智能商业平台，集成自媒体、招聘、获客、推荐分享等全场景功能',
   keywords: 'AI,自媒体,招聘,获客,推荐,智枢AI',
   authors: [{ name: '智枢AI' }],
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+  },
 };
 
 export const viewport: Viewport = {

@@ -2,6 +2,19 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse } from '@/types';
 import { dispatchAuthExpired } from '@/lib/auth-events';
 
+// 从后端错误响应体中提取用户可读消息
+// 兼容格式:
+// 1. { success:false, error:{ message:'xxx' } }  ← api-response.ts 标准格式
+// 2. { success:false, message:'xxx' } / { msg:'xxx' }
+// 3. { error: 'xxx' }                            ← error 直接为字符串
+function extractErrorMsg(data: any): string {
+  if (!data) return '';
+  if (typeof data === 'string') return data;
+  const error = data.error;
+  if (typeof error === 'string') return error;
+  return data.message || error?.message || data.msg || '';
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private baseURL: string;
@@ -40,12 +53,16 @@ class ApiClient {
         return response.data as any;
       },
       error => {
-        const msg = error.response?.data?.message || error.message || '请求失败';
+        const msg = extractErrorMsg(error.response?.data) || error.message || '请求失败';
         console.error('API Error:', msg);
 
         if (error.response?.status === 401) {
-          this.removeToken();
-          dispatchAuthExpired();
+          // 仅已登录请求（携带 token）才视为登录过期；登录接口等业务性 401（如密码错误）不触发登出
+          const hadToken = !!(error.config?.headers as any)?.Authorization;
+          if (hadToken) {
+            this.removeToken();
+            dispatchAuthExpired();
+          }
         }
 
         return Promise.reject(new Error(msg));

@@ -1,4 +1,71 @@
 
+## 2026-08-24 会话（晚间）：上线确认执行（桌面版 3.1.1 发布 + 前端 out 部署 + 数据库清理）
+
+### 本次登录错误提示修复（已随 3.1.1 发布）
+- desktop-ui/lib/request.ts + lib/api.ts + utils/request.ts：401 未授权与 400 密码错误的错误文案区分（登录页不再误报"登录过期"）
+- apk/src/services/api.client.ts：APK 端同样修复（代码已改，APK 暂不构建）
+
+### 桌面版 3.1.1 已发布（2026-08-24 18:31，生产）
+- 版本号 4 处同步升级 3.1.0→3.1.1：tauri.conf.json / Cargo.toml / desktop/package.json / desktop-ui/next.config.js
+- 包含：登录错误提示修复 + 新图标（tauri icon 全套）+ AI工厂/招聘页面修复 + favicon
+- 构建：npx next build + npx tauri build --bundles nsis（本机 Rust 1.97，无需 CI）
+- 签名：npx tauri signer sign（私钥 C:\Users\Administrator\.tauri\zhishuai）
+- 上传：/var/www/zhishuai/downloads/zhishuai_3.1.1_x64-setup.exe(.sig)，sha256=7CE6F80AB89152A951493FC8D99DB224B449F7062C0EB71DA09F7166504B41DD
+- AppVersion 表已插入 3.1.1 desktop stable（downloadUrl=https://baizhiji.net/downloads/zhishuai_3.1.1_x64-setup.exe）
+- 更新清单 API https://baizhiji.net/api/version/desktop/latest.json 返回 3.1.1 ✓
+- 旧安装包 3.0.3/3.1.0 已清理，downloads 仅保留 3.1.1 + zhishuai.apk
+
+### 前端 out 已部署
+- desktop-ui/out（3.1.1 构建产物）→ /var/www/zhishuai/web/out（tar 解压替换，旧 out 备份为 out.bak_*）
+
+### 数据库业务数据清理（已完成，生产）
+- 备份：/tmp/zhishuai_backup_pre_cleanup.sql（111KB）
+- ShareRecord 3→0（关联已删除客户 73d8bf56），其余业务表已全 0
+- 保留：User(admin×1)/AppVersion(7)/FeatureSwitch(4)/AdminLog(1)
+
+### 最终验证 ✓
+- verify-login.sh：admin 登录 200，测试代理商/客户 401，自助注册 403
+- baizhiji.net 根 200、downloads 200、api/latest 200
+
+### 待办
+- git 提交推送本次全部改动（版本号/图标/前端修复/APK 修复）
+- APK 端（HomeScreen + api.client.ts 修复）待后续构建
+
+## 2026-08-24 会话（下午）：上线前全面检查修复（部分已部署，前端待重新构建部署）
+
+### 用户诉求
+开通账号遇问题、操作页面无反应但数据已变更、桌面版图标显示异常（旧logo）、全面检查所有页面准备上线。
+
+### 已修复（后端，已部署到生产并验证）
+1. **admin-agents.ts `GET /api/admin/agents/:id/customers`**：where 错用 `Agent:{id}`（只匹配代理商自己）→ 改为 `UserAgentRelation:{agentId}` + `role:'customer'`（findMany 与 count 两处都改）
+2. **admin-agents.ts `GET /api/admin/customers`**：无 role 过滤混合所有用户 → 加 `role:'customer'`；select 改 `UserAgentRelation→Agent.name`，返回前 map 出 `agentName`（前端用 agentName，原返回 Agent.User.name 不匹配）
+3. **agent.ts `GET /api/agent/customers`**：isAdmin 时 `where={}` 返回所有用户 → 加 `role:'customer'`
+4. **admin-agents.ts 创建客户**：原来计算了 expireAt 但 create 时漏传 → 已补 `expireAt`
+5. **admin-agents.ts 创建代理商**：缺省密码 `hashPassword(password)` 传 undefined 会报错 → 改为随机兜底
+6. **agent.ts 创建客户**：缺省密码 `phone.slice(-6)` 弱口令 → 改为随机兜底
+7. 部署：scp 到 /var/www/zhishuai/server/src/routes/ + `pm2 restart zhishuai-api`；验证 admin 登录 200、agents/customers 列表为空 ✓
+
+### 已修复（前端，已改代码待重新构建部署）
+8. **utils/request.ts**：fetch 封装无超时 → 加 `fetchWithTimeout`（30s AbortController）+ 统一超时/网络错误提示，get/post/put/delete/patch/upload 全部走新方法
+9. **app/customer/recruitment/platforms**：`断开连接`/`自动开关`只改 localStorage 不调后端 → 改为调 `/recruitment/search-config` 真实接口（findActiveConfig + DELETE/PUT/POST），fetchPlatforms 从服务端 configs 组装真实状态（原代码 `res.configs` 恒为 undefined）
+10. **app/customer/ai-factory**：`保存到内容中心`只写 localStorage（内容中心从服务器读 → 数据丢失）→ 改为 `POST /api/materials`（materials.ts 参数 title/type/content），新增 savingToCenter loading
+11. **favicon**：desktop-ui 无 favicon → scripts/gen_favicon.ps1 从 logo.png 生成多尺寸 favicon.ico，layout.tsx metadata 加 `icons.icon`
+
+### 桌面图标问题
+- 根因：desktop/src-tauri/icons/icon.ico 是 8/21 旧 LOGO方案B，8/24 新 logo.png 未同步 → 用新 logo 放大到 1024x1024 `npx tauri icon` 重新生成全套图标（icon.ico 40KB 含 256 尺寸）✓
+- ⏳ 待办：重新构建 desktop NSIS 安装包并上传 downloads/（需先重建 desktop-ui out/）
+
+### 数据库清理（已执行，生产）
+- 删除 agent 18100090667 + customer 13166262006 + frozen 13800000001 及其全部关联数据（Payment/ShareRecord/UserFeatureSwitch/UserAgentRelation/Agent）
+- 备份：服务器 /tmp/zhishuai_backup_20260824.sql
+- 现有账号：仅 admin 18601655222/20061218
+- ⚠️ 脚本模板/内容素材等业务数据未清（服务器脚本表 ScriptTemplate 等保留待用户确认）
+
+### ✅ 上线确认已执行（见文件头部晚间会话记录）
+1-3 已完成：desktop 3.1.1 发布 + 前端 out 部署 + verify-login 验证通过
+4. git 提交推送本次全部改动（待执行）
+5. 前端扫描发现的体验类问题（列表加载失败静默、按钮无 loading 防重、AI助手错误处理不统一）——建议后续批量处理
+
 ## 2026-08-24 会话：商用就绪剩余事项收尾（git 同步 + 签名私钥备份 + 发布流程确认）
 
 ### 背景

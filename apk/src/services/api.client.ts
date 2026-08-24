@@ -14,6 +14,19 @@ export interface ApiError {
   data: null;
 }
 
+// 从后端错误响应体中提取用户可读消息
+// 兼容格式:
+// 1. { success:false, error:{ message:'xxx' } }  ← api-response.ts 标准格式
+// 2. { message:'xxx' } / { msg:'xxx' }
+// 3. { error: 'xxx' }                            ← error 直接为字符串
+function extractErrorMessage(body: any): string {
+  if (!body) return '';
+  if (typeof body === 'string') return body;
+  const error = body.error;
+  if (typeof error === 'string') return error;
+  return body.message || error?.message || body.msg || '';
+}
+
 // Auth 失效回调（由 AuthContext 设置）
 let onAuthFailure: (() => void) | null = null;
 
@@ -155,15 +168,29 @@ class ApiClient {
 
   // 处理响应 —— 兼容 { code: 200 } 和 { success: true } 两种后端格式
   private async handleResponse<T>(response: Response): Promise<T> {
-    // 401 未认证 → 触发 auth 失效回调，自动跳转登录页
+    // 先尝试解析响应体，避免错误响应丢失服务端真实消息
+    let result: any = null;
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
+
+    // 401 未认证
     if (response.status === 401) {
-      TokenStorage.clearAll();
-      if (onAuthFailure) {
-        onAuthFailure();
+      // 优先展示服务端真实错误（如“手机号或密码错误”）
+      const serverMessage = extractErrorMessage(result);
+      // 仅当请求携带 token（已登录状态）时才视为登录过期，清除登录态
+      const hadToken = !!TokenStorage.getToken();
+      if (hadToken) {
+        TokenStorage.clearAll();
+        if (onAuthFailure) {
+          onAuthFailure();
+        }
       }
       throw {
         code: 401,
-        message: '登录已过期，请重新登录',
+        message: serverMessage || (hadToken ? '登录已过期，请重新登录' : '未登录，请先登录'),
         data: null,
       };
     }
@@ -171,12 +198,14 @@ class ApiClient {
     if (!response.ok) {
       throw {
         code: response.status,
-        message: `请求失败: ${response.status}`,
+        message: extractErrorMessage(result) || `请求失败: ${response.status}`,
         data: null,
       };
     }
 
-    const result = await response.json();
+    if (!result) {
+      throw { code: -1, message: '请求失败: 响应格式错误', data: null };
+    }
 
     // 兼容两种后端响应格式: { code: 200, data: T } 和 { success: true, data: T }
     const isCodeFormat = result.code === 200;

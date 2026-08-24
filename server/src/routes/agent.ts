@@ -148,10 +148,13 @@ router.get('/customers', async (req: Request, res: Response) => {
     // UserAgentRelation.agentId 存的是 Agent.id，不是 User.id，必须转换
     const agentId = isAdmin ? userId : await resolveAgentId(userId);
 
-    // 构建查询条件 — 通过 UserAgentRelation 关联表查询
-    const where: any = isAdmin ? {} : {
-      UserAgentRelation: { agentId: agentId },
-    };
+    // 构建查询条件 — 通过 UserAgentRelation 关联表查询，只查客户角色
+    const where: any = isAdmin
+      ? { role: 'customer' }
+      : {
+          UserAgentRelation: { agentId: agentId },
+          role: 'customer',
+        };
 
     if (keyword) {
       where.OR = [
@@ -316,7 +319,7 @@ router.post(
           id: customerId,
           phone,
           name: name || phone,
-          password: await hashPassword(password || phone.slice(-6)),
+          password: await hashPassword(password || Math.random().toString(36).slice(-8)),
           role: 'customer',
           status: 'active',
           updatedAt: new Date(),

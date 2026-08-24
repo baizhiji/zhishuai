@@ -127,6 +127,7 @@ export default function AIFactoryPage() {
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
+  const [savingToCenter, setSavingToCenter] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [provider, setProvider] = useState('');
   const [model, setModel] = useState('');
@@ -609,11 +610,21 @@ export default function AIFactoryPage() {
             {generatedContent && <div style={{ background: '#fafafa', padding: 16, borderRadius: 8, whiteSpace: 'pre-wrap', maxHeight: 500, overflow: 'auto', fontSize: 14, lineHeight: 1.8 }}>{generatedContent}</div>}
             <Divider />
             <Space wrap>
-              <Button icon={<SaveOutlined />} onClick={() => {
-                const materials = JSON.parse(localStorage.getItem('materials') || '[]');
-                materials.push({ id: `mat_${Date.now()}`, category: activeCategory, title: form.getFieldValue('description') || cfg.label, content: generatedContent, images: generatedImages, timestamp: Date.now(), status: 'unused' });
-                localStorage.setItem('materials', JSON.stringify(materials));
-                message.success('已保存到内容中心');
+              <Button icon={<SaveOutlined />} loading={savingToCenter} onClick={async () => {
+                if (!generatedContent) return;
+                setSavingToCenter(true);
+                try {
+                  await apiClient.post('/api/materials', {
+                    title: form.getFieldValue('description') || cfg.label,
+                    type: activeCategory,
+                    content: generatedContent,
+                  });
+                  message.success('已保存到内容中心');
+                } catch {
+                  message.error('保存失败，请重试');
+                } finally {
+                  setSavingToCenter(false);
+                }
               }}>保存到内容中心</Button>
               <Button icon={<CopyOutlined />} onClick={() => { if (generatedContent) { navigator.clipboard.writeText(generatedContent); message.success('已复制'); } }}>复制文案</Button>
               <Button icon={<DownloadOutlined />} onClick={() => { if (generatedImages.length > 0) generatedImages.forEach(url => window.open(url, '_blank')); else if (generatedContent) { const blob = new Blob([generatedContent], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `${activeCategory}_${Date.now()}.txt`; a.click(); URL.revokeObjectURL(url); } }}>下载</Button>

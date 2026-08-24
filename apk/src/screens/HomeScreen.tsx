@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { homeService, authService, TodayStats, ReferralStats } from '../services';
-import { featureService, FeatureSwitch, FEATURE_ROUTES, FEATURE_ICONS, FEATURE_COLORS } from '../services/feature.service';
 import { shareService, ShareStatistics } from '../services/share.service';
 import { useAppNavigation } from '../context/NavigationContext';
 
@@ -48,38 +47,10 @@ export default function HomeScreen() {
     loadData();
   }, []);
 
-  // 加载功能开关
+  // 加载功能入口：首页固定展示全部6个核心功能，不依赖服务端开关
   const loadFeatures = async () => {
-    try {
-      const user = authService.getCurrentUser();
-      if (user?.id) {
-        const userFeatures = await featureService.getUserFeatures(user.id);
-        if (userFeatures && userFeatures.length > 0) {
-          const featureItems = userFeatures
-            .filter(f => f.enabled)
-            .map(f => ({
-              id: f.code,
-              title: f.name,
-              icon: (FEATURE_ICONS[f.code] || 'apps') as keyof typeof Ionicons.glyphMap,
-              color: '#FFFFFF',
-              bgColor: FEATURE_COLORS[f.code] || '#7C3AED',
-              route: FEATURE_ROUTES[f.code] || 'Home',
-            }));
-          
-          // 数据总览和内容中心（固定功能，置于最前）
-          featureItems.unshift(
-            { id: 'analytics', title: '数据总览', icon: 'stats-chart', color: '#FFFFFF', bgColor: '#6D28D9', route: 'Statistics' },
-            { id: 'materials', title: '内容中心', icon: 'images', color: '#FFFFFF', bgColor: '#06B6D4', route: 'Materials' }
-          );
-          
-          setFeatures(featureItems);
-        }
-      }
-    } catch (error) {
-      console.error('加载功能开关失败:', error);
-    } finally {
-      setFeaturesLoading(false);
-    }
+    setFeatures(DEFAULT_FEATURES);
+    setFeaturesLoading(false);
   };
 
   const loadData = async () => {

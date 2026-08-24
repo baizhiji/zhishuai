@@ -11,6 +11,19 @@ import type { ApiResponse } from '@/types/api';
 import { dispatchAuthExpired } from '@/lib/auth-events';
 import { API_PREFIX } from '@/utils/env';
 
+// 从后端错误响应体中提取用户可读消息
+// 兼容格式:
+// 1. { success:false, error:{ message:'xxx' } }  ← api-response.ts 标准格式
+// 2. { success:false, message:'xxx' } / { msg:'xxx' }
+// 3. { error: 'xxx' }                            ← error 直接为字符串
+function extractErrorMsg(data: any): string {
+  if (!data) return '';
+  if (typeof data === 'string') return data;
+  const error = data.error;
+  if (typeof error === 'string') return error;
+  return data.message || error?.message || data.msg || '';
+}
+
 // 创建axios实例（桌面版注入 NEXT_PUBLIC_API_BASE_URL 后自动使用绝对地址）
 const request: AxiosInstance = axios.create({
   baseURL: API_PREFIX,
@@ -48,18 +61,28 @@ request.interceptors.response.use(
     }
 
     // 业务失败
-    message.error(data.message || data.msg || '请求失败');
-    return Promise.reject(new Error(data.message || data.msg || '请求失败'));
+    const bizMsg = extractErrorMsg(data) || '请求失败';
+    message.error(bizMsg);
+    return Promise.reject(new Error(bizMsg));
   },
   error => {
     const { response } = error;
 
     if (response) {
       switch (response.status) {
-        case 401:
-          message.error('登录已过期，请重新登录');
-          dispatchAuthExpired();
+        case 401: {
+          // 优先展示服务端真实错误（如“手机号或密码错误”）
+          const serverMsg = extractErrorMsg(response.data);
+          // 仅已登录请求（携带 token）才视为登录过期，触发跳转
+          const hadToken = !!(response.config?.headers as any)?.Authorization;
+          if (hadToken) {
+            message.error(serverMsg || '登录已过期，请重新登录');
+            dispatchAuthExpired();
+          } else {
+            message.error(serverMsg || '未登录，请先登录');
+          }
           break;
+        }
         case 403:
           message.error('没有权限访问');
           break;
@@ -70,7 +93,7 @@ request.interceptors.response.use(
           message.error('服务器错误');
           break;
         default:
-          message.error(response.data?.message || '网络错误');
+          message.error(extractErrorMsg(response.data) || '网络错误');
       }
     } else if (error.code === 'ECONNABORTED') {
       message.error('请求超时');

@@ -47,15 +47,18 @@ export default function RecruitmentPlatformsPage() {
   const fetchPlatforms = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/recruitment/search-config?summary=true') as { configs: unknown[] };
-      // 基于真实配置组装平台状态 - 简化为基于本地存储
+      const res = await apiClient.get('/recruitment/search-config') as { data?: { configs?: any[] } };
+      const configs = res?.data?.configs ?? [];
+      // 基于服务端真实配置组装平台连接状态
+      const activePlatforms = configs.filter((c: any) => c.status === 'active');
       const savedStr = localStorage.getItem('recruitment_platforms');
-      if (savedStr) {
-        const saved = JSON.parse(savedStr) as Platform[];
-        setPlatforms(DEFAULT_PLATFORMS.map(p => saved.find(s => s.id === p.id) || p));
-      } else {
-        setPlatforms([...DEFAULT_PLATFORMS]);
-      }
+      const saved = savedStr ? JSON.parse(savedStr) as Platform[] : [];
+      setPlatforms(DEFAULT_PLATFORMS.map(p => {
+        const cfg = activePlatforms.find((c: any) => c.platform === p.id);
+        return cfg
+          ? { ...p, connected: true, lastSyncAt: cfg.updatedAt }
+          : (saved.find(s => s.id === p.id) || p);
+      }));
     } catch {
       const savedStr = localStorage.getItem('recruitment_platforms');
       if (savedStr) {
@@ -106,28 +109,61 @@ export default function RecruitmentPlatformsPage() {
     } finally { setConnectLoading(false); }
   };
 
-  const handleDisconnect = async (platform: Platform) => {
+  const findActiveConfig = async (platformId: string) => {
+    const res = await apiClient.get('/recruitment/search-config') as { data?: { configs?: any[] } };
+    return (res?.data?.configs ?? []).find((c: any) => c.platform === platformId && c.status === 'active') ?? null;
+  };
+
+  const handleDisconnect = (platform: Platform) => {
     Modal.confirm({
       title: `确定断开 ${platform.name}？`,
       content: '断开后将无法在该平台发布职位和搜索候选人',
       okText: '确定',
       cancelText: '取消',
       onOk: async () => {
-        const newPlatforms = platforms.map(p =>
-          p.id === platform.id ? { ...p, connected: false, accountName: undefined, lastSyncAt: undefined } : p
-        );
-        savePlatforms(newPlatforms);
-        message.success(`已断开 ${platform.name}`);
+        try {
+          const cfg = await findActiveConfig(platform.id);
+          if (cfg) {
+            await apiClient.delete(`/recruitment/search-config/${cfg.id}`);
+          }
+          const newPlatforms = platforms.map(p =>
+            p.id === platform.id ? { ...p, connected: false, accountName: undefined, lastSyncAt: undefined } : p
+          );
+          savePlatforms(newPlatforms);
+          message.success(`已断开 ${platform.name}`);
+        } catch {
+          message.error(`断开 ${platform.name} 失败`);
+        }
       },
     });
   };
 
-  const handleToggleAuto = (platform: Platform) => {
-    const newPlatforms = platforms.map(p =>
-      p.id === platform.id ? { ...p, connected: !p.connected } : p
-    );
-    savePlatforms(newPlatforms);
-    message.success(`${platform.name} 已${newPlatforms.find(p => p.id === platform.id)!.connected ? '连接' : '断开'}`);
+  const handleToggleAuto = async (platform: Platform) => {
+    try {
+      const cfg = await findActiveConfig(platform.id);
+      if (!cfg) {
+        // 无配置则创建连接配置
+        await apiClient.post('/recruitment/search-config', {
+          postId: null,
+          platform: platform.id,
+          keywords: '',
+          location: '',
+          autoContact: false,
+          status: 'active',
+        });
+      } else if (platform.connected) {
+        await apiClient.put(`/recruitment/search-config/${cfg.id}`, { status: 'inactive' });
+      } else {
+        await apiClient.put(`/recruitment/search-config/${cfg.id}`, { status: 'active' });
+      }
+      const newPlatforms = platforms.map(p =>
+        p.id === platform.id ? { ...p, connected: !p.connected } : p
+      );
+      savePlatforms(newPlatforms);
+      message.success(`${platform.name} 已${newPlatforms.find(p => p.id === platform.id)!.connected ? '连接' : '断开'}`);
+    } catch {
+      message.error(`更新 ${platform.name} 状态失败`);
+    }
   };
 
   const connectedCount = platforms.filter(p => p.connected).length;

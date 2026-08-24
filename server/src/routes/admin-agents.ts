@@ -140,7 +140,7 @@ router.post('/agents', async (req, res) => {
         data: {
           id: randomUUID(),
           phone,
-          password: await hashPassword(password),
+          password: await hashPassword(password || Math.random().toString(36).slice(-8)),
           name,
           role: 'agent',
           updatedAt: new Date()
@@ -386,12 +386,13 @@ router.get('/agents/:id([0-9a-fA-F-]{36})/customers', async (req, res) => {
       return res.status(404).json({ error: '代理商不存在' });
     }
 
-    // 查找关联的客户
+    // 查找关联的客户 — 通过 UserAgentRelation 关联表，且只查客户角色
     const statusFilter = status as string | undefined;
     const [customers, total] = await Promise.all([
       prisma.user.findMany({
         where: {
-          Agent: { id: id },
+          UserAgentRelation: { agentId: id },
+          role: 'customer',
           ...(statusFilter && { status: statusFilter })
         },
         select: {
@@ -408,7 +409,8 @@ router.get('/agents/:id([0-9a-fA-F-]{36})/customers', async (req, res) => {
       }),
       prisma.user.count({
         where: {
-          Agent: { id: id },
+          UserAgentRelation: { agentId: id },
+          role: 'customer',
           ...(statusFilter && { status: statusFilter })
         }
       })
@@ -500,7 +502,7 @@ router.get('/customers', async (req, res) => {
     const { status, keyword, page = '1', pageSize = '20' } = req.query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
-    const where: any = {};
+    const where: any = { role: 'customer' };
     if (status) where.status = status;
     if (keyword) {
       where.OR = [
@@ -522,11 +524,11 @@ router.get('/customers', async (req, res) => {
           createdAt: true,
           updatedAt: true,
           expireAt: true,
-  
-          Agent: {
+          UserAgentRelation: {
             select: {
-              id: true,
-              User: { select: { name: true } },
+              Agent: {
+                select: { id: true, name: true },
+              },
             },
           },
           _count: true
@@ -538,10 +540,16 @@ router.get('/customers', async (req, res) => {
       prisma.user.count({ where })
     ]);
 
+    const list = customers.map((c: any) => ({
+      ...c,
+      UserAgentRelation: undefined,
+      agentName: c.UserAgentRelation?.Agent?.name ?? null,
+    }));
+
     res.json({
       success: true,
       data: {
-        list: customers,
+        list,
         total,
         page: Number(page),
         pageSize: Number(pageSize),
@@ -593,6 +601,7 @@ router.post('/customers', async (req, res) => {
           password: await hashPassword(password || Math.random().toString(36).slice(-8)),
           name: name || phone,
           role: 'customer',
+          expireAt,
           updatedAt: new Date()
         },
         select: {

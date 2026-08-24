@@ -25,12 +25,42 @@ export interface ApiError {
   data: null;
 }
 
+// 从后端错误响应体中提取用户可读消息
+// 兼容格式:
+// 1. { success:false, error:{ message:'xxx' } }  ← api-response.ts 标准格式
+// 2. { success:false, message:'xxx' } / { msg:'xxx' }
+// 3. { error: 'xxx' }                            ← error 直接为字符串
+function extractErrorMessage(body: any): string {
+  if (!body) return '';
+  if (typeof body === 'string') return body;
+  const error = body.error;
+  if (typeof error === 'string') return error;
+  return body.message || error?.message || body.msg || '';
+}
+
 class Request {
   private baseURL: string;
+  private timeout: number;
 
   constructor() {
     this.baseURL = API_BASE_URL;
+    this.timeout = 30000; // 30s 超时，避免请求挂起导致页面无反应
     console.log('[API] Base URL:', this.baseURL);
+  }
+
+  private async fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      return await fetch(url, { ...init, signal: controller.signal });
+    } catch (e: any) {
+      if (e?.name === 'AbortError') {
+        throw { code: 408, message: '请求超时，请重试', data: null };
+      }
+      throw { code: 0, message: e?.message || '网络请求失败', data: null };
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private getHeaders(): HeadersInit {
@@ -64,7 +94,8 @@ class Request {
   private handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       if (response.status === 401) {
-        if (typeof window !== 'undefined') {
+        // 仅已登录请求（携带 token）才视为登录过期；登录接口等业务性 401（如密码错误）不触发登出
+        if (typeof window !== 'undefined' && localStorage.getItem('token')) {
           localStorage.removeItem('token');
           dispatchAuthExpired();
         }
@@ -72,7 +103,7 @@ class Request {
       return response.json().then((errBody: any) => {
         throw {
           code: response.status,
-          message: errBody?.message || errBody?.error || `请求失败: ${response.status}`,
+          message: extractErrorMessage(errBody) || `请求失败: ${response.status}`,
           data: null,
         };
       }).catch((e: any) => {
@@ -133,7 +164,7 @@ class Request {
         ).toString()
       : '';
 
-    const response = await fetch(`${this.baseURL}${url}${queryString}`, {
+    const response = await this.fetchWithTimeout(`${this.baseURL}${url}${queryString}`, {
       method: 'GET',
       headers: this.getHeaders(),
     });
@@ -142,7 +173,7 @@ class Request {
   }
 
   async post<T = any>(url: string, data?: any): Promise<T> {
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const response = await this.fetchWithTimeout(`${this.baseURL}${url}`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: data ? JSON.stringify(data) : undefined,
@@ -152,7 +183,7 @@ class Request {
   }
 
   async put<T = any>(url: string, data?: any): Promise<T> {
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const response = await this.fetchWithTimeout(`${this.baseURL}${url}`, {
       method: 'PUT',
       headers: this.getHeaders(),
       body: data ? JSON.stringify(data) : undefined,
@@ -162,7 +193,7 @@ class Request {
   }
 
   async delete<T = any>(url: string): Promise<T> {
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const response = await this.fetchWithTimeout(`${this.baseURL}${url}`, {
       method: 'DELETE',
       headers: this.getHeaders(),
     });
@@ -171,7 +202,7 @@ class Request {
   }
 
   async patch<T = any>(url: string, data?: any): Promise<T> {
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const response = await this.fetchWithTimeout(`${this.baseURL}${url}`, {
       method: 'PATCH',
       headers: this.getHeaders(),
       body: data ? JSON.stringify(data) : undefined,
@@ -188,7 +219,7 @@ class Request {
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const response = await this.fetchWithTimeout(`${this.baseURL}${url}`, {
       method: 'POST',
       headers: {
         ...this.getHeaders(),
