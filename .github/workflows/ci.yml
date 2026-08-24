@@ -132,6 +132,23 @@ jobs:
         run: |
           rustup target add x86_64-pc-windows-msvc
           npx tauri build
+      - name: Rename installer to ASCII name
+        working-directory: desktop
+        shell: bash
+        run: |
+          ver=$(node -e "const c=JSON.parse(require('fs').readFileSync('src-tauri/tauri.conf.json','utf8')); console.log(c.version)")
+          cd src-tauri/target/release/bundle/nsis
+          for f in 智枢AI_*.exe; do
+            [ -e "$f" ] || continue
+            arch=$(echo "$f" | sed -n 's/.*_\([^_]*\)-setup\.exe/\1/p')
+            mv "$f" "zhishuai_${ver}_${arch}-setup.exe"
+          done
+          for f in 智枢AI_*.sig; do
+            [ -e "$f" ] || continue
+            arch=$(echo "$f" | sed -n 's/.*_\([^_]*\)-setup\.exe\.sig/\1/p')
+            mv "$f" "zhishuai_${ver}_${arch}-setup.exe.sig"
+          done
+          ls -la
       - name: Upload Installer Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -159,6 +176,16 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: mkdir -p /var/www/zhishuai/downloads
+      - name: Clean legacy Chinese-name installers
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/zhishuai/downloads
+            rm -f 智枢AI_*.exe 智枢AI_*.exe.sig
+            ls -la
       - name: Upload installers to server
         uses: appleboy/scp-action@v0.1.7
         with:

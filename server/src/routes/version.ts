@@ -1,7 +1,28 @@
+import fs from 'fs';
+import path from 'path';
 import { Router } from 'express';
 import { prisma } from '../utils/db';
 
 const router = Router();
+
+// 桌面安装包下载目录（CI deploy-desktop 上传 exe + .sig），用于动态读取签名
+const DOWNLOADS_DIR =
+  process.env.DOWNLOADS_DIR || path.resolve(process.cwd(), '..', 'downloads');
+
+// 架构归一化：Tauri NSIS 文件名用 x64，端点参数用 x86_64
+function shortArch(arch: string): string {
+  return arch === 'x86_64' ? 'x64' : arch;
+}
+
+// 动态读取安装包签名：数据库 signature 优先，缺失时从 downloads 目录读取同名 .sig
+function readDesktopSignature(version: string, archShort: string): string {
+  const sigFile = path.join(DOWNLOADS_DIR, `zhishuai_${version}_${archShort}-setup.exe.sig`);
+  try {
+    return fs.readFileSync(sigFile, 'utf8').trim();
+  } catch {
+    return '';
+  }
+}
 
 // 默认版本配置
 const DEFAULT_VERSION = {
@@ -78,14 +99,15 @@ router.get('/desktop/latest.json', async (req, res) => {
     }
 
     const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.hostname}`;
+    const archShort = shortArch(String(arch));
     const url = dbVersion.downloadUrl
       ? /^https?:\/\//.test(dbVersion.downloadUrl)
         ? dbVersion.downloadUrl
         : `${baseUrl}${dbVersion.downloadUrl}`
-      : `${baseUrl}/downloads/zhishuai_${dbVersion.version}_${platform}_${arch}.exe`;
+      : `${baseUrl}/downloads/zhishuai_${dbVersion.version}_${archShort}-setup.exe`;
 
     const target = `${platform}-${arch}`;
-    const signature = dbVersion.signature || '';
+    const signature = dbVersion.signature || readDesktopSignature(dbVersion.version, archShort);
     const payload: Record<string, unknown> = {
       version: dbVersion.version,
       notes: dbVersion.changelog || '',
