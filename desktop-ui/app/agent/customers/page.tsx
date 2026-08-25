@@ -88,6 +88,7 @@ export default function CustomerManagementPage() {
   const [featuresLoading, setFeaturesLoading] = useState(false);
   const [subscriptionModalVisible, setSubscriptionModalVisible] = useState(false);
   const [subscriptionSaving, setSubscriptionSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [subscriptionForm] = Form.useForm();
   const [statistics, setStatistics] = useState<AgentStatistics>({
     totalCustomers: 0,
@@ -162,6 +163,7 @@ export default function CustomerManagementPage() {
   };
 
   const handleSubmit = async () => {
+    setSubmitting(true);
     try {
       const values = await form.validateFields();
       if (editingCustomer) {
@@ -177,7 +179,15 @@ export default function CustomerManagementPage() {
     } catch (error: any) {
       if (!error.errorFields) {
         message.error(error.message || '操作失败');
+        // 超时/网络异常：请求可能已在服务端处理成功（账号可能已开通），
+        // 自动刷新列表与统计，避免用户切页才能看到结果
+        if (error?.code === 408 || error?.code === 0) {
+          fetchCustomers();
+          fetchStatistics();
+        }
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -504,6 +514,7 @@ export default function CustomerManagementPage() {
         open={customerModalVisible}
         onOk={handleSubmit}
         onCancel={() => setCustomerModalVisible(false)}
+        confirmLoading={submitting}
         width={500}
         okText={editingCustomer ? '保存' : '开通'}
       >

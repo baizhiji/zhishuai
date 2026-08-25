@@ -1,4 +1,26 @@
 
+## 2026-08-25 会话：代理商端"开通客户"点击后无反馈但账号实际已创建 | 已修复，待发布 3.2.4
+
+### 现象
+代理商端（桌面版 Tauri WebView）新建客户：填好信息点击"开通"无任何反应（弹窗不关、无提示），切换页面再回到客户管理后账号已存在。
+
+### 证据（生产 Nginx access.log）
+- 15:37:45 POST /api/agent/customers 200（创建成功）
+- 15:37:52 POST /api/agent/customers 400（手机号已注册，用户第二次点击）
+- 15:38:22 GET 列表 200 显示新账号
+- 结论：请求已到达服务器且创建成功，但桌面版 WebView 未收到 POST 响应（fetch 挂起直至 30s 超时），成功提示/关弹窗/刷新列表均未触发
+
+### 排查结论（协议层全部正常）
+- express cors 白名单含 `http://tauri.localhost`，curl 模拟预检+实际请求 CORS 头正确
+- Nginx `/api/` 与 `/api/auth` location 配置一致（proxy_buffering off + chunked）
+- 登录 POST（同 fetch 栈）正常、GET 列表正常 → 定位为桌面版 WebView 偶发网络异常（响应未达前端）
+
+### 修复（desktop-ui/app/agent/customers/page.tsx）
+1. 新建/编辑客户 Modal 增加 `confirmLoading={submitting}`（点击后按钮有"提交中"反馈）
+2. `handleSubmit` 增加 submitting 状态与 finally 复位
+3. 超时(408)/网络错误(0)时自动刷新客户列表+统计（账号可能已在服务端创建成功），避免用户切页才能看到
+- 本地 next build 验证通过；待发布新版本（3.2.4）生效
+
 ## 2026-08-25 会话：修复管理员后台客服中心企业微信二维码上传失败 | ✅ 3.2.3 已发布部署
 
 ### 问题
@@ -23,6 +45,7 @@
 ### 待办
 - ✅ 已提交并 push 到 GitHub（commit `4cef8c0`，28 文件），CI 自动部署中
 - 用户安装 3.2.3 后即可正常上传企业微信二维码
+- ⏳ 代理商端"开通客户"无反馈修复已完成（desktop-ui 构建通过），待发布 3.2.4 生效
 - ⏳ 待管理员在后台重新上传正式企业微信二维码：当前数据库 `setting(support_qrcode)` value 为空，且生产 `SUPPORT_QRCODE_URL` 环境变量未配置（已检查确认），上传后客户端/代理商端即同时显示
 
 ## 2026-08-25 会话：登录入口角色严格隔离（代理商只能登录代理商端）| ✅ 已部署验证通过
