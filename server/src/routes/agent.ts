@@ -279,7 +279,7 @@ router.post(
   [
     body('phone').isMobilePhone('zh-CN').withMessage('请输入正确的手机号'),
     body('name').optional().isString(),
-    body('password').optional().isLength({ min: 6 }).withMessage('密码至少6位'),
+    body('password').optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage('密码至少6位'),
   ],
   async (req: Request, res: Response) => {
     try {
@@ -319,7 +319,7 @@ router.post(
           id: customerId,
           phone,
           name: name || phone,
-          password: await hashPassword(password || Math.random().toString(36).slice(-8)),
+          password: await hashPassword((password || '').trim() || '123456'),
           role: 'customer',
           status: 'active',
           updatedAt: new Date(),

@@ -174,11 +174,13 @@ export default function CustomerManagementPage() {
         message.success('客户开通成功');
       }
       setCustomerModalVisible(false);
+      form.resetFields();
       fetchCustomers();
       fetchStatistics();
     } catch (error: any) {
       if (!error.errorFields) {
-        message.error(error.message || '操作失败');
+        const code = error?.code ? `[${error.code}] ` : '';
+        message.error(`${code}${error.message || '操作失败'}`);
         // 超时/网络异常：请求可能已在服务端处理成功（账号可能已开通），
         // 自动刷新列表与统计，避免用户切页才能看到结果
         if (error?.code === 408 || error?.code === 0) {
@@ -253,7 +255,8 @@ export default function CustomerManagementPage() {
       fetchStatistics();
     } catch (error: any) {
       if (!error.errorFields) {
-        message.error(error.message || '操作失败');
+        const code = error?.code ? `[${error.code}] ` : '';
+        message.error(`${code}${error.message || '操作失败'}`);
       }
     } finally {
       setSubscriptionSaving(false);

@@ -1,5 +1,5 @@
 
-## 2026-08-25 会话：代理商端"开通客户"点击后无反馈但账号实际已创建 | ✅ 3.2.4 已发布部署
+## 2026-08-25 会话：代理商端"开通客户"点击后无反馈但账号实际已创建 | ✅ 3.2.5 已发布部署（3.2.4 仅增强提示，3.2.5 修复默认密码与错误提示）
 
 ### 现象
 代理商端（桌面版 Tauri WebView）新建客户：填好信息点击"开通"无任何反应（弹窗不关、无提示），切换页面再回到客户管理后账号已存在。
@@ -20,7 +20,14 @@
 2. `handleSubmit` 增加 submitting 状态与 finally 复位
 3. 超时(408)/网络错误(0)时自动刷新客户列表+统计（账号可能已在服务端创建成功），避免用户切页才能看到
 - 本地 next build 验证通过
-- 3.2.4 已发布：tauri nsis 构建 → 英文名 `zhishuai_3.2.4_x64-setup.exe` 重新签名（tauri signer，私钥 ~/.tauri/zhishuai）→ 上传 /var/www/zhishuai/downloads/ → AppVersion 表插入 3.2.4（buildNumber 324，9 条旧 desktop/windows released 记录归档）→ latest.json?currentVersion=3.2.3 返回 3.2.4，exe/sig 下载正常，签名一致
+- 3.2.4 已发布：tauri nsis 构建 → 英文名 `zhishuai_3.2.4_x64-setup.exe` 重新签名 → 上传 /var/www/zhishuai/downloads/ → AppVersion 表插入 3.2.4（buildNumber 324）
+- 用户反馈 3.2.4 仍有"开通客户/开通套餐点击没反应、已开通账号登录不了"：
+  - 根因①：后端创建客户时若 `password` 为空使用随机密码，与前端提示"默认 123456"不一致，导致登录失败
+  - 根因②：创建/套餐失败时前端只显示"请求失败/操作失败"，无法定位具体错误
+- 3.2.5 修复：
+  - `server/src/routes/agent.ts`：`(password || '').trim() || '123456'`，未填密码默认 123456；`body('password').optional({ checkFalsy: true })` 允许空字符串跳过 6 位校验
+  - `desktop-ui/app/agent/customers/page.tsx`：创建客户成功后 resetFields；错误提示显示 `[code] message`
+  - 已部署后端（pm2 restart zhishuai-api）并发布 3.2.5：`zhishuai_3.2.5_x64-setup.exe`（3.5 MB，SHA256 2a001f13...）→ AppVersion 表插入 3.2.5（buildNumber 325）→ latest.json?currentVersion=3.2.4 返回 3.2.5，下载/签名一致
 
 ## 2026-08-25 会话：修复管理员后台客服中心企业微信二维码上传失败 | ✅ 3.2.3 已发布部署
 
