@@ -38,9 +38,12 @@ interface UsageRecord {
 
 const ICON_MAP: Record<string, React.ReactNode> = {
   aiFactory: <UserOutlined />,
+  material: <SafetyCertificateOutlined />,
   recruitment: <CrownOutlined />,
   acquisition: <SafetyCertificateOutlined />,
   share: <TrophyOutlined />,
+  digitalHuman: <UserOutlined />,
+  voiceClone: <UserOutlined />,
 };
 
 export default function AccountPage() {
@@ -54,33 +57,42 @@ export default function AccountPage() {
       setLoading(true);
       try {
         const [profileRes, statsRes] = await Promise.all([
-          request.get('/api/account/profile'),
-          request.get('/api/account/usage'),
+          request.get('/api/account'),
+          request.get('/api/account/usage-stats'),
         ]);
         const profile: any = profileRes.data || profileRes;
         if (profile) {
           setAccountInfo({
             userId: profile.id || profile.userId || '-',
             phone: profile.phone || '-',
-            email: profile.email || '-',
+            email: profile.email || profile.name || '-',
             role: profile.role || '-',
-            memberType: profile.memberType || profile.subscriptionPlan || '-',
-            expireDate: profile.expireDate || profile.subscriptionExpiry || '-',
+            memberType: profile.package || profile.memberType || '-',
+            expireDate: profile.expireAt
+              ? String(profile.expireAt).slice(0, 10)
+              : '-',
           });
         }
         const statsData: any = statsRes.data || statsRes;
-        if (statsData?.stats) {
+        if (statsData) {
+          const dims: { key: string; name: string; value: number }[] = [
+            { key: 'material', name: '素材库', value: statsData.materialCount },
+            { key: 'recruitment', name: '招聘职位', value: statsData.recruitmentCount },
+            { key: 'acquisition', name: '获客任务', value: statsData.acquisitionTaskCount },
+            { key: 'share', name: '分享码', value: statsData.shareCodeCount },
+            { key: 'digitalHuman', name: '数字人', value: statsData.digitalHumanCount },
+            { key: 'voiceClone', name: '声音克隆', value: statsData.voiceCloneCount },
+          ];
           setUsageStats(
-            statsData.stats.map((s: any) => ({
-              icon: ICON_MAP[s.key] || <UserOutlined />,
-              name: s.name || s.key,
-              value: `${s.value || s.count || 0}次`,
-              color: s.color || '#6d28d9',
-            }))
+            dims
+              .filter(d => d.value > 0)
+              .map(d => ({
+                icon: ICON_MAP[d.key] || <UserOutlined />,
+                name: d.name,
+                value: `${d.value}次`,
+                color: '#6d28d9',
+              }))
           );
-        }
-        if (statsData?.records) {
-          setUsageRecords(statsData.records);
         }
       } catch {
         // 数据获取失败时显示空状态

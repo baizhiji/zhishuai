@@ -93,7 +93,20 @@ export default function ShareScreen() {
     setLoading(true);
     try {
       const data = await shareService.getReferralCodes();
-      setReferralCodes(data);
+      // 服务端 ShareCode → 本地 ReferralCode 字段映射
+      setReferralCodes(
+        data.map((c: any) => ({
+          id: c.id,
+          title: c.title,
+          videoUrl: c.videoUrl || '',
+          videoThumbnail: c.videoThumbnail || c.qrCodeImage || '',
+          platforms: c.platforms || [],
+          code: c.code || '',
+          scanCount: c.scanCount || 0,
+          publishCount: c.publishCount || 0,
+          createdAt: c.createdAt || '',
+        }))
+      );
     } catch (error) {
       console.error('加载推荐码失败:', error);
     } finally {
@@ -363,7 +376,7 @@ export default function ShareScreen() {
                       <View 
                         style={[
                           styles.platformProgress, 
-                          { width: `${percentage}%`, backgroundColor: config.color }
+                          { width: `${Number(percentage)}%`, backgroundColor: config.color }
                         ]} 
                       />
                     </View>

@@ -112,7 +112,7 @@ export default function NotificationsPage() {
     setLoading(true);
     try {
       const res = await request.get('/api/notifications');
-      setNotifications(res.data || []);
+      setNotifications(Array.isArray(res) ? res : (res?.list || []));
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       setNotifications([]);

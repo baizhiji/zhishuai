@@ -55,8 +55,8 @@ class TicketService {
   // 获取工单列表
   async getList(params?: TicketListParams): Promise<{ items: Ticket[]; total: number }> {
     try {
-      const response = await apiClient.get<{ items: Ticket[]; total: number }>('/tickets', params as any);
-      return response || { items: [], total: 0 };
+      const response = await apiClient.get<any>('/tickets', params as any);
+      return { items: Array.isArray(response?.list) ? response.list : [], total: response?.total ?? 0 };
     } catch {
       return { items: [], total: 0 };
     }

@@ -2,6 +2,8 @@
  * AI对话服务 - 支持多轮对话
  */
 import { apiClient } from './api.client';
+import { API_CONFIG } from './api.config';
+import TokenStorage from '../utils/tokenStorage';
 
 // 消息类型
 export interface ChatMessage {
@@ -124,11 +126,11 @@ class AIChatService {
     request: ChatRequest,
     onChunk: (content: string) => void
   ): Promise<void> {
-    const response = await fetch(`${apiClient.baseUrl}/ai-chat/chat`, {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/ai-chat/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiClient.getToken()}`,
+        'Authorization': `Bearer ${TokenStorage.getToken()}`,
       },
       body: JSON.stringify({
         messages: request.messages,

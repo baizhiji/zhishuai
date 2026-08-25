@@ -53,7 +53,7 @@ router.get('/employees', async (req, res) => {
       prisma.employee.count({ where }),
     ]);
 
-    res.json({ data: employees, total, page: Number(page), pageSize: Number(pageSize) });
+    res.json({ success: true, data: { list: employees, total, page: Number(page), pageSize: Number(pageSize) } });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

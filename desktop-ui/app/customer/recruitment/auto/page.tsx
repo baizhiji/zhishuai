@@ -136,10 +136,10 @@ export default function AutoRecruitmentPage() {
   const handleRunSearch = async (config: SearchConfig) => {
     setSearchLoading(true);
     try {
-      const res = await apiClient.post(`/recruitment/search-config/${config.id}/run`) as { success: boolean; data: SearchResult };
-      setSearchResult({ ...res.data, timestamp: new Date().toISOString() });
+      const res = await apiClient.post(`/recruitment/search-config/${config.id}/run`) as SearchResult;
+      setSearchResult({ ...res, timestamp: new Date().toISOString() });
       setResultVisible(true);
-      message.success(`搜索完成，找到 ${res.data?.count || 0} 个候选人`);
+      message.success(`搜索完成，找到 ${res?.count || 0} 个候选人`);
       fetchConfigs();
     } catch (e: unknown) {
       message.error((e as Error)?.message || '搜索失败');

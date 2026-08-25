@@ -25,19 +25,20 @@ export { checkForUpdate, getCurrentVersion, downloadAndInstall, type VersionInfo
 export { default as updateService } from './update.service';
 export {
   initNotifications,
-  subscribeToMessages,
+  requestPermissions,
+  getNotificationList,
+  getUnreadNotificationCount,
   sendLocalNotification,
-  clearAllNotifications,
-  getLocalNotifications,
-  getUnreadCount,
-  notificationsAvailable,
-  type NotificationMessage,
+  markAsRead,
+  markAllAsReadNotification,
+  clearAll,
+  deleteNotification,
+  getNotificationsByType,
+  type Notification,
 } from './notification.service';
 export {
   openWebPage,
   shareWebLink,
-  getWebPageUrl,
-  getShareText,
   WEB_DEEP_LINKS,
   type WebPageKey,
 } from './webLink.service';

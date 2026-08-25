@@ -1,14 +1,17 @@
 // API 配置 - 通过 Expo 环境变量或默认值配置
 // 生产: https://api.baizhiji.net/api  |  本地: http://localhost:3001/api
-// 可通过 EXPO_PUBLIC_API_URL 环境变量覆盖
+// 单一配置入口：EXPO_PUBLIC_SERVER_URL（根地址）；BASE_URL 由其推导，仍可用 EXPO_PUBLIC_API_URL 单独覆盖
 const DEFAULT_SERVER_URL = 'https://api.baizhiji.net';
+
+// 服务器根地址（不带 /api 路径）—— 唯一配置入口
+const serverUrl = process.env.EXPO_PUBLIC_SERVER_URL || DEFAULT_SERVER_URL;
 
 export const API_CONFIG = {
   // 服务器根地址（不带 /api 路径）
-  SERVER_URL: process.env.EXPO_PUBLIC_SERVER_URL || DEFAULT_SERVER_URL,
+  SERVER_URL: serverUrl,
 
-  // 完整 API 基础 URL（带 /api 路径）
-  BASE_URL: process.env.EXPO_PUBLIC_API_URL || `${DEFAULT_SERVER_URL}/api`,
+  // 完整 API 基础 URL（带 /api 路径），默认由 SERVER_URL 推导，避免只配一个变量时指向生产
+  BASE_URL: process.env.EXPO_PUBLIC_API_URL || `${serverUrl}/api`,
 
   // 启用生产模式
   DEV_MODE: false,

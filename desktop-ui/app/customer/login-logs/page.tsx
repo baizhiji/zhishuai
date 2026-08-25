@@ -71,8 +71,8 @@ export default function LoginLogsPage() {
       const params: Record<string, string | number | boolean> = { userId };
       if (filters.action) params.action = filters.action;
       if (filters.status) params.status = filters.status;
-      const res = await request.get('/api/auth/login-logs', params);
-      setLogs(res.data?.logs || []);
+      const res = await request.get('/api/auth/login-logs', { params });
+      setLogs(res?.logs || []);
     } catch (error) {
       setLogs([]);
     } finally {

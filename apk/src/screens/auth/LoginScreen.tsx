@@ -39,9 +39,18 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const response = await authService.login({ phone, password });
-      // 使用AuthContext更新用户状态
+      // 使用AuthContext更新用户状态（补充 StoredUser 必填字段）
       if (response?.user) {
-        setUser(response.user);
+        const u: any = response.user;
+        setUser({
+          id: u.id,
+          phone: u.phone,
+          nickname: u.name || u.phone,
+          avatar: u.avatar,
+          role: u.targetRole || u.role || 'customer',
+          actualRole: u.role || 'customer',
+          features: u.features || [],
+        });
       }
       Alert.alert('成功', '登录成功！', [
         { text: '确定', onPress: () => navigation.replace('MainTabs') }

@@ -26,8 +26,11 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         id: true,
         phone: true,
         name: true,
+        email: true,
         role: true,
         status: true,
+        package: true,
+        expireAt: true,
         createdAt: true,
       },
     });

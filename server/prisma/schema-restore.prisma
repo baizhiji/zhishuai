@@ -1,4 +1,11 @@
-// Prisma Schema for 智枢AI SaaS System
+// ============================================================
+// 智枢AI 代码基线 schema（本地 Prisma Client 生成专用）
+// 用途：本地必须执行 `npx prisma generate --schema prisma/schema-restore.prisma`
+//       生成与代码匹配的 Client。勿跑默认 `prisma generate`（会读 schema.prisma，
+//       其 ChatConversation 关系名等与代码基线不一致，导致大面积类型错误）。
+// 权威契约：本文件 User.role 默认值为 "customer"（admin/agent/customer），
+//           shared/index.ts 的 UserRole 枚举与之保持一致。
+// ============================================================
 
 generator client {
   provider = "prisma-client-js"

@@ -79,8 +79,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (token) {
           // 有token但没有用户信息，尝试从API获取（带超时）
           try {
-            const { getUserInfo } = await import('../services/auth.service');
-            const userInfo = await fetchWithTimeout(getUserInfo());
+            const { authService } = await import('../services/auth.service');
+            const userInfo = await fetchWithTimeout(authService.getUserInfo());
             if (userInfo) {
               const storedUser: StoredUser = {
                 ...userInfo,
@@ -179,8 +179,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // 刷新用户信息
   const refreshUser = async () => {
     try {
-      const { getUserInfo } = await fetchWithTimeout(import('../services/auth.service'));
-      const userInfo = await getUserInfo();
+      const { authService } = await fetchWithTimeout(import('../services/auth.service'));
+      const userInfo = await authService.getUserInfo();
       if (userInfo && user) {
         const updatedUser: StoredUser = {
           ...userInfo,

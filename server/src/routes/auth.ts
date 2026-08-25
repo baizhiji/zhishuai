@@ -461,6 +461,18 @@ router.post('/login', validate({ body: loginSchema.shape.body }), async (req: Re
     // 从哪个入口登录就跳转到对应的后台
     const targetRole = loginType || userRole;
 
+    // 记录登录日志（fire-and-forget，失败不影响登录主流程）
+    prisma.loginLog.create({
+      data: {
+        userId: user!.id,
+        action: 'login',
+        ip: req.ip || req.socket.remoteAddress || 'unknown',
+        deviceName: (req.headers['user-agent'] || '').slice(0, 190),
+        status: 'success',
+        token: token.slice(0, 190),
+      },
+    }).catch(() => {});
+
     ok(res, {
       user: {
         id: user!.id,
@@ -556,51 +568,53 @@ router.put('/password', authMiddleware, async (req: Request, res: Response) => {
   }
 });
 
-// 获取登录日志（从真实数据库查询）
+// 获取登录日志（从 LoginLog 表查询）
 router.get('/login-logs', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { page = '1', pageSize = '20' } = req.query;
+    const { page = '1', pageSize = '20', action = '', status = '' } = req.query;
     const skip = (Number(page) - 1) * Number(pageSize);
-
-    const where: any = {};
     const userRole = (req as any).userRole;
 
+    const where: any = {};
     // admin 可以看所有日志，其他角色只能看自己的
     if (userRole !== 'admin') {
       where.userId = userId;
     }
+    if (action) where.action = action;
+    if (status) where.status = status;
 
     const [logs, total] = await Promise.all([
-      prisma.smsLog.findMany({
-        where: { ...where, status: 'verified' },
-        orderBy: { createdAt: 'desc' },
+      prisma.loginLog.findMany({
+        where,
+        orderBy: { loginAt: 'desc' },
         skip,
         take: Number(pageSize),
-      select: {
-        id: true,
-        phone: true,
-        type: true,
-        status: true,
-        ip: true,
-        provider: true,
-        userId: true,
-        createdAt: true,
-      },
       }),
-      prisma.smsLog.count({ where }),
+      prisma.loginLog.count({ where }),
     ]);
 
+    // 批量查询用户信息用于展示 userName
+    const userIds = [...new Set(logs.map(l => l.userId))];
+    const users = userIds.length > 0
+      ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, phone: true, role: true } })
+      : [];
+    const userMap = new Map(users.map(u => [u.id, u]));
+
     ok(res, {
-      logs: logs.map((l: any) => ({
+      logs: logs.map(l => ({
         id: l.id,
         userId: l.userId,
-        userName: l.phone,
-        userType: l.type,
-        action: l.type,
-        ip: l.ip,
+        userName: userMap.get(l.userId)?.name || userMap.get(l.userId)?.phone || l.userId,
+        userType: userMap.get(l.userId)?.role || '',
+        action: l.action,
+        device: l.device || 'desktop',
+        browser: l.deviceName || '',
+        os: '',
+        ip: l.ip || '',
+        location: l.location || '',
         status: l.status,
-        createdAt: l.createdAt?.toISOString(),
+        createdAt: l.loginAt.toISOString(),
       })),
       total,
       page: Number(page),
@@ -615,16 +629,16 @@ router.get('/login-logs', authMiddleware, async (req: Request, res: Response) =>
 router.post('/logout', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    // 记录登出日志
-    (prisma as any).loginLog?.create({
+    // 记录登出日志（fire-and-forget，失败不影响登出主流程）
+    prisma.loginLog.create({
       data: {
-        id: `logout_${Date.now()}`,
         userId: userId,
-        type: 'logout',
+        action: 'logout',
         ip: req.ip || req.socket.remoteAddress || 'unknown',
+        deviceName: (req.headers['user-agent'] || '').slice(0, 190),
         status: 'success',
       },
-    }).catch(() => {}); // loginLog 表不存在则忽略
+    }).catch(() => {});
     return ok(res, { message: '登出成功' });
   } catch (error: any) {
     return internalError(res, error.message);

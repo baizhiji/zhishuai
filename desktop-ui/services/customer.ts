@@ -50,8 +50,7 @@ export function createCustomer(data: {
   phone: string;
   name?: string;
   password?: string;
-  monthlyFee?: number;
-  openingFee?: number;
+  openingFee?: string | number;
 }) {
   return request.post<Customer>('/api/agent/customers', data);
 }

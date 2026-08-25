@@ -64,10 +64,10 @@ export default function StaffManagementPage() {
   const fetchStaff = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get('/employees', {
+      const res = await apiClient.get('/employee/employees', {
         params: { keyword: searchText || undefined, status: statusFilter },
-      });
-      const apiData = res.data.data || [];
+      }) as { list?: any[]; total?: number };
+      const apiData = res.list || [];
       const mapped: Staff[] = apiData.map((e: any) => ({
         id: e.id,
         name: e.name,
@@ -80,7 +80,7 @@ export default function StaffManagementPage() {
         lastLogin: e.lastLoginAt || '',
       }));
       setStaffList(mapped);
-      setTotal(res.data.total || mapped.length);
+      setTotal(res.total ?? mapped.length);
     } catch {
       message.error('获取员工列表失败');
       setStaffList([]);
@@ -178,7 +178,7 @@ export default function StaffManagementPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await apiClient.delete(`/api/employees/${id}`);
+      await apiClient.delete(`/employee/employees/${id}`);
       message.success('删除成功');
       fetchStaff();
     } catch {
@@ -191,10 +191,10 @@ export default function StaffManagementPage() {
       const values = await form.validateFields();
       setSubmitting(true);
       if (editingStaff) {
-        await apiClient.put(`/api/employees/${editingStaff.id}`, values);
+        await apiClient.put(`/employee/employees/${editingStaff.id}`, values);
         message.success('编辑成功');
       } else {
-        await apiClient.post('/employees', values);
+        await apiClient.post('/employee/employees', values);
         message.success('添加成功');
       }
       setIsModalOpen(false);

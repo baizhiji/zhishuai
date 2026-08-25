@@ -90,11 +90,11 @@ export default function ApiStatsPage() {
     setError(null);
     try {
       const res = await request.get('/api/admin/api-providers/usage');
-      if (res.data && (res.data.usage || res.data.stats)) {
-        setUsage(res.data.usage || []);
-        setTrendData(res.data.trendData || []);
-        setProviderData(res.data.providerData || []);
-        setStats(res.data.stats || { totalCalls: 0, totalTokens: 0, totalCost: 0, avgSuccessRate: 0 });
+      if (res && (res.usage || res.stats)) {
+        setUsage(res.usage || []);
+        setTrendData(res.trendData || []);
+        setProviderData(res.providerData || []);
+        setStats(res.stats || { totalCalls: 0, totalTokens: 0, totalCost: 0, avgSuccessRate: 0 });
       } else {
         setUsage([]);
         setTrendData([]);

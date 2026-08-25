@@ -173,22 +173,18 @@ export default function CustomerManagementPage() {
         await createCustomer(values);
         message.success('客户开通成功');
       }
-      setCustomerModalVisible(false);
-      form.resetFields();
-      fetchCustomers();
-      fetchStatistics();
     } catch (error: any) {
       if (!error.errorFields) {
         const code = error?.code ? `[${error.code}] ` : '';
         message.error(`${code}${error.message || '操作失败'}`);
-        // 超时/网络异常：请求可能已在服务端处理成功（账号可能已开通），
-        // 自动刷新列表与统计，避免用户切页才能看到结果
-        if (error?.code === 408 || error?.code === 0) {
-          fetchCustomers();
-          fetchStatistics();
-        }
       }
     } finally {
+      // 无论请求成功还是失败，都关闭弹窗并刷新列表：
+      // 失败时后端仍可能已经处理成功（超时/网络抖动），刷新可让用户立即看到真实状态。
+      setCustomerModalVisible(false);
+      form.resetFields();
+      fetchCustomers();
+      fetchStatistics();
       setSubmitting(false);
     }
   };
@@ -197,10 +193,13 @@ export default function CustomerManagementPage() {
     try {
       await toggleCustomerStatus(record.id);
       message.success(record.status === 'active' ? '已冻结' : '已解冻');
+    } catch (error: any) {
+      const code = error?.code ? `[${error.code}] ` : '';
+      message.error(`${code}${error.message || '操作失败'}`);
+    } finally {
+      // 无论成功失败都刷新列表，确保状态真实
       fetchCustomers();
       fetchStatistics();
-    } catch (error) {
-      message.error('操作失败');
     }
   };
 
@@ -208,8 +207,9 @@ export default function CustomerManagementPage() {
     try {
       await resetCustomerPassword(record.id);
       message.success('密码已重置为 123456');
-    } catch (error) {
-      message.error('重置失败');
+    } catch (error: any) {
+      const code = error?.code ? `[${error.code}] ` : '';
+      message.error(`${code}${error.message || '重置失败'}`);
     }
   };
 
@@ -241,24 +241,27 @@ export default function CustomerManagementPage() {
   };
 
   const handleSaveSubscription = async () => {
+    setSubscriptionSaving(true);
     try {
       const values = await subscriptionForm.validateFields();
-      setSubscriptionSaving(true);
       await setCustomerSubscription(selectedCustomer!.id, {
         plan: values.plan,
         expireMonths: values.expireMonths,
         fee: values.fee,
       });
       message.success('套餐已开通，线下收款请自行登记');
-      setSubscriptionModalVisible(false);
-      fetchCustomerDetail(selectedCustomer!.id);
-      fetchStatistics();
     } catch (error: any) {
       if (!error.errorFields) {
         const code = error?.code ? `[${error.code}] ` : '';
         message.error(`${code}${error.message || '操作失败'}`);
       }
     } finally {
+      // 无论成功失败都关闭弹窗并刷新详情，确保用户看到真实状态
+      setSubscriptionModalVisible(false);
+      if (selectedCustomer) {
+        fetchCustomerDetail(selectedCustomer.id);
+      }
+      fetchStatistics();
       setSubscriptionSaving(false);
     }
   };

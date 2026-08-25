@@ -89,8 +89,8 @@ export default function AgentDashboardPage() {
   const fetchBusinessLines = async () => {
     try {
       const request = (await import('@/lib/request')).default;
-      const res = await request.get<any>('/dashboard-stats/agent/business-lines');
-      if (res?.data?.success) setBusinessLines(res.data.data);
+      const res = (await request.get('/dashboard-stats/agent/business-lines')) as any;
+      if (res?.success && res.data) setBusinessLines(res.data);
     } catch { /* 非关键 */ }
   };
 

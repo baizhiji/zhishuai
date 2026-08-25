@@ -160,9 +160,12 @@ export async function getAgentBusinessLinesSummary(agentUserId: string): Promise
   overview: { totalContent: number; totalLeads: number; totalCandidates: number; totalShareRevenue: number; customerCount: number };
   lines: BusinessLineKPI[];
 }> {
+  // JWT 中 agentUserId 是 User.id，而 UserAgentRelation.agentId 存的是 Agent.id，必须先转换
+  const agent = await prisma.agent.findUnique({ where: { userId: agentUserId } });
+  const agentId = agent?.id || agentUserId;
   // 获取该代理商的所有客户ID（通过UserAgentRelation）
   const relations = await prisma.userAgentRelation.findMany({
-    where: { agentId: agentUserId },
+    where: { agentId },
     select: { userId: true },
   });
   const customerIds = relations.map(r => r.userId);

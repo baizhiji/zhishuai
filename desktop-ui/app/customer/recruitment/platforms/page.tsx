@@ -47,8 +47,8 @@ export default function RecruitmentPlatformsPage() {
   const fetchPlatforms = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiClient.get('/recruitment/search-config') as { data?: { configs?: any[] } };
-      const configs = res?.data?.configs ?? [];
+      const res = await apiClient.get('/recruitment/search-config') as { configs?: any[] };
+      const configs = res?.configs ?? [];
       // 基于服务端真实配置组装平台连接状态
       const activePlatforms = configs.filter((c: any) => c.status === 'active');
       const savedStr = localStorage.getItem('recruitment_platforms');
@@ -110,8 +110,8 @@ export default function RecruitmentPlatformsPage() {
   };
 
   const findActiveConfig = async (platformId: string) => {
-    const res = await apiClient.get('/recruitment/search-config') as { data?: { configs?: any[] } };
-    return (res?.data?.configs ?? []).find((c: any) => c.platform === platformId && c.status === 'active') ?? null;
+    const res = await apiClient.get('/recruitment/search-config') as { configs?: any[] };
+    return (res?.configs ?? []).find((c: any) => c.platform === platformId && c.status === 'active') ?? null;
   };
 
   const handleDisconnect = (platform: Platform) => {

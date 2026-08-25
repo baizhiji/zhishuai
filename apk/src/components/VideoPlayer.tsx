@@ -198,7 +198,7 @@ export default function VideoPlayer({
     return (
       <Modal
         visible={isFullscreen}
-        animationType="fullscreen"
+        animationType="slide"
         supportedOrientations={['landscape', 'portrait']}
         onRequestClose={() => setIsFullscreen(false)}
       >

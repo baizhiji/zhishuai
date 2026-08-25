@@ -121,7 +121,7 @@ class DashboardStatsService {
   // 获取热点话题
   async getHotTopics(platform?: string, limit = 5): Promise<any[]> {
     try {
-      const response = await apiClient.get<any[]>('/dashboard-stats/hot-topics', { platform, limit });
+      const response = await apiClient.get<any[]>('/dashboard-stats/hot-topics', { platform: platform || '', limit });
       return response || [];
     } catch {
       return [];

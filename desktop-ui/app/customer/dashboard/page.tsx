@@ -191,31 +191,27 @@ export default function CustomerDashboard() {
     try {
       const [summary, stats, daily] = await Promise.allSettled([
         request.get<CustomerSummary>('/api/dashboard-stats/customer-summary'),
-        request.get<{ success: boolean; data: { total: { totalTokens: number }; byProvider: any[] } }>('/api/token-stats/stats'),
-        request.get<{ success: boolean; data: Array<{ date: string; tokens: number; calls: number }> }>('/api/token-stats/daily?days=30'),
+        request.get<{ total: { totalTokens: number }; byProvider: any[] }>('/api/token-stats/stats'),
+        request.get<Array<{ date: string; tokens: number; calls: number }>>('/api/token-stats/daily?days=30'),
       ]);
       if (summary.status === 'fulfilled') {
         setData(summary.value || EMPTY_SUMMARY);
       } else {
         setData(EMPTY_SUMMARY);
       }
-      if (
-        stats.status === 'fulfilled' &&
-        stats.value?.success &&
-        stats.value.data
-      ) {
+      if (stats.status === 'fulfilled' && stats.value) {
         const todayStr = dayjs().format('YYYY-MM-DD');
         const monthStart = dayjs().startOf('month').format('YYYY-MM-DD');
-        const dailyData = daily.status === 'fulfilled' && daily.value?.success ? daily.value.data : [];
+        const dailyData = daily.status === 'fulfilled' && Array.isArray(daily.value) ? daily.value : [];
         const todayTokens = dailyData.filter(d => d.date === todayStr).reduce((s, d) => s + (d.tokens || 0), 0);
         const monthTokens = dailyData
           .filter(d => d.date >= monthStart)
           .reduce((s, d) => s + (d.tokens || 0), 0);
         setTokenStats({
-          total: stats.value.data.total?.totalTokens || 0,
+          total: stats.value.total?.totalTokens || 0,
           month: monthTokens,
           today: todayTokens,
-          byProvider: stats.value.data.byProvider || [],
+          byProvider: stats.value.byProvider || [],
         });
       } else {
         setTokenStats(null);

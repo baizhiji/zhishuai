@@ -1,4 +1,108 @@
 
+## 2026-08-25 会话（续）：审查问题全量修复
+- A1 澄清为误报：desktop-ui 管理端三页（agents/earnings/security）用 lib/request（自动拼 /api），路径正确；utils/request 用户写 /api/xxx 也正确；server PATCH /admin/agents/:id/status 路由存在
+- 修复 A2：schema.prisma User.role 默认 "user"→"customer"（对齐 schema-restore 基线；注册/创建代理商均显式赋值 role，无存量影响）
+- 修复 A3：删除 schema-for-fix.prisma / schema-db.prisma / schema.prisma.bak-orphans；保留 schema.prisma（CLI 默认）+ schema-restore.prisma（本地 generate 基线），均加头部用途注释
+- 修复 B1：删除 desktop-ui/services/statistics.ts（全文件死代码，0 import）
+- 修复 B2：apk/src/services/api.config.ts BASE_URL 由 serverUrl 推导（EXPO_PUBLIC_API_URL 仍可覆盖），单一配置入口
+- 修复 B4：删除 shared/types/index.ts（无引用且 PageResponse.list 与 PaginatedResult.items 冲突）；shared/index.ts 注释更新；shared 保留（video-production 被 desktop-ui 用）
+- B3：.env.example 已含 NEXT_PUBLIC_API_BASE_URL 说明，代码层完备；部署时核对 baizhiji.net/api.baizhiji.net 解析
+- 验证：apk tsc 0 错误、desktop-ui tsc 0 错误、prisma validate 两 schema 均通过
+- 未提交
+
+## 2026-08-25 会话：系统级交叉审查（跨端契约/共用/易错点）| 报告 docs/system-review-2026-08-25.md
+
+### 4 子代理并行探查 + 主代理逐项实证
+- A1【高】desktop-ui 管理端 3 页缺 /api 前缀 → 404：admin/agents/page.tsx(116,167,184,213)、admin/earnings/page.tsx:62、admin/settings/security/page.tsx:20；对照正确写法 admin/api-stats/page.tsx:92
+- A2【高】User.role 默认 "user"（schema.prisma:1137）vs shared UserRole(admin/agent/customer) 三端角色判断冲突；schema-restore 默认 "customer" 证明确认漂移
+- A3【高】server/prisma 5 个 schema 并存（schema/prisma-for-fix/db/restore/.bak-orphans），误 push 会覆盖生产
+- B1 desktop-ui statistics.getAgentStats 调不存在路由（死代码 404）
+- B2 apk api.config.ts 双 env 独立 fallback 脱节
+- B3 跨端 API 域名不统一（api.baizhiji.net vs baizhiji.net，需核对解析）
+- B4 shared/ 为死代码（apk 0 引用），公共契约无单一事实源
+- C 已确认正常：server 30+ 挂载齐全、CORS 含 Tauri、AppNavigator 时序正确、apk tsc 0 错误
+- 未修改任何代码（用户仅要求检查）；未提交（用户要求执行完后提醒）
+
+## 2026-08-25 会话：APK 端 TS 编译错误全面清零（14 个既有错误修复）| 待发版
+
+### 背景
+上一轮遗留"apk ~17 个既有 TS 错误（expo-updates/NotificationsScreen/Modal）未改动"，本轮全部修复，`npx tsc --noEmit` 0 错误。
+
+### 修复清单（apk 15 文件）
+- `App.tsx`：expo-updates 升级检测未配置 EAS 实际无效且类型错误（`updateInfo`/`addListener`/`UpdateEventType` 不存在）→ 改用 `update.service.ts` 的 `/api/version/latest` 真实检测（`hasUpdate`/`versionInfo.releaseNotes/isMandatory/downloadUrl`），删除监听 useEffect 与 applyUpdateAndRestart；emoji 图标换 Ionicons；`StatusBar style` 类型修复
+- `src/context/AuthContext.tsx`：启动恢复会话时 `const { getUserInfo } = await import(...)` 解构的是类方法（非模块导出，undefined）→ 崩溃级 bug；改为 `authService.getUserInfo()`（2 处）
+- `src/screens/NotificationsScreen.tsx`：import 不存在的导出（`NotificationMessage`/`getLocalNotifications`/`markAllAsRead`/`clearAllNotifications`/`getUnreadCount`/`getNotificationIcon`/`getNotificationColor`）→ 全部映射真实导出；图标/颜色辅助函数本地化
+- `src/screens/auth/LoginScreen.tsx`：`setUser(response.user)` 类型不匹配（StoredUser 缺 actualRole/nickname/features）→ 构造完整对象
+- `src/services/index.ts`：re-export 修正（`subscribeToMessages` 等 6 个不存在导出 → 真实导出；`getWebPageUrl`/`getShareText` → `openWebPage`/`shareWebLink`）
+- `src/context/ThemeContext.tsx`：statusBar `'dark-content'`/`'light-content'` → expo-status-bar 兼容的 `'dark'`/`'light'` + `as const`；`Theme` 类型用 `Omit<...,'statusBar'> & { statusBar: 'dark'|'light' }`
+- `src/components/PageHeader.tsx`：新增 `onBack?: () => void` prop（NotificationsScreen 使用）
+- `src/components/VideoPlayer.tsx`：Modal `animationType="fullscreen"` → `"slide"`
+- `src/screens/ai/PlanGenerationScreen.tsx`：`rightAction` → `rightElement`；Ionicons name 类型收窄
+- `src/screens/ShareScreen.tsx`：ShareCode→ReferralCode 字段映射；进度条 `width: \`${number}%\`` 类型修复
+- `src/services/dashboard-stats.service.ts`：get 参数 platform 可能 undefined → 空串兜底
+- `tsconfig.json`：`module: "esnext"`（动态 import TS1323）
+
+### 上轮已修复（延续）
+- `recruitment.service.ts` matchCandidates 双重解包、`ai-chat.service.ts` chatStream 访问不存在的 `apiClient.baseUrl`/`getToken()`、`MaterialsScreen.tsx` content/title 判空
+
+### 验证
+- apk `npx tsc --noEmit` 0 错误；lint 0 错误；`.data?.` 双重解包残留 0 处
+- 未部署（apk 端待发版）；未 commit/push（用户未要求）
+
+## 2026-08-25 会话：前端 API 响应格式全面对齐修复（17 文件） | ✅ 3.2.6 已发布部署
+
+### 背景
+用户反馈工单列表报错，推断不止单一角色/接口/页面存在"前端请求客户端与后端响应格式不匹配"问题，要求全局排查修复。
+
+### 根因（三个请求客户端解包语义不同）
+| 客户端 | 位置 | 语义 |
+|--------|------|------|
+| `lib/request.ts` (axios) | 返回**整体 body** `{success, data}`，业务数据在 `res.data` |
+| `utils/request.ts` (fetch) | **自动解包**：success===true / code===0 / code===200 时返回 `result.data` |
+| `lib/api.ts` apiClient (axios) | 拦截器返回 body，公共方法再取 `.data` → 业务数据 |
+
+→ 后端路由返回格式不统一（`{success:true}` / `{code:0}` / `{code:200}` / 裸对象混合），前端误用解包语义导致取错字段。
+
+### 修复清单
+**后端标准化（4 文件）**
+- `server/src/routes/ticket.ts`：list → `{success:true, data:{list,total,page,pageSize,totalPages}}`；detail/stats 补 `success:true`
+- `server/src/routes/employee.ts`：list → `{success:true, data:{list,total}}`
+- `server/src/routes/referral.ts`：users → `{success:true, data:{list,total}}`
+- `server/src/services/dashboard-business-lines.ts`：Agent.id 查表转换（JWT agentUserId=User.id，与 Ticket.agentId=Agent.id 需转换）
+
+**desktop-ui 前端（对齐各自客户端语义）**
+- `app/agent/tickets`、`app/customer/tickets`：列表 `(res as {list,total}).list`，详情 `if(res) setSelectedTicket(res)`（utils/request 已解包）
+- `services/ticket.ts`：detail 泛型 `request.get<Ticket>`（原 `{data:Ticket}`）
+- `app/agent/dashboard`：business-lines 保持 lib/request 语义（`res?.success && res.data`）
+- `app/admin/api-stats`：去掉 `.data` 包装（`res.usage`/`res.stats`）
+- `app/customer/login-logs`：`res?.logs`；并修正 `request.get(url, params)` → `request.get(url, { params })`（原筛选参数丢失）
+- `app/notifications`：`Array.isArray(res) ? res : res?.list`
+- `lib/hooks/useReferral`：URL 改 `/api/referral/users` + list 解包
+- `app/customer/settings/app-download`：`res.version` 直读
+- `app/customer/digital-human`：voices `res?.cloned || res?.voices`；videos `Array.isArray(res) ? res : res?.list`
+- `app/customer/ai-factory`：`/api/materials` → `/materials`（apiClient baseURL 已含 /api）
+- `app/customer/dashboard`：token-stats/daily 用泛型 `request.get<{total,byProvider}>` / `Array<{date,tokens,calls}>`
+- `app/account/staff`：URL → `/employee/employees`（4 处），`res.list`/`res.total` 解包读
+- `app/customer/recruitment`：stats/run 用 apiClient 后 `res` 直接是业务数据
+- `app/customer/recruitment/platforms`：`res?.configs ?? []`（去掉 `.data`）
+- `utils/request.ts`：**清除调试 console.log**（`[API REQ/RES/ERR]`，且原 `JSON.parse(init.body)` 会在 FormData 上传时抛异常破坏上传）
+- `services/api.ts` / `apiAdapter`：确认死代码（无任何调用方），无需修复
+
+**APK**
+- `apk/src/services/ticket.service.ts`：getList `response?.list`/`response?.total`（apiClient 已解包 `{success:true}`）
+
+### 验证
+- desktop-ui `npx tsc --noEmit` 0 错误；server `npx tsc --noEmit` 0 错误
+- apk 遗留 ~17 个**既有**错误（expo-updates/NotificationsScreen/Modal），非本次引入，未改动
+
+### 部署（✅ 已完成 3.2.6）
+- 后端：scp 4 文件（ticket/employee/referral/dashboard-business-lines）→ `/var/www/zhishuai/server/src/` + `pm2 restart zhishuai-api`；verify-login.sh 全通过（admin 200 / 已删账号 401 / 注册 403）
+- 实测三个接口均返回 `{success:true, data:{list,total,...}}`（脚本 `scripts/verify-new-formats.sh`）
+- 前端：桌面版 3.2.6 全流程发版（desktop-ui build → copy → tauri nsis build → 英文名复制 + tauri signer 重新签名 → 上传 downloads/ → appVersion 326 写入，已归档 3.2.5）
+- 验证：`/api/version/desktop/latest.json` 返回 3.2.6+签名；exe/sig 下载 200；注意安装包约 3.5MB 签名绑定英文文件名，必须用 `npx tauri signer sign -f ~/.tauri/zhishuai -p zhishuai-2026-sign <exe>` 重签
+- `services/api.ts`/`apiAdapter` 为死代码（无调用方），无需修复
+- 遗留：apk 端 ~17 个既有 TS 错误（expo-updates 等），非本次引入；代码未 commit/push（用户未要求）
+
 ## 2026-08-25 会话：代理商端"开通客户"点击后无反馈但账号实际已创建 | ✅ 3.2.5 已发布部署（3.2.4 仅增强提示，3.2.5 修复默认密码与错误提示）
 
 ### 现象

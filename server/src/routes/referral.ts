@@ -47,7 +47,7 @@ router.get('/users', authMiddleware, async (req: Request, res: Response) => {
       where: { userId },
     });
 
-    res.json({ users: records, total, page: Number(page), pageSize: Number(pageSize) });
+    res.json({ success: true, data: { list: records, total, page: Number(page), pageSize: Number(pageSize) } });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

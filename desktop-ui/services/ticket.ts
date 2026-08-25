@@ -57,7 +57,7 @@ export const TicketAPI = {
 
   // 获取工单详情
   detail: (id: string) => {
-    return request.get<{ data: Ticket }>(`/api/tickets/${id}`);
+    return request.get<Ticket>(`/api/tickets/${id}`);
   },
 
   // 创建工单

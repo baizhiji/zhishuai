@@ -8,7 +8,8 @@ import { initNotifications } from './src/services/notification.service';
 import { initSyncStorage, getUnreadCount } from './src/utils/storage';
 import DiagErrorBoundary from './src/components/DiagErrorBoundary';
 import { logBoot } from './src/utils/diag';
-import * as Updates from 'expo-updates';
+import { checkForUpdate, downloadAndInstall } from './src/services/update.service';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 // 更新检查结果组件
 function UpdateModal({ 
@@ -18,7 +19,7 @@ function UpdateModal({
   onCancel 
 }: { 
   visible: boolean;
-  updateInfo: { version?: string; notes?: string; mandatory?: boolean } | null;
+  updateInfo: { version?: string; notes?: string; mandatory?: boolean; downloadUrl?: string } | null;
   onUpdate: () => void;
   onCancel: () => void;
 }) {
@@ -30,8 +31,11 @@ function UpdateModal({
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: theme.card }]}>
+          <View style={styles.modalIcon}>
+            <Ionicons name="cloud-download-outline" size={32} color={theme.primary} />
+          </View>
           <Text style={[styles.modalTitle, { color: theme.text }]}>
-            {updateInfo.mandatory ? '🔄 发现新版本' : '📱 发现新版本'}
+            发现新版本
           </Text>
           <Text style={[styles.modalVersion, { color: theme.primary }]}>
             v{updateInfo.version}
@@ -60,38 +64,28 @@ function UpdateModal({
 function AppLoader({ children }: { children: React.ReactNode }) {
   const { theme } = useTheme();
   const [isReady, setIsReady] = useState(false);
-  const [updateInfo, setUpdateInfo] = useState<{ version?: string; notes?: string; mandatory?: boolean } | null>(null);
+  const [updateInfo, setUpdateInfo] = useState<{ version?: string; notes?: string; mandatory?: boolean; downloadUrl?: string } | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // 检查应用更新
+  // 检查应用更新（通过后端 /api/version 接口）
   const checkForUpdates = async () => {
     try {
-      if (!Updates.isEnabled) {
-        logBoot('updates disabled, skip update check');
-        return;
-      }
-
       logBoot('checkForUpdates start');
-      const update = await Updates.checkForUpdateAsync();
+      const result = await checkForUpdate();
       
-      if (update.isAvailable) {
-        console.log('发现新版本:', update);
+      if (result.hasUpdate && result.versionInfo) {
+        const vi = result.versionInfo;
+        console.log('发现新版本:', vi.version);
         
-        // 获取更新信息
-        const updateData = Updates.updateInfo;
         setUpdateInfo({
-          version: updateData?.androidVersion || '1.0.0',
-          notes: updateData?.updateGroupNotes || '优化用户体验，修复已知问题',
-          mandatory: updateData?.mandatoryUpdateGroup || false,
+          version: vi.version,
+          notes: vi.releaseNotes || '优化用户体验，修复已知问题',
+          mandatory: vi.isMandatory,
+          downloadUrl: vi.downloadUrl,
         });
         
-        // 如果是强制更新，直接下载
-        if (updateData?.mandatoryUpdateGroup) {
-          await downloadAndApplyUpdate();
-        } else {
-          setShowUpdateModal(true);
-        }
+        setShowUpdateModal(true);
       } else {
         console.log('当前已是最新版本');
       }
@@ -100,19 +94,14 @@ function AppLoader({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // 下载并应用更新
+  // 下载并应用更新（打开下载链接安装新版本）
   const downloadAndApplyUpdate = async () => {
     setIsUpdating(true);
     try {
-      const update = await Updates.fetchUpdateAsync();
-      
-      if (update.isNew) {
-        console.log('更新已下载，将在下次启动时应用');
-        Alert.alert(
-          '更新已下载',
-          '新版本将在重启应用后生效',
-          [{ text: '确定', onPress: () => {} }]
-        );
+      if (updateInfo?.downloadUrl) {
+        await downloadAndInstall(updateInfo.downloadUrl);
+      } else {
+        Alert.alert('提示', '暂未提供下载链接，请稍后重试');
       }
     } catch (error) {
       console.error('下载更新失败:', error);
@@ -120,18 +109,6 @@ function AppLoader({ children }: { children: React.ReactNode }) {
     } finally {
       setIsUpdating(false);
       setShowUpdateModal(false);
-    }
-  };
-
-  // 应用更新并重启
-  const applyUpdateAndRestart = async () => {
-    setIsUpdating(true);
-    try {
-      await Updates.reloadAsync();
-    } catch (error) {
-      console.error('应用更新失败:', error);
-      Alert.alert('更新失败', '请稍后重试');
-      setIsUpdating(false);
     }
   };
 
@@ -168,28 +145,6 @@ function AppLoader({ children }: { children: React.ReactNode }) {
     };
 
     initialize();
-  }, []);
-
-  // 监听更新事件
-  useEffect(() => {
-    if (!Updates.isEnabled) return;
-
-    const subscription = Updates.addListener((event) => {
-      console.log('更新事件:', event);
-      
-      if (event.type === Updates.UpdateEventType.UPDATE_AVAILABLE) {
-        console.log('有可用更新');
-      }
-      
-      if (event.type === Updates.UpdateEventType.UPDATE_READY) {
-        console.log('更新已准备好应用');
-        // 可以提示用户重启或自动重启
-      }
-    });
-
-    return () => {
-      subscription.remove();
-    };
   }, []);
 
   if (!isReady) {
@@ -265,6 +220,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     alignItems: 'center',
+  },
+  modalIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(109, 40, 217, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
   modalTitle: {
     fontSize: 20,

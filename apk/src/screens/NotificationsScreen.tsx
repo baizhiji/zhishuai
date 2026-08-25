@@ -16,15 +16,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import {
-  NotificationMessage,
-  getLocalNotifications,
+  Notification,
+  getNotificationList,
   markAsRead,
-  markAllAsRead,
+  markAllAsReadNotification,
   deleteNotification,
-  clearAllNotifications,
-  getUnreadCount,
-  getNotificationIcon,
-  getNotificationColor,
+  clearAll,
+  getUnreadNotificationCount,
 } from '../services/notification.service';
 import PageHeader from '../components/PageHeader';
 import { useAppNavigation } from '../context/NavigationContext';
@@ -32,17 +30,34 @@ import { useAppNavigation } from '../context/NavigationContext';
 export default function NotificationsScreen() {
   const { theme } = useTheme();
   const { goBack } = useAppNavigation();
-  const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // 根据类型获取图标/颜色（本地辅助，避免依赖不存在导出）
+  const getNotificationIcon = (type: Notification['type']) => {
+    switch (type) {
+      case 'order': return 'cart-outline';
+      case 'activity': return 'sparkles-outline';
+      case 'message': return 'chatbubble-outline';
+      default: return 'notifications-outline';
+    }
+  };
+  const getNotificationColor = (type: Notification['type']) => {
+    switch (type) {
+      case 'order': return '#3b82f6';
+      case 'activity': return '#8b5cf6';
+      case 'message': return '#10b981';
+      default: return '#6b7280';
+    }
+  };
 
   // 加载通知
   const loadNotifications = useCallback(async () => {
     try {
-      const data = await getLocalNotifications();
+      const data = getNotificationList();
       setNotifications(data);
-      const count = await getUnreadCount();
-      setUnreadCount(count);
+      setUnreadCount(getUnreadNotificationCount());
     } catch (error) {
       console.log('加载通知失败:', error);
     }
@@ -61,7 +76,7 @@ export default function NotificationsScreen() {
   }, [loadNotifications]);
 
   // 处理通知点击
-  const handleNotificationPress = async (notification: NotificationMessage) => {
+  const handleNotificationPress = async (notification: Notification) => {
     if (!notification.read) {
       await markAsRead(notification.id);
       await loadNotifications();
@@ -95,8 +110,8 @@ export default function NotificationsScreen() {
 
   // 全部标为已读
   const handleMarkAllRead = async () => {
-    await markAllAsRead();
-    await loadNotifications();
+    markAllAsReadNotification();
+    loadNotifications();
   };
 
   // 清空所有通知
@@ -110,8 +125,8 @@ export default function NotificationsScreen() {
           text: '清空',
           style: 'destructive',
           onPress: async () => {
-            await clearAllNotifications();
-            await loadNotifications();
+            clearAll();
+            loadNotifications();
           },
         },
       ]
@@ -136,7 +151,7 @@ export default function NotificationsScreen() {
   };
 
   // 渲染通知项
-  const renderNotificationItem = ({ item }: { item: NotificationMessage }) => {
+  const renderNotificationItem = ({ item }: { item: Notification }) => {
     const iconName = getNotificationIcon(item.type || 'info');
     const iconColor = getNotificationColor(item.type || 'info');
 

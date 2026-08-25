@@ -15,9 +15,9 @@ export function useReferral() {
 
   useEffect(() => {
     setLoading(true);
-    request.get('/api/referrals')
+    request.get('/api/referral/users')
       .then((res: any) => {
-        setReferrals(res.data || []);
+        setReferrals(Array.isArray(res) ? res : (res?.list || []));
       })
       .catch(() => {
         setReferrals([]);

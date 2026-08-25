@@ -47,11 +47,12 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     ]);
 
     res.json({
-      data: tickets,
-      pagination: {
+      success: true,
+      data: {
+        list: tickets,
+        total,
         page: Number(page),
         pageSize: Number(pageSize),
-        total,
         totalPages: Math.ceil(total / Number(pageSize))
       }
     });
@@ -92,7 +93,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
       return res.status(404).json({ error: '工单不存在' });
     }
 
-    res.json({ data: ticket });
+    res.json({ success: true, data: ticket });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
@@ -226,6 +227,7 @@ router.get('/stats/summary', authMiddleware, async (req: Request, res: Response)
     ]);
 
     res.json({
+      success: true,
       data: {
         total,
         pending,

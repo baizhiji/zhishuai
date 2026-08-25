@@ -164,13 +164,13 @@ class RecruitmentService {
 
   // AI 匹配候选人（触发后台 AI 搜索）
   async matchCandidates(jobId: string, searchConfigId?: string): Promise<{ candidates: Candidate[]; count: number }> {
-    const response = await apiClient.post<{ success: boolean; data: { candidates: any[]; count: number } }>(
+    const response = await apiClient.post<{ candidates: any[]; count: number }>(
       `/recruitment/jobs/${jobId}/match`,
       { searchConfigId }
     );
     return {
-      candidates: (response.data?.candidates || []).map((c: any) => this.mapCandidate(c)),
-      count: response.data?.count || 0,
+      candidates: (response?.candidates || []).map((c: any) => this.mapCandidate(c)),
+      count: response?.count || 0,
     };
   }
 

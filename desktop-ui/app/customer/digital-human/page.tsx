@@ -114,14 +114,14 @@ export default function DigitalHumanPage() {
   const loadVoices = async () => {
     try {
       const res = await request.get('/api/voice-clone/voices');
-      setVoices(res.voices || []);
+      setVoices(res?.cloned || res?.voices || []);
     } catch { /* 静默处理 */ }
   };
 
   const loadVideos = async () => {
     try {
       const res = await request.get('/api/voice-clone/videos');
-      setVideos(res.videos || []);
+      setVideos(Array.isArray(res) ? res : (res?.list || []));
     } catch { /* 静默处理 */ }
   };
 

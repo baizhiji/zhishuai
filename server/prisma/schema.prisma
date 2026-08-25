@@ -1,3 +1,10 @@
+// ============================================================
+// 智枢AI 部署 schema（Prisma CLI 默认入口）
+// 用途：生产 `prisma db push` / 默认 `prisma generate` 使用。
+// 注意：本地开发请用 `npx prisma generate --schema prisma/schema-restore.prisma`
+//       生成与代码基线匹配的 Client（本文件 ChatConversation 关系名等与代码有差异）。
+// 两文件均为活跃文件，勿随意删除；备份文件已清理，仅保留本文件与 schema-restore.prisma。
+// ============================================================
 generator client {
   provider = "prisma-client-js"
 }
@@ -623,6 +630,7 @@ model LiveRoom {
 model LoginLog {
   id         String   @id @default(uuid())
   userId     String
+  action     String   @default("login")
   ip         String?
   device     String?
   deviceId   String?
@@ -1133,7 +1141,7 @@ model User {
   password            String
   name                String?
   avatar              String?
-  role                String                  @default("user")
+  role                String                  @default("customer")
   status              String                  @default("active")
   createdAt           DateTime                @default(now())
   updatedAt           DateTime @default(now())

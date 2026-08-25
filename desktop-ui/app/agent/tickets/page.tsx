@@ -73,19 +73,10 @@ export default function AgentTicketPage() {
         status: statusFilter !== 'all' ? statusFilter : undefined,
         category: categoryFilter !== 'all' ? categoryFilter : undefined,
       });
-      const data = res as unknown as {
-        success?: boolean;
-        data?: TicketData[];
-        pagination?: { total: number };
-      };
-      if (data?.data) {
-        setTickets(data.data);
-        if (data.pagination) {
-          setPagination(prev => ({ ...prev, total: data.pagination!.total }));
-        }
-      } else {
-        setTickets([]);
-      }
+      const list = (res as { list?: TicketData[]; total?: number })?.list;
+      const total = (res as { total?: number })?.total ?? list?.length ?? 0;
+      setTickets(Array.isArray(list) ? list : []);
+      setPagination(prev => ({ ...prev, total }));
     } catch (err: any) {
       console.error('获取工单列表失败', err);
       message.error(err?.message || '获取工单列表失败');
@@ -112,8 +103,7 @@ export default function AgentTicketPage() {
     setDetailLoading(true);
     try {
       const res = await TicketAPI.detail(ticket.id);
-      const data = res as unknown as { data?: TicketData };
-      if (data?.data) setSelectedTicket(data.data);
+      if (res) setSelectedTicket(res as unknown as TicketData);
     } catch {
       message.error('获取工单详情失败');
     } finally {
@@ -143,8 +133,7 @@ export default function AgentTicketPage() {
       fetchTickets();
       // 刷新详情
       const res = await TicketAPI.detail(ticketId);
-      const data = res as unknown as { data?: TicketData };
-      if (data?.data) setSelectedTicket(data.data);
+      if (res) setSelectedTicket(res as unknown as TicketData);
     } catch (err: any) {
       message.error(err?.message || '接单失败');
     }
@@ -164,8 +153,7 @@ export default function AgentTicketPage() {
       message.success('回复成功');
       setReplyContent('');
       const res = await TicketAPI.detail(selectedTicket.id);
-      const data = res as unknown as { data?: TicketData };
-      if (data?.data) setSelectedTicket(data.data);
+      if (res) setSelectedTicket(res as unknown as TicketData);
     } catch (err: any) {
       message.error(err?.message || '回复失败');
     } finally {
@@ -187,8 +175,7 @@ export default function AgentTicketPage() {
       message.success('内部备注已添加');
       setReplyContent('');
       const res = await TicketAPI.detail(selectedTicket.id);
-      const data = res as unknown as { data?: TicketData };
-      if (data?.data) setSelectedTicket(data.data);
+      if (res) setSelectedTicket(res as unknown as TicketData);
     } catch (err: any) {
       message.error(err?.message || '添加失败');
     } finally {

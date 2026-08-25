@@ -15,7 +15,7 @@ export const lightTheme = {
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
-  statusBar: 'dark-content' as const,
+  statusBar: 'dark' as const,
   // 额外颜色
   inputBg: '#F5F3FF',
   shadow: '#6D28D9',
@@ -36,7 +36,7 @@ export const darkTheme = {
   success: '#34D399',
   warning: '#FBBF24',
   error: '#F87171',
-  statusBar: 'light-content' as const,
+  statusBar: 'light' as const,
   // 额外颜色
   inputBg: '#1E1038',
   shadow: '#000000',
@@ -45,7 +45,7 @@ export const darkTheme = {
   tabBarInactive: '#64748B',
 };
 
-export type Theme = typeof lightTheme;
+export type Theme = Omit<typeof lightTheme, 'statusBar'> & { statusBar: 'dark' | 'light' };
 export type ThemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeContextType {

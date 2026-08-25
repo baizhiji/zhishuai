@@ -53,8 +53,8 @@ export default function MaterialsScreen() {
 
   // 筛选素材
   const filteredMaterials = materials.filter(m => {
-    const matchSearch = m.title.toLowerCase().includes(searchText.toLowerCase()) || 
-                        m.content.toLowerCase().includes(searchText.toLowerCase());
+    const matchSearch = (m.title || '').toLowerCase().includes(searchText.toLowerCase()) || 
+                        (m.content || '').toLowerCase().includes(searchText.toLowerCase());
     const matchCategory = filterCategory === 'all' || m.category === filterCategory;
     const matchStatus = filterStatus === 'all' || (filterStatus === 'downloaded' ? !!m.downloadedAt : !m.downloadedAt);
     const matchFavorite = !filterFavorites || m.isFavorite;

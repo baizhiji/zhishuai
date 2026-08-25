@@ -76,8 +76,8 @@ export default function RecruitmentPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await apiClient.get('/recruitment/pipeline/stats') as { success: boolean; data: RecruitmentStats };
-      if (res.data) setStats(res.data);
+      const res = await apiClient.get('/recruitment/pipeline/stats') as RecruitmentStats;
+      if (res) setStats(res);
     } catch { /* ignore */ }
   }, []);
 

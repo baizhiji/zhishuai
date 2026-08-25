@@ -21,9 +21,10 @@ interface PageHeaderProps {
   title?: string;
   showBack?: boolean;
   rightElement?: React.ReactNode;
+  onBack?: () => void;
 }
 
-export default function PageHeader({ title, showBack = true, rightElement }: PageHeaderProps) {
+export default function PageHeader({ title, showBack = true, rightElement, onBack }: PageHeaderProps) {
   const navigation = useNavigation();
   const route = useRoute();
   const { theme } = useTheme();
@@ -43,7 +44,7 @@ export default function PageHeader({ title, showBack = true, rightElement }: Pag
         <View style={styles.leftContainer}>
           {showBack && (
             <TouchableOpacity 
-              onPress={() => navigation.goBack()} 
+              onPress={() => (onBack ? onBack() : navigation.goBack())} 
               style={styles.backButton}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >

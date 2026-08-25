@@ -1,10 +1,14 @@
 /**
  * 智枢AI 共享类型定义
- * 被 web/ 和 server/ 共同引用
  *
- * TODO: 目前仅含基础 API 类型（ApiResponse/Pagination/UserInfo/ErrorCode 等）。
- * 随着三端发展，应将更多跨端类型（如 FeatureToggle、AgentInfo 等）提升至此文件，
- * 避免 web/ 和 server/ 各自维护独立类型定义。
+ * 当前实际使用方：
+ * - shared/types/video-production.ts（Banner/BGM/字幕等）→ desktop-ui（lib/ai/video-overlay-config.ts）
+ * - UserRole（admin/agent/customer）为三端角色契约的权威枚举，与
+ *   server/prisma/schema-restore.prisma 的 User.role 默认值("customer")保持一致
+ *
+ * 约定：新增跨端公共类型统一追加到本文件，不再另建独立类型文件
+ * （shared/types/index.ts 已删除——其 PageResponse.list 与本文件 PaginatedResult.items
+ *   契约冲突且无任何引用，避免误导）。
  */
 
 // ========== API 响应格式 ==========

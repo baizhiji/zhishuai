@@ -56,11 +56,12 @@ export default function CustomerTicketsPage() {
         page: pagination.page,
         pageSize: pagination.pageSize,
       });
-      if (res.data) {
-        setTickets(res.data);
-        if (res.pagination) {
-          setPagination(prev => ({ ...prev, total: res.pagination.total }));
-        }
+      const list = (res as { list?: Ticket[]; total?: number })?.list;
+      if (Array.isArray(list)) {
+        setTickets(list);
+        setPagination(prev => ({ ...prev, total: (res as { total?: number })?.total ?? list.length }));
+      } else {
+        setTickets([]);
       }
     } catch (error: unknown) {
       const err = error as { message?: string };
@@ -99,8 +100,8 @@ export default function CustomerTicketsPage() {
     setDetailDrawerVisible(true);
     try {
       const res = await TicketAPI.detail(ticket.id);
-      if (res.data) {
-        setSelectedTicket(res.data);
+      if (res) {
+        setSelectedTicket(res);
       }
     } catch {
       message.error('获取工单详情失败');
@@ -121,8 +122,8 @@ export default function CustomerTicketsPage() {
         message.success('回复成功');
         setReplyContent('');
         const detailRes = await TicketAPI.detail(selectedTicket.id);
-        if (detailRes.data) {
-          setSelectedTicket(detailRes.data);
+        if (detailRes) {
+          setSelectedTicket(detailRes);
         }
       }
     } catch (error: unknown) {

@@ -203,7 +203,7 @@ export default function PlanGenerationScreen({ route, navigation }: any) {
   if (phase === 'preview' && plan) {
     return (
       <View style={styles.container}>
-        <PageHeader title={scenario.name} rightAction={
+        <PageHeader title={scenario.name} rightElement={
           <TouchableOpacity onPress={handleRegenerate}>
             <Ionicons name="refresh" size={22} color="#6D28D9" />
           </TouchableOpacity>
@@ -320,7 +320,7 @@ export default function PlanGenerationScreen({ route, navigation }: any) {
         {/* 场景说明 */}
         <View style={styles.infoCard}>
           <View style={[styles.infoIcon, { backgroundColor: `${scenario.icon?.color || '#6D28D9'}15` }]}>
-            <Ionicons name={scenario.icon?.icon || 'document-text'} size={28} color={scenario.icon?.color || '#6D28D9'} />
+            <Ionicons name={(scenario.icon?.icon || 'document-text') as keyof typeof Ionicons.glyphMap} size={28} color={scenario.icon?.color || '#6D28D9'} />
           </View>
           <Text style={styles.infoTitle}>{scenario.name}</Text>
           <Text style={styles.infoDesc}>{scenario.description}</Text>

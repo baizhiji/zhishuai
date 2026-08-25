@@ -46,16 +46,16 @@ export default function AppDownloadPage() {
     const fetchVersion = async () => {
       try {
         const res = await request.get('/api/version/latest');
-        if (res?.data) {
+        if (res) {
           setVersion({
-            version: res.data.version || DEFAULT_VERSION.version,
-            buildNumber: res.data.buildNumber || DEFAULT_VERSION.buildNumber,
-            minVersion: res.data.minVersion || DEFAULT_VERSION.minVersion,
-            downloadUrl: res.data.downloadUrl || DEFAULT_VERSION.downloadUrl,
-            changelog: res.data.changelog || DEFAULT_VERSION.changelog,
-            size: res.data.size || DEFAULT_VERSION.size,
-            releaseDate: res.data.releaseDate || DEFAULT_VERSION.releaseDate,
-            forceUpdate: res.data.forceUpdate || DEFAULT_VERSION.forceUpdate,
+            version: res.version || DEFAULT_VERSION.version,
+            buildNumber: res.buildNumber || DEFAULT_VERSION.buildNumber,
+            minVersion: res.minVersion || DEFAULT_VERSION.minVersion,
+            downloadUrl: res.downloadUrl || DEFAULT_VERSION.downloadUrl,
+            changelog: res.changelog || DEFAULT_VERSION.changelog,
+            size: res.size || DEFAULT_VERSION.size,
+            releaseDate: res.releaseDate || DEFAULT_VERSION.releaseDate,
+            forceUpdate: res.forceUpdate || DEFAULT_VERSION.forceUpdate,
           });
         }
       } catch {

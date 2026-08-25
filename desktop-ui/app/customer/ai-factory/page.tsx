@@ -650,7 +650,7 @@ export default function AIFactoryPage() {
                 if (!generatedContent) return;
                 setSavingToCenter(true);
                 try {
-                  await apiClient.post('/api/materials', {
+                  await apiClient.post('/materials', {
                     title: form.getFieldValue('description') || cfg.label,
                     type: activeCategory,
                     content: generatedContent,
