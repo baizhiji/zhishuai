@@ -21,8 +21,9 @@
 - 本地 `dist/latest.json` 已同步生成正确清单（留档，线上以 API 动态生成为准）
 
 ### 待办
-- 本地 git 有未提交修改（desktop-ui 修复 + desktop 版本号 + release.mjs + scripts 脚本 + SESSION_MEMORY.md），可 push 到 GitHub 触发 CI
+- ✅ 已提交并 push 到 GitHub（commit `4cef8c0`，28 文件），CI 自动部署中
 - 用户安装 3.2.3 后即可正常上传企业微信二维码
+- ⏳ 待管理员在后台重新上传正式企业微信二维码：当前数据库 `setting(support_qrcode)` value 为空，且生产 `SUPPORT_QRCODE_URL` 环境变量未配置（已检查确认），上传后客户端/代理商端即同时显示
 
 ## 2026-08-25 会话：登录入口角色严格隔离（代理商只能登录代理商端）| ✅ 已部署验证通过
 
