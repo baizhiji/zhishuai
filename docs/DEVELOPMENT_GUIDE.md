@@ -8,7 +8,8 @@
 ## 项目结构
 ```
 zhishuai/
-├── web/          # Next.js 前端
+├── desktop-ui/   # 桌面安装版界面（Next.js，在线网页版已下线）
+├── desktop/      # 桌面壳（Tauri 2.x）
 ├── server/       # Express 后端
 ├── apk/          # React Native APP
 ├── docs/         # 开发文档
@@ -17,9 +18,9 @@ zhishuai/
 
 ## 开发命令
 
-### 前端开发
+### 桌面安装版界面开发
 ```bash
-cd web
+cd desktop-ui
 npm run dev          # 开发模式
 npm run build        # 生产构建
 npm run lint         # 代码检查
@@ -159,10 +160,11 @@ JWT_SECRET=your-secret-key
 NODE_ENV=production
 ```
 
-### Web (.env.local)
+### 桌面安装版界面 (desktop-ui/.env.production)
 ```env
-NEXT_PUBLIC_API_BASE_URL=https://baizhiji.net
-NEXT_PUBLIC_APP_VERSION=1.0.0
+APP_NAME=智枢AI
+APP_VERSION=1.0.0
+API_BASE_URL=http://localhost:3001/api
 ```
 
 ### APK (app.json)
@@ -190,8 +192,8 @@ kill -9 <PID>
 
 ### 清理缓存
 ```bash
-# 前端清理
-cd web
+# 桌面安装版界面清理
+cd desktop-ui
 rm -rf .next
 npm run dev
 

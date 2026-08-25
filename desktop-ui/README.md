@@ -99,7 +99,7 @@ desktop-ui/
 ### 安装依赖
 
 ```bash
-cd zhishuai-web
+cd zhishuai-desktop-ui
 npm install
 ```
 

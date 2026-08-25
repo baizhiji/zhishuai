@@ -1,4 +1,20 @@
 
+## 2026-08-26 会话：清理全部 Web 旧产物，命名统一为桌面安装版
+
+### 服务器清理（150.109.60.130）
+- 删除 /var/www/zhishuai/web（1.7G，Next.js 旧产物含 node_modules）、webapp/（空）、build-web-remote.log
+- nginx 全量清理：删除未启用旧配置 sites-available/baizhiji（root /www/zhishuai/web）、sites-available/default、baizhiji.net.bak.*；baizhuji.net（80 default_server）location / 由死代理 3000 改为"在线网页版已下线"提示页，删除 /_next/static/ 死代理；保留 /api/（→3001）、/uploads/、apk.baizhuji.net 子站
+- nginx -t 通过并 reload；全站已无 127.0.0.1:3000 任何引用
+- 验证：https baizhiji.net 200（下线提示）、http80 301、apk 200、pm2 zhishuai-api online
+
+### 仓库文档统一命名（web → 桌面安装版/desktop-ui）
+- README.md：删除"原 web/"表述，web/ 目录结构块 → desktop-ui/ 实际结构
+- docs/ENVIRONMENT.md：5.2 前端环境变量 → desktop-ui/.env.production（API_BASE_URL）；快速命令 cd web → cd desktop-ui
+- docs/DEVELOPMENT_GUIDE.md：项目结构/开发命令/环境变量/清理缓存全部 web → desktop-ui
+- .codebuddy/CODEBUDDY.md：技术栈表 web/ → desktop-ui/；dev:web/build:web → dev:desktop-ui/build:desktop-ui；部署流程删除 zhishuai-web
+- 仓库本地无 web/ 目录（git 跟踪 0 文件，被 .gitignore 忽略）；CI 无 web 作业
+- 未提交
+
 ## 2026-08-25 会话（续）：审查问题全量修复
 - A1 澄清为误报：desktop-ui 管理端三页（agents/earnings/security）用 lib/request（自动拼 /api），路径正确；utils/request 用户写 /api/xxx 也正确；server PATCH /admin/agents/:id/status 路由存在
 - 修复 A2：schema.prisma User.role 默认 "user"→"customer"（对齐 schema-restore 基线；注册/创建代理商均显式赋值 role，无存量影响）

@@ -130,11 +130,11 @@ PORT=3001
 JWT_SECRET=your-secret
 ```
 
-### 5.2 前端环境变量
+### 5.2 桌面安装版界面环境变量
 
 ```bash
-# 在 /www/zhishuai/web/.env.local 中配置
-NEXT_PUBLIC_API_BASE_URL=https://baizhiji.net
+# 在 desktop-ui/.env.production 中配置
+API_BASE_URL=https://baizhiji.net/api
 ```
 
 ---
@@ -149,8 +149,8 @@ git pull origin main
 # 后端
 cd server && npm run build && node dist/index.js &
 
-# 前端
-cd web && npm run dev &
+# 桌面安装版界面
+cd desktop-ui && npm run dev &
 
 # 格式化代码
 npm run format
@@ -179,4 +179,3 @@ git log --oneline -5
 ```bash
 sudo killall -9 node
 lsof -i :3000 -i :3001
-```

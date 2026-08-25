@@ -6,7 +6,7 @@
 
 智枢AI是一个全功能SaaS多租户系统，主产品形态为 **Windows 桌面安装版** 和 **Android APK端**，配套 Express 后端服务。系统为自媒体运营者、电商卖家、HR、营销人员等提供一站式智能解决方案。
 
-- **桌面安装版**：基于 `desktop-ui/` 源码（原 `web/`，Next.js 静态导出）通过 Tauri 2.x 封装为 Windows 安装程序，是管理后台的主力形态。在线网页版已下线。
+- **桌面安装版**：基于 `desktop-ui/` 源码（Next.js 静态导出）通过 Tauri 2.x 封装为 Windows 安装程序，是管理后台的主力形态。在线网页版已下线。
 - **APK端**：基于 Expo + React Native 的 Android 应用。
 - **后端服务**：基于 Express + TypeScript + Prisma + MySQL 的 API 服务。
 
@@ -15,7 +15,7 @@
 ```
 zhishuai/
 ├── apk/                   # APK端（Expo + React Native）
-├── desktop-ui/            # 桌面安装版界面（Next.js，静态导出后由 Tauri 壳加载，原 web/）
+├── desktop-ui/            # 桌面安装版界面（Next.js，静态导出后由 Tauri 壳加载）
 ├── desktop/               # 桌面壳（Tauri 2.x，Rust）
 ├── server/                # 后端服务（Express + Prisma + MySQL）
 ├── shared/                # 共享代码
@@ -167,23 +167,22 @@ npm run dev
 ### 目录说明
 
 ```
-web/
-├── app/                  # Next.js App Router
-│   ├── dashboard/        # 首页Dashboard
-│   ├── media/            # 自媒体板块
-│   ├── e-commerce/       # 电商板块
-│   ├── hr/               # HR功能
-│   ├── customer/         # 获客功能
-│   ├── referral/         # 推荐分享
-│   ├── introduction/     # 转介绍
+desktop-ui/
+├── app/                  # Next.js App Router（桌面版界面页面）
+│   ├── (main)/           # 主布局（导航/侧栏）
+│   ├── admin/            # 管理员后台
+│   ├── agent/            # 代理商端
+│   ├── customer/         # 客户终端
 │   ├── account/          # 账号管理
-│   ├── system/           # 系统配置
 │   ├── login/            # 登录页面
+│   ├── profile/          # 个人中心
 │   ├── layout.tsx        # 根布局
 │   ├── page.tsx          # 首页重定向
 │   └── globals.css       # 全局样式
 ├── components/           # 组件
 ├── lib/                  # 工具库
+├── services/             # API 服务层
+├── stores/               # Zustand 状态
 ├── types/                # TypeScript类型定义
 ├── utils/                # 工具函数
 └── public/               # 静态资源
