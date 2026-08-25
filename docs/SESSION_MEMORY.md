@@ -1,5 +1,27 @@
 
-## 2026-08-25 会话（安全审计剩余问题收口）：multer 恶意图片格式拦截修复 + 生产实跑 src 确认 | 已部署验证通过
+## 2026-08-25 交叉验证会话：修复 API_BASE_URL 前缀 bug（上传文件静态访问 404）| 已部署验证通过
+
+### 发现问题
+交叉验证（verify-login.sh + test-upload-prod.sh/extras.sh 全通过）后，发现生产上传文件静态访问 404：
+- 根因：`server/.env` 中 `API_BASE_URL=https://api.baizhiji.net/api`（带 `/api` 后缀），`materials.ts` 生成 `fileUrl=https://api.baizhiji.net/api/uploads/materials/xxx`；但 nginx 仅配置 `location /uploads/ { alias /var/www/zhishuai/server/uploads/; }`，无 `/api/uploads/` 位置 → 静态访问 404。
+- 附带确认：multer 文件正常落盘 `/var/www/zhishuai/server/uploads/materials/`，pm2 cwd 为 `/var/www/zhishuai/server`。
+
+### 修复（已部署）
+- 生产 `server/.env`：`API_BASE_URL` 去掉 `/api` 后缀 → `https://api.baizhiji.net`，`pm2 restart zhishuai-api`（注意 pm2 属 ubuntu 用户，不能 `sudo pm2`）。
+- 本地 `server/.env`、`server/.env.example` 同步去掉 `/api`。
+- `server/.env.example` 首次纳入版本控制（原被 `.gitignore` 的 `server/.env*` 忽略，已改为显式列出忽略项）。
+
+### 验证（全通过）
+- 新上传文件 URL `https://api.baizhiji.net/uploads/materials/xxx` → 200
+- verify-login.sh：管理员 200 / 已删代理商 401 / 已删客户 401 / 自助注册 403
+- /health 200；测试素材记录与文件已精确清理
+
+### 新增运维脚本
+- `scripts/fix-apibaseurl.sh`：修复 API_BASE_URL（sed 替换 + 备份 .env + pm2 restart）
+- `scripts/cleanup-crosscheck.sh`：精确删除指定测试素材 id + 删除测试文件
+- ⚠️ `scripts/cleanup-test-materials.sh` 会删除**所有** content 含 `/uploads/materials/` 的素材记录，勿对生产直接使用（如需批量清理请改为按测试 id 精确删除）
+
+
 
 ### 背景
 安全审计（docs/security-audit-2026-08-25.md）剩余问题：server 依赖漏洞（multer/image-size/uuid 链）+ 上传监控盲区。

@@ -74,7 +74,10 @@ shared/dist
 
 # 7. server目录下的忽略项
 server/node_modules
-server/.env*
+server/.env
+server/.env.local
+server/.env.production
+server/.env.test
 server/dist
 server/logs
 server/.pnpm-debug.log*
