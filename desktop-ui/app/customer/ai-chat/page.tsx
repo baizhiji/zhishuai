@@ -12,6 +12,7 @@ import {
   StopOutlined,
 } from '@ant-design/icons';
 import { v4 as uuidv4 } from 'uuid';
+import { absUrl } from '@/utils/env';
 import PageContainer from '@/components/customer/PageContainer';
 
 const { Title, Text, Paragraph } = Typography;
@@ -99,7 +100,7 @@ export default function AIChatPage() {
     try {
       abortControllerRef.current = new AbortController();
       const currentConvId = currentConversationId;
-      const response = await fetch('/api/ai-chat/chat', {
+      const response = await fetch(absUrl('/api/ai-chat/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })), modelKey: selectedModel, stream: false }),

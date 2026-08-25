@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import os from 'node:os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
@@ -22,9 +23,24 @@ const args = Object.fromEntries(
 );
 const version = args.version || '3.0.0';
 const bundle = args.bundle || 'nsis';
-const baseUrl = args.url || 'https://api.zhishuai.example';
+const baseUrl = args.url || 'https://baizhiji.net';
+
+// 自动配置签名环境变量（Tauri updater 要求：无签名则无法生成 .sig，自动更新不可用）
+function ensureSigningEnv() {
+  if (process.env.TAURI_SIGNING_PRIVATE_KEY) return;
+  const keyPath = resolve(os.homedir(), '.tauri', 'zhishuai');
+  if (existsSync(keyPath)) {
+    process.env.TAURI_SIGNING_PRIVATE_KEY = readFileSync(keyPath, 'utf8');
+    process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD =
+      process.env.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || 'zhishuai-2026-sign';
+    console.log('[release] 已自动加载签名私钥（~/.tauri/zhishuai）');
+  } else {
+    console.warn('[release] 警告：未找到签名私钥，产物将无 .sig 签名，自动更新不可用！');
+  }
+}
 
 // 1. 构建
+ensureSigningEnv();
 console.log('[release] 构建桌面安装包...');
 execSync(`npx tauri build --bundles ${bundle}`, { stdio: 'inherit', cwd: ROOT });
 
@@ -37,14 +53,16 @@ const bundleDir = resolve(
 const candidates = bundle === 'msi'
   ? ['*.msi']
   : ['*-setup.exe', '*.exe'];
-const { readdirSync } = await import('node:fs');
+const { readdirSync, statSync } = await import('node:fs');
 const allFiles = readdirSync(bundleDir);
+// 取最新构建的安装包（按 mtime 倒序），避免选到历史产物
 const files = allFiles.filter((f) =>
   candidates.some((c) => {
     const re = new RegExp('^' + c.replace(/\*/g, '.*') + '$');
     return re.test(f);
   })
-).filter((f) => !f.endsWith('.sig') && !f.endsWith('.blockmap'));
+).filter((f) => !f.endsWith('.sig') && !f.endsWith('.blockmap'))
+  .sort((a, b) => statSync(resolve(bundleDir, b)).mtimeMs - statSync(resolve(bundleDir, a)).mtimeMs);
 
 if (files.length === 0) {
   console.error('[release] 未找到安装包，请检查 tauri.conf.json 的 bundle.targets');

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, Upload, Button, Typography, Space, message, Image, Spin, Divider } from 'antd';
 import { UploadOutlined, WechatOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import type { UploadFile, RcFile } from 'antd/es/upload/interface';
+import { absUrl } from '@/utils/env';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -19,7 +20,7 @@ export default function AdminSupportPage() {
 
   const loadQrcode = async () => {
     try {
-      const res = await fetch('/api/support/qrcode');
+      const res = await fetch(absUrl('/api/support/qrcode'));
       const data = await res.json();
       if (data.success && data.data.url) {
         setQrcodeUrl(data.data.url);
@@ -37,7 +38,7 @@ export default function AdminSupportPage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/support/qrcode', {
+      const res = await fetch(absUrl('/api/support/qrcode'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -97,7 +98,7 @@ export default function AdminSupportPage() {
           {qrcodeUrl ? (
             <div style={{ textAlign: 'center' }}>
               <Image
-                src={qrcodeUrl}
+                src={absUrl(qrcodeUrl)}
                 alt="企业微信二维码"
                 width={280}
                 height={280}
@@ -166,7 +167,7 @@ export default function AdminSupportPage() {
           </Paragraph>
           {qrcodeUrl ? (
             <Image
-              src={qrcodeUrl}
+              src={absUrl(qrcodeUrl)}
               alt="企业微信二维码"
               width={220}
               height={220}

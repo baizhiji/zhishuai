@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Typography, Spin, Image, Divider, Space, message } from 'antd';
 import { WechatOutlined, ScanOutlined, ClockCircleOutlined, CustomerServiceOutlined } from '@ant-design/icons';
+import { absUrl } from '@/utils/env';
 import PageContainer from '@/components/customer/PageContainer';
 
 const { Title, Text, Paragraph } = Typography;
@@ -12,7 +13,7 @@ export default function CustomerSupportPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/support/qrcode')
+    fetch(absUrl('/api/support/qrcode'))
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data.url) {
@@ -62,7 +63,7 @@ export default function CustomerSupportPage() {
             }}>
               {qrcodeUrl ? (
                 <Image
-                  src={qrcodeUrl}
+                  src={absUrl(qrcodeUrl)}
                   alt="企业微信客服二维码"
                   width={260}
                   height={260}

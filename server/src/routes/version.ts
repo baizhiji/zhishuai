@@ -84,7 +84,7 @@ router.get('/desktop/latest.json', async (req, res) => {
     const dbVersion = await (prisma as any).appVersion.findFirst({
       where: {
         status: 'released',
-        platform: 'desktop',
+        platform: { in: ['desktop', 'windows'] },
         channel: String(channel),
       },
       orderBy: { releasedAt: 'desc' },

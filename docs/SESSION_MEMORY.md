@@ -1,4 +1,29 @@
 
+## 2026-08-25 会话：修复管理员后台客服中心企业微信二维码上传失败 | ✅ 3.2.3 已发布部署
+
+### 问题
+管理员后台"客服中心配置"上传企业微信二维码失败。
+
+### 根因
+1. 桌面端（Tauri WebView）中前端用裸相对路径 `fetch('/api/...')`，请求发往 `tauri://localhost` 本地 origin 返回 404，未到达服务器（Nginx access log 无记录佐证）。
+2. 后端上传目录 `public/uploads` 与静态服务/Nginx alias（`process.cwd()/uploads`）不一致。
+
+### 修复
+1. `desktop-ui/utils/env.ts` 新增 `absUrl()`（相对路径拼接绝对 `API_ORIGIN`），替换全部裸 fetch：admin/agent/customer support 页、paymentService(7)、ai-chat(3)、factory-service(2)、api-keys(7)、security(1)、Navbar(1)，二维码 `<Image src>` 同步改用。
+2. `server/src/routes/support.ts`：上传目录 `public/uploads` → `process.cwd()/uploads`（与静态服务/Nginx 一致），删除旧图时兼容两目录。已部署生产（tsx 直跑 src，已确认生产文件包含修复）。
+
+### 发布 3.2.3（2026-08-25）
+- 本地 tauri build → 安装包 `智枢AI_3.2.3_x64-setup.exe`（3,655,909 字节）
+- **关键坑**：构建产物为中文名，但后端 `version.ts` 的 `readDesktopSignature()` 与 URL 兜底硬编码 `zhishuai_${version}_x64-setup.exe`，且签名绑定文件名。解决：复制为 `zhishuai_3.2.3_x64-setup.exe` 后用 `tauri signer sign`（私钥 `~/.tauri/zhishuai`，密码 zhishuai-2026-sign）重新签名，使签名绑定英文文件名。
+- 上传 `/var/www/zhishuai/downloads/`（exe + sig，属主 ubuntu）
+- `appVersion` 表插入 3.2.3（buildNumber 3230, platform windows, status released, downloadUrl=https://baizhiji.net/downloads/zhishuai_3.2.3_x64-setup.exe），旧 windows released 记录标记 archived
+- 验证：`/api/version/desktop/latest.json?currentVersion=3.2.2` 返回 3.2.3，signature 与服务器 sig 文件一致 ✅；安装包下载 HTTP 200 且大小一致 ✅
+- 本地 `dist/latest.json` 已同步生成正确清单（留档，线上以 API 动态生成为准）
+
+### 待办
+- 本地 git 有未提交修改（desktop-ui 修复 + desktop 版本号 + release.mjs + scripts 脚本 + SESSION_MEMORY.md），可 push 到 GitHub 触发 CI
+- 用户安装 3.2.3 后即可正常上传企业微信二维码
+
 ## 2026-08-25 会话：登录入口角色严格隔离（代理商只能登录代理商端）| ✅ 已部署验证通过
 
 ### 需求

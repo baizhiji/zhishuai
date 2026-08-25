@@ -8,6 +8,7 @@
  * Tokens 消耗由客户承担，平台不代付
  */
 
+import { absUrl } from '@/utils/env';
 import {
   // Provider / Model 元数据
   PROVIDER_INFO, MODEL_INFO,
@@ -1474,7 +1475,7 @@ export async function generateVideo(
     const token = getAuthToken();
     if (materialVideos.length > 0 && token) {
       try {
-        const resp = await fetch('/api/video-edit/compose', {
+        const resp = await fetch(absUrl('/api/video-edit/compose'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
@@ -1671,7 +1672,7 @@ export async function generateWithPipeline(
   const token = getAuthToken();
   if (token) {
     try {
-      const resp = await fetch('/api/ai-config/pipeline', {
+      const resp = await fetch(absUrl('/api/ai-config/pipeline'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ contentType, userInput }),

@@ -1,6 +1,7 @@
 /**
  * AI对话服务
  */
+import { absUrl } from '@/utils/env';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -52,7 +53,7 @@ export async function sendChatMessage(
   }
 ): Promise<ChatResponse> {
   try {
-    const response = await fetch('/api/ai-chat/chat', {
+    const response = await fetch(absUrl('/api/ai-chat/chat'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -80,7 +81,7 @@ export async function sendChatMessage(
  */
 export async function getModelList(): Promise<ModelInfo[]> {
   try {
-    const response = await fetch('/api/ai-chat/models')
+    const response = await fetch(absUrl('/api/ai-chat/models'))
     const result = await response.json()
     
     if (result.success) {
@@ -99,7 +100,7 @@ export async function getModelList(): Promise<ModelInfo[]> {
  */
 export async function getModelStats() {
   try {
-    const response = await fetch('/api/ai-chat/models/stats')
+    const response = await fetch(absUrl('/api/ai-chat/models/stats'))
     const result = await response.json()
     
     if (result.success) {

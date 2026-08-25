@@ -7,7 +7,8 @@ import fs from 'fs';
 const router = Router();
 
 // 上传配置：企业微信二维码
-const qrcodeDir = path.join(__dirname, '../../public/uploads');
+// 注意：上传目录必须与静态服务 /uploads 及 Nginx alias 一致（process.cwd()/uploads）
+const qrcodeDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(qrcodeDir)) {
   fs.mkdirSync(qrcodeDir, { recursive: true });
 }
@@ -75,9 +76,16 @@ router.post('/qrcode', authMiddleware, adminMiddleware, upload.single('file'), a
       where: { key: 'support_qrcode' },
     });
     if (oldSetting?.value && oldSetting.value.startsWith('/uploads/')) {
-      const oldPath = path.join(__dirname, '../../public', oldSetting.value);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
+      // 兼容旧目录（server/public/uploads）与当前目录（server/uploads）
+      const filename = path.basename(oldSetting.value);
+      const candidates = [
+        path.join(process.cwd(), 'uploads', filename),
+        path.join(process.cwd(), 'public', 'uploads', filename),
+      ];
+      for (const oldPath of candidates) {
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
       }
     }
 

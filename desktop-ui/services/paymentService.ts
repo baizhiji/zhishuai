@@ -1,4 +1,5 @@
 import { message } from 'antd';
+import { absUrl } from '@/utils/env';
 import type { PaymentMethod, Order, OrderType, SubscriptionPlan } from '@/types/api';
 
 // 支付状态
@@ -45,7 +46,7 @@ class PaymentService {
   ): Promise<PaymentResult> {
     try {
       // 调用API创建订单
-      const response = await fetch('/api/orders/recharge', {
+      const response = await fetch(absUrl('/api/orders/recharge'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +83,7 @@ class PaymentService {
     paymentMethod: PaymentMethod
   ): Promise<PaymentResult> {
     try {
-      const response = await fetch('/api/orders/subscribe', {
+      const response = await fetch(absUrl('/api/orders/subscribe'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +118,7 @@ class PaymentService {
   async alipayPayment(orderId: string): Promise<PaymentResult> {
     try {
       // 获取支付宝支付链接
-      const response = await fetch(`/api/payments/alipay/${orderId}`, {
+      const response = await fetch(absUrl(`/api/payments/alipay/${orderId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +155,7 @@ class PaymentService {
   // 微信支付
   async wechatPayment(orderId: string): Promise<PaymentResult> {
     try {
-      const response = await fetch(`/api/payments/wechat/${orderId}`, {
+      const response = await fetch(absUrl(`/api/payments/wechat/${orderId}`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +187,7 @@ class PaymentService {
   // 查询支付状态
   async queryPaymentStatus(orderId: string): Promise<PaymentStatus> {
     try {
-      const response = await fetch(`/api/payments/status/${orderId}`, {
+      const response = await fetch(absUrl(`/api/payments/status/${orderId}`), {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -208,7 +209,7 @@ class PaymentService {
   // 取消订单
   async cancelOrder(orderId: string): Promise<boolean> {
     try {
-      const response = await fetch(`/api/orders/${orderId}/cancel`, {
+      const response = await fetch(absUrl(`/api/orders/${orderId}/cancel`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { absUrl } from '@/utils/env';
 import {
   Layout,
   Menu,
@@ -556,7 +557,7 @@ export default function Navbar({ children }: { children?: React.ReactNode }) {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 15000);
       try {
-        await fetch('/api/account/password', {
+        await fetch(absUrl('/api/account/password'), {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

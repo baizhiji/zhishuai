@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { absUrl } from '@/utils/env';
 import {
   Card,
   Form,
@@ -33,7 +34,7 @@ export default function SecuritySettingsPage() {
         return;
       }
       setLoading(true);
-      const res = await fetch('/api/auth/password', {
+      const res = await fetch(absUrl('/api/auth/password'), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -30,3 +30,14 @@ export const isBrowser: boolean = typeof window !== 'undefined';
 export function detectDesktop(): boolean {
   return isDesktop;
 }
+
+/**
+ * 将相对路径（/api/xxx、/uploads/xxx）转为绝对地址。
+ * 桌面版 WebView 中相对路径会发向 tauri://localhost（404），必须拼接 API 域名根。
+ * 已是绝对 URL（http/https）或 data/blob 协议时原样返回。
+ */
+export function absUrl(path: string): string {
+  if (!path) return path;
+  if (/^(https?:)?\/\//i.test(path) || /^(data|blob):/i.test(path)) return path;
+  return `${API_ORIGIN.replace(/\/+$/, '')}${path}`;
+}

@@ -11,6 +11,7 @@ import {
   ReloadOutlined, StarFilled, StarOutlined, CopyOutlined, ApiOutlined,
 } from '@ant-design/icons';
 import PageContainer from '@/components/customer/PageContainer';
+import { absUrl } from '@/utils/env';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -62,7 +63,7 @@ export default function ApiKeysPage() {
   const loadKeys = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/ai-config/keys', { headers: getAuthHeaders() });
+      const res = await fetch(absUrl('/api/ai-config/keys'), { headers: getAuthHeaders() });
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setKeys(json.data);
@@ -121,7 +122,7 @@ export default function ApiKeysPage() {
     await Promise.all(
       serverKeys.map(async k => {
         try {
-          const res = await fetch(`/api/ai-config/keys/${k.id}/balance`, { headers: getAuthHeaders() });
+          const res = await fetch(absUrl(`/api/ai-config/keys/${k.id}/balance`), { headers: getAuthHeaders() });
           const json = await res.json();
           if (json.success) next[k.id] = json.data;
         } catch { /* 单个 Key 余额失败不影响其他 */ }
@@ -143,7 +144,7 @@ export default function ApiKeysPage() {
         localStorage.setItem(localStorageKey, values.apiKey as string);
       }
       try {
-        const res = await fetch('/api/ai-config/keys', {
+        const res = await fetch(absUrl('/api/ai-config/keys'), {
           method: 'POST',
           headers: getAuthHeaders(),
           body: JSON.stringify({
@@ -177,7 +178,7 @@ export default function ApiKeysPage() {
       const localStorageKey = LOCAL_STORAGE_KEYS[provider];
       if (localStorageKey) localStorage.removeItem(localStorageKey);
       try {
-        await fetch(`/api/ai-config/keys/${id}`, {
+        await fetch(absUrl(`/api/ai-config/keys/${id}`), {
           method: 'DELETE', headers: getAuthHeaders(),
         });
       } catch { /* ignore */ }
@@ -190,7 +191,7 @@ export default function ApiKeysPage() {
 
   const handleSetPrimary = async (id: string) => {
     try {
-      const res = await fetch(`/api/ai-config/keys/${id}/set-primary`, {
+      const res = await fetch(absUrl(`/api/ai-config/keys/${id}/set-primary`), {
         method: 'POST', headers: getAuthHeaders(),
       });
       const json = await res.json();
@@ -204,7 +205,7 @@ export default function ApiKeysPage() {
 
   const handleSetSecondary = async (id: string) => {
     try {
-      const res = await fetch(`/api/ai-config/keys/${id}/set-secondary`, {
+      const res = await fetch(absUrl(`/api/ai-config/keys/${id}/set-secondary`), {
         method: 'POST', headers: getAuthHeaders(),
       });
       const json = await res.json();
@@ -227,7 +228,7 @@ export default function ApiKeysPage() {
     }
     setTestingId(record.id);
     try {
-      const res = await fetch(`/api/ai-config/keys/${record.id}/test`, {
+      const res = await fetch(absUrl(`/api/ai-config/keys/${record.id}/test`), {
         method: 'POST', headers: getAuthHeaders(),
       });
       const json = await res.json();
