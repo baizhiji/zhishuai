@@ -11,10 +11,13 @@
 import crypto from 'crypto';
 import { prisma } from '../utils/db';
 
-// 加密密钥（生产环境必须通过环境变量 ENCRYPTION_KEY 配置）
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'zhishuai-default-key-32chars!!';
-if (process.env.NODE_ENV === 'production' && !process.env.ENCRYPTION_KEY) {
-  console.warn('[SECURITY] 生产环境未配置 ENCRYPTION_KEY，正在使用内置默认密钥！请立即在服务器环境变量中配置 ENCRYPTION_KEY 并重新加密存量 Key。');
+// 加密密钥（生产环境必须通过环境变量 ENCRYPTION_KEY 配置，缺失即拒绝启动，禁止内置默认密钥）
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  throw new Error('[SECURITY] 未配置 ENCRYPTION_KEY 环境变量（需 32 字节随机值），服务拒绝启动。请先在服务器环境变量中配置 ENCRYPTION_KEY。');
+}
+if (Buffer.byteLength(ENCRYPTION_KEY, 'utf8') !== 32) {
+  throw new Error('[SECURITY] ENCRYPTION_KEY 长度必须为 32 字节，当前为 ' + Buffer.byteLength(ENCRYPTION_KEY, 'utf8') + ' 字节，服务拒绝启动。');
 }
 const IV_LENGTH = 16;
 

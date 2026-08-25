@@ -3,7 +3,11 @@
 cd /var/www/zhishuai/server
 
 # 解密孤儿 Key（用 node 在服务器本地处理，不传回）
-ENCRYPTION_KEY='zhishuai-encrypt-key-2024-32char' node -e "
+if [ -z "$ENCRYPTION_KEY" ]; then
+  echo "[SECURITY] 请先设置 ENCRYPTION_KEY 环境变量（与服务器 .env 一致）后再运行本脚本"
+  exit 1
+fi
+ENCRYPTION_KEY="$ENCRYPTION_KEY" node -e "
 const {PrismaClient}=require('@prisma/client');
 const crypto=require('crypto');
 const p=new PrismaClient();

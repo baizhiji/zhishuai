@@ -1,4 +1,29 @@
 
+## 2026-08-25 会话（安全审计剩余问题收口）：multer 恶意图片格式拦截修复 + 生产实跑 src 确认 | 已部署验证通过
+
+### 背景
+安全审计（docs/security-audit-2026-08-25.md）剩余问题：server 依赖漏洞（multer/image-size/uuid 链）+ 上传监控盲区。
+
+### 已修复并部署（本轮）
+- **生产实跑 src 而非 dist 确认**：pm2 script path 为 `/usr/bin/bash`，实际命令 `bash -c npx tsx src/index.ts`。因此上轮部署的 dist 不影响运行代码，必须同步更新 src。这是 JXL 拦截"不生效"的根因。
+- **图片格式白名单生效**：`server/src/routes/materials.ts` 新增 IMAGE_MIME_WHITELIST（jpeg/png/gif/webp/svg/bmp/tiff/ico），fileFilter 拦截 image-size 无修复版本（GHSA-w3rx-r6r6-pgpr/GHSA-5p2g-fcmc-qvqq）可触发的恶意格式（JXL/HEIF/ICNS）。上轮代码只进了 dist，本轮 scp 到生产 src/routes/materials.ts。
+- **multer 错误码修复**：`/api/materials/upload` 原直接挂 `upload.single('file')`，fileFilter 拒绝走 express 默认 500。改为内联 `upload.single('file')(req, res, cb)` 包装：fileFilter/非 MulterError → 400，`LIMIT_FILE_SIZE` → 413，业务异常仍 500。
+- **其他 3 个 src 文件同步生产**：admin-api-providers.ts / services/ai-client.ts / services/user-api-key.service.ts（上轮改动一并补齐生产 src），dist 同步重建上传。
+- **multer 2.2.0 / uuid 11.1.1 overrides** 上轮已生效（node_modules 级）。
+
+### 生产验证（150.109.60.130，全部通过）
+- 合法 PNG 上传 → 200；JXL(image/jxl) → 400；HEIF(image/heif) → 400；ICNS(image/icns) → 400；150MB 超大文件 → 413(File too large)；text/plain 非图片 → 200 正常放行
+- verify-login.sh：管理员 200 / 已删代理商 401 / 已删客户 401 / 自助注册 403
+- /health 200，pm2 online，unstable restarts 0
+- 测试残留清理：删除管理员名下 5 条测试素材记录（含此前 JXL 未拦截时残留的 fake.jxl 文件）
+
+### 部署流程修正（重要经验）
+生产 server 用 tsx 跑 src/，改后端必须 scp src 文件到 `/var/www/zhishuai/server/src/` 对应目录 + `pm2 restart zhishuai-api --update-env`；dist 仅供一致性备份，不用于运行。scp 多文件注意目标目录：services 文件勿误传进 routes/。
+
+### 已知限制（不处理）
+- desktop-ui 剩余 5 个 HIGH 为 next 14 链（next/glob/postcss），升级 next 16 需 React 19 属破坏性变更，且 desktop-ui 为 `output:'export'` 静态导出（Tauri WebView），相关 SSRF/Server Actions/Image Optimizer 漏洞不适用 → 记录为已知限制。
+- image-size 无修复版本，以入口白名单缓解（已覆盖唯一图片上传入口 materials.ts）。
+
 ## 2026-08-24 会话（深夜，第三轮）：复核未闭环能力全部修复（P0 成片/配图 + P1 余额/双模式/降级链 + P2 横切死代码）
 
 ### 已实现（server，tsc 通过，待部署）

@@ -3,7 +3,11 @@ const { PrismaClient } = require('@prisma/client');
 const crypto = require('crypto');
 
 const p = new PrismaClient();
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'zhishuai-encrypt-key-2024-32char';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  console.error('[SECURITY] 请先设置 ENCRYPTION_KEY 环境变量（与服务器 .env 一致）后再运行本脚本');
+  process.exit(1);
+}
 
 function decrypt(text) {
   try {

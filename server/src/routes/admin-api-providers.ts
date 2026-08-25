@@ -5,9 +5,12 @@ import crypto from 'crypto';
 
 const router = Router();
 
-const ENCRYPTION_KEY = process.env.API_KEY_ENCRYPTION_KEY
-  ? crypto.createHash('sha256').update(process.env.API_KEY_ENCRYPTION_KEY).digest()
-  : crypto.randomBytes(32);
+// API Key 加密密钥：必须通过环境变量 API_KEY_ENCRYPTION_KEY 配置，缺失即拒绝启动（防止随机密钥导致重启后存量数据无法解密）
+const RAW_ENCRYPTION_KEY = process.env.API_KEY_ENCRYPTION_KEY;
+if (!RAW_ENCRYPTION_KEY) {
+  throw new Error('[SECURITY] 未配置 API_KEY_ENCRYPTION_KEY 环境变量，服务拒绝启动。请先在服务器环境变量中配置 API_KEY_ENCRYPTION_KEY。');
+}
+const ENCRYPTION_KEY = crypto.createHash('sha256').update(RAW_ENCRYPTION_KEY).digest();
 
 function encryptApiKey(key: string): string {
   const algorithm = 'aes-256-cbc';

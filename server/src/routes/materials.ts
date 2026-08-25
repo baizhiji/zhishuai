@@ -18,7 +18,22 @@ const storage = multer.diskStorage({
     cb(null, uniqueName);
   },
 });
-const upload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB
+// 图片格式白名单：拦截 image-size 无修复版本的恶意格式（JXL/HEIF/ICNS 可触发解析死循环 DoS）
+const IMAGE_MIME_WHITELIST = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'image/svg+xml', 'image/bmp', 'image/tiff', 'image/x-icon',
+]);
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/') && !IMAGE_MIME_WHITELIST.has(file.mimetype)) {
+      cb(new Error('不支持的图片格式，请使用 JPEG/PNG/GIF/WEBP/SVG/BMP/TIFF/ICO'));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 // 获取最近素材
 router.get('/recent', authMiddleware, async (req: Request, res: Response) => {
@@ -181,34 +196,43 @@ router.post('/batch-delete', authMiddleware, async (req: Request, res: Response)
 });
 
 // 上传文件（APK/WEB 通用）
-router.post('/upload', authMiddleware, upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    const userId = String((req as any).userId);
-    const file = req.file;
-    if (!file) {
-      res.status(400).json({ success: false, error: '未提供文件' });
+router.post('/upload', authMiddleware, async (req: Request, res: Response) => {
+  upload.single('file')(req, res, async (err: any) => {
+    // multer/fileFilter 错误属于客户端问题，返回 4xx 而非 500
+    if (err) {
+      const isMulter = err instanceof multer.MulterError;
+      const status = isMulter && err.code === 'LIMIT_FILE_SIZE' ? 413 : 400;
+      res.status(status).json({ success: false, error: err.message });
       return;
     }
+    try {
+      const userId = String((req as any).userId);
+      const file = req.file;
+      if (!file) {
+        res.status(400).json({ success: false, error: '未提供文件' });
+        return;
+      }
 
-    const baseUrl = process.env.API_BASE_URL || '';
-    const fileUrl = `${baseUrl}/uploads/materials/${file.filename}`;
+      const baseUrl = process.env.API_BASE_URL || '';
+      const fileUrl = `${baseUrl}/uploads/materials/${file.filename}`;
 
-    // 顺便创建一条素材记录
-    const material = await prisma.material.create({
-      data: {
-        id: `mat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        userId,
-        title: file.originalname,
-        type: file.mimetype.startsWith('image/') ? 'image' : file.mimetype.startsWith('video/') ? 'video' : 'document',
-        content: fileUrl,
-        status: 'unused',
-      } as any,
-    });
+      // 顺便创建一条素材记录
+      const material = await prisma.material.create({
+        data: {
+          id: `mat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          userId,
+          title: file.originalname,
+          type: file.mimetype.startsWith('image/') ? 'image' : file.mimetype.startsWith('video/') ? 'video' : 'document',
+          content: fileUrl,
+          status: 'unused',
+        } as any,
+      });
 
-    res.json({ success: true, data: { url: fileUrl, id: material.id } });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+      res.json({ success: true, data: { url: fileUrl, id: material.id } });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
 });
 
 export default router;

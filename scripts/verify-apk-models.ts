@@ -8,7 +8,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'zhishuai-default-key-32chars!!';
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+if (!ENCRYPTION_KEY) {
+  console.error('[SECURITY] 请先设置 ENCRYPTION_KEY 环境变量（与服务器 .env 一致）后再运行本脚本');
+  process.exit(1);
+}
 function decrypt(text: string): string {
   try {
     const parts = text.split(':');
