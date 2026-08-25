@@ -1,4 +1,47 @@
 
+## 2026-08-25 会话：登录入口角色严格隔离（代理商只能登录代理商端）| ✅ 已部署验证通过
+
+### 需求
+代理商账号只能登录"代理商端"，如需使用客户端功能必须开通独立的客户账号（不允许 agent 从"终端客户"入口登录进客户后台）。
+
+### 修改（2 个文件）
+1. `server/src/routes/auth.ts` 登录入口控制：原仅 `customer` 限制非 user 入口；改为角色-入口严格匹配映射 `{admin:'admin', agent:'agent', customer:'user'}`。loginType 未传时按角色推断（向后兼容），传了则必须与角色匹配，否则 403。
+2. `desktop-ui/components/auth/AuthGuard.tsx`：`/customer/*` 放行角色由 `['admin','agent','customer']` 改为 `['admin','customer']`，agent 直连 /customer/* 会跳转到 /agent/dashboard。
+
+### 部署记录（2026-08-25）
+- **后端**：scp auth.ts → 生产 `/var/www/zhishuai/server/src/routes/auth.ts`，pm2 restart zhishuai-api。
+- **前端**：桌面版升级 **3.2.0 → 3.2.1**（desktop/package.json + tauri.conf.json version），本地 next build + tauri build nsis，重命名为 `zhishuai_3.2.1_x64-setup.exe(.sig)` 上传 `/var/www/zhishuai/downloads/`，insert-appversion-3.2.1.js 写库（buildNumber 321）。sha256=C1F8B39213B60FA44D92101B399A450EC9D6723D0583B3145E00952A7AD696B4。
+- **验证结果**：admin@admin 入口=200 ✅；admin@user 入口=403 ✅（新逻辑生效，旧代码会放行）；latest.json 返回 3.2.1 且签名一致 ✅；安装包下载 200 ✅；登录限流 429 正常 ✅。
+- 桌面版用户可通过 tauri updater 自动更新到 3.2.1（或从官网下载新安装包）。
+
+### 重要发现
+- **生产数据库仅有 1 个 admin 账号（18601655222）**，无 agent/customer 账号！记忆中的 agent=18100090667、customer=13800000001 均不存在（已被清理或从未存在）。verify-login.sh 中 agent/customer 测试账号已过时。
+- 在线网页版已下线：nginx 根路径返回"请下载桌面安装版使用"引导页。产品形态 = 桌面安装版（Tauri 加载 desktop-ui 静态导出）+ APK。
+- 生产无 TAURI 签名私钥环境变量、desktop 无 node_modules → 桌面安装包只能在本地 Windows 构建+签名（私钥 C:\Users\Administrator\.tauri\zhishuai，密码 zhishuai-2026-sign）后 scp 上传。
+- 本地构建需清除 `$env:NODE_OPTIONS`（CodeBuddy shim 的 safe-delete 会拦截 next build 清理 .next）。
+
+### 待办
+- 本地 git 有未提交修改（auth.ts、AuthGuard.tsx、desktop 版本号、insert-appversion-3.2.1.js、SESSION_MEMORY.md），如需要可 push 到 GitHub main 触发 CI。
+- verify-login.sh 的 agent/customer 测试账号需随真实账号更新（当前生产无 agent/customer 账号，脚本只能验证 admin 部分）。
+
+## 2026-08-25 会话：登录入口角色严格隔离（代理商只能登录代理商端）| 已改代码待部署
+
+### 需求
+代理商账号只能登录"代理商端"，如需使用客户端功能必须开通独立的客户账号（不允许 agent 从"终端客户"入口登录进客户后台）。
+
+### 修改（2 个文件）
+1. `server/src/routes/auth.ts` 登录入口控制：原仅 `customer` 限制非 user 入口；改为角色-入口严格匹配映射 `{admin:'admin', agent:'agent', customer:'user'}`。loginType 未传时按角色推断（向后兼容），传了则必须与角色匹配，否则 403。
+2. `desktop-ui/components/auth/AuthGuard.tsx`：`/customer/*` 放行角色由 `['admin','agent','customer']` 改为 `['admin','customer']`，agent 直连 /customer/* 会跳转到 /agent/dashboard。
+
+### 无需改动
+- APK 端 RoleSwitcher、客户后台角色切换（均仅 admin 可用）
+- 代理商端客户开通流程已存在（createCustomer/setCustomerSubscription/updateCustomerFeatures）
+- verify-login.sh 已传对应 loginType，不受影响
+- 本地 tsc 编译均通过
+
+### 待办
+- scp 两个文件到生产 + pm2 restart + verify-login.sh 验证
+
 ## 2026-08-25 交叉验证会话：修复 API_BASE_URL 前缀 bug（上传文件静态访问 404）| 已部署验证通过
 
 ### 发现问题

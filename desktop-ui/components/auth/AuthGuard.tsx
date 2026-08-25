@@ -90,7 +90,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
 
     if (pathname.startsWith('/customer/')) {
-      const allowedRoles: string[] = ['admin', 'agent', 'customer'];
+      const allowedRoles: string[] = ['admin', 'customer'];
       if (!allowedRoles.includes(user.role)) {
         if (lastRedirectRef.current !== '/login') {
           lastRedirectRef.current = '/login';

@@ -439,11 +439,17 @@ router.post('/login', validate({ body: loginSchema.shape.body }), async (req: Re
       return unauthorized(res, '账号已被禁用，请联系管理员');
     }
 
-    // 入口权限控制
+    // 入口权限控制：角色与登录入口必须严格匹配
     const userRole = user!.role;
-    
-    if (userRole === 'customer' && loginType !== 'user') {
-      return forbidden(res, '您的账号不支持从此入口登录');
+    const roleLoginMap: Record<string, string> = {
+      admin: 'admin',
+      agent: 'agent',
+      customer: 'user',
+    };
+    const expectedLoginType = roleLoginMap[userRole];
+    // loginType 未传时按角色推断正确入口；传了则必须严格匹配
+    if (loginType && loginType !== expectedLoginType) {
+      return forbidden(res, '账号类型与所选入口不匹配，请选择正确的账号类型登录');
     }
 
     // 登录成功，清除限速标记
