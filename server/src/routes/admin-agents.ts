@@ -854,7 +854,7 @@ router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', authMiddleware, a
     if (!user) {
       return res.status(404).json({ success: false, message: '客户不存在' });
     }
-    const newPassword = Math.random().toString(36).slice(-8) + 'Aa1!';
+    const newPassword = '123456';
     const hashed = await hashPassword(newPassword);
     await prisma.user.update({ where: { id }, data: { password: hashed } });
 
@@ -868,7 +868,7 @@ router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', authMiddleware, a
       },
     });
 
-    res.json({ success: true, message: '密码已重置', data: { password: newPassword } });
+    res.json({ success: true, message: '密码已重置为 123456', data: { newPassword, password: newPassword } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

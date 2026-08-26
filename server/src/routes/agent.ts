@@ -506,9 +506,8 @@ router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', async (req: Reque
   try {
     const userId = (req as any).userId;
     const customerId = req.params.id;
-    const { newPassword = '' } = req.body;
 
-    const generatedPassword = newPassword || Math.random().toString(36).slice(-8);
+    const generatedPassword = '123456';
 
     // 验证客户属于该代理商
     const agentId = await resolveAgentId(userId);
@@ -527,8 +526,8 @@ router.post('/customers/:id([0-9a-fA-F-]{36})/reset-password', async (req: Reque
 
     res.json({
       success: true,
-      message: `密码已重置为: ${generatedPassword}`,
-      password: generatedPassword, // 返回明文密码供代理商交给客户
+      message: '密码已重置为: 123456',
+      password: '123456',
     });
   } catch (error: any) {
     console.error('重置密码失败:', error);

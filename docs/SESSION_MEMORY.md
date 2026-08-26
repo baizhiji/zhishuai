@@ -1,4 +1,11 @@
 
+## 2026-08-26 会话（续）：修复重置密码接口与 UI 不一致 bug（后端改为固定 123456）
+- 用户确认重置密码主路径=管理员/代理商后台操作（非短信验证码）；自助重置页 forgot-password 存在但登录页无入口（孤岛页面）
+- 发现真 bug：后端重置实际生成随机密码（admin-agents.ts Math.random 固定 + agent.ts 不传 newPassword 时随机），但前端 UI（admin/tenants + agent/customers）均提示"重置为 123456"，且总后台取错返回字段（取 data?.newPassword，后端返回 data.password）→ 重置后客户拿 123456 登录必失败
+- 已按用户选择修复：两处后端接口均固定重置为 123456；admin-agents.ts 返回 data 增加 newPassword 字段与前端对齐；agent.ts 移除随机密码逻辑
+- 已部署生产：scp admin-agents.ts/agent.ts → /var/www/zhishuai/server/src/routes/ + pm2 restart zhishuai-api；验证 admin 登录 200（role=admin 超级管理员），重置接口对不存在客户返回 404"客户不存在"（接口已生效）
+- 教训：本地 PowerShell 传 JSON 给 curl.exe 会把引号拆坏（服务器返回 Expected property name），改用 Invoke-RestMethod 验证；登录 admin 密码 20061218 未变
+
 ## 2026-08-26 会话（续）：清理 nginx 拼写错误域名 baizhuji.net（用户仅拥有 baizhiji.net）
 - 用户确认仅拥有 baizhiji.net 一个域名；baizhuji.net 系服务器 nginx 遗留拼写错误配置（sites-available/baizhuji.net，7/20 创建，8/26 清理时误保留并误记入监控/文档）
 - 已修正：80 default_server 独立为 default-http.conf（server_name _），删除 apk.baizhuji.net 子站（APK 下载由主站 /downloads/ 承担）；monitor.sh 监控目标改为 baizhiji.net/downloads/zhishuai.apk；docs/商用运行手册.md 与 SESSION_MEMORY 同步纠正
