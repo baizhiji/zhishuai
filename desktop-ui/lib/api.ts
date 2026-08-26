@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiResponse } from '@/types';
 import { dispatchAuthExpired } from '@/lib/auth-events';
+import { API_ORIGIN } from '@/utils/env';
 
 // 从后端错误响应体中提取用户可读消息
 // 兼容格式:
@@ -20,7 +21,7 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+    this.baseURL = API_ORIGIN ? `${API_ORIGIN.replace(/\/+$/, '')}/api` : '/api';
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: 30000,
