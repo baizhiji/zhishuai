@@ -1,13 +1,18 @@
 
+## 2026-08-26 会话（续）：清理 nginx 拼写错误域名 baizhuji.net（用户仅拥有 baizhiji.net）
+- 用户确认仅拥有 baizhiji.net 一个域名；baizhuji.net 系服务器 nginx 遗留拼写错误配置（sites-available/baizhuji.net，7/20 创建，8/26 清理时误保留并误记入监控/文档）
+- 已修正：80 default_server 独立为 default-http.conf（server_name _），删除 apk.baizhuji.net 子站（APK 下载由主站 /downloads/ 承担）；monitor.sh 监控目标改为 baizhiji.net/downloads/zhishuai.apk；docs/商用运行手册.md 与 SESSION_MEMORY 同步纠正
+- 验证：nginx -t 通过 reload 成功；https baizhiji.net 200、api 200、downloads/zhishuai.apk 200；monitor 无 APK 误报
+
 ## 2026-08-26 会话（续）：商用保障补齐（备份/监控落地 + 密钥异地备份 + 证书指引）
-- 发现：crontab 指向的 db-backup.sh / monitor.sh 脚本缺失（8/24 清理误删），数据库备份自 8/24 后实际停摆；apk.baizhuji.net 子域 DNS NXDOMAIN（A 记录未配，APK 下载走主站 baizhiji.net/downloads 不受影响）
+- 发现：crontab 指向的 db-backup.sh / monitor.sh 脚本缺失（8/24 清理误删），数据库备份自 8/24 后实际停摆；nginx 遗留拼写错误配置 apk.baizhuji.net（用户实际无此域名，仅 baizhiji.net）DNS 必然 NXDOMAIN，APK 下载走主站 baizhiji.net/downloads 不受影响（该拼错配置已清理，见最新会话）
 - 落地 scripts/db-backup.sh：mysqldump(--single-transaction --set-gtid-purged=OFF) 数据库 + uploads/ + server/.env → /var/www/zhishuai/backups/，保留 30 天，每日 02:00 crontab（已有条目直接复用）；仅 grep DATABASE_URL 单行解析，避免 source 整个 .env 遇特殊字符报错
 - 落地 scripts/monitor.sh：pm2 状态检查（异常自动 restart）+ HTTP 健康检查（api/官网/apk子站），日志超 1MB 自动截断，每 5 分钟 crontab
 - 验证：db-backup.sh 干净执行（zhishuai_20260826_135332.sql.gz 19K + uploads + env 备份齐全）；monitor 输出 zhishuai-api online、API 200、官网 200、apk 子站 ALERT(000，DNS 问题如实捕捉)
 - 客服二维码确认就绪：GET /api/support/qrcode 返回 /uploads/support_qrcode_1787643343266.jpg（企业微信客服二维码）
 - 签名密钥异地备份完成：本机 secrets-backup 打包 → Git openssl AES-256-CBC（PBKDF2 200k）→ 上传香港服务器 /home/ubuntu/zhishuai-secrets-backup/zhishuai-secrets.zip.enc（976B，权限 600），SHA256=59756eee59634cd29d19759ba470190f340e5bc4e805f64ca85cd543798b9f1a 与本地一致；加密密码存本机 BACKUP_PASSWORD.txt（勿传服务器）
 - 新增文档：docs/商用运行手册.md（备份/恢复演练/监控/密钥/客服值守/待办）、docs/代码签名证书办理指引.md（OV/EV/Azure Trusted Signing 对比 + 材料 + signtool 步骤 + CI 集成）
-- 待办（用户侧）：Windows 代码签名证书购买、apk.baizhuji.net 域名服务商加 A 记录、monitor 告警接企业微信/钉钉 Webhook、月度恢复演练
+- 待办（用户侧）：Windows 代码签名证书购买、monitor 告警接企业微信/钉钉 Webhook、月度恢复演练（apk.baizhuji.net 系 nginx 拼写错误遗留，非真实域名，已清理）
 - 未提交 git（用户未要求）
 
 ## 2026-08-26 会话（续）：修复 APK 端 AI 创作工厂「配图/成片不展示」+ 智能剪辑多素材
@@ -25,7 +30,7 @@
 
 ### 服务器清理（150.109.60.130）
 - 删除 /var/www/zhishuai/web（1.7G，Next.js 旧产物含 node_modules）、webapp/（空）、build-web-remote.log
-- nginx 全量清理：删除未启用旧配置 sites-available/baizhiji（root /www/zhishuai/web）、sites-available/default、baizhiji.net.bak.*；baizhuji.net（80 default_server）location / 由死代理 3000 改为"在线网页版已下线"提示页，删除 /_next/static/ 死代理；保留 /api/（→3001）、/uploads/、apk.baizhuji.net 子站
+- nginx 全量清理：删除未启用旧配置 sites-available/baizhiji（root /www/zhishuai/web）、sites-available/default、baizhiji.net.bak.*；遗留拼写错误配置 baizhuji.net（80 default_server，本应 baizhiji.net）location / 由死代理 3000 改为"在线网页版已下线"提示页，删除 /_next/static/ 死代理；保留 /api/（→3001）、/uploads/（apk 拼错子站后已清理，见最新会话）
 - nginx -t 通过并 reload；全站已无 127.0.0.1:3000 任何引用
 - 验证：https baizhiji.net 200（下线提示）、http80 301、apk 200、pm2 zhishuai-api online
 

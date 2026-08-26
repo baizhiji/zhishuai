@@ -46,4 +46,4 @@ check() {
 }
 check "https://api.baizhiji.net/api/version/latest" "API服务"
 check "https://baizhiji.net" "官网/下载"
-check "https://apk.baizhuji.net" "APK下载站"
+check "https://baizhiji.net/downloads/zhishuai.apk" "APK下载"
