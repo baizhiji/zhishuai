@@ -34,7 +34,7 @@ mkdir -p "$BACKUP_DIR"
 
 log "===== 开始备份 db=$DB_NAME host=$DB_HOST ====="
 
-if MYSQL_PWD="$DB_PASS" mysqldump --single-transaction --routines --triggers \
+if MYSQL_PWD="$DB_PASS" mysqldump --single-transaction --routines --triggers --set-gtid-purged=OFF \
   -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" "$DB_NAME" 2>>"$LOG_FILE" \
   | gzip > "$BACKUP_DIR/${DB_NAME}_${TIMESTAMP}.sql.gz"; then
   log "数据库备份 OK: ${DB_NAME}_${TIMESTAMP}.sql.gz ($(du -h "$BACKUP_DIR/${DB_NAME}_${TIMESTAMP}.sql.gz" | cut -f1))"
