@@ -3,7 +3,10 @@
 - 背景：白天核查称「APK 小红书图文只产文案不产配图、智能剪辑不产出成片」系修复前旧结论，当晚已修链路但展示层未闭环；本次补齐
 - 修复1（结果展示）：AICreateDetailScreen 结果区 `config.type === 'image'` 判断不覆盖 mixed/video → mixed 配图被渲染成"视频生成中..."占位、视频成片无播放器。改为 mixed 走 Image 渲染、video 类目接入 VideoPlayer 组件（组件早已存在，导入即用）；删除废弃 videoPlaceholder/videoPlaceholderText 样式
 - 修复2（智能剪辑多素材）：原 `uploadedFiles.find` 只取第一个视频作素材。改为 filter 收集全部视频上传，SMART_EDIT 时 clips 数组全量传 generateVideo（首个保留作 videoUrl 降级底片）；content.service.ts GenerateVideoParams 新增 `clips?: string[]`，智能剪辑分支 clips 为空时回退 videoUrl。server /video-edit/compose 本就支持 1-10 clips（MAX_CLIPS=10），无需改 server
-- 验证：apk tsc --noEmit 0 错误、lint 0 错误；未提交
+- 验证：apk tsc --noEmit 0 错误、lint 0 错误
+- 提交推送：`7d39a1e fix(apk): 修复AI创作工厂结果展示(mixed配图/视频成片播放)并支持智能剪辑多素材`（apk + docs）
+- **电脑端对齐升级（已部署）**：desktop-ui ai-factory/page.tsx 结果区无视频播放器（视频 URL 只显示为纯文本）→ 新增 generatedVideos state：video 类目与流水线 `【生成视频】` 提取的 URL 收集后渲染 `<video controls>` 播放器，与图片预览同卡展示（mixed 配图/视频混合展示）；commit `5a6b69b` → scp 上传远端 → `npx next build`（output:export 重出 out/）→ nginx 直出，baizhiji.net/customer/ai-factory/ HTTP 200
+- **server 无需改动**：/api/video-edit/compose 本就支持 1-10 clips（MAX_CLIPS=10）
 
 ## 2026-08-26 会话：清理全部 Web 旧产物，命名统一为桌面安装版
 
