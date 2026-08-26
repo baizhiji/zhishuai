@@ -130,6 +130,7 @@ export default function AIFactoryPage() {
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [savingToCenter, setSavingToCenter] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedVideos, setGeneratedVideos] = useState<string[]>([]);
   const [provider, setProvider] = useState('');
   const [model, setModel] = useState('');
   const [historyVisible, setHistoryVisible] = useState(false);
@@ -193,6 +194,7 @@ export default function AIFactoryPage() {
     setActiveCategory(category);
     setGeneratedContent(null);
     setGeneratedImages([]);
+    setGeneratedVideos([]);
     setViralScoreForTask(null);
     form.resetFields();
     setShowTips(false);
@@ -217,6 +219,7 @@ export default function AIFactoryPage() {
     setProgress(0);
     setGeneratedContent(null);
     setGeneratedImages([]);
+    setGeneratedVideos([]);
     setViralScoreForTask(null);
 
     const progressInterval = setInterval(() => {
@@ -246,6 +249,7 @@ export default function AIFactoryPage() {
       const count = values.count || 1;
       const results: string[] = [];
       const imgResults: string[] = [];
+      const videoResults: string[] = [];
 
       for (let i = 0; i < count; i++) {
         // 快速模式（蓝皮书 1.5：快速模式默认仅生成脚本，完整生成默认全链路）
@@ -280,7 +284,7 @@ export default function AIFactoryPage() {
             }
             // 提取视频 URL（【生成视频】https://...）
             const videoMatch = finalOutput.match(/【生成视频】\s*(https?:\/\/[^\s\]]+)/);
-            if (videoMatch) results.push(videoMatch[1]);
+            if (videoMatch) { results.push(videoMatch[1]); videoResults.push(videoMatch[1]); }
 
             // 文本：取最后一个成功文本阶段的完整输出
             const textPhaseSet = new Set(['draft', 'anti_ai_rewrite', 'style_calibration', 'platform_adapt']);
@@ -323,7 +327,7 @@ export default function AIFactoryPage() {
             voiceover: values.voiceover, subtitle: values.subtitle, bgm: values.bgm,
             overlayBanners: values.overlayBanners || [], bannerStyle: values.bannerStyle,
           }, getTaskKey(activeCategory));
-          if (result.success && result.data) results.push(result.data as string);
+          if (result.success && result.data) { results.push(result.data as string); videoResults.push(result.data as string); }
           setProvider(result.provider);
           setModel(result.model);
         } else if (cfg.type === 'mixed') {
@@ -355,6 +359,7 @@ export default function AIFactoryPage() {
 
       if (results.length > 0) setGeneratedContent(results.join('\n\n---\n\n'));
       if (imgResults.length > 0) setGeneratedImages(imgResults);
+      if (videoResults.length > 0) setGeneratedVideos(videoResults);
 
       if (results.length === 0 && imgResults.length === 0) {
         message.warning('生成完成但未获得结果，请检查API Key配置');
@@ -641,6 +646,13 @@ export default function AIFactoryPage() {
                     {generatedImages.map((url, i) => <Col key={i} span={generatedImages.length === 1 ? 24 : 12}><Image src={url} alt={`生成图片${i + 1}`} style={{ borderRadius: 8 }} /></Col>)}
                   </Row>
                 </Image.PreviewGroup>
+              </div>
+            )}
+            {generatedVideos.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                {generatedVideos.map((url, i) => (
+                  <video key={i} src={url} controls playsInline style={{ width: '100%', maxHeight: 420, borderRadius: 8, background: '#000', marginBottom: 8 }} />
+                ))}
               </div>
             )}
             {generatedContent && <div style={{ background: '#fafafa', padding: 16, borderRadius: 8, whiteSpace: 'pre-wrap', maxHeight: 500, overflow: 'auto', fontSize: 14, lineHeight: 1.8 }}>{generatedContent}</div>}
