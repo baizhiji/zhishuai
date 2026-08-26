@@ -1,4 +1,15 @@
 
+## 2026-08-26 会话（续）：商用保障补齐（备份/监控落地 + 密钥异地备份 + 证书指引）
+- 发现：crontab 指向的 db-backup.sh / monitor.sh 脚本缺失（8/24 清理误删），数据库备份自 8/24 后实际停摆；apk.baizhuji.net 子域 DNS NXDOMAIN（A 记录未配，APK 下载走主站 baizhiji.net/downloads 不受影响）
+- 落地 scripts/db-backup.sh：mysqldump(--single-transaction --set-gtid-purged=OFF) 数据库 + uploads/ + server/.env → /var/www/zhishuai/backups/，保留 30 天，每日 02:00 crontab（已有条目直接复用）；仅 grep DATABASE_URL 单行解析，避免 source 整个 .env 遇特殊字符报错
+- 落地 scripts/monitor.sh：pm2 状态检查（异常自动 restart）+ HTTP 健康检查（api/官网/apk子站），日志超 1MB 自动截断，每 5 分钟 crontab
+- 验证：db-backup.sh 干净执行（zhishuai_20260826_135332.sql.gz 19K + uploads + env 备份齐全）；monitor 输出 zhishuai-api online、API 200、官网 200、apk 子站 ALERT(000，DNS 问题如实捕捉)
+- 客服二维码确认就绪：GET /api/support/qrcode 返回 /uploads/support_qrcode_1787643343266.jpg（企业微信客服二维码）
+- 签名密钥异地备份完成：本机 secrets-backup 打包 → Git openssl AES-256-CBC（PBKDF2 200k）→ 上传香港服务器 /home/ubuntu/zhishuai-secrets-backup/zhishuai-secrets.zip.enc（976B，权限 600），SHA256=59756eee59634cd29d19759ba470190f340e5bc4e805f64ca85cd543798b9f1a 与本地一致；加密密码存本机 BACKUP_PASSWORD.txt（勿传服务器）
+- 新增文档：docs/商用运行手册.md（备份/恢复演练/监控/密钥/客服值守/待办）、docs/代码签名证书办理指引.md（OV/EV/Azure Trusted Signing 对比 + 材料 + signtool 步骤 + CI 集成）
+- 待办（用户侧）：Windows 代码签名证书购买、apk.baizhuji.net 域名服务商加 A 记录、monitor 告警接企业微信/钉钉 Webhook、月度恢复演练
+- 未提交 git（用户未要求）
+
 ## 2026-08-26 会话（续）：修复 APK 端 AI 创作工厂「配图/成片不展示」+ 智能剪辑多素材
 - 背景：白天核查称「APK 小红书图文只产文案不产配图、智能剪辑不产出成片」系修复前旧结论，当晚已修链路但展示层未闭环；本次补齐
 - 修复1（结果展示）：AICreateDetailScreen 结果区 `config.type === 'image'` 判断不覆盖 mixed/video → mixed 配图被渲染成"视频生成中..."占位、视频成片无播放器。改为 mixed 走 Image 渲染、video 类目接入 VideoPlayer 组件（组件早已存在，导入即用）；删除废弃 videoPlaceholder/videoPlaceholderText 样式
