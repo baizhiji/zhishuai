@@ -1,4 +1,10 @@
 
+## 2026-08-26 会话（续）：修复 APK 端 AI 创作工厂「配图/成片不展示」+ 智能剪辑多素材
+- 背景：白天核查称「APK 小红书图文只产文案不产配图、智能剪辑不产出成片」系修复前旧结论，当晚已修链路但展示层未闭环；本次补齐
+- 修复1（结果展示）：AICreateDetailScreen 结果区 `config.type === 'image'` 判断不覆盖 mixed/video → mixed 配图被渲染成"视频生成中..."占位、视频成片无播放器。改为 mixed 走 Image 渲染、video 类目接入 VideoPlayer 组件（组件早已存在，导入即用）；删除废弃 videoPlaceholder/videoPlaceholderText 样式
+- 修复2（智能剪辑多素材）：原 `uploadedFiles.find` 只取第一个视频作素材。改为 filter 收集全部视频上传，SMART_EDIT 时 clips 数组全量传 generateVideo（首个保留作 videoUrl 降级底片）；content.service.ts GenerateVideoParams 新增 `clips?: string[]`，智能剪辑分支 clips 为空时回退 videoUrl。server /video-edit/compose 本就支持 1-10 clips（MAX_CLIPS=10），无需改 server
+- 验证：apk tsc --noEmit 0 错误、lint 0 错误；未提交
+
 ## 2026-08-26 会话：清理全部 Web 旧产物，命名统一为桌面安装版
 
 ### 服务器清理（150.109.60.130）

@@ -652,6 +652,8 @@ export interface GenerateVideoParams {
   imageUrl?: string
   /** 用户已上传的视频 URL（优先作为成片底片，与电脑版行为一致） */
   videoUrl?: string
+  /** 智能剪辑：多个素材视频 URL（服务端 FFmpeg 拼接成片，对齐电脑版） */
+  clips?: string[]
 }
 
 // 生成记录
@@ -753,16 +755,21 @@ export async function generateVideo(params: GenerateVideoParams): Promise<{ outp
     const topic = topicParts.join('\n');
 
     // 智能剪辑：有素材视频时优先服务端 FFmpeg 拼接成片（能力对齐电脑版，交付最终 MP4）
-    if (params.category === ContentCategory.SMART_EDIT && params.videoUrl) {
-      try {
-        const composeRes = await apiClient.post('/video-edit/compose', {
-          clips: [toAbsoluteUrl(params.videoUrl)],
-          size: params.size || '1080x1920',
-        });
-        const composedUrl = composeRes?.videoUrl || composeRes?.data?.videoUrl || '';
-        if (composedUrl) return { output: { url: toAbsoluteUrl(composedUrl) } };
-      } catch (e) {
-        // 服务端成片失败则降级常规流程
+    if (params.category === ContentCategory.SMART_EDIT && (params.clips?.length || params.videoUrl)) {
+      const clipList = (params.clips && params.clips.length > 0 ? params.clips : [params.videoUrl || ''])
+        .filter(Boolean)
+        .map(toAbsoluteUrl);
+      if (clipList.length > 0) {
+        try {
+          const composeRes = await apiClient.post('/video-edit/compose', {
+            clips: clipList,
+            size: params.size || '1080x1920',
+          });
+          const composedUrl = composeRes?.videoUrl || composeRes?.data?.videoUrl || '';
+          if (composedUrl) return { output: { url: toAbsoluteUrl(composedUrl) } };
+        } catch (e) {
+          // 服务端成片失败则降级常规流程
+        }
       }
     }
 

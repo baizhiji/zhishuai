@@ -24,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import PageHeader from '../components/PageHeader';
+import VideoPlayer from '../components/VideoPlayer';
 
 // 导入服务
 import {
@@ -293,13 +294,20 @@ export default function AICreateDetailScreen() {
         });
         setGeneratedUrls(res.output.results.map((r: any) => r.url));
       } else if (config.type === 'video') {
-        // 用户上传了视频时，先上传到服务器作为配音底片（能力对齐电脑版）
-        const uploadedVideo = uploadedFiles.find(f => f.type === 'video');
+        // 用户上传了视频时，先上传到服务器作为素材（智能剪辑收集全部素材拼接成片，其余类目取第一个作底片）
+        const uploadedVideos = uploadedFiles.filter(f => f.type === 'video');
         let uploadedVideoUrl = '';
-        if (uploadedVideo) {
+        const clipUrls: string[] = [];
+        if (uploadedVideos.length > 0) {
           try {
-            const up = await materialsService.uploadFile(uploadedVideo.uri, 'video');
-            uploadedVideoUrl = up?.url || '';
+            for (const v of uploadedVideos) {
+              const up = await materialsService.uploadFile(v.uri, 'video');
+              const url = up?.url || '';
+              if (url) {
+                if (!uploadedVideoUrl) uploadedVideoUrl = url;
+                if (category === ContentCategory.SMART_EDIT) clipUrls.push(url);
+              }
+            }
           } catch (e) {
             // 上传失败不阻塞生成
           }
@@ -333,6 +341,7 @@ export default function AICreateDetailScreen() {
           extraValues,
           imageUrl: imageUrl || undefined,
           videoUrl: uploadedVideoUrl || undefined,
+          clips: clipUrls.length > 0 ? clipUrls : undefined,
         });
         setGeneratedUrls([res.output.url]);
       } else {
@@ -960,13 +969,10 @@ export default function AICreateDetailScreen() {
                 </View>
                 {generatedUrls.map((url, index) => (
                   <View key={index} style={styles.mediaContainer}>
-                    {config.type === 'image' ? (
+                    {config.type === 'image' || config.type === 'mixed' ? (
                       <Image source={{ uri: url }} style={styles.generatedImage} resizeMode="contain" />
                     ) : (
-                      <View style={styles.videoPlaceholder}>
-                        <Ionicons name="videocam" size={40} color="#64748b" />
-                        <Text style={styles.videoPlaceholderText}>视频生成中...</Text>
-                      </View>
+                      <VideoPlayer uri={url} />
                     )}
                     <View style={styles.resultActions}>
                       <TouchableOpacity style={styles.actionBtn} onPress={() => handleSave(url)}>
@@ -1270,19 +1276,6 @@ const styles = StyleSheet.create({
     height: 200,
     borderRadius: 8,
     backgroundColor: '#f1f5f9',
-  },
-  videoPlaceholder: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoPlaceholderText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#64748b',
   },
   fieldTip: {
     fontSize: 12,
