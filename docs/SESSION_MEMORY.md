@@ -7,6 +7,8 @@
 - 提交推送：`7d39a1e fix(apk): 修复AI创作工厂结果展示(mixed配图/视频成片播放)并支持智能剪辑多素材`（apk + docs）
 - **电脑端对齐升级（已部署）**：desktop-ui ai-factory/page.tsx 结果区无视频播放器（视频 URL 只显示为纯文本）→ 新增 generatedVideos state：video 类目与流水线 `【生成视频】` 提取的 URL 收集后渲染 `<video controls>` 播放器，与图片预览同卡展示（mixed 配图/视频混合展示）；commit `5a6b69b` → scp 上传远端 → `npx next build`（output:export 重出 out/）→ nginx 直出，baizhiji.net/customer/ai-factory/ HTTP 200
 - **server 无需改动**：/api/video-edit/compose 本就支持 1-10 clips（MAX_CLIPS=10）
+- **APK 1.2.1 已打包发布（生产）**：EAS preview 构建成功（buildId `0a07ef53-2a62-4ee9-a748-af6e2c9e3682`，appVersion 1.2.1/versionCode 6，`EAS_NO_VCS=1 npx eas build --platform android --profile preview --no-wait --json`）→ `eas build:download --build-id`（⚠️ 勿带 --platform，互斥）→ 上传服务器 downloads/zhishuai.apk（73,518,384B≈70.1MB，sha256 `13299a02fb2d0ca44486bd8c1b62c3ad9148875a6b0cdef4e63d0d35e0339b69`）→ appVersion 1.2.1 记录已存在（今日 02:52 早前插入，sha256 为空）→ updateMany 补齐 sha256/size/changelog（含本次 AI 工厂修复）→ `/api/version/latest` 返回 1.2.1 ✓ + 外网下载 200 content-length 73518384 ✓ + 本地完整下载哈希一致 ✓
+- **Git 推送完成**：59f6e4e（docs）推送成功（github.com 主站一度 000，api.github.com 200，稍后重试恢复）
 
 ## 2026-08-26 会话：清理全部 Web 旧产物，命名统一为桌面安装版
 
