@@ -137,6 +137,32 @@ function getAuthToken(): string {
   try { return localStorage.getItem('token') || ''; } catch { return ''; }
 }
 
+/**
+ * 从服务端同步用户已配置的 API Key 到 localStorage。
+ * 解决「服务端已保存 Key、测试通过，但当前环境 localStorage 缺失（换环境/清缓存）导致生成失败」的问题。
+ */
+export async function syncApiKeysFromServer(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    const res = await fetch(absUrl('/api/ai-config/keys?raw=1'), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (!json.success || !Array.isArray(json.data)) return;
+    const storageMap: Record<string, string> = {
+      dashscope: 'api_key_alibaba',
+      tokenhub: 'api_key_tencent',
+      ark: 'api_key_volcano',
+    };
+    for (const item of json.data) {
+      const keyName = storageMap[item.provider];
+      if (keyName && item.apiKey) localStorage.setItem(keyName, item.apiKey);
+    }
+  } catch { /* 同步失败不阻塞生成流程 */ }
+}
+
 // ─── 底层 HTTP 调用 ─────────────────────────
 
 async function callChatAPI(

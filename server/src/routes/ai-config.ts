@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
-import { 
-  getUserApiKeys, 
-  createApiKey, 
+import {
+  getUserApiKeys,
+  getApiKeyListRaw,
+  createApiKey,
   updateApiKey, 
   deleteApiKey, 
   toggleApiKey, 
@@ -19,11 +20,15 @@ const ALLOWED_PROVIDERS = ['dashscope', 'tokenhub', 'ark', 'alibaba', 'tencent',
 const router = Router();
 
 // 获取用户的API Keys
+// ?raw=1 时返回明文 Key（仅供本人前端直连第三方 API 生成使用）
 router.get('/keys', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const keys = await getUserApiKeys(userId);
-    
+    const includeRaw = req.query.raw === '1';
+    const keys = includeRaw
+      ? await getApiKeyListRaw(userId)
+      : await getUserApiKeys(userId);
+
     res.json({
       success: true,
       data: keys

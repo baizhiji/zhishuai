@@ -1,4 +1,23 @@
 
+## 2026-08-27 会话（续）：手机端登录 + 电脑端 AI 工厂生成修复
+- 用户报告：①手机端 13166262006 用 20061218 登录失败、所有账号无法登录；②电脑端生成显示"生成完成但未获得结果，请检查API Key配置"，但 API Key 配置完整、测试通过
+- 问题①根因：13166262006 密码被 8/25 reset-customer-passwords.js 重置为 123456，与用户记忆 20061218 不符；反复试错触发 nginx 登录限流 503 造成"所有账号无法登录"假象。服务端登录接口正常。修复：密码已重置回 20061218，实测登录 200 ✓
+- 问题②根因：前端 AI 工厂生成只读 localStorage 的 Key（getUserApiKeys），而"测试通过"是服务端用数据库 Key 调 GET /models 验证（只验 Key 有效性，不验 localStorage）；服务端 GET /keys 返回脱敏 Key，前端无法自动补 Key。当 localStorage 缺失（换环境/清缓存）时所有流水线 phase 失败 → 报"请检查API Key配置"。已用数据库真实 Key 实测模型 qwen3.7-max/qwen3.7-plus/deepseek-v4-pro-202606 全部 200，排除模型/Key 问题
+- 修复：①服务端 GET /api/ai-config/keys?raw=1 返回明文 Key（仅本人，authMiddleware 保护），user-api-key.service.ts 新增 getApiKeyListRaw；②前端 factory-service.ts 新增 syncApiKeysFromServer()（生成前把服务端 Key 同步到 localStorage），page.tsx handleGenerate 开头调用。三端 tsc --noEmit 0 错误
+- 部署：scp ai-config.ts + user-api-key.service.ts + pm2 restart zhishuai-api ✓；raw 接口实测返回 3 个明文 Key（tokenhub/ark/dashscope）✓；登录实测 200 ✓
+- 前端改动已就绪但需发布新桌面版（Tauri 打包）才能生效；已清理本地+服务器临时脚本
+- 未提交（用户未要求）
+
+## 2026-08-27 会话：双端正式发布（桌面 3.2.7 + APK 1.2.2）| 发布闭环完成
+- 背景：用户要求把前几轮 AI 创作工厂 8 项 P0 修复正式发布，电脑端+手机端均可用
+- 提交：`00448f9 release: 发布 AI创作工厂升级（桌面 3.2.7 + APK 1.2.2）`（31 文件：apk 7、desktop-ui 4、server materials.ts、deploy nginx 3、docs 4、ci.yml 等）已推送 GitHub main，CI desktop-build 触发
+- 桌面端 3.2.7：版本号三处统一（desktop/package.json、tauri.conf.json、Cargo.toml，后者 3.2.5→3.2.7）；release.mjs 本地 tauri build + 签名（密钥 ~/.tauri/zhishuai 自动加载）；上传 downloads/zhishuai_3.2.7_x64-setup.exe；AppVersion 表登记（先 archived 旧 released 3.2.6 记录）；`/api/version/desktop/latest.json` 外网返回 3.2.7 ✓，安装包下载 200 ✓
+- 手机端 APK 1.2.2：版本 1.2.2 / versionCode 7；EAS preview 构建（id 417220ce）→ 下载 → 上传 downloads/zhishuai.apk（70.1MB）；AppVersion 登记 buildNumber 122；`/api/version/latest` 返回 1.2.2 ✓，APK 下载 200 ✓
+- CI 部署失败根因：生产客户账号 13800000001（演示客户）status=frozen → verify-login 客户 401。已用 Prisma 临时脚本解冻（frozen→active）→ 服务器 rerun verify-login 全通过：admin 200 / 客户 200 / 已删代理商 13900000099 401 / 自助注册 403
+- CI 最终状态：workflow_dispatch 重跑 run 33043854370 成功（dep 作业仅在 push 事件执行，dispatch 不覆盖服务器桌面包，SHA256 仍与版本表一致）；push 触发的旧 run failure 根因（frozen 账号）已解除，后续 push 会全绿。注意：CI deploy-desktop 作业在 push 时用 CI 签名密钥重建安装包覆盖 downloads/，会破坏版本表 SHA256 一致性，发布桌面包必须手动恢复本地签名包
+- 踩坑：① release.mjs 参数解析用 `--key=value`，传 `--version 3.2.7` 空格形式致 latest.json version 错写 3.0.0（临时脚本重写修正）；② GitHub Actions desktop-build 用 CI 自己的签名密钥重建并覆盖服务器桌面包（SHA256 变 9fe53f ≠ 登记的 2a8abbee）→ scp 恢复本地签名包；③ PowerShell Copy-Item 中文乱码 → 改 Node 脚本 Unicode 字节复制；④ ssh 执行复杂 Node 命令 PowerShell 转义破坏引号 → 临时 .js scp 后执行
+- 已清理临时文件（本地 scripts/tmp-*.js、服务器 /tmp/）
+
 ## 2026-08-27 会话：AI 创作工厂 8 项 P0 体验问题全量修复 | 后端已部署验证
 - 问题清单 docs/PROBLEM_ANALYSIS_2026-08-27.md，8 项全部修复：
   1. 客服二维码不显示 → APK SupportQRScreen 相对路径拼绝对 URL（上轮已修）

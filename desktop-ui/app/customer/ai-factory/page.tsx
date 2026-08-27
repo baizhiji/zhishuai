@@ -15,7 +15,7 @@ import {
   BulbOutlined, StarOutlined, WarningOutlined,
 } from '@ant-design/icons';
 import { ContentCategory, contentCategoryConfig, videoSizeOptions, voiceoverOptions, bgmOptions, bannerOverlayOptions, bannerStyleOptions, getVoiceoverLabel } from '@/lib/content/types';
-import { generateText, generateImage, generateVideo, generateWithLocalPipeline, analyzeViralTopic, type ContentTypeSlug } from '@/lib/ai/factory-service';
+import { generateText, generateImage, generateVideo, generateWithLocalPipeline, analyzeViralTopic, syncApiKeysFromServer, type ContentTypeSlug } from '@/lib/ai/factory-service';
 import { CATEGORY_TIPS } from '@/lib/ai/category-config';
 import { apiClient } from '@/lib/api';
 import PageContainer from '@/components/customer/PageContainer';
@@ -215,6 +215,9 @@ export default function AIFactoryPage() {
         return;
       }
     }
+
+    // 同步服务端已保存的 API Key 到本地（防止 localStorage 缺失导致生成失败）
+    await syncApiKeysFromServer();
 
     setGenerating(true);
     setProgress(0);

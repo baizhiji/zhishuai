@@ -198,6 +198,25 @@ export async function getApiKeyList(userId: string) {
 }
 
 /**
+ * 获取用户的 API Key 列表（含明文密钥，仅供本人前端直连生成使用）
+ * 用于 AI 工厂前端在 localStorage 缺失 Key 时自动同步
+ */
+export async function getApiKeyListRaw(userId: string) {
+  const keys = await prisma.apiKey.findMany({
+    where: { userId },
+    orderBy: [{ isPrimary: 'desc' }, { isSecondary: 'desc' }, { createdAt: 'desc' }],
+  });
+  return keys.map(key => ({
+    id: key.id,
+    provider: key.provider,
+    apiKey: decrypt(key.apiKey),
+    status: key.status,
+    isPrimary: key.isPrimary,
+    isSecondary: key.isSecondary,
+  }));
+}
+
+/**
  * 创建用户 API Key
  */
 export async function createApiKey(
