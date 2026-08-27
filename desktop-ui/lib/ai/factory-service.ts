@@ -613,6 +613,7 @@ export async function generateWithLocalPipeline(
         provider: PROVIDER_INFO[modelInfo.provider].label,
         duration: Date.now() - phaseStart,
         outputPreview: (result.data || '').slice(0, 120),
+        output: result.data,
       });
       if (result.data) accumulatedText = result.data;
     } catch (e: any) {
@@ -628,6 +629,7 @@ export async function generateWithLocalPipeline(
               provider: PROVIDER_INFO[fbInfo.provider].label,
               duration: Date.now() - phaseStart,
               outputPreview: (result.data || '').slice(0, 120),
+              output: result.data,
             });
             if (result.data) accumulatedText = result.data;
             continue;

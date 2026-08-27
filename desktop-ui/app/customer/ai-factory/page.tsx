@@ -301,6 +301,13 @@ export default function AIFactoryPage() {
                 const videoMatch = finalOutput.match(/【生成视频】\s*(https?:\/\/[^\s\]]+)/);
                 if (videoMatch) { results.push(videoMatch[1]); videoResults.push(videoMatch[1]); }
 
+                // 智能剪辑盲区修复：local_compose 阶段产出的是本地 FFmpeg 合成方案文本（无云视频 URL），
+                // 作为可展示结果保留在 results 中，避免被误判为"无产出"而回退云 API 重生成
+                const localComposeText = cfg.type === 'video' && !videoMatch
+                  ? (finalOutput.match(/【本地FFmpeg合成(指令)?】[\s\S]*/) || [])[0]?.trim() || ''
+                  : '';
+                if (localComposeText) results.push(localComposeText);
+
                 // 文本：取最后一个成功文本阶段的完整输出
                 const textPhaseSet = new Set(['draft', 'anti_ai_rewrite', 'style_calibration', 'platform_adapt']);
                 const textTasks = tasks.filter((t: any) => t.success && textPhaseSet.has(t.phase));
@@ -309,10 +316,25 @@ export default function AIFactoryPage() {
 
                 const lastSuccess = [...tasks].reverse().find((t: any) => t.success);
                 if (lastSuccess) { setProvider(lastSuccess.provider); setModel(lastSuccess.modelName); }
-                pipelined = true;
+
+                // 兜底：流水线即使标记成功，若无任何可用产出（文本/图片/视频全空），回退单次直连
+                const hasUsableOutput = (cfg.type === 'image' && imgResults.length > 0)
+                  || (cfg.type === 'video' && videoResults.length > 0)
+                  || (cfg.type !== 'image' && (finalText || imgResults.length > 0))
+                  || (localComposeText.length > 0);
+                if (hasUsableOutput) {
+                  pipelined = true;
+                } else {
+                  console.warn('[AI工厂] 流水线无可用产出，回退单次直连:', pData);
+                }
               } else {
-                message.warning(pipeline.data?.message || '流水线未产出结果，请检查 API Key 配置');
-                break;
+                // 仅安全拦截等硬性失败直接终止，其余失败回退单次直连
+                const errMsg = pipeline.data?.message || '';
+                if (errMsg.includes('安全') || errMsg.includes('拦截') || errMsg.includes('违禁')) {
+                  message.warning(errMsg || '生成内容未通过安全校验，已拦截');
+                  break;
+                }
+                console.warn('[AI工厂] 流水线失败，回退单次直连:', errMsg);
               }
             } catch (e: any) {
               console.warn('[AI工厂] 流水线不可用，回退单次直连:', e?.message);
