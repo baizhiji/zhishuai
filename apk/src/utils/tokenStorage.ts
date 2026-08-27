@@ -7,19 +7,43 @@
 (global as any).userInfo = null;
 (global as any).viewingRole = null;
 
-// 本地存储
-(global as any).localStorage = {};
+// 内存存储兜底（React Native 等无 localStorage 环境）
+const memoryStorage: Record<string, string> = {};
+
+function createMemoryStorage(): Storage {
+  return {
+    get length() { return Object.keys(memoryStorage).length; },
+    getItem(key: string) { return memoryStorage[key] ?? null; },
+    setItem(key: string, value: string) { memoryStorage[key] = value; },
+    removeItem(key: string) { delete memoryStorage[key]; },
+    clear() { Object.keys(memoryStorage).forEach(k => delete memoryStorage[k]); },
+    key(index: number) { return Object.keys(memoryStorage)[index] || null; },
+  } as Storage;
+}
+
+function getSafeStorage(): Storage {
+  if (
+    typeof window !== 'undefined' &&
+    window.localStorage &&
+    typeof window.localStorage.setItem === 'function'
+  ) {
+    return window.localStorage;
+  }
+  return createMemoryStorage();
+}
+
+// 全局 localStorage：Web 用真实 localStorage，RN 用内存实现
+(global as any).localStorage = getSafeStorage();
 
 // Web 平台：启动时从真实 localStorage 恢复登录态
-if (typeof window !== 'undefined' && window.localStorage) {
-  try {
-    (global as any).userToken = window.localStorage.getItem('zs_userToken') || null;
-    const ui = window.localStorage.getItem('zs_userInfo');
-    (global as any).userInfo = ui ? JSON.parse(ui) : null;
-    (global as any).viewingRole = window.localStorage.getItem('zs_viewingRole') || null;
-  } catch (e) {
-    // 忽略解析错误
-  }
+const safeStorage = getSafeStorage();
+try {
+  (global as any).userToken = safeStorage.getItem('zs_userToken') || null;
+  const ui = safeStorage.getItem('zs_userInfo');
+  (global as any).userInfo = ui ? JSON.parse(ui) : null;
+  (global as any).viewingRole = safeStorage.getItem('zs_viewingRole') || null;
+} catch (e) {
+  // 忽略解析错误
 }
 
 class TokenStorage {
@@ -31,17 +55,15 @@ class TokenStorage {
   // 设置Token
   static setToken(token: string): void {
     (global as any).userToken = token;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('zs_userToken', token);
-    }
+    const storage = getSafeStorage();
+    storage.setItem('zs_userToken', token);
   }
 
   // 清除Token
   static clearToken(): void {
     (global as any).userToken = null;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem('zs_userToken');
-    }
+    const storage = getSafeStorage();
+    storage.removeItem('zs_userToken');
   }
 
   // 检查是否已登录
@@ -57,17 +79,15 @@ class TokenStorage {
   // 设置用户信息
   static setUserInfo(userInfo: any): void {
     (global as any).userInfo = userInfo;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('zs_userInfo', JSON.stringify(userInfo));
-    }
+    const storage = getSafeStorage();
+    storage.setItem('zs_userInfo', JSON.stringify(userInfo));
   }
 
   // 清除用户信息
   static clearUserInfo(): void {
     (global as any).userInfo = null;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem('zs_userInfo');
-    }
+    const storage = getSafeStorage();
+    storage.removeItem('zs_userInfo');
   }
 
   // 获取当前视角角色
@@ -78,17 +98,15 @@ class TokenStorage {
   // 设置当前视角角色
   static setViewingRole(role: string): void {
     (global as any).viewingRole = role;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('zs_viewingRole', role);
-    }
+    const storage = getSafeStorage();
+    storage.setItem('zs_viewingRole', role);
   }
 
   // 清除视角角色
   static clearViewingRole(): void {
     (global as any).viewingRole = null;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.removeItem('zs_viewingRole');
-    }
+    const storage = getSafeStorage();
+    storage.removeItem('zs_viewingRole');
   }
 
   // 清除所有登录数据
@@ -100,7 +118,8 @@ class TokenStorage {
 
   // 获取本地存储数据
   static get(key: string): any {
-    const data = (global as any).localStorage[key];
+    const storage = getSafeStorage();
+    const data = storage.getItem(key);
     if (data) {
       try {
         return JSON.parse(data);
@@ -113,16 +132,18 @@ class TokenStorage {
 
   // 设置本地存储数据
   static set(key: string, value: any): void {
+    const storage = getSafeStorage();
     if (typeof value === 'string') {
-      (global as any).localStorage[key] = value;
+      storage.setItem(key, value);
     } else {
-      (global as any).localStorage[key] = JSON.stringify(value);
+      storage.setItem(key, JSON.stringify(value));
     }
   }
 
   // 移除本地存储数据
   static remove(key: string): void {
-    delete (global as any).localStorage[key];
+    const storage = getSafeStorage();
+    storage.removeItem(key);
   }
 }
 
