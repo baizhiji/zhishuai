@@ -1,4 +1,16 @@
 
+## 2026-08-28 会话（续14）：打包发布桌面版 3.4.0 + git 提交推送
+- 用户指令：把"打包发布新版本"和"git 提交推送"两步都完成
+- 版本号升级：桌面版 3.3.0→3.4.0（desktop/package.json、tauri.conf.json、Cargo.toml）；APK 1.2.3→1.3.0（apk/package.json、app.json versionCode 8→9）
+- 【git 提交推送】本地到 GitHub 网络已恢复（git ls-remote/push 直连成功，无需服务器中转）：
+  - commit 61836b7 `feat: 评论获客全自动化改造+招聘平台授权+数据总览真实性修复，发布桌面版3.4.0/APK1.3.0`（40 文件，含续8~13 全部未提交改动 + 删除旧 data-acquisition 模块）
+  - commit bca4638 `chore: 添加桌面版3.4.0发布登记脚本`
+  - 已推送到 origin/main，CI（desktop-build/deploy/deploy-desktop）自动触发；deploy job 会执行 prisma db push 同步 schema（AutoComment 等新表）+ pm2 restart zhishuai-api
+- 【桌面版 3.4.0 发布】desktop-ui `npm run build`（69 静态页）→ `node scripts/release.mjs --version 3.4.0 --bundle nsis` 本地签名构建成功（SHA256 703f0ccc...，3.5MB）→ exe/sig 复制 ASCII 名（PowerShell Copy-Item 处理中文文件名，cmd copy 会失败）→ scp 上传服务器 /var/www/zhishuai/downloads/ → 服务器 latest.json 更新为 3.4.0（CI 不更新 latest.json，需手动，URL 用 ASCII 名 zhishuai_3.4.0_x64-setup.exe）→ register_desktop_340.js 登记（NODE_PATH=server/node_modules 执行 mysql2），并修复 releasedAt 为 NULL 的问题（UPDATE SET releasedAt=NOW()）
+- 【APK 1.3.0 受阻】EAS 云构建失败：Free plan 本月 Android 构建配额已用完（下次可用 2026-09-01）；本地无 JDK/Android SDK 无法本地构建。版本号已升级，9/1 后可 EAS 构建或升级计划。等待用户决策
+- 验证：公网 latest.json=3.4.0、zhishuai_3.4.0_x64-setup.exe HTTP 200（3.5MB）、AppVersion windows released=3.4.0/340
+- 教训：Windows 上 ssh/scp 可用（~/.ssh/id_rsa 已配置）；execute_command 环境 PowerShell/cmd 混用，中文参数易乱码，优先 cmd /c 包裹 + ASCII 文件名；服务器 mysql2 查询需 NODE_PATH=/var/www/zhishuai/server/node_modules
+
 ## 2026-08-28 会话（续13）：【数据总览】数据真实性核查 + 修复 3 处非真实数据
 - 用户核查：手机端【数据总览】显示的每个数字是否都来自真实数据
 - 核查结果：99% 指标来自后端实时统计（数据库 count/groupBy），发现并修复 3 处非真实数据：
