@@ -1,4 +1,24 @@
 
+## 2026-08-27 会话（续3）：手机端登录报错修复 | APK 1.2.3 已发布
+- 问题：用户截图"登录失败 undefined is not a function"，输入 13166262006/20061218 后触发
+- 根因：APK 的 `tokenStorage.ts` 在 React Native 真机上把 `(global as any).localStorage` 设为空对象 `{}`；当运行环境存在 `window === global` polyfill 时，`window.localStorage.setItem` 是 undefined，登录成功保存 token/userInfo 时调用即抛 TypeError
+- 修复：`apk/src/utils/tokenStorage.ts` 重写为安全 localStorage：Web 平台用真实 `window.localStorage`，RN 平台用带 `setItem/getItem/removeItem` 的内存 Storage mock；所有读写统一通过 `getSafeStorage()`
+- 验证：服务端 /auth/login 返回 200 且 success/data 格式正确；APK 1.2.3 EAS 云构建成功（build id 85a84936-6125-4955-b1d4-b6aeef2e061e，appVersion 1.2.3，versionCode 8）
+- 下载：`https://expo.dev/artifacts/eas/JBGlmkFum8DsYYfSrJ7g4hADaqaS6DRt6Oi8bMG64ks.apk`
+- 注意：手机上已安装的 1.2.2 必须卸载后重装 1.2.3 才能恢复登录（OTA updates 已禁用）
+- 提交：`076db4c`（通过服务器中转推送，本地 github.com 仍被阻断）
+
+## 2026-08-27 会话（续2）：桌面版 3.2.8 发布 | 修复闭环完成
+- 用户选择"推送 GitHub 发布新版本"修复电脑端生成
+- 版本号三处升 3.2.8：desktop/package.json、tauri.conf.json、Cargo.toml
+- 本地 push 失败：github.com:443 被网络阻断（api.github.com 通、token 有效）→ 服务器中转：scp 8 个变更文件 → 服务器 commit a62feef + git remote set-url 嵌入 PAT token → push 成功。CI 已可正常部署
+- CI run 33067511619 全绿：lint/typecheck/security/build/desktop-build(3.2.8)/deploy-desktop/deploy(含 verify-login) 全部 success
+- AppVersion 表：3.2.7(desktop/released)→archived；新增 3.2.8(windows/released/stable/buildNumber 328) ✓
+- /api/version/desktop/latest.json → 3.2.8（CI 签名）✓；安装包 https://baizhiji.net/downloads/zhishuai_3.2.8_x64-setup.exe 可下载 ✓
+- 3.2.8 前端修复：AI 工厂生成前 syncApiKeysFromServer() 自动把服务端 Key 同步到 localStorage，解决"请检查API Key配置"
+- 本地 git 已通过服务器 remote 中转 reset 到 a62feef（与远端 main 一致）
+- 注意：服务器 /var/www/zhishuai git remote 已嵌入 PAT token（https://ghp_xxx@github.com），CI deploy 的 git pull 依赖该凭据
+
 ## 2026-08-27 会话（续）：手机端登录 + 电脑端 AI 工厂生成修复
 - 用户报告：①手机端 13166262006 用 20061218 登录失败、所有账号无法登录；②电脑端生成显示"生成完成但未获得结果，请检查API Key配置"，但 API Key 配置完整、测试通过
 - 问题①根因：13166262006 密码被 8/25 reset-customer-passwords.js 重置为 123456，与用户记忆 20061218 不符；反复试错触发 nginx 登录限流 503 造成"所有账号无法登录"假象。服务端登录接口正常。修复：密码已重置回 20061218，实测登录 200 ✓
