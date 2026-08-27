@@ -9,7 +9,9 @@
 - 坑：INSERT 未填 releasedAt 导致为 NULL（latest.json 用 updatedAt 兜底），补 NOW() 修复
 - 验证：/api/version/desktop/latest.json → 3.3.0（signature/url 正确）✓；安装包 HEAD 200 Content-Length 3654235 ✓
 - 下载：https://baizhiji.net/downloads/zhishuai_3.3.0_x64-setup.exe
-- 注意：CI desktop-build 会用 CI 签名密钥重建并覆盖 downloads/ 的 3.3.0 安装包（同密钥签名自洽）；本次未在 AppVersion 填 sha256，不会像 3.2.7 那样 hash 不一致
+- 提交推送：本地 github.com 仍被阻断 → 服务器中转（scp 8 个变更文件 → 服务器 commit e713876 → push 1bcde22..e713876 main）✓；本地经服务器 relay remote fetch + reset 同步到 e713876
+- CI run 33084812733 全绿（10 job success）：lint/security/build 全过、desktop-build 用 CI 签名重建安装包（3,663,341 bytes）覆盖 downloads/、deploy-desktop、deploy 含 verify-login 通过
+- CI 覆盖后 latest.json signature 已自动切换为 CI 签名（与 CI 安装包自洽，updater 校验一致）✓；本次未在 AppVersion 填 sha256，不会像 3.2.7 那样 hash 不一致
 
 ## 2026-08-27 会话（续5）：AI 工厂「生成完成但未获得结果」全局根因修复（非 API Key 问题）
 - 问题：用户截图小红书图文生成后提示"生成完成但未获得结果，请检查API Key配置"，反复修复无效；用户质疑其他类目是否同样受影响
