@@ -22,11 +22,13 @@ const router = Router();
 // OAuth 路由需要认证
 router.use(authMiddleware);
 
-/** 仅支持的 3 个平台（智能获客） */
+/** 支持的平台（智能获客 3 平台 + 智能招聘 2 平台） */
 const SUPPORTED_PLATFORMS: Record<string, string> = {
   douyin: '抖音',
   kuaishou: '快手',
   xiaohongshu: '小红书',
+  bosszhipin: 'BOSS直聘',
+  zhilian: '智联招聘',
 };
 
 /**

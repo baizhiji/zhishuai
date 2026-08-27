@@ -172,3 +172,98 @@ export async function getTodayQuota(platform: string): Promise<TodayQuota> {
   );
   return res || { used: 0, limit: 0, remaining: 0 };
 }
+
+// ─── 自动跟评任务（智能获客自动引流闭环）────────────────
+
+export interface AutoCommentTask {
+  id: string;
+  userId: string;
+  name: string;
+  platform: string;
+  targetUrls: string[] | null;
+  intervalMinutes: number;
+  dailyLimit: number;
+  active: boolean;
+  lastRunAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AutoCommentRecord {
+  id: string;
+  taskId: string;
+  targetUrl: string | null;
+  deliveryId: string | null;
+  status: string;
+  message: string | null;
+  createdAt: string;
+}
+
+export interface RunTaskResult {
+  processed: number;
+  sent: number;
+  skipped: number;
+  errors: string[];
+}
+
+/** 获取自动跟评任务列表 */
+export async function getAutoCommentTasks(): Promise<AutoCommentTask[]> {
+  const res = throwIfFailed(
+    await request.get<any>('/api/auto-comment/tasks')
+  );
+  return res?.tasks || [];
+}
+
+/** 创建自动跟评任务 */
+export async function createAutoCommentTask(data: {
+  name: string;
+  platform: string;
+  targetUrls: string[];
+  intervalMinutes?: number;
+  dailyLimit?: number;
+  active?: boolean;
+}): Promise<AutoCommentTask> {
+  const res = throwIfFailed(
+    await request.post<any>('/api/auto-comment/tasks', data)
+  );
+  return res;
+}
+
+/** 更新自动跟评任务（含启停） */
+export async function updateAutoCommentTask(
+  id: string,
+  data: Partial<{
+    name: string;
+    platform: string;
+    targetUrls: string[];
+    intervalMinutes: number;
+    dailyLimit: number;
+    active: boolean;
+  }>
+): Promise<AutoCommentTask> {
+  const res = throwIfFailed(
+    await request.put<any>(`/api/auto-comment/tasks/${id}`, data)
+  );
+  return res;
+}
+
+/** 删除自动跟评任务 */
+export async function deleteAutoCommentTask(id: string): Promise<void> {
+  await request.delete(`/api/auto-comment/tasks/${id}`);
+}
+
+/** 立即执行一轮自动跟评任务 */
+export async function runAutoCommentTask(id: string): Promise<RunTaskResult> {
+  const res = throwIfFailed(
+    await request.post<any>(`/api/auto-comment/tasks/${id}/run`, {})
+  );
+  return res || { processed: 0, sent: 0, skipped: 0, errors: [] };
+}
+
+/** 获取任务执行记录 */
+export async function getAutoCommentRecords(taskId: string): Promise<AutoCommentRecord[]> {
+  const res = throwIfFailed(
+    await request.get<any>(`/api/auto-comment/tasks/${taskId}/records`)
+  );
+  return res?.records || [];
+}

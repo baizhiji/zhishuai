@@ -6,21 +6,34 @@ import {
   Button,
   Card,
   Col,
+  Divider,
   Dropdown,
   Empty,
   Form,
   Input,
   InputNumber,
   message,
+  Modal,
+  Popconfirm,
   Progress,
   Row,
   Select,
   Space,
+  Switch,
   Table,
   Tag,
   Typography,
 } from 'antd';
-import { DownOutlined, SendOutlined } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  DownOutlined,
+  HistoryOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SendOutlined,
+} from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { MenuProps } from 'antd';
 import PageContainer from '@/components/customer/PageContainer';
@@ -28,15 +41,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getAccounts } from '@/services/social-account';
 import type { SocialAccount } from '@/services/social-account';
 import {
+  createAutoCommentTask,
+  deleteAutoCommentTask,
+  getAutoCommentRecords,
+  getAutoCommentTasks,
   getLimits,
   getRecords,
   getRiskStatus,
   getTodayQuota,
   previewScript,
   reportDeliveryStatus,
+  runAutoCommentTask,
   sendComment,
+  updateAutoCommentTask,
 } from '@/services/comment-delivery';
 import type {
+  AutoCommentRecord,
+  AutoCommentTask,
   DeliveryRecord,
   PlatformLimit,
   PreviewScript,
@@ -84,6 +105,21 @@ export default function AcquisitionCommentPage() {
   const [records, setRecords] = useState<RecordsPage>({ total: 0, page: 1, pageSize: 20, records: [] });
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [page, setPage] = useState(1);
+
+  // 自动跟评任务
+  const [tasks, setTasks] = useState<AutoCommentTask[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<AutoCommentTask | null>(null);
+  const [taskSaving, setTaskSaving] = useState(false);
+  const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
+  const [recordsModal, setRecordsModal] = useState<{ open: boolean; task: AutoCommentTask | null; records: AutoCommentRecord[]; loading: boolean }>({
+    open: false,
+    task: null,
+    records: [],
+    loading: false,
+  });
+  const [taskForm] = Form.useForm();
 
   const loadAccounts = useCallback(async () => {
     if (!userId) return;
@@ -218,6 +254,176 @@ export default function AcquisitionCommentPage() {
     ],
     onClick: ({ key }) => handleReport(recordId, key as 'deleted' | 'limited' | 'folded'),
   });
+
+  // ─── 自动跟评任务 ──────────────────────────────
+  const loadTasks = useCallback(async () => {
+    if (!userId) return;
+    setTasksLoading(true);
+    try {
+      setTasks(await getAutoCommentTasks());
+    } catch (e: any) {
+      message.error(e?.message || '加载任务失败');
+    } finally {
+      setTasksLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (userId) loadTasks();
+  }, [userId, loadTasks]);
+
+  const openCreateTask = () => {
+    setEditingTask(null);
+    taskForm.resetFields();
+    taskForm.setFieldsValue({ platform: 'douyin', intervalMinutes: 60, dailyLimit: 20, active: true });
+    setTaskModalOpen(true);
+  };
+
+  const openEditTask = (task: AutoCommentTask) => {
+    setEditingTask(task);
+    taskForm.setFieldsValue({
+      name: task.name,
+      platform: task.platform,
+      targetUrls: (task.targetUrls || []).join('\n'),
+      intervalMinutes: task.intervalMinutes,
+      dailyLimit: task.dailyLimit,
+      active: task.active,
+    });
+    setTaskModalOpen(true);
+  };
+
+  const handleTaskSave = async () => {
+    const values = await taskForm.validateFields();
+    const targetUrls = String(values.targetUrls || '')
+      .split('\n')
+      .map((s: string) => s.trim())
+      .filter(Boolean);
+    if (targetUrls.length === 0) {
+      message.warning('请至少填写一个目标内容链接');
+      return;
+    }
+    setTaskSaving(true);
+    try {
+      const payload = {
+        name: values.name,
+        platform: values.platform,
+        targetUrls,
+        intervalMinutes: values.intervalMinutes,
+        dailyLimit: values.dailyLimit,
+        active: values.active ?? true,
+      };
+      if (editingTask) {
+        await updateAutoCommentTask(editingTask.id, payload);
+        message.success('任务已更新');
+      } else {
+        await createAutoCommentTask(payload);
+        message.success('任务已创建，调度器将自动执行');
+      }
+      setTaskModalOpen(false);
+      loadTasks();
+    } catch (e: any) {
+      message.error(e?.message || '保存任务失败');
+    } finally {
+      setTaskSaving(false);
+    }
+  };
+
+  const handleToggleTask = async (task: AutoCommentTask, active: boolean) => {
+    try {
+      await updateAutoCommentTask(task.id, { active });
+      message.success(active ? '任务已启用' : '任务已暂停');
+      loadTasks();
+    } catch (e: any) {
+      message.error(e?.message || '操作失败');
+    }
+  };
+
+  const handleRunTask = async (task: AutoCommentTask) => {
+    setRunningTaskId(task.id);
+    try {
+      const r = await runAutoCommentTask(task.id);
+      message.success(
+        `执行完成：处理 ${r.processed} 条，成功 ${r.sent} 条，跳过 ${r.skipped} 条${r.errors.length ? `，提示：${r.errors.join('；')}` : ''}`
+      );
+      loadTasks();
+    } catch (e: any) {
+      message.error(e?.message || '执行失败');
+    } finally {
+      setRunningTaskId(null);
+    }
+  };
+
+  const openTaskRecords = async (task: AutoCommentTask) => {
+    setRecordsModal({ open: true, task, records: [], loading: true });
+    try {
+      const list = await getAutoCommentRecords(task.id);
+      setRecordsModal((s) => ({ ...s, records: list, loading: false }));
+    } catch (e: any) {
+      message.error(e?.message || '加载记录失败');
+      setRecordsModal((s) => ({ ...s, loading: false }));
+    }
+  };
+
+  const handleDeleteTask = async (task: AutoCommentTask) => {
+    try {
+      await deleteAutoCommentTask(task.id);
+      message.success('任务已删除');
+      loadTasks();
+    } catch (e: any) {
+      message.error(e?.message || '删除失败');
+    }
+  };
+
+  const taskColumns: ColumnsType<AutoCommentTask> = [
+    { title: '任务名称', dataIndex: 'name', ellipsis: true },
+    {
+      title: '平台',
+      dataIndex: 'platform',
+      width: 90,
+      render: (v: string) => {
+        const label = PLATFORM_OPTIONS.find((p) => p.value === v)?.label || v;
+        return <Tag>{label}</Tag>;
+      },
+    },
+    { title: '目标链接', dataIndex: 'targetUrls', width: 180, ellipsis: true, render: (v: string[] | null) => `${v?.length || 0} 条` },
+    { title: '执行间隔', dataIndex: 'intervalMinutes', width: 90, render: (v: number) => `${v} 分钟` },
+    { title: '每日限额', dataIndex: 'dailyLimit', width: 90, render: (v: number) => `${v} 条` },
+    {
+      title: '状态',
+      dataIndex: 'active',
+      width: 90,
+      render: (v: boolean, r: AutoCommentTask) => (
+        <Switch size="small" checked={v} onChange={(checked) => handleToggleTask(r, checked)} />
+      ),
+    },
+    {
+      title: '上次执行',
+      dataIndex: 'lastRunAt',
+      width: 160,
+      render: (v: string | null) => (v ? new Date(v).toLocaleString() : '从未'),
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 200,
+      render: (_: unknown, r: AutoCommentTask) => (
+        <Space size={0}>
+          <Button type="link" size="small" icon={<PlayCircleOutlined />} loading={runningTaskId === r.id} onClick={() => handleRunTask(r)}>
+            执行
+          </Button>
+          <Button type="link" size="small" icon={<HistoryOutlined />} onClick={() => openTaskRecords(r)}>
+            记录
+          </Button>
+          <Button type="link" size="small" onClick={() => openEditTask(r)}>
+            编辑
+          </Button>
+          <Popconfirm title="确认删除该任务？" onConfirm={() => handleDeleteTask(r)}>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
 
   const columns: ColumnsType<DeliveryRecord> = [
     {
@@ -470,6 +676,127 @@ export default function AcquisitionCommentPage() {
           }}
         />
       </Card>
+
+      {/* 自动跟评任务 */}
+      <Card
+        title="自动跟评任务（全自动获客引流）"
+        bordered={false}
+        style={{ marginTop: 16 }}
+        extra={
+          <Space>
+            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateTask}>
+              新建任务
+            </Button>
+            <Button icon={<ReloadOutlined />} onClick={() => loadTasks()}>
+              刷新
+            </Button>
+          </Space>
+        }
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="定时自动对目标内容执行合规跟评：话术由 AI 生成并经过违禁词过滤、近 7 天去重与平台风控校验，每日限额与熔断自动保护账号安全。"
+        />
+        <Table<AutoCommentTask>
+          rowKey="id"
+          columns={taskColumns}
+          dataSource={tasks}
+          loading={tasksLoading}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无自动跟评任务" /> }}
+        />
+      </Card>
+
+      {/* 任务编辑 Modal */}
+      <Modal
+        title={editingTask ? '编辑自动跟评任务' : '新建自动跟评任务'}
+        open={taskModalOpen}
+        onOk={handleTaskSave}
+        onCancel={() => setTaskModalOpen(false)}
+        confirmLoading={taskSaving}
+        width={560}
+      >
+        <Form form={taskForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item name="name" label="任务名称" rules={[{ required: true, message: '请输入任务名称' }]}>
+            <Input placeholder="如：AI 行业内容跟评" maxLength={50} />
+          </Form.Item>
+          <Form.Item name="platform" label="目标平台" rules={[{ required: true, message: '请选择平台' }]}>
+            <Select options={PLATFORM_OPTIONS} />
+          </Form.Item>
+          <Form.Item
+            name="targetUrls"
+            label="目标内容链接（每行一个）"
+            rules={[{ required: true, message: '请填写目标内容链接' }]}
+            extra="每轮执行将对每条链接发送一条跟评；同一链接当日不重复发送。"
+          >
+            <Input.TextArea rows={4} placeholder={'https://www.douyin.com/video/…\nhttps://www.xiaohongshu.com/…'} />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="intervalMinutes" label="执行间隔（分钟）" rules={[{ required: true }]}>
+                <InputNumber min={5} max={10080} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="dailyLimit" label="每日发送上限（条）" rules={[{ required: true }]}>
+                <InputNumber min={1} max={200} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="active" label="启用任务" valuePropName="checked">
+            <Switch />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 执行记录 Modal */}
+      <Modal
+        title={`执行记录 · ${recordsModal.task?.name || ''}`}
+        open={recordsModal.open}
+        onCancel={() => setRecordsModal((s) => ({ ...s, open: false }))}
+        footer={null}
+        width={720}
+      >
+        <Table<AutoCommentRecord>
+          rowKey="id"
+          size="small"
+          loading={recordsModal.loading}
+          dataSource={recordsModal.records}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无执行记录" /> }}
+          columns={[
+            {
+              title: '目标链接',
+              dataIndex: 'targetUrl',
+              ellipsis: true,
+              render: (v: string | null) =>
+                v ? (
+                  <a href={v} target="_blank" rel="noreferrer" style={{ fontSize: 12 }}>
+                    {v}
+                  </a>
+                ) : '—',
+            },
+            {
+              title: '状态',
+              dataIndex: 'status',
+              width: 100,
+              render: (v: string) => {
+                const meta: Record<string, { label: string; color: string }> = {
+                  sent: { label: '已发送', color: 'success' },
+                  failed: { label: '失败', color: 'error' },
+                  processing: { label: '执行中', color: 'processing' },
+                };
+                const m = meta[v] || { label: v, color: 'default' };
+                return <Tag color={m.color}>{m.label}</Tag>;
+              },
+            },
+            { title: '结果说明', dataIndex: 'message', ellipsis: true },
+            { title: '时间', dataIndex: 'createdAt', width: 170, render: (v: string) => new Date(v).toLocaleString() },
+          ]}
+        />
+      </Modal>
     </PageContainer>
   );
 }

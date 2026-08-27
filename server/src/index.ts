@@ -6,7 +6,6 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth';
 import recruitmentRoutes from './routes/recruitment';
 import acquisitionRoutes from './routes/acquisition';
-import dataAcquisitionRoutes from './routes/data-acquisition';
 import shareRoutes, { shareShortRoutes } from './routes/share';
 import materialsRoutes from './routes/materials';
 import notificationsRoutes from './routes/notifications';
@@ -18,6 +17,7 @@ import adminApiProvidersRoutes, { adminApiProvidersAdminRouter } from './routes/
 import oauthRoutes from './routes/oauth';
 import socialAccountRoutes from './routes/social-account';
 import commentDeliveryRoutes from './routes/comment-delivery';
+import autoCommentRoutes from './routes/auto-comment';
 import agentRoutes from './routes/agent';
 import hotTopicsRoutes from './routes/hot-topics';
 import versionRoutes from './routes/version';
@@ -113,7 +113,6 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/recruitment', recruitmentRoutes);
 app.use('/api/acquisition', acquisitionRoutes);
-app.use('/api/data-acquisition', dataAcquisitionRoutes);
 app.use('/api/share', shareRoutes);
 // 分享码中转短链（扫码落地，{API_URL}/s/:codeId → 记录匿名扫码并 302 跳转平台视频）
 app.use('/s', shareShortRoutes);
@@ -171,6 +170,7 @@ app.use('/api/social', socialAccountRoutes);
 
 // 智能获客跟评
 app.use('/api/comment-delivery', commentDeliveryRoutes);
+app.use('/api/auto-comment', autoCommentRoutes);
 
 // 工单系统
 app.use('/api/tickets', ticketRoutes);
@@ -235,6 +235,14 @@ process.on('uncaughtException', (err) => {
 app.listen(PORT, () => {
   console.log(`智枢AI后端服务运行在 http://localhost:${PORT}`);
 });
+
+// 自动跟评调度器（智能获客-自动引流闭环）
+import { setupAutoCommentScheduler } from './services/auto-comment.service';
+setupAutoCommentScheduler();
+
+// 智能招聘调度器（全自动 AI 猎头）
+import { setupRecruitmentScheduler } from './services/recruitment-scheduler.service';
+setupRecruitmentScheduler();
 
 // 生成内容 10 天过期自动清理
 setupMaterialCleanup(prisma);

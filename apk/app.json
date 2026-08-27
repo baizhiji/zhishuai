@@ -2,7 +2,7 @@
   "expo": {
     "name": "智枢AI",
     "slug": "zhishuai",
-    "version": "1.2.3",
+    "version": "1.3.0",
     "description": "智枢AI SaaS多租户超级应用",
     "owner": "baizhiji",
     "platforms": [
@@ -11,7 +11,7 @@
     ],
     "android": {
       "package": "com.baizhiji.zhishuai",
-      "versionCode": 8,
+      "versionCode": 9,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4C1D95"

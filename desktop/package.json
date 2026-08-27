@@ -1,6 +1,6 @@
 {
   "name": "zhishuai-desktop",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "private": true,
   "description": "智枢AI SaaS — 桌面安装版（Tauri 2.x）",
   "type": "module",

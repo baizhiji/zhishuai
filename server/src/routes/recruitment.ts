@@ -278,7 +278,28 @@ router.post('/search-config/:id/run', authMiddleware, async (req: Request, res: 
     });
 
     const candidates = await recruitmentService.matchCandidates(userId, config.postId, config.id);
-    res.json({ code: 200, message: 'success', data: { candidates, count: candidates.length, configId: config.id } });
+
+    // autoContact=true 时自动批量沟通（全自动猎头）
+    let batchResult = null;
+    if (config.autoContact && candidates.length > 0) {
+      batchResult = await recruitmentService.batchContact(userId, config.postId);
+    }
+
+    res.json({
+      code: 200,
+      message: 'success',
+      data: {
+        candidates,
+        count: candidates.length,
+        configId: config.id,
+        autoContact: config.autoContact,
+        batch: batchResult ? {
+          contacted: batchResult.contacted,
+          delivered: batchResult.delivered,
+          failed: batchResult.failed,
+        } : null,
+      },
+    });
   } catch (error: any) {
     res.status(500).json({ code: 500, message: error.message, data: null });
   }
@@ -402,7 +423,12 @@ router.get('/posts', authMiddleware, async (req: Request, res: Response) => {
 router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const stats = await recruitmentService.getPipelineStats(userId);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const [stats, activeJobs, newResumes] = await Promise.all([
+      recruitmentService.getPipelineStats(userId),
+      prisma.recruitmentPost.count({ where: { userId, status: 'recruiting' } }),
+      prisma.candidate.count({ where: { userId, createdAt: { gte: sevenDaysAgo } } }),
+    ]);
     const totalCandidates = stats.jobs.reduce((sum: number, j: any) => sum + j.total, 0);
     const totalInterviews = stats.jobs.reduce((sum: number, j: any) => sum + (j.stages?.['interview_completed'] || 0) + (j.stages?.['interview_scheduled'] || 0), 0);
 
@@ -414,9 +440,9 @@ router.get('/stats', authMiddleware, async (req: Request, res: Response) => {
         applications: totalCandidates,
         interviews: totalInterviews,
         totalJobs: stats.totalJobs,
-        activeJobs: (stats as any).activeJobs || stats.totalJobs,
+        activeJobs,
         totalResumes: totalCandidates,
-        newResumes: 0,
+        newResumes,
         totalInterviews,
         pendingInterviews: stats.jobs.reduce((sum: number, j: any) => sum + (j.stages?.['interview_scheduled'] || 0), 0),
       },

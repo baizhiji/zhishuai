@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Card, Table, Button, Tag, Space, Typography, Modal, Form, Input, Select, Switch, InputNumber, Popconfirm, message, Row, Col, Statistic, Badge,
+  Card, Table, Button, Tag, Space, Typography, Modal, Form, Input, Select, Switch, InputNumber, Popconfirm, message, Row, Col, Statistic, Badge, Alert,
 } from 'antd';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, ReloadOutlined, SearchOutlined, RobotOutlined,
-  PlayCircleOutlined, PauseCircleOutlined, ThunderboltOutlined, SettingOutlined,
+  PlayCircleOutlined, PauseCircleOutlined, ThunderboltOutlined, SettingOutlined, UserSwitchOutlined,
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import apiClient from '@/lib/api';
@@ -56,6 +57,7 @@ const PLATFORM_OPTIONS = [
 ];
 
 export default function AutoRecruitmentPage() {
+  const router = useRouter();
   const [configs, setConfigs] = useState<SearchConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -216,6 +218,13 @@ export default function AutoRecruitmentPage() {
         </Space>
       }
     >
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        message="全自动化已启用：启用状态的搜索配置由系统每 30 分钟自动执行真实搜索，开启「自动沟通」后对匹配候选人自动发送私信；超时未回复的候选人每 10 分钟自动流转处理。"
+      />
+
       {/* 摘要 */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={8}><Card size="small"><Statistic title="搜索配置" value={stats.active} suffix={`/ ${configs.length}`} prefix={<SettingOutlined />} valueStyle={{ color: '#6d28d9' }} /></Card></Col>
@@ -226,7 +235,12 @@ export default function AutoRecruitmentPage() {
       <Card
         title="搜索配置列表"
         style={{ borderRadius: 8 }}
-        extra={<Text type="secondary">配置 AI 自动搜索条件，一键批量匹配候选人</Text>}
+        extra={
+          <Space>
+            <Text type="secondary">配置 AI 自动搜索条件，一键批量匹配候选人</Text>
+            <Button size="small" icon={<UserSwitchOutlined />} onClick={() => router.push('/customer/recruitment/candidates')}>候选人库</Button>
+          </Space>
+        }
       >
         <Table
           columns={columns}

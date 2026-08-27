@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
-  Alert, Modal, ActivityIndicator, RefreshControl,
+  Alert, Modal, ActivityIndicator, RefreshControl, Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import PageHeader from '../components/PageHeader';
+import ConfigGuideModal from '../components/ConfigGuideModal';
 import {
   recruitmentService, RecruitmentStats, RecruitmentPost, Candidate,
-  CandidateStatus, CANDIDATE_STATUS_MAP, JOB_STATUS_MAP,
+  CandidateStatus, SearchConfig, CANDIDATE_STATUS_MAP, JOB_STATUS_MAP,
 } from '../services/recruitment.service';
 
 export default function RecruitmentScreen() {
@@ -28,9 +29,12 @@ export default function RecruitmentScreen() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [matchingJobId, setMatchingJobId] = useState<string | null>(null);
+  const [guideKey, setGuideKey] = useState<string | null>(null);
+  const [searchConfigs, setSearchConfigs] = useState<SearchConfig[]>([]);
+  const [headhunterToggling, setHeadhunterToggling] = useState(false);
   const [form, setForm] = useState({
     title: '', department: '技术部', location: '', salaryMin: '', salaryMax: '',
-    experience: '1-3年', education: '本科', description: '', requirements: '',
+    experience: '不限', education: '不限', description: '', requirements: '',
   });
 
   // ─── 加载数据 ───
@@ -39,17 +43,19 @@ export default function RecruitmentScreen() {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const [statsData, postsResult, candidatesResult, interviewsResult] = await Promise.all([
+      const [statsData, postsResult, candidatesResult, interviewsResult, configsResult] = await Promise.all([
         recruitmentService.getStats(),
         recruitmentService.getPosts(),
         recruitmentService.getCandidates(),
         recruitmentService.getInterviews(),
+        recruitmentService.getSearchConfigs(),
       ]);
 
       setStats(statsData);
       setPosts(postsResult.posts);
       setCandidates(candidatesResult.candidates);
       setInterviews(interviewsResult.interviews);
+      setSearchConfigs(configsResult);
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -135,6 +141,26 @@ export default function RecruitmentScreen() {
     ]);
   };
 
+  // ─── 启停自动猎头 ───
+  const handleToggleHeadhunter = async (enable: boolean) => {
+    if (searchConfigs.length === 0) {
+      setGuideKey('headhunter');
+      return;
+    }
+    try {
+      setHeadhunterToggling(true);
+      const result = await recruitmentService.setHeadhunterStatus(enable);
+      await loadData();
+      if (result.updated > 0) {
+        Alert.alert(enable ? '已开启' : '已关闭', enable ? '自动猎头已开启，AI 将持续搜索优质候选人' : '自动猎头已关闭，暂停候选人搜索');
+      }
+    } catch {
+      Alert.alert('操作失败', '请稍后重试');
+    } finally {
+      setHeadhunterToggling(false);
+    }
+  };
+
   // ─── 工具函数 ───
   const getCandidateStatusInfo = (status: string) =>
     CANDIDATE_STATUS_MAP[status as CandidateStatus] || { label: status, color: { bg: '#f1f5f9', text: '#64748b' } };
@@ -149,8 +175,6 @@ export default function RecruitmentScreen() {
   };
 
   const departments = ['技术部', '产品部', '设计部', '市场部', '运营部', '人事部'];
-  const experiences = ['不限', '1年以内', '1-3年', '3-5年', '5-10年', '10年以上'];
-  const educations = ['不限', '大专', '本科', '硕士', '博士'];
 
   // ─── 渲染 ───
   return (
@@ -287,6 +311,34 @@ export default function RecruitmentScreen() {
               <Text style={styles.addBtnText}>发布新职位</Text>
             </TouchableOpacity>
 
+            {/* 自动猎头 — 手机端开关 + 电脑端配置引导 */}
+            <View style={styles.headhunterBanner}>
+              <View style={styles.headhunterIcon}>
+                <Ionicons name="flash" size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.headhunterTitle}>自动猎头</Text>
+                <Text style={styles.headhunterDesc}>
+                  {searchConfigs.length === 0
+                    ? '暂无搜索条件 · 请在电脑端配置'
+                    : `已启用 ${searchConfigs.filter(c => c.status === 'active').length}/${searchConfigs.length} 个搜索条件`}
+                </Text>
+              </View>
+              <View style={styles.headhunterSwitchBox}>
+                <Switch
+                  value={searchConfigs.some(c => c.status === 'active')}
+                  onValueChange={handleToggleHeadhunter}
+                  disabled={headhunterToggling || searchConfigs.length === 0}
+                  trackColor={{ false: 'rgba(255,255,255,0.35)', true: '#34d399' }}
+                  thumbColor="#fff"
+                  ios_backgroundColor="rgba(255,255,255,0.35)"
+                />
+                <TouchableOpacity onPress={() => setGuideKey('headhunter')} disabled={headhunterToggling}>
+                  <Text style={styles.headhunterConfigText}>详情配置 ›</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <Text style={styles.sectionTitle}>职位列表 ({posts.length})</Text>
             {posts.length === 0 && (
               <View style={styles.emptyView}>
@@ -389,7 +441,18 @@ export default function RecruitmentScreen() {
                         匹配度 {c.matchScore || 0}%
                       </Text>
                     </View>
-                    <Text style={styles.applyDate}>{formatDate(c.createdAt)}</Text>
+                    <View style={styles.resumeQuickActions}>
+                      {['matched', 'contacted', 'replied'].includes(c.status) && (
+                        <TouchableOpacity
+                          style={styles.quickActionBtn}
+                          onPress={() => handleUpdateStatus(c.id, 'interview_scheduled')}
+                        >
+                          <Ionicons name="calendar" size={12} color="#3730a3" />
+                          <Text style={styles.quickActionText}>约面试</Text>
+                        </TouchableOpacity>
+                      )}
+                      <Text style={styles.applyDate}>{formatDate(c.createdAt)}</Text>
+                    </View>
                   </View>
                 </TouchableOpacity>
               );
@@ -482,29 +545,11 @@ export default function RecruitmentScreen() {
                 <Text style={styles.salaryUnit}>K</Text>
               </View>
 
-              <Text style={styles.inputLabel}>经验要求</Text>
-              <View style={styles.selectRow}>
-                {experiences.map(exp => (
-                  <TouchableOpacity key={exp} style={[styles.selectItem, form.experience === exp && styles.selectItemActive]} onPress={() => setForm({ ...form, experience: exp })}>
-                    <Text style={[styles.selectText, form.experience === exp && styles.selectTextActive]}>{exp}</Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.inputLabel}>更多职位要求</Text>
+              <View style={styles.guideInline}>
+                <Ionicons name="desktop-outline" size={15} color="#6D28D9" />
+                <Text style={styles.guideInlineText}>经验、学历、职位描述等更多要求，请在电脑端登录后配置</Text>
               </View>
-
-              <Text style={styles.inputLabel}>学历要求</Text>
-              <View style={styles.selectRow}>
-                {educations.map(edu => (
-                  <TouchableOpacity key={edu} style={[styles.selectItem, form.education === edu && styles.selectItemActive]} onPress={() => setForm({ ...form, education: edu })}>
-                    <Text style={[styles.selectText, form.education === edu && styles.selectTextActive]}>{edu}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.inputLabel}>职位描述</Text>
-              <TextInput style={[styles.input, styles.textArea]} placeholder="描述该职位的工作内容和职责" placeholderTextColor="#94a3b8" multiline value={form.description} onChangeText={t => setForm({ ...form, description: t })} />
-
-              <Text style={styles.inputLabel}>任职要求</Text>
-              <TextInput style={[styles.input, styles.textArea]} placeholder="列出候选人需要满足的条件" placeholderTextColor="#94a3b8" multiline value={form.requirements} onChangeText={t => setForm({ ...form, requirements: t })} />
 
               <TouchableOpacity style={styles.submitBtn} onPress={handlePublish} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>发布职位</Text>}
@@ -664,6 +709,18 @@ export default function RecruitmentScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 电脑端配置引导弹窗 */}
+      <ConfigGuideModal
+        visible={!!guideKey}
+        feature={guideKey === 'headhunter' ? '自动猎头' : '招聘平台账号绑定'}
+        description={
+          guideKey === 'headhunter'
+            ? 'AI 自动搜索并推荐优质候选人，搜索关键词、地区、经验等条件'
+            : 'BOSS直聘、智联等平台的账号授权'
+        }
+        onClose={() => setGuideKey(null)}
+      />
     </View>
   );
 }
@@ -792,4 +849,17 @@ const styles = StyleSheet.create({
   timelineDotCurrent: { backgroundColor: '#6D28D9', width: 14, height: 14, borderRadius: 7 },
   timelineText: { fontSize: 9, color: '#94a3b8', marginTop: 4, textAlign: 'center' },
   timelineTextActive: { color: '#6D28D9', fontWeight: '500' },
+
+  // 电脑端配置引导
+  guideInline: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F5F3FF', borderRadius: 10, padding: 12, marginTop: 12 },
+  guideInlineText: { fontSize: 12, color: '#6D28D9', flex: 1, lineHeight: 18 },
+  headhunterBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#6D28D9', borderRadius: 12, padding: 14, marginBottom: 16 },
+  headhunterIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  headhunterTitle: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  headhunterDesc: { fontSize: 11, color: '#E9D5FF', marginTop: 2 },
+  headhunterSwitchBox: { alignItems: 'center', gap: 2 },
+  headhunterConfigText: { fontSize: 10, color: '#E9D5FF', marginTop: 2 },
+  resumeQuickActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  quickActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#EDE9FE', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  quickActionText: { fontSize: 11, color: '#3730a3', fontWeight: '500' },
 });

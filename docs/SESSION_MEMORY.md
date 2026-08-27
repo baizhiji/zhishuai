@@ -1,4 +1,70 @@
 
+## 2026-08-28 会话（续13）：【数据总览】数据真实性核查 + 修复 3 处非真实数据
+- 用户核查：手机端【数据总览】显示的每个数字是否都来自真实数据
+- 核查结果：99% 指标来自后端实时统计（数据库 count/groupBy），发现并修复 3 处非真实数据：
+  1. 获客漏斗"已确认"：前端原用 `contactedLeads * 0.5` 估算（假数据）→ 后端 `/acquisition/statistics` 补返回 `qualifiedLeads`（status='qualified' 真实计数），前端 `StatsData` 类型加字段、漏斗直接用真实值
+  2. 招聘"新增候选人"：后端原硬编码 `newResumes: 0` → 改为统计最近 7 天真实新增候选人
+  3. 招聘"在招职位"：后端原 `activeJobs = totalJobs`（含已关闭/暂停岗位）→ 改为只统计 `status='recruiting'` 的真实在招岗位
+- 改动文件（4 个）：`server/src/routes/acquisition.ts`、`server/src/routes/recruitment.ts`、`apk/src/services/acquisition.service.ts`、`apk/src/screens/AcquisitionScreen.tsx`
+- 验证：server/apk `npx tsc --noEmit` 0 错误；server 两个路由已 scp 生产 + pm2 restart zhishuai-api；服务器上 verify-login.sh 通过（admin 200/agent 401/customer 200/register 403）
+- 桌面端 dashboard 用独立接口（/acquisition/dashboard、招聘管线），不受本次影响
+
+## 2026-08-28 会话（续12）：APK 端改「查看 + 简单开关」，平台绑定/授权仅电脑端
+- 用户定调：手机端不需要平台绑定、平台授权等设置类功能，在电脑端进行、手机端共用；手机端只做查看和简单操作（开启/关闭自动猎头、评论获客）
+- 【service 层】`apk/src/services/recruitment.service.ts` 新增 `SearchConfig` 接口 + `getSearchConfigs()`（GET /recruitment/search-config）+ `updateSearchConfig()`（PUT /recruitment/search-config/:id）+ `setHeadhunterStatus(enable)`（一键批量切换全部配置 status active/inactive）；`apk/src/services/acquisition.service.ts` 新增 `AutoCommentTask` 接口 + `getAutoCommentTasks()`（GET /auto-comment/tasks）+ `toggleAutoCommentTask(id, active)`（PUT /auto-comment/tasks/:id）+ `setCommentAcquisitionStatus(enable)`
+- 【RecruitmentScreen】自动猎头横幅由"纯引导点击"改为「Switch 开关 + 已启用 X/Y 个搜索条件 + 详情配置 ›引导」；无搜索条件时 Switch 禁用、点击引导去电脑端；开关调 setHeadhunterStatus
+- 【AcquisitionScreen】数据总览"高级配置"区改为"获客能力"：评论获客卡片改「Switch 开关 + X 个任务运行中 + 话术规则电脑端配置引导」，开关调 setCommentAcquisitionStatus；平台账号卡片保留纯引导（绑定抖音/小红书 → 电脑端操作）
+- 验证：apk `npx tsc --noEmit` 0 错误、0 lint；手机端不含任何平台绑定/授权操作，全部引导至电脑端
+
+- 【APK 端】移动端功能降级，新增通用组件 `apk/src/components/ConfigGuideModal.tsx`（纯文案弹窗"请在电脑端操作"，无跳转链接——电脑端为安装版）
+  - `RecruitmentScreen`：发布岗位表单删经验/学历/职位描述/任职要求 4 字段 → 引导条"更多职位要求请在电脑端配置"（默认值改"不限"）；岗位 Tab 顶部新增"自动猎头"引导 banner；候选人卡片新增"约面试"快捷按钮（matched/contacted/replied 显示）；清理未用的 experiences/educations 常量
+  - `AcquisitionScreen`：数据总览 Tab 新增"高级配置"引导区（评论获客、平台账号两个入口 → ConfigGuideModal）；创建任务弹窗加"更多设置请在电脑端配置"提示条
+  - 验证：apk `npx tsc --noEmit` 0 错误、0 lint
+- 【电脑端桌面版入口引导】与 APK 端引导形成"对应"，确保被手机端引导过来的用户能快速找到功能入口
+  - `Navbar.tsx` 智能招聘子菜单新增"候选人库"入口（/customer/recruitment/candidates，icon UserAddOutlined）——此前候选人库仅能从招聘看板/自动招聘页跳入，无菜单入口
+  - `dashboard/page.tsx`：首次引导由"AI创作三步"升级为"四大功能模块"引导（AI创作工厂/智能招聘/智能获客/推荐分享）；新增常驻"高级功能入口"横幅（自动招聘/评论获客/候选人库/招聘平台/平台授权 5 个跳转按钮）
+  - 验证：desktop-ui `npx tsc --noEmit` 0 错误、0 lint
+- 桌面版为安装版，本次变更随桌面版下次打包发布，无需服务器部署
+
+## 2026-08-27 会话（续10）：确认全自动化不需要 AI 模型 + 修复招聘平台授权缺口
+- 用户问：打包发布后是否真实实现？功能是否需要 AI 模型？→ 核查结论：全自动化三方向全部不调用 LLM，无需配置任何 AI API Key
+  - 招聘真实搜索：配置关键词 → Playwright 真实浏览器打开平台搜索页采集候选人（matchScore 固定 70）
+  - 招聘真实私信：contactTemplate 变量替换 → Playwright sendChatMessage 真实发送
+  - 自动跟评：commentSafetyService.generateScript 三段式模板随机组合 → 违禁词/频率/去重风控 → Playwright 真实发送
+  - 系统支持客户自配 API Key（AiModelRouter），但全自动化核心链路完全离线可用
+- 【关键缺口】招聘平台授权：recruitment-platform.service 从 SocialAccount 表读 bosszhipin/zhilian cookies，但后端 social-account.ts SUPPORTED_PLATFORMS 仅允许 3 个内容平台；前端 platforms/page.tsx 是 localStorage 假连接（无扫码授权）→ 真实搜索/私信无法通过界面授权
+- 【后端修复】social-account.ts SUPPORTED_PLATFORMS 扩展 bosszhipin/zhilian；social-account.service.ts getPlatformName 补 bosszhipin='BOSS直聘'/zhilian='智联招聘'；已部署（scp + pm2 restart，验证通过）
+- 【前端重构】platforms/page.tsx 重写为真实扫码授权页：平台卡片（BOSS直聘/智联，立即授权/添加账号/重新授权）+ 已绑定账号表格（重新授权/解绑）+ 统计卡 + 扫码 Modal 轮询（3s）+ 授权说明 Alert；复用 services/social-account.ts
+- 生产验证：服务器上 verify-login.sh 通过（admin 200/agent 401/customer 200/register 403）；GET /api/social/platforms 返回 5 平台含 bosszhipin/zhilian；POST /api/social/session/create(bosszhipin) 成功返回二维码 base64 + expiresIn=180
+- 服务器真实执行前提核查：zhishuai-api online、playwright chromium-1223 已安装、调度器已启动；但 server/data/cookies 不存在 → 尚无任何平台账号授权，需用户打包发布后在界面扫码（招聘：平台授权页；获客：账号管理页）
+- 新增 scripts/verify-platforms.sh（招聘平台授权接口验证工具，需带管理员 token）
+
+## 2026-08-27 会话（续9）：补齐招聘全自动化的前端操作页面
+- 用户质疑"全自动化完成后对应操作页面是否改造到位"→ 核查发现招聘前端缺候选人列表页（后端 /recruitment/candidates 接口已有，前端无出口）
+- 【新增】候选人库页 `desktop-ui/app/customer/recruitment/candidates/page.tsx`：候选人表格（姓名/岗位/学历经验/来源平台/阶段状态/匹配分/来源链接/最近沟通/更新时间）+ 阶段筛选 + 岗位筛选 + 分页；操作列：手动联系（POST /candidates/:id/contact）、阶段流转下拉（与后端 VALID_TRANSITIONS 对齐）、拒绝；详情 Drawer（来源平台/匹配度/联系方式/技能/简历摘要/来源链接）；顶部 4 个统计卡；空状态提示先到自动招聘执行搜索
+- 【修改】招聘看板 `recruitment/page.tsx`：候选人总数 KPI 可点击跳转候选人库；extra 增加"候选人库"按钮；快速入口第三卡由"平台管理"改为"候选人库"
+- 【修改】自动招聘 `auto/page.tsx`：顶部 Alert 说明全自动化行为（启用配置每30分钟自动真实搜索、autoContact 自动私信、超时每10分钟处理）；搜索配置列表 extra 加"候选人库"入口
+- 验证：desktop-ui `npx tsc --noEmit` 0 错误、0 lint 错误；注意 TS 对象 key 以数字开头须加引号（'51job'）
+- 前端为桌面安装版（在线网页版已下线），本次变更随桌面版下次打包发布，无需服务器部署
+
+## 2026-08-27 会话（续8）：智能招聘 + 智能获客全自动化三方向改造
+- 用户要求三个方向全部直接执行（禁止演示，必须真实闭环）
+- 【方向1 智能招聘·真实候选人搜索】：`recruitment.service.ts` 的 `matchCandidates` 重写——废弃 AI 编造候选人，改为通过 `recruitment-platform.service.ts`（Playwright + 授权账号 cookies）在 BOSS直聘/智联真实搜索候选人入库（Candidate 存 platform/sourceUrl，company 拼入 remark，jobTitle 存 skills/experience）；`contactCandidate` 真实发送私信（`sendChatMessage`），`deliveryStatus=sent/failed/local` 三态；`batchContact` 新增 `delivered` 统计；`/search-config/:id/run` 支持 `autoContact` 自动批量沟通
+- 【方向2 智能招聘·调度器】：新建 `recruitment-scheduler.service.ts`——每10分钟处理超时候选人（processTimeouts），每30分钟扫描 active 的 CandidateSearchConfig 自动搜索+autoContact 批量沟通（距上次搜索<25分钟跳过防堆叠）；index.ts 启动
+- 【方向3 智能获客·自动跟评闭环】：新建 `auto-comment.service.ts` + `routes/auto-comment.ts`（AutoCommentTask/AutoCommentRecord 模型）——5分钟扫描 active 任务，按目标 URL 逐条复用 commentDeliveryService 完整风控（违禁词/7天去重/平台校验/频控熔断），每日限额+当日去重；路由含 tasks CRUD + run + records；index.ts 挂载 `/api/auto-comment`
+- Schema：AutoCommentTask（name/platform/targetUrls/intervalMinutes/dailyLimit/active/lastRunAt）、AutoCommentRecord（taskId/targetUrl/deliveryId/status/message）；Candidate 增 platform/sourceUrl 字段
+- 前端：`comment-delivery.ts` 增 auto-comment 任务 API；跟评页 `page.tsx` 增「自动跟评任务」管理 Card（任务列表/启停/立即执行/编辑/删除/执行记录）+ 任务编辑与记录 Modal
+- 验证：`server npx tsc --noEmit` 通过、`desktop-ui npx tsc --noEmit` 通过（均为 0 错误）；Prisma Client 已 regenerate
+- 注意：前端平台 ID `boss` 后端自动规范化为 `bosszhipin`；不支持 qiancheng/liepin/lagou 真实搜索（提示语明确）；候选人为真实平台数据无手机号，phone 存空串；数据库同步需生产执行 `npx prisma db push + generate` 后重启 zhishuai-api
+
+## 2026-08-27 会话（续7）：APK 1.2.3 正式发布（手机端登录修复）
+- 用户要求把 1.2.3（含 tokenStorage 登录修复，EAS build 85a84936）正式发布
+- 发布前核查：expo.dev/artifacts 链接是 EAS 临时产物链接（有时效+需授权），正式下载一直走 https://baizhiji.net/downloads/zhishuai.apk；当时服务器上是 1.2.2（sha256 3bbd850a...），/api/version/latest 返回 1.2.2
+- 下载：服务器 /tmp 直接 `curl -sL` 拉 EAS 产物 zhishuai-1.2.3.apk（73,521,072B，sha256 `856270e92e58ae56c70383e060873ed37dd473354e795119cef0e22b1daa9473`）→ Python 解析 AndroidManifest.xml 确认 versionName 1.2.3 / versionCode 8
+- 发布：备份旧包 `downloads/zhishuai-1.2.2-backup.apk` → 覆盖 `downloads/zhishuai.apk`；scripts/insert-appversion-apk-1.2.3.js 登记 AppVersion（buildNumber 123，sha256/size 70.1MB/changelog 齐全）→ INSERTED version_apk_123_1787843948554
+- 验证：`/api/version/latest` 返回 1.2.3（buildNumber 123）✓；外网下载 200，Content-Length 73521072 与 1.2.3 文件一致 ✓
+- 注意：手机上已装 1.2.2 需卸载后重装 1.2.3 才能恢复登录（OTA updates 已禁用）
+
 ## 2026-08-27 会话（续6）：AI 工厂修复正式发布 | 桌面版 3.3.0 已发布
 - 用户选择"部署+发布修复"：提交续5修复并发布新桌面版（流程同 3.2.9）
 - 版本号三处 3.2.9 → 3.3.0（desktop/package.json、src-tauri/tauri.conf.json、src-tauri/Cargo.toml）

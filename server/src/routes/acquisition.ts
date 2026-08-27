@@ -512,6 +512,7 @@ router.get('/statistics', authMiddleware, async (req: Request, res: Response) =>
 
     const newCount = statusStats.find(s => s.status === 'new')?._count || 0;
     const contactedCount = statusStats.find(s => s.status === 'contacted')?._count || 0;
+    const qualifiedCount = statusStats.find(s => s.status === 'qualified')?._count || 0;
     const convertedCount = statusStats.find(s => s.status === 'converted')?._count || 0;
     const invalidCount = statusStats.find(s => s.status === 'invalid')?._count || 0;
 
@@ -521,6 +522,7 @@ router.get('/statistics', authMiddleware, async (req: Request, res: Response) =>
       totalLeads: leads,
       newLeads: newCount,
       contactedLeads: contactedCount,
+      qualifiedLeads: qualifiedCount,
       convertedLeads: convertedCount,
       invalidLeads: invalidCount,
       conversionRate: leads > 0 ? Math.round((convertedCount / leads) * 100) : 0,
@@ -681,21 +683,45 @@ router.get('/dashboard', authMiddleware, async (req: Request, res: Response) => 
       }),
     ]);
 
-    const totalLeadsCount = totalLeads;
-    const trend: { label: string; leads: number; conversions: number }[] = [];
+    // 真实趋势：按天聚合潜客创建与转化数据
+    const leadDates = await prisma.acquisitionLead.findMany({
+      where: { userId, createdAt: { gte: sinceDate } },
+      select: { createdAt: true, status: true },
+    });
+    const dayMap = new Map<string, { leads: number; conversions: number }>();
     for (let i = daysBack - 1; i >= 0; i--) {
       const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const dayStr = `${day.getMonth() + 1}/${day.getDate()}`;
-      const avgLeads = totalLeadsCount > 0 ? Math.round(totalLeadsCount / Math.max(daysBack, 1)) : 0;
-      const jitter = () => avgLeads > 0 ? Math.round((Math.random() - 0.5) * avgLeads * 0.5) : 0;
-      trend.push({
-        label: dayStr,
-        leads: avgLeads + jitter(),
-        conversions: Math.round(avgLeads * 0.2 + jitter() * 0.3),
-      });
+      dayMap.set(`${day.getMonth() + 1}/${day.getDate()}`, { leads: 0, conversions: 0 });
     }
+    for (const l of leadDates) {
+      const day = new Date(l.createdAt);
+      const key = `${day.getMonth() + 1}/${day.getDate()}`;
+      const entry = dayMap.get(key);
+      if (entry) {
+        entry.leads += 1;
+        if (l.status === 'converted') entry.conversions += 1;
+      }
+    }
+    const trend = Array.from(dayMap.entries()).map(([label, v]) => ({ label, leads: v.leads, conversions: v.conversions }));
 
     const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+
+    // 真实 AI 评分分布：按 aiScore 分段统计
+    const scoredLeads = await prisma.acquisitionLead.findMany({
+      where: { userId, aiScore: { not: null } },
+      select: { aiScore: true },
+    });
+    const scoreRanges = [
+      { range: '90-100', min: 90, max: 101 },
+      { range: '70-90', min: 70, max: 90 },
+      { range: '50-70', min: 50, max: 70 },
+      { range: '30-50', min: 30, max: 50 },
+      { range: '0-30', min: 0, max: 30 },
+    ];
+    const aiScoreDist = scoreRanges.map(r => ({
+      range: r.range,
+      count: scoredLeads.filter(s => (s.aiScore ?? 0) >= r.min && (s.aiScore ?? 0) < r.max).length,
+    }));
 
     res.json(ok({
       totalLeads,
@@ -705,13 +731,7 @@ router.get('/dashboard', authMiddleware, async (req: Request, res: Response) => 
       convertedLeads,
       trend,
       channelBreakdown: leadsByChannel.map(c => ({ channel: c.source || '未知', count: c._count.id })),
-      aiScoreDist: [
-        { range: '90-100', count: totalLeads > 0 ? Math.round(totalLeads * 0.15) : 0 },
-        { range: '70-90', count: totalLeads > 0 ? Math.round(totalLeads * 0.35) : 0 },
-        { range: '50-70', count: totalLeads > 0 ? Math.round(totalLeads * 0.30) : 0 },
-        { range: '30-50', count: totalLeads > 0 ? Math.round(totalLeads * 0.15) : 0 },
-        { range: '0-30', count: totalLeads > 0 ? Math.round(totalLeads * 0.05) : 0 },
-      ],
+      aiScoreDist,
     }));
   } catch (error: any) {
     res.status(500).json(err(500, error.message));

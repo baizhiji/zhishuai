@@ -1,278 +1,483 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Card, Row, Col, Tag, Button, Space, Typography, Switch, message, Badge, Descriptions, Modal, Form, Input, Select,
+  Alert,
+  Avatar,
+  Button,
+  Card,
+  Col,
+  Empty,
+  message,
+  Modal,
+  Row,
+  Space,
+  Spin,
+  Statistic,
+  Table,
+  Tag,
+  Typography,
 } from 'antd';
 import {
-  GlobalOutlined, LinkOutlined, CheckCircleOutlined, CloseCircleOutlined, SyncOutlined, ReloadOutlined,
-  ApiOutlined, SettingOutlined,
+  CheckCircleFilled,
+  ClockCircleFilled,
+  DisconnectOutlined,
+  QrcodeOutlined,
+  ReloadOutlined,
+  SearchOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
-import apiClient from '@/lib/api';
+import type { ColumnsType } from 'antd/es/table';
 import PageContainer from '@/components/customer/PageContainer';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  cancelSession,
+  createSession,
+  getAccounts,
+  getAccountStats,
+  getSessionStatus,
+  refreshAccount,
+  unbindAccount,
+} from '@/services/social-account';
+import type { AccountStats, LoginSession, SocialAccount } from '@/services/social-account';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text } = Typography;
 
-interface Platform {
-  id: string;
-  name: string;
-  key: string;
-  description: string;
-  icon: string;
-  connected: boolean;
-  lastSyncAt?: string;
-  jobCount?: number;
-  accountName?: string;
-}
+/** 招聘平台视觉标识 */
+const PLATFORM_STYLE: Record<string, { name: string; color: string; bg: string; desc: string }> = {
+  bosszhipin: { name: 'BOSS直聘', color: '#00B8FF', bg: '#e8f7ff', desc: '扫码登录 BOSS直聘，用于真实候选人搜索与私信' },
+  zhilian: { name: '智联招聘', color: '#E60012', bg: '#fff0f1', desc: '扫码登录智联招聘，用于真实候选人搜索与私信' },
+};
 
-const DEFAULT_PLATFORMS: Platform[] = [
-  { id: 'boss', name: 'BOSS直聘', key: 'boss_zhipin', description: '中国领先的在线招聘平台，覆盖互联网、金融等行业', icon: '🔵', connected: false },
-  { id: 'zhilian', name: '智联招聘', key: 'zhilian', description: '老牌综合招聘网站，覆盖全国各行业', icon: '🟢', connected: false },
-  { id: 'qiancheng', name: '前程无忧', key: '51job', description: '综合性人力资源服务商，提供招聘、培训等服务', icon: '🟠', connected: false },
-  { id: 'liepin', name: '猎聘', key: 'liepin', description: '中高端人才招聘平台，专注精英群体', icon: '🔴', connected: false },
-  { id: 'lagou', name: '拉勾', key: 'lagou', description: '专注互联网行业招聘', icon: '🟣', connected: false },
-  { id: 'linkedin', name: 'LinkedIn', key: 'linkedin', description: '全球职业社交平台，覆盖国际化人才', icon: '🔷', connected: false },
-];
+const RECRUIT_PLATFORMS = ['bosszhipin', 'zhilian'];
+const POLL_INTERVAL = 3000;
 
 export default function RecruitmentPlatformsPage() {
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id || '';
 
-  // 连接平台 Modal
-  const [connectVisible, setConnectVisible] = useState(false);
-  const [connectForm] = Form.useForm();
-  const [connectingPlatform, setConnectingPlatform] = useState<Platform | null>(null);
-  const [connectLoading, setConnectLoading] = useState(false);
+  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const [stats, setStats] = useState<AccountStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const fetchPlatforms = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get('/recruitment/search-config') as { configs?: any[] };
-      const configs = res?.configs ?? [];
-      // 基于服务端真实配置组装平台连接状态
-      const activePlatforms = configs.filter((c: any) => c.status === 'active');
-      const savedStr = localStorage.getItem('recruitment_platforms');
-      const saved = savedStr ? JSON.parse(savedStr) as Platform[] : [];
-      setPlatforms(DEFAULT_PLATFORMS.map(p => {
-        const cfg = activePlatforms.find((c: any) => c.platform === p.id);
-        return cfg
-          ? { ...p, connected: true, lastSyncAt: cfg.updatedAt }
-          : (saved.find(s => s.id === p.id) || p);
-      }));
-    } catch {
-      const savedStr = localStorage.getItem('recruitment_platforms');
-      if (savedStr) {
-        setPlatforms(JSON.parse(savedStr) as Platform[]);
-      } else {
-        setPlatforms([...DEFAULT_PLATFORMS]);
-      }
-    } finally { setLoading(false); }
+  // 扫码授权会话
+  const [activeSession, setActiveSession] = useState<LoginSession | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [polling, setPolling] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setPolling(false);
   }, []);
 
-  useEffect(() => { fetchPlatforms(); }, [fetchPlatforms]);
-
-  const savePlatforms = (newPlatforms: Platform[]) => {
-    setPlatforms(newPlatforms);
-    localStorage.setItem('recruitment_platforms', JSON.stringify(newPlatforms));
-  };
-
-  const handleConnect = (platform: Platform) => {
-    setConnectingPlatform(platform);
-    connectForm.resetFields();
-    connectForm.setFieldsValue({ platform: platform.id });
-    setConnectVisible(true);
-  };
-
-  const handleConnectSubmit = async () => {
+  const loadAccounts = useCallback(async () => {
+    if (!userId) return;
     try {
-      const values = await connectForm.validateFields();
-      setConnectLoading(true);
-      // 创建搜索配置表示平台连接
-      await apiClient.post('/recruitment/search-config', {
-        postId: null,
-        platform: connectingPlatform!.id,
-        keywords: values.keywords || '',
-        location: values.location || '',
-        autoContact: false,
-        status: 'active',
-      });
-      const newPlatforms = platforms.map(p =>
-        p.id === connectingPlatform!.id
-          ? { ...p, connected: true, accountName: values.accountName, lastSyncAt: new Date().toISOString() }
-          : p
-      );
-      savePlatforms(newPlatforms);
-      message.success(`${connectingPlatform!.name} 连接成功`);
-      setConnectVisible(false);
-    } catch (e: unknown) {
-      message.error((e as Error)?.message || '连接失败');
-    } finally { setConnectLoading(false); }
+      const list = await getAccounts(userId);
+      setAccounts(list.filter((a) => RECRUIT_PLATFORMS.includes(a.platform)));
+    } catch (e: any) {
+      message.error(e?.message || '加载账号失败');
+    }
+  }, [userId]);
+
+  const loadStats = useCallback(async () => {
+    if (!userId) return;
+    try {
+      setStats(await getAccountStats(userId));
+    } catch {
+      // 统计加载失败不阻塞页面
+    }
+  }, [userId]);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([loadAccounts(), loadStats()]);
+    } catch (e: any) {
+      message.error(e?.message || '加载失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [loadAccounts, loadStats]);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // 轮询扫码状态
+  const startPolling = useCallback(
+    (sessionId: string) => {
+      stopPolling();
+      setPolling(true);
+      timerRef.current = setInterval(async () => {
+        try {
+          const st = await getSessionStatus(sessionId);
+          if (st.status === 'success') {
+            stopPolling();
+            message.success(`${st.platformName || '平台'}授权成功，已可用于真实搜索与私信`);
+            setActiveSession(null);
+            setModalOpen(false);
+            loadAccounts();
+            loadStats();
+          } else if (['expired', 'failed', 'cancelled'].includes(st.status)) {
+            stopPolling();
+            message.info(st.message || '授权已失效，请重新发起');
+            setActiveSession(null);
+            setModalOpen(false);
+          }
+        } catch (e: any) {
+          stopPolling();
+          message.warning(e?.message || '授权会话已过期，请重新发起');
+          setActiveSession(null);
+          setModalOpen(false);
+        }
+      }, POLL_INTERVAL);
+    },
+    [loadAccounts, loadStats, stopPolling]
+  );
+
+  useEffect(() => () => stopPolling(), [stopPolling]);
+
+  const handleAuthorize = async (platform: string) => {
+    try {
+      const session = await createSession(platform, userId);
+      setActiveSession(session);
+      setModalOpen(true);
+      startPolling(session.sessionId);
+    } catch (e: any) {
+      message.error(e?.message || '发起授权失败');
+    }
   };
 
-  const findActiveConfig = async (platformId: string) => {
-    const res = await apiClient.get('/recruitment/search-config') as { configs?: any[] };
-    return (res?.configs ?? []).find((c: any) => c.platform === platformId && c.status === 'active') ?? null;
+  const handleCancelAuth = async () => {
+    if (activeSession) {
+      try {
+        await cancelSession(activeSession.sessionId);
+      } catch {
+        // 忽略取消失败
+      }
+    }
+    stopPolling();
+    setActiveSession(null);
+    setModalOpen(false);
   };
 
-  const handleDisconnect = (platform: Platform) => {
+  const handleUnbind = (account: SocialAccount) => {
     Modal.confirm({
-      title: `确定断开 ${platform.name}？`,
-      content: '断开后将无法在该平台发布职位和搜索候选人',
-      okText: '确定',
+      title: '确认解绑',
+      content: `确定解绑「${account.platformName}」账号「${account.accountName}」吗？解绑后该平台的真实搜索与私信将无法使用。`,
+      okText: '解绑',
+      okButtonProps: { danger: true },
       cancelText: '取消',
       onOk: async () => {
         try {
-          const cfg = await findActiveConfig(platform.id);
-          if (cfg) {
-            await apiClient.delete(`/recruitment/search-config/${cfg.id}`);
-          }
-          const newPlatforms = platforms.map(p =>
-            p.id === platform.id ? { ...p, connected: false, accountName: undefined, lastSyncAt: undefined } : p
-          );
-          savePlatforms(newPlatforms);
-          message.success(`已断开 ${platform.name}`);
-        } catch {
-          message.error(`断开 ${platform.name} 失败`);
+          await unbindAccount(account.id);
+          message.success('已解绑');
+          loadAccounts();
+          loadStats();
+        } catch (e: any) {
+          message.error(e?.message || '解绑失败');
         }
       },
     });
   };
 
-  const handleToggleAuto = async (platform: Platform) => {
+  const handleReauth = async (account: SocialAccount) => {
     try {
-      const cfg = await findActiveConfig(platform.id);
-      if (!cfg) {
-        // 无配置则创建连接配置
-        await apiClient.post('/recruitment/search-config', {
-          postId: null,
-          platform: platform.id,
-          keywords: '',
-          location: '',
-          autoContact: false,
-          status: 'active',
-        });
-      } else if (platform.connected) {
-        await apiClient.put(`/recruitment/search-config/${cfg.id}`, { status: 'inactive' });
-      } else {
-        await apiClient.put(`/recruitment/search-config/${cfg.id}`, { status: 'active' });
-      }
-      const newPlatforms = platforms.map(p =>
-        p.id === platform.id ? { ...p, connected: !p.connected } : p
-      );
-      savePlatforms(newPlatforms);
-      message.success(`${platform.name} 已${newPlatforms.find(p => p.id === platform.id)!.connected ? '连接' : '断开'}`);
-    } catch {
-      message.error(`更新 ${platform.name} 状态失败`);
+      const session = await refreshAccount(account.id);
+      setActiveSession(session);
+      setModalOpen(true);
+      startPolling(session.sessionId);
+    } catch (e: any) {
+      message.error(e?.message || '发起重新授权失败');
     }
   };
 
-  const connectedCount = platforms.filter(p => p.connected).length;
+  const accountsByPlatform = (platform: string) =>
+    accounts.filter((acc) => acc.platform === platform);
+
+  const statusTag = (status: string) => {
+    if (status === 'active') return <Tag color="success">已授权</Tag>;
+    if (status === 'expired') return <Tag color="error">已过期</Tag>;
+    return <Tag>{status || '未知'}</Tag>;
+  };
+
+  const columns: ColumnsType<SocialAccount> = [
+    {
+      title: '平台',
+      dataIndex: 'platform',
+      width: 140,
+      render: (_: string, record: SocialAccount) => {
+        const style = PLATFORM_STYLE[record.platform] || { name: '招聘平台', color: '#333', bg: '#f5f5f5' };
+        return (
+          <Space>
+            <span
+              style={{
+                display: 'inline-flex',
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: style.bg,
+                color: style.color,
+                fontWeight: 700,
+                fontSize: 13,
+              }}
+            >
+              {style.name.slice(0, 1)}
+            </span>
+            {record.platformName}
+          </Space>
+        );
+      },
+    },
+    {
+      title: '账号',
+      dataIndex: 'accountName',
+      render: (_: string, record: SocialAccount) => (
+        <Space>
+          <Avatar size={28} src={record.avatar || undefined} icon={!record.avatar ? <QrcodeOutlined /> : undefined} />
+          {record.accountName || '未命名账号'}
+        </Space>
+      ),
+    },
+    { title: '状态', dataIndex: 'status', width: 100, render: statusTag },
+    {
+      title: '最近同步',
+      dataIndex: 'lastSyncAt',
+      width: 180,
+      render: (v?: string | null) => (v ? new Date(v).toLocaleString() : '—'),
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 190,
+      render: (_: unknown, record: SocialAccount) => (
+        <Space>
+          <Button type="link" size="small" icon={<ReloadOutlined />} onClick={() => handleReauth(record)}>
+            重新授权
+          </Button>
+          <Button type="link" size="small" danger icon={<DisconnectOutlined />} onClick={() => handleUnbind(record)}>
+            解绑
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
+  const qrSrc = activeSession?.qrcodeImage
+    ? activeSession.qrcodeImage.startsWith('data:')
+      ? activeSession.qrcodeImage
+      : `data:image/png;base64,${activeSession.qrcodeImage}`
+    : '';
+
+  const recruitStats = {
+    active: accounts.filter((a) => a.status === 'active').length,
+    total: accounts.length,
+    expired: accounts.filter((a) => a.status === 'expired').length,
+  };
 
   return (
     <PageContainer
-      title="招聘平台管理"
-      description="管理已接入的招聘平台，一键同步职位到多平台"
-      breadcrumb={[{ title: '首页', href: '/customer/dashboard' }, { title: '智能招聘', href: '/customer/recruitment' }, { title: '平台管理' }]}
-      loading={false}
+      title="招聘平台授权"
+      description="扫码授权 BOSS直聘 / 智联招聘 账号后，系统即可在对应平台执行真实候选人搜索与真实私信"
+      breadcrumb={[{ title: '首页', href: '/customer/dashboard' }, { title: '智能招聘', href: '/customer/recruitment' }, { title: '平台授权' }]}
+      loading={loading}
       skeletonType="card"
-      extra={
-        <Button icon={<ReloadOutlined />} onClick={fetchPlatforms} loading={loading}>刷新</Button>
-      }
     >
-      {/* 摘要 */}
-      <Card style={{ borderRadius: 8, marginBottom: 24 }}>
-        <Row gutter={24}>
-          <Col span={8}>
-            <Space direction="vertical" size={0} style={{ display: 'flex', alignItems: 'center' }}>
-              <Title level={1} style={{ color: '#6d28d9', marginBottom: 0 }}>{connectedCount}</Title>
-              <Text type="secondary">已连接平台</Text>
-            </Space>
-          </Col>
-          <Col span={8}>
-            <Space direction="vertical" size={0} style={{ display: 'flex', alignItems: 'center' }}>
-              <Title level={1} style={{ color: '#52c41a', marginBottom: 0 }}>{platforms.length - connectedCount}</Title>
-              <Text type="secondary">待接入平台</Text>
-            </Space>
-          </Col>
-          <Col span={8}>
-            <Space direction="vertical" size={0} style={{ display: 'flex', alignItems: 'center' }}>
-              <Title level={1} style={{ color: '#722ed1', marginBottom: 0 }}>{platforms.length}</Title>
-              <Text type="secondary">平台总数</Text>
-            </Space>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* 平台列表 */}
-      <Row gutter={[16, 16]}>
-        {platforms.map(platform => (
-          <Col xs={24} sm={12} lg={8} key={platform.id}>
-            <Card
-              style={{ borderRadius: 8, height: '100%' }}
-              title={
-                <Space>
-                  <span style={{ fontSize: 20 }}>{platform.icon}</span>
-                  <span>{platform.name}</span>
-                  {platform.connected && <Badge status="success" text="已连接" />}
-                  {!platform.connected && <Badge status="default" text="未连接" />}
-                </Space>
-              }
-              extra={
-                <Switch
-                  checked={platform.connected}
-                  onChange={() => handleToggleAuto(platform)}
-                  checkedChildren="开"
-                  unCheckedChildren="关"
-                />
-              }
-            >
-              <Paragraph type="secondary" style={{ minHeight: 40, marginBottom: 12 }}>{platform.description}</Paragraph>
-              {platform.connected && (
-                <Descriptions size="small" column={1}>
-                  <Descriptions.Item label="账号">{platform.accountName || '-'}</Descriptions.Item>
-                  <Descriptions.Item label="最近同步">
-                    {platform.lastSyncAt ? new Date(platform.lastSyncAt).toLocaleString('zh-CN') : '-'}
-                  </Descriptions.Item>
-                </Descriptions>
-              )}
-              <div style={{ marginTop: 12 }}>
-                {platform.connected ? (
-                  <Space>
-                    <Button size="small" icon={<SettingOutlined />} onClick={() => handleConnect(platform)}>配置</Button>
-                    <Button size="small" danger onClick={() => handleDisconnect(platform)}>断开</Button>
-                  </Space>
-                ) : (
-                  <Button type="primary" size="small" icon={<LinkOutlined />} onClick={() => handleConnect(platform)}>立即连接</Button>
-                )}
-              </div>
-            </Card>
-          </Col>
-        ))}
+      {/* 授权状态概览 */}
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="已授权账号" value={recruitStats.active} valueStyle={{ color: '#07C160' }} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="账号总数" value={recruitStats.total} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="已过期" value={recruitStats.expired} valueStyle={{ color: '#ff4d4f' }} />
+          </Card>
+        </Col>
+        <Col xs={12} sm={6}>
+          <Card size="small">
+            <Statistic title="支持平台" value={RECRUIT_PLATFORMS.length} />
+          </Card>
+        </Col>
       </Row>
 
-      {/* 连接平台 Modal */}
+      {/* 平台授权卡片 */}
+      <Typography.Title level={5} style={{ marginTop: 8 }}>
+        选择平台扫码授权
+      </Typography.Title>
+      <Row gutter={16}>
+        {RECRUIT_PLATFORMS.map((key) => {
+          const style = PLATFORM_STYLE[key] || PLATFORM_STYLE.bosszhipin;
+          const accs = accountsByPlatform(key);
+          const first = accs[0];
+          return (
+            <Col xs={24} sm={12} lg={8} key={key} style={{ marginBottom: 16 }}>
+              <Card hoverable styles={{ body: { padding: 20 } }} style={{ height: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: style.bg,
+                      color: style.color,
+                      fontWeight: 700,
+                      fontSize: 20,
+                      marginRight: 12,
+                    }}
+                  >
+                    {style.name.slice(0, 1)}
+                  </span>
+                  <div>
+                    <Typography.Text strong style={{ fontSize: 16 }}>
+                      {style.name}
+                    </Typography.Text>
+                    <div>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {style.desc}
+                      </Typography.Text>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ minHeight: 40, marginBottom: 12 }}>
+                  {accs.length > 0 ? (
+                    <Space direction="vertical" size={2} style={{ width: '100%' }}>
+                      <Space size={6}>
+                        <Tag color="success">已授权 {accs.length} 个账号</Tag>
+                      </Space>
+                      {accs.slice(0, 2).map((a) => (
+                        <Space key={a.id} size={6} style={{ width: '100%' }}>
+                          <Avatar size={20} src={a.avatar || undefined} />
+                          <Typography.Text ellipsis style={{ maxWidth: 180, fontSize: 13 }}>
+                            {a.accountName || '未命名账号'}
+                          </Typography.Text>
+                          {a.status !== 'active' && statusTag(a.status)}
+                        </Space>
+                      ))}
+                    </Space>
+                  ) : (
+                    <Typography.Text type="secondary">未授权</Typography.Text>
+                  )}
+                </div>
+
+                <Space wrap>
+                  <Button type="primary" icon={<QrcodeOutlined />} onClick={() => handleAuthorize(key)}>
+                    {accs.length > 0 ? '添加账号' : '立即授权'}
+                  </Button>
+                  {first && (
+                    <Button icon={<ReloadOutlined />} onClick={() => handleReauth(first)}>
+                      重新授权
+                    </Button>
+                  )}
+                </Space>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+
+      {/* 已绑定账号列表 */}
+      <Typography.Title level={5} style={{ marginTop: 16 }}>
+        已绑定账号（{accounts.length}）
+      </Typography.Title>
+      <Card styles={{ body: { padding: 0 } }}>
+        <Table<SocialAccount>
+          rowKey="id"
+          columns={columns}
+          dataSource={accounts}
+          loading={loading}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          locale={{
+            emptyText: (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无绑定账号，请先在上方扫码授权" />
+            ),
+          }}
+        />
+      </Card>
+
+      {/* 扫码授权弹窗 */}
       <Modal
-        title={`连接 ${connectingPlatform?.name || ''}`}
-        open={connectVisible}
-        onCancel={() => setConnectVisible(false)}
-        onOk={handleConnectSubmit}
-        confirmLoading={connectLoading}
-        okText="确认连接"
-        cancelText="取消"
-        width={500}
+        title={activeSession ? `扫码登录${activeSession.platformName || ''}` : '扫码授权'}
+        open={modalOpen}
+        onCancel={handleCancelAuth}
+        footer={
+          <Button onClick={handleCancelAuth} disabled={polling}>
+            {polling ? '等待扫码中…' : '取消授权'}
+          </Button>
+        }
+        width={420}
+        destroyOnClose
+        closable={false}
+        maskClosable={false}
       >
-        <Form form={connectForm} layout="vertical" style={{ marginTop: 16 }}>
-          <Form.Item name="accountName" label="平台账号" rules={[{ required: true, message: '请输入平台账号' }]}>
-            <Input placeholder="请输入该平台注册账号" />
-          </Form.Item>
-          <Form.Item name="keywords" label="默认搜索关键词">
-            <Input placeholder="如：前端开发工程师" />
-          </Form.Item>
-          <Form.Item name="location" label="默认地区">
-            <Input placeholder="如：北京" />
-          </Form.Item>
-        </Form>
+        <div style={{ textAlign: 'center', padding: '8px 0 16px' }}>
+          {qrSrc ? (
+            <img
+              src={qrSrc}
+              alt="登录二维码"
+              style={{
+                width: 280,
+                height: 280,
+                objectFit: 'contain',
+                borderRadius: 8,
+                border: '1px solid #f0f0f0',
+              }}
+            />
+          ) : (
+            <div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Spin tip="正在获取二维码…" />
+            </div>
+          )}
+          <div style={{ marginTop: 12 }}>
+            {polling ? (
+              <Space>
+                <Spin size="small" />
+                <Typography.Text type="secondary">
+                  请使用{activeSession?.platformName || '对应平台'}APP扫描二维码登录
+                </Typography.Text>
+              </Space>
+            ) : (
+              <Typography.Text type="secondary">二维码即将就绪…</Typography.Text>
+            )}
+          </div>
+          {activeSession && activeSession.expiresIn > 0 && (
+            <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 6 }}>
+              <ClockCircleFilled /> 会话约 {Math.ceil(activeSession.expiresIn / 60)} 分钟内有效
+            </Typography.Text>
+          )}
+        </div>
       </Modal>
+
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginTop: 16 }}
+        message="授权说明"
+        description={
+          <Space direction="vertical" size={2}>
+            <span><SearchOutlined /> 授权后，系统将使用该账号在招聘平台执行真实候选人搜索（每 30 分钟自动执行）。</span>
+            <span><MessageOutlined /> 开启「自动沟通」后，系统将使用该账号向匹配候选人真实发送私信。</span>
+            <span><CheckCircleFilled /> 账号 Cookie 加密存储，仅用于搜索与私信，请勿将二维码分享给他人。</span>
+          </Space>
+        }
+      />
     </PageContainer>
   );
 }

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Modal, TextInput, Alert, ActivityIndicator, Dimensions,
+  Modal, TextInput, Alert, ActivityIndicator, Dimensions, Switch,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/PageHeader';
+import ConfigGuideModal from '../components/ConfigGuideModal';
 import { acquisitionService } from '../services/acquisition.service';
-import type { AcquisitionTask, AcquisitionLead, StatsData, LeadStatus } from '../services/acquisition.service';
+import type { AcquisitionTask, AcquisitionLead, StatsData, LeadStatus, AutoCommentTask } from '../services/acquisition.service';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -20,6 +22,12 @@ const CHANNELS = [
   { key: 'bosszhipin', label: 'BOSS直聘' },
   { key: 'zhilian', label: '智联' },
 ];
+
+// 电脑端配置引导（电脑端为桌面安装版，手机端仅文案提示）
+const GUIDE_CONFIG: Record<string, { feature: string; description: string }> = {
+  comment: { feature: '评论获客', description: 'AI 自动在目标账号下发布获客评论，话术与规则' },
+  accounts: { feature: '平台账号绑定', description: '抖音、小红书等平台的账号授权' },
+};
 
 const STATUS_COLORS: Record<string, string> = {
   pending: '#faad14', running: '#1890ff', completed: '#52c41a', paused: '#8c8c8c',
@@ -43,7 +51,7 @@ export default function AcquisitionScreen() {
   // 数据
   const [stats, setStats] = useState<StatsData>({
     totalTasks: 0, runningTasks: 0, totalLeads: 0, newLeads: 0,
-    contactedLeads: 0, convertedLeads: 0, invalidLeads: 0, conversionRate: 0,
+    contactedLeads: 0, qualifiedLeads: 0, convertedLeads: 0, invalidLeads: 0, conversionRate: 0,
   });
   const [tasks, setTasks] = useState<AcquisitionTask[]>([]);
   const [leads, setLeads] = useState<AcquisitionLead[]>([]);
@@ -52,6 +60,9 @@ export default function AcquisitionScreen() {
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [showLeadDetail, setShowLeadDetail] = useState(false);
   const [selectedLead, setSelectedLead] = useState<AcquisitionLead | null>(null);
+  const [guideKey, setGuideKey] = useState<string | null>(null);
+  const [commentTasks, setCommentTasks] = useState<AutoCommentTask[]>([]);
+  const [commentToggling, setCommentToggling] = useState(false);
 
   // 表单
   const [taskName, setTaskName] = useState('');
@@ -64,10 +75,11 @@ export default function AcquisitionScreen() {
     if (!silent) setLoading(true);
     setRefreshing(true);
     try {
-      const [statsRes, tasksRes, leadsRes] = await Promise.all([
+      const [statsRes, tasksRes, leadsRes, commentTasksRes] = await Promise.all([
         acquisitionService.getStats(),
         acquisitionService.getTasks({ pageSize: 50 }),
         acquisitionService.getLeads({ pageSize: 50 }),
+        acquisitionService.getAutoCommentTasks(),
       ]);
       setStats(statsRes ?? {
         totalTasks: 0,
@@ -75,12 +87,14 @@ export default function AcquisitionScreen() {
         totalLeads: 0,
         newLeads: 0,
         contactedLeads: 0,
+        qualifiedLeads: 0,
         convertedLeads: 0,
         invalidLeads: 0,
         conversionRate: 0,
       });
       setTasks(tasksRes?.tasks ?? []);
       setLeads(leadsRes?.leads ?? []);
+      setCommentTasks(commentTasksRes ?? []);
     } catch (e: any) {
       if (!silent) Alert.alert('加载失败', e.message || '请稍后重试');
       console.error('获客数据加载失败:', e);
@@ -155,6 +169,26 @@ export default function AcquisitionScreen() {
     }
   };
 
+  // ─── 启停评论获客 ────────────────────────────────────
+  const handleToggleCommentAcquisition = async (enable: boolean) => {
+    if (commentTasks.length === 0) {
+      setGuideKey('comment');
+      return;
+    }
+    try {
+      setCommentToggling(true);
+      const result = await acquisitionService.setCommentAcquisitionStatus(enable);
+      await loadData(true);
+      if (result.updated > 0) {
+        Alert.alert(enable ? '已开启' : '已关闭', enable ? '评论获客已开启，AI 将按配置自动发布获客评论' : '评论获客已关闭，暂停自动跟评');
+      }
+    } catch (e: any) {
+      Alert.alert('操作失败', e.message || '请稍后重试');
+    } finally {
+      setCommentToggling(false);
+    }
+  };
+
   // ─── 渲染 ──────────────────────────────────────────
   return (
     <View style={styles.container}>
@@ -177,7 +211,15 @@ export default function AcquisitionScreen() {
         <View style={styles.center}><ActivityIndicator size="large" color="#1677ff" /></View>
       ) : (
         <ScrollView style={styles.body} contentContainerStyle={styles.bodyInner}>
-          {activeTab === 0 && <OverviewTab stats={stats} />}
+          {activeTab === 0 && (
+            <OverviewTab
+              stats={stats}
+              onGuide={setGuideKey}
+              commentTasks={commentTasks}
+              commentToggling={commentToggling}
+              onToggleComment={handleToggleCommentAcquisition}
+            />
+          )}
           {activeTab === 1 && (
             <TasksTab
               tasks={tasks}
@@ -225,6 +267,10 @@ export default function AcquisitionScreen() {
             </View>
             <Text style={styles.label}>目标数量</Text>
             <TextInput style={styles.input} value={targetCount} onChangeText={setTargetCount} keyboardType="numeric" placeholder="100" />
+            <View style={styles.guideHint}>
+              <Ionicons name="desktop-outline" size={14} color="#8c8c8c" />
+              <Text style={styles.guideHintText}>更多设置（获客关键词、自动跟进话术等）请在电脑端配置</Text>
+            </View>
             <View style={styles.btnRow}>
               <TouchableOpacity style={styles.btnCancel} onPress={() => setShowCreateTask(false)}>
                 <Text style={styles.btnCancelText}>取消</Text>
@@ -236,6 +282,14 @@ export default function AcquisitionScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* 电脑端配置引导弹窗 */}
+      <ConfigGuideModal
+        visible={!!guideKey}
+        feature={guideKey ? GUIDE_CONFIG[guideKey]?.feature ?? '' : ''}
+        description={guideKey ? GUIDE_CONFIG[guideKey]?.description : undefined}
+        onClose={() => setGuideKey(null)}
+      />
 
       {/* 潜客详情弹窗 */}
       <Modal visible={showLeadDetail} transparent animationType="slide">
@@ -284,13 +338,22 @@ export default function AcquisitionScreen() {
 }
 
 // ─── 子组件: 数据总览 ──────────────────────────────────────
-function OverviewTab({ stats }: { stats: StatsData }) {
+function OverviewTab({
+  stats, onGuide, commentTasks, commentToggling, onToggleComment,
+}: {
+  stats: StatsData;
+  onGuide: (key: string) => void;
+  commentTasks: AutoCommentTask[];
+  commentToggling: boolean;
+  onToggleComment: (enable: boolean) => void;
+}) {
   const cards = [
     { label: '获客任务', value: stats.totalTasks, sub: `运行中 ${stats.runningTasks}` },
     { label: '潜客总数', value: stats.totalLeads, sub: `新增 ${stats.newLeads}` },
     { label: '已转化', value: stats.convertedLeads, sub: `转化率 ${stats.conversionRate}%` },
     { label: '待跟进', value: stats.contactedLeads + stats.newLeads, sub: `无效 ${stats.invalidLeads}` },
   ];
+  const activeCommentCount = commentTasks.filter(t => t.active).length;
 
   return (
     <View>
@@ -309,9 +372,45 @@ function OverviewTab({ stats }: { stats: StatsData }) {
       <View style={styles.funnelCard}>
         <FunnelStep label="潜客总数" count={stats.totalLeads} color="#1890ff" max={stats.totalLeads || 1} />
         <FunnelStep label="已联系" count={stats.contactedLeads} color="#722ed1" max={stats.totalLeads || 1} />
-        <FunnelStep label="已确认" count={stats.contactedLeads > 0 ? Math.round(stats.contactedLeads * 0.5) : 0} color="#13c2c2" max={stats.totalLeads || 1} />
+        <FunnelStep label="已确认" count={stats.qualifiedLeads ?? 0} color="#13c2c2" max={stats.totalLeads || 1} />
         <FunnelStep label="已转化" count={stats.convertedLeads} color="#52c41a" max={stats.totalLeads || 1} />
       </View>
+
+      <Text style={styles.sectionTitle}>获客能力</Text>
+      {/* 评论获客 — 手机端开关 + 电脑端配置引导 */}
+      <View style={styles.guideCard}>
+        <TouchableOpacity style={styles.guideCardMain} onPress={() => onGuide('comment')}>
+          <View style={[styles.guideIcon, { backgroundColor: '#e6f4ff' }]}>
+            <Ionicons name="chatbox-ellipses" size={20} color="#1677ff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.guideTitle}>评论获客</Text>
+            <Text style={styles.guideDesc}>
+              {commentTasks.length === 0
+                ? '暂无跟评任务 · 请在电脑端配置'
+                : `${activeCommentCount} 个任务运行中 · 话术规则请在电脑端配置`}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <Switch
+          value={activeCommentCount > 0}
+          onValueChange={onToggleComment}
+          disabled={commentToggling || commentTasks.length === 0}
+          trackColor={{ false: '#d9d9d9', true: '#1677ff' }}
+          thumbColor="#fff"
+        />
+      </View>
+      {/* 平台账号绑定 — 电脑端专属，仅引导 */}
+      <TouchableOpacity style={styles.guideCard} onPress={() => onGuide('accounts')}>
+        <View style={[styles.guideIcon, { backgroundColor: '#fff7e6' }]}>
+          <Ionicons name="link" size={20} color="#fa8c16" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.guideTitle}>平台账号</Text>
+          <Text style={styles.guideDesc}>绑定抖音 / 小红书等账号 · 请前往电脑端操作</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#94a3b8" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -567,4 +666,13 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0' },
   infoLabel: { fontSize: 13, color: '#888' },
   infoValue: { fontSize: 13, color: '#333', flex: 1, textAlign: 'right', marginLeft: 16 },
+
+  // 电脑端配置引导
+  guideHint: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fafafa', borderRadius: 8, padding: 10, marginTop: 12 },
+  guideHintText: { fontSize: 12, color: '#8c8c8c', flex: 1, lineHeight: 18 },
+  guideCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, elevation: 1 },
+  guideCardMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  guideIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  guideTitle: { fontSize: 15, fontWeight: '600', color: '#222' },
+  guideDesc: { fontSize: 12, color: '#888', marginTop: 2 },
 });

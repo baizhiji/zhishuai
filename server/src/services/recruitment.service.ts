@@ -11,8 +11,11 @@
  *   └────────────────── expired (超时自动关闭) ──────────────────────────────────────────────┘
  */
 import { prisma } from '../utils/db';
-import { chatCompletion } from './ai-client';
 import { randomUUID } from 'crypto';
+import * as recruitmentPlatform from './recruitment-platform.service';
+
+/** 当前支持真实搜索的招聘平台 */
+const SUPPORTED_TALENT_PLATFORMS = ['bosszhipin', 'zhilian'];
 
 // ─── 类型 ────────────────────────────────
 
@@ -66,7 +69,8 @@ export interface MatchCandidateResult {
 }
 
 /**
- * AI驱动的候选人匹配
+ * 真实候选人匹配：使用授权账号在招聘平台（BOSS直聘/智联）真实搜索候选人
+ * 不再使用 AI 编造候选人 —— 未授权账号或采集失败时明确报错
  */
 export async function matchCandidates(
   userId: string,
@@ -84,91 +88,55 @@ export async function matchCandidates(
     } catch { /* candidateSearchConfig 表不存在 */ }
   }
 
-  // 获取已有候选人列表(用于去重)
+  // 平台值规范化（兼容前端 boss 简写）与支持校验
+  const rawPlatform = config?.platform || 'bosszhipin';
+  const platform = rawPlatform === 'boss' ? 'bosszhipin' : rawPlatform;
+  if (!SUPPORTED_TALENT_PLATFORMS.includes(platform)) {
+    throw new Error(`暂不支持在「${recruitmentPlatform.platformLabel(platform)}」真实搜索候选人，当前支持 BOSS直聘 / 智联招聘`);
+  }
+  const keywords = config?.keywords
+    ? String(config.keywords).split(/[,，]/).map((s: string) => s.trim()).filter(Boolean)
+    : [job.title];
+
+  // 真实平台搜索（授权账号 cookies + Playwright）
+  const platformCandidates = await recruitmentPlatform.searchTalent(userId, platform, {
+    keywords,
+    maxResults: config?.maxResults || 20,
+  });
+
+  if (platformCandidates.length === 0) {
+    throw new Error('未在招聘平台搜索到候选人，请调整搜索关键词或检查账号授权');
+  }
+
+  // 去重：按姓名去重（平台候选人无手机号）
   const existingCandidates = await prisma.candidate.findMany({
     where: { postId: jobId },
-    select: { phone: true, name: true },
+    select: { name: true },
   });
-  const existingPhones = new Set(existingCandidates.map(c => c.phone).filter(Boolean));
-  const existingNames = new Set(existingCandidates.map(c => c.name).filter(Boolean));
+  const existingNames = new Set(existingCandidates.map(c => c.name));
 
-  // 使用 AI 生成匹配候选人（不硬编码模型，让 AI 客户端自动选型）
-  const systemPrompt = `你是一位资深招聘专家，请根据岗位信息生成${config?.maxResults || 5}个高度匹配的候选人信息。
-
-岗位要求:
-- 标题: ${job.title}
-- 要求: ${job.requirements || '未指定'}
-- 学历: ${job.education || '不限'}
-- 经验: ${job.experience || '不限'}
-- 地点: ${(job as any).location || '不限'}
-- 搜索条件: ${config ? JSON.stringify({ keywords: config.keywords, location: (config as any).location }) : '未指定'}
-
-严格要求:
-1. 每个候选人必须包含一个真实可联系的 phone(11位手机号) 或 email，禁止编造占位符(如 13800000000、xxx@email.com)
-2. 如果某个候选人的真实联系方式无法提供，则不要输出该条记录
-3. 手机号必须是有效的 11 位数字，邮箱必须格式正确
-
-输出JSON数组格式,每个候选人包含:
-- name: 姓名
-- phone: 手机号(必填，如无法提供则跳过该条)
-- email: 邮箱(可选)
-- matchScore: 匹配度(0-100)
-- matchReason: 匹配理由(50字以内)
-- skills: 技能列表
-- experience: 工作经历简述
-- education: 学历
-- location: 所在城市
-- source: 来源平台
-
-确保所有候选人唯一(不重复姓名),输出严格JSON格式。`;
-
-  let candidates: any[] = [];
-  try {
-    const aiResult = await chatCompletion(userId, {
-      messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: '请生成候选人列表' }],
-      temperature: 0.7,
-      max_tokens: 4096,
-    });
-
-    // 解析AI结果
-    try {
-      const jsonMatch = aiResult.match(/\[[\s\S]*\]/);
-      candidates = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-    } catch {
-      console.warn('AI 候选人匹配 JSON 解析失败');
-      throw new Error('AI 候选人匹配解析失败，请重试');
-    }
-  } catch (aiError: any) {
-    // 不降级为模拟数据：商用场景禁止写入编造的候选人
-    throw new Error(`候选人匹配失败: ${aiError?.message || 'AI 服务暂不可用，请稍后重试'}`);
-  }
-
-  if (candidates.length === 0) {
-    throw new Error('未能生成有效的候选人，请补充更明确的岗位要求后重试');
-  }
-
-  // 校验联系方式有效性，无效数据不入库
-  const isValidPhone = (v: any) => typeof v === 'string' && /^1[3-9]\d{9}$/.test(v);
-  const isValidEmail = (v: any) => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-
-  // 去重并创建候选人记录
+  // 写入候选人记录
   const results: MatchCandidateResult[] = [];
-  for (const c of candidates.slice(0, 20)) {
-    const phone = typeof c.phone === 'string' ? c.phone.trim() : '';
-    const email = typeof c.email === 'string' ? c.email.trim() : '';
-    if (!isValidPhone(phone) && !isValidEmail(email)) continue;
-
-    if (existingPhones.has(phone) || (c.name && existingNames.has(c.name))) continue;
+  for (const pc of platformCandidates) {
+    if (existingNames.has(pc.name)) continue;
+    existingNames.add(pc.name);
 
     const candidate = await prisma.candidate.create({
       data: {
         id: randomUUID(),
         postId: jobId,
         userId,
-        name: c.name || '候选人',
-        phone: phone || '',
-        education: c.education || '',
-        experience: c.experience || '',
+        name: pc.name,
+        phone: '',
+        education: pc.education || '',
+        experience: pc.jobTitle ? `${pc.jobTitle}${pc.experience ? `（${pc.experience}）` : ''}` : pc.experience || '',
+        location: pc.location || '',
+        matchScore: 70,
+        skills: pc.jobTitle || '',
+        source: 'platform',
+        platform,
+        sourceUrl: pc.sourceUrl || '',
+        remark: pc.company ? `来源公司：${pc.company}` : '来自招聘平台真实搜索',
         status: 'matched',
         updatedAt: new Date(),
       },
@@ -177,22 +145,28 @@ export async function matchCandidates(
     results.push({
       id: candidate.id,
       name: candidate.name,
-      score: c.matchScore || 50,
-      matchReason: c.matchReason || '',
-      skills: c.skills ? (typeof c.skills === 'string' ? c.skills.split(',') : c.skills) : [],
-      experience: c.experience || '',
-      education: c.education || '',
-      location: c.location || '',
-      source: c.source || 'ai',
+      score: 70,
+      matchReason: pc.jobTitle ? `平台候选人：${pc.jobTitle}` : '来自招聘平台真实搜索',
+      skills: pc.jobTitle ? [pc.jobTitle] : [],
+      experience: pc.experience || '',
+      education: pc.education || '',
+      location: pc.location || '',
+      source: 'platform',
     });
   }
 
-  // 更新岗位候选人数量
+  // 更新岗位候选人数量 + 搜索配置最后执行时间
   if (results.length > 0) {
     await prisma.recruitmentPost.update({
       where: { id: jobId },
       data: { candidateCount: { increment: results.length } },
     });
+    if (searchConfigId) {
+      await (prisma as any).candidateSearchConfig?.update({
+        where: { id: searchConfigId },
+        data: { lastSearchedAt: new Date() },
+      }).catch(() => {});
+    }
   }
 
   return results;
@@ -206,6 +180,7 @@ export interface CommunicationResult {
   message: string;
   content: string;
   newStage: string;
+  deliveryStatus?: string;
 }
 
 /**
@@ -240,21 +215,43 @@ export async function contactCandidate(
     .replace(/\{\{company\}\}/g, '智枢AI')
     .replace(/\{\{recruiter\}\}/g, candidate.RecruitmentPost.recruiterName || 'HR');
 
+  // 真实发送：平台来源候选人通过 Playwright 在招聘平台发送私信
+  let deliveryStatus = 'local';
+  let deliveryError: string | undefined;
+  if (candidate.platform) {
+    const sendResult = await recruitmentPlatform.sendChatMessage(
+      userId,
+      { platform: candidate.platform, sourceUrl: candidate.sourceUrl || undefined },
+      content,
+    );
+    if (sendResult.sent) {
+      deliveryStatus = 'sent';
+    } else {
+      deliveryStatus = 'failed';
+      deliveryError = sendResult.error;
+    }
+  } else {
+    deliveryError = '候选人无平台来源，仅本地记录沟通';
+  }
+
   // 记录沟通（表不存在则跳过）
   try {
     await (prisma as any).recruitmentCommunication?.create({
-    data: {
-      id: randomUUID(),
-      userId,
-      candidateId,
-      postId: candidate.postId,
-      channel,
-      direction: 'outbound',
-      content,
-      aiGenerated: true,
-      readByCandidate: false,
-    },
-  });
+      data: {
+        id: randomUUID(),
+        userId,
+        candidateId,
+        postId: candidate.postId,
+        channel,
+        direction: 'outbound',
+        content,
+        aiGenerated: true,
+        readByCandidate: false,
+        deliveryStatus,
+        deliveryError,
+        deliveredAt: deliveryStatus === 'sent' ? new Date() : undefined,
+      },
+    });
   } catch { /* recruitmentCommunication 表不存在，跳过记录 */ }
 
   // 更新候选人状态
@@ -262,7 +259,9 @@ export async function contactCandidate(
     where: { id: candidateId },
     data: {
       status: 'contacted',
+      lastContactedAt: new Date(),
       updatedAt: new Date(),
+      remark: deliveryStatus === 'failed' ? `发送失败：${deliveryError}` : candidate.remark,
     },
   });
 
@@ -275,9 +274,14 @@ export async function contactCandidate(
   return {
     success: true,
     candidateId,
-    message: '沟通消息已发送',
+    message: deliveryStatus === 'sent'
+      ? '沟通消息已真实发送到招聘平台'
+      : deliveryStatus === 'failed'
+        ? `消息未送达：${deliveryError}`
+        : '沟通消息已记录（仅本地，未真实发送）',
     content,
     newStage: 'contacted',
+    deliveryStatus,
   };
 }
 
@@ -389,7 +393,7 @@ export async function batchContact(
   userId: string,
   jobId: string,
   candidateIds?: string[]
-): Promise<{ contacted: number; failed: number; results: CommunicationResult[] }> {
+): Promise<{ contacted: number; failed: number; delivered: number; results: CommunicationResult[] }> {
   const where: any = { postId: jobId, userId, status: 'matched' };
   if (candidateIds) {
     where.id = { in: candidateIds };
@@ -403,18 +407,20 @@ export async function batchContact(
   const results: CommunicationResult[] = [];
   let contacted = 0;
   let failed = 0;
+  let delivered = 0;
 
   for (const c of candidates) {
     try {
       const r = await contactCandidate(userId, c.id);
       results.push(r);
+      if (r.deliveryStatus === 'sent') delivered++;
       contacted++;
     } catch {
       failed++;
     }
   }
 
-  return { contacted, failed, results };
+  return { contacted, failed, delivered, results };
 }
 
 // ─── 管线统计 ────────────────────────────────

@@ -27,6 +27,11 @@ import {
   AimOutlined,
   ShareAltOutlined,
   TeamOutlined,
+  ThunderboltOutlined,
+  CommentOutlined,
+  ApartmentOutlined,
+  QrcodeOutlined,
+  UserAddOutlined,
 } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import {
@@ -511,10 +516,10 @@ export default function CustomerDashboard() {
       {/* ====== 快捷入口 / 首次引导 ====== */}
       {isFirstTimeUser && (
         <Card style={{ ...cardBase, marginTop: 16 }} styles={{ body: { padding: 24 } }}>
-          <Title level={4} style={{ marginTop: 0 }}>👋 欢迎使用智枢 AI，开始你的内容创作之旅</Title>
-          <Text type="secondary">三步快速上手：</Text>
+          <Title level={4} style={{ marginTop: 0 }}>👋 欢迎使用智枢 AI</Title>
+          <Text type="secondary">四大功能模块，覆盖内容创作、智能招聘、智能获客与裂变增长，高级配置均可在电脑端完成：</Text>
           <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={6}>
               <Card
                 hoverable
                 style={{ borderRadius: 10, border: '1px dashed #d9d9d9' }}
@@ -524,40 +529,56 @@ export default function CustomerDashboard() {
                 <Space>
                   <RobotOutlined style={{ fontSize: 24, color: COLORS.purple }} />
                   <div>
-                    <Text strong>1. AI 创作工厂</Text>
+                    <Text strong>AI 创作工厂</Text>
                     <div style={{ fontSize: 12, color: '#8c8c8c' }}>一键生成爆款内容 <ArrowRightOutlined /></div>
                   </div>
                 </Space>
               </Card>
             </Col>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={6}>
               <Card
                 hoverable
                 style={{ borderRadius: 10, border: '1px dashed #d9d9d9' }}
                 styles={{ body: { padding: 16 } }}
-                onClick={() => router.push('/customer/materials')}
+                onClick={() => router.push('/customer/recruitment')}
               >
                 <Space>
-                  <FileTextOutlined style={{ fontSize: 24, color: COLORS.primary }} />
+                  <TeamOutlined style={{ fontSize: 24, color: COLORS.primary }} />
                   <div>
-                    <Text strong>2. 内容中心</Text>
-                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>统一管理所有素材 <ArrowRightOutlined /></div>
+                    <Text strong>智能招聘</Text>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>职位发布 · 自动猎头 <ArrowRightOutlined /></div>
                   </div>
                 </Space>
               </Card>
             </Col>
-            <Col xs={24} sm={8}>
+            <Col xs={24} sm={6}>
               <Card
                 hoverable
                 style={{ borderRadius: 10, border: '1px dashed #d9d9d9' }}
                 styles={{ body: { padding: 16 } }}
-                onClick={() => router.push('/customer/api-keys')}
+                onClick={() => router.push('/customer/acquisition')}
               >
                 <Space>
-                  <PlusOutlined style={{ fontSize: 24, color: COLORS.success }} />
+                  <AimOutlined style={{ fontSize: 24, color: COLORS.success }} />
                   <div>
-                    <Text strong>3. 创建 API Key</Text>
-                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>对接你的应用 <ArrowRightOutlined /></div>
+                    <Text strong>智能获客</Text>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>潜客发现 · 评论获客 <ArrowRightOutlined /></div>
+                  </div>
+                </Space>
+              </Card>
+            </Col>
+            <Col xs={24} sm={6}>
+              <Card
+                hoverable
+                style={{ borderRadius: 10, border: '1px dashed #d9d9d9' }}
+                styles={{ body: { padding: 16 } }}
+                onClick={() => router.push('/customer/recommendation')}
+              >
+                <Space>
+                  <ShareAltOutlined style={{ fontSize: 24, color: COLORS.warning }} />
+                  <div>
+                    <Text strong>推荐分享</Text>
+                    <div style={{ fontSize: 12, color: '#8c8c8c' }}>分享裂变 · 推广获益 <ArrowRightOutlined /></div>
                   </div>
                 </Space>
               </Card>
@@ -565,6 +586,38 @@ export default function CustomerDashboard() {
           </Row>
         </Card>
       )}
+
+      {/* ====== 高级功能入口引导（电脑端完整配置入口） ====== */}
+      <Card style={{ ...cardBase, marginTop: 16 }} styles={{ body: { padding: '16px 20px' } }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <Space>
+            <ThunderboltOutlined style={{ fontSize: 18, color: COLORS.primary }} />
+            <div>
+              <Text strong>高级功能入口</Text>
+              <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                自动招聘、评论获客、平台授权等高级配置均在电脑端完成，手机端仅支持查看和日常操作
+              </div>
+            </div>
+          </Space>
+          <Space wrap>
+            <Button size="small" icon={<ThunderboltOutlined />} onClick={() => router.push('/customer/recruitment/auto')}>
+              自动招聘
+            </Button>
+            <Button size="small" icon={<CommentOutlined />} onClick={() => router.push('/customer/acquisition/comment')}>
+              评论获客
+            </Button>
+            <Button size="small" icon={<UserAddOutlined />} onClick={() => router.push('/customer/recruitment/candidates')}>
+              候选人库
+            </Button>
+            <Button size="small" icon={<ApartmentOutlined />} onClick={() => router.push('/customer/recruitment/platforms')}>
+              招聘平台
+            </Button>
+            <Button size="small" icon={<QrcodeOutlined />} onClick={() => router.push('/customer/acquisition/accounts')}>
+              平台授权
+            </Button>
+          </Space>
+        </div>
+      </Card>
 
       {/* ====== 底部提示 ====== */}
       <div style={{ textAlign: 'center', marginTop: 24, color: '#bfbfbf', fontSize: 12 }}>

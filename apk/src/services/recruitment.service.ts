@@ -37,6 +37,27 @@ export interface RecruitmentPost {
   updatedAt: string;
 }
 
+// 自动猎头搜索配置（对齐后端 CandidateSearchConfig）
+export interface SearchConfig {
+  id: string;
+  postId: string;
+  platform: string;
+  keywords?: string;
+  location?: string;
+  experienceMin?: number;
+  experienceMax?: number;
+  education?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  skills?: string;
+  autoContact: boolean;
+  contactTemplate?: string;
+  status: 'active' | 'inactive';
+  lastSearchedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // 后端候选人状态枚举
 export type CandidateStatus =
   | 'screening'
@@ -178,6 +199,48 @@ class RecruitmentService {
   async updateCandidateStatus(id: string, status: CandidateStatus, notes?: string): Promise<any> {
     const response = await apiClient.put(`/recruitment/candidates/${id}/status`, { status, notes });
     return response;
+  }
+
+  // 获取自动猎头搜索配置
+  async getSearchConfigs(): Promise<SearchConfig[]> {
+    try {
+      const response = await apiClient.get<{ configs: SearchConfig[] }>('/recruitment/search-config');
+      if (response && Array.isArray(response.configs)) {
+        return response.configs;
+      }
+      if (Array.isArray(response)) {
+        return response as SearchConfig[];
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  // 更新搜索配置（用于启停自动猎头）
+  async updateSearchConfig(id: string, data: Partial<SearchConfig>): Promise<SearchConfig | null> {
+    try {
+      const response = await apiClient.put<SearchConfig>(`/recruitment/search-config/${id}`, data);
+      return response;
+    } catch {
+      return null;
+    }
+  }
+
+  // 一键启停自动猎头（批量切换所有搜索条件）
+  async setHeadhunterStatus(enable: boolean): Promise<{ updated: number }> {
+    const configs = await this.getSearchConfigs();
+    const target = enable ? 'active' : 'inactive';
+    let updated = 0;
+    await Promise.all(
+      configs.map(async (config) => {
+        if (config.status !== target) {
+          const ok = await this.updateSearchConfig(config.id, { status: target });
+          if (ok) updated++;
+        }
+      })
+    );
+    return { updated };
   }
 
   // 获取统计信息

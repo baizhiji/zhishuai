@@ -123,6 +123,12 @@ function getNavigationItems(
               path: '/customer/recruitment/publish',
             },
             {
+              key: 'recruitment-candidates',
+              label: '候选人库',
+              icon: <UserAddOutlined />,
+              path: '/customer/recruitment/candidates',
+            },
+            {
               key: 'recruitment-auto',
               label: '自动招聘',
               icon: <ThunderboltOutlined />,

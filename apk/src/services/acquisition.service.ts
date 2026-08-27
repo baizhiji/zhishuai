@@ -50,6 +50,7 @@ export interface StatsData {
   totalLeads: number;
   newLeads: number;
   contactedLeads: number;
+  qualifiedLeads?: number;
   convertedLeads: number;
   invalidLeads: number;
   conversionRate: number;
@@ -81,6 +82,22 @@ export interface DiscoveredLead {
   aiQuality: string;
   aiInsights: string;
   aiFollowup: string;
+}
+
+// 自动跟评任务（评论获客，对齐后端 AutoCommentTask）
+export interface AutoCommentTask {
+  id: string;
+  userId: string;
+  name: string;
+  platform: string;
+  targetUrls: string[];
+  keywords: string[];
+  intervalMinutes: number;
+  dailyLimit: number;
+  active: boolean;
+  lastRunAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ─── API 方法 ─────────────────────────────────────────────────────
@@ -178,6 +195,33 @@ class AcquisitionService {
   async getStats() {
     const res = await apiClient.get<StatsData>('/acquisition/statistics');
     return res;
+  }
+
+  // 获取自动跟评任务（评论获客）
+  async getAutoCommentTasks() {
+    const res = await apiClient.get<{ tasks: AutoCommentTask[] }>('/auto-comment/tasks');
+    return res?.tasks ?? [];
+  }
+
+  // 启停单个自动跟评任务
+  async toggleAutoCommentTask(id: string, active: boolean) {
+    const res = await apiClient.put<AutoCommentTask>(`/auto-comment/tasks/${id}`, { active });
+    return res;
+  }
+
+  // 一键启停评论获客（批量切换所有跟评任务）
+  async setCommentAcquisitionStatus(enable: boolean) {
+    const tasks = await this.getAutoCommentTasks();
+    let updated = 0;
+    await Promise.all(
+      tasks.map(async (task) => {
+        if (task.active !== enable) {
+          const ok = await this.toggleAutoCommentTask(task.id, enable);
+          if (ok) updated++;
+        }
+      })
+    );
+    return { updated };
   }
 
   // 获取看板数据

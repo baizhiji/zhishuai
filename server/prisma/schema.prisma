@@ -108,7 +108,7 @@ model AcquisitionData {
   status        String    @default("new")
   followupAt    DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime @default(now())
+  updatedAt     DateTime  @default(now())
   User          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([intentScore])
@@ -124,7 +124,7 @@ model AcquisitionLead {
   source          String?
   status          String           @default("new")
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime @default(now())
+  updatedAt       DateTime         @default(now())
   aiFollowup      String?
   aiInsights      String?
   aiQuality       String?
@@ -170,7 +170,7 @@ model AcquisitionTask {
   startedAt       DateTime?
   completedAt     DateTime?
   createdAt       DateTime          @default(now())
-  updatedAt       DateTime @default(now())
+  updatedAt       DateTime          @default(now())
   AcquisitionLead AcquisitionLead[]
   User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -198,7 +198,7 @@ model Agent {
   level             String              @default("district")
   status            String              @default("active")
   createdAt         DateTime            @default(now())
-  updatedAt         DateTime @default(now())
+  updatedAt         DateTime            @default(now())
   agentType         String              @default("commission")
   balance           Decimal             @default(0.00) @db.Decimal(10, 2)
   commissionRate    Decimal             @default(0.30) @db.Decimal(10, 2)
@@ -227,6 +227,7 @@ model AgentApiConfig {
   enabled    Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @default(now())
+
   @@index([agentId])
 }
 
@@ -252,7 +253,7 @@ model Announcement {
   content     String?   @db.Text
   type        String    @default("info")
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime  @default(now())
   agentId     String?
   priority    String    @default("normal") @db.VarChar(20)
   publishedAt DateTime?
@@ -278,7 +279,8 @@ model ApiKey {
   failCount   Int       @default(0)
   lastUsedAt  DateTime?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime  @default(now())
+
   @@index([userId])
   @@index([userId, provider])
 }
@@ -330,36 +332,40 @@ model AppVersion {
   releasedAt  DateTime?
   // ── V3.0 桌面版自动更新元数据 ──
   channel     String?   @default("stable") // stable / beta / nightly
-  sha256      String?                        // 安装包 SHA256（tauri updater 校验）
-  size        String?                        // 安装包大小（人类可读，如 82.5 MB）
-  signature   String?   @db.Text             // 安装包 minisign 签名（tauri updater 必需）
+  sha256      String? // 安装包 SHA256（tauri updater 校验）
+  size        String? // 安装包大小（人类可读，如 82.5 MB）
+  signature   String?   @db.Text // 安装包 minisign 签名（tauri updater 必需）
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime  @default(now())
+
   @@index([platform, status])
   @@index([platform, channel])
 }
 
 model Candidate {
-  id              String          @id @default(uuid())
-  postId          String
-  userId          String
-  name            String
-  phone           String
-  resume          String?
-  status          String          @default("pending")
-  remark          String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime @default(now())
-  education       String?
-  experience      String?
-  email           String?
-  lastContactedAt DateTime?
-  location        String?
-  matchScore      Int?            @default(0)
-  skills          String?
-  source          String?         @default("manual")
-  RecruitmentPost RecruitmentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  User            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String          @id @default(uuid())
+  postId              String
+  userId              String
+  name                String
+  phone               String
+  resume              String?
+  status              String          @default("pending")
+  remark              String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @default(now())
+  education           String?
+  experience          String?
+  email               String?
+  lastContactedAt     DateTime?
+  location            String?
+  matchScore          Int?            @default(0)
+  skills              String?
+  source              String?         @default("manual")
+  platform            String?
+  platformCandidateId String?
+  sourceUrl           String?
+  RecruitmentPost     RecruitmentPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([postId], map: "Candidate_postId_fkey")
   @@index([userId], map: "Candidate_userId_fkey")
@@ -383,7 +389,8 @@ model CandidateSearchConfig {
   status          String    @default("active")
   lastSearchedAt  DateTime?
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime @default(now())
+  updatedAt       DateTime  @default(now())
+
   @@index([platform, status])
   @@index([postId], map: "CandidateSearchConfig_postId_fkey")
   @@index([userId, postId])
@@ -398,7 +405,7 @@ model ChatConversation {
   messageCount Int           @default(0)
   lastMessage  String?
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime @default(now())
+  updatedAt    DateTime      @default(now())
   ChatMessage  ChatMessage[]
 
   @@index([userId, createdAt])
@@ -432,6 +439,7 @@ model ContentFeedback {
   userId           String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @default(now())
+
   @@index([adopted, createdAt])
   @@index([contentType, createdAt])
   @@index([userId])
@@ -483,7 +491,7 @@ model DataCollectionTask {
   completedAt    DateTime?
   error          String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime @default(now())
+  updatedAt      DateTime  @default(now())
   User           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, status])
@@ -495,7 +503,7 @@ model DigitalHuman {
   name        String
   status      String      @default("active")
   createdAt   DateTime    @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime    @default(now())
   avatar      String?
   description String?
   gender      String
@@ -514,7 +522,7 @@ model Employee {
   userId      String
   status      String    @default("active")
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime  @default(now())
   avatar      String?
   email       String?
   lastLoginAt DateTime?
@@ -548,7 +556,7 @@ model FeatureSubSwitch {
   enabled       Boolean       @default(true)
   sortOrder     Int           @default(0)
   createdAt     DateTime      @default(now())
-  updatedAt     DateTime @default(now())
+  updatedAt     DateTime      @default(now())
   FeatureSwitch FeatureSwitch @relation(fields: [featureCode], references: [code])
 
   @@unique([featureCode, code])
@@ -563,7 +571,7 @@ model FeatureSwitch {
   enabled          Boolean            @default(true)
   sortOrder        Int                @default(0)
   createdAt        DateTime           @default(now())
-  updatedAt        DateTime @default(now())
+  updatedAt        DateTime           @default(now())
   FeatureSubSwitch FeatureSubSwitch[]
 }
 
@@ -583,6 +591,7 @@ model Interview {
   score       Int?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @default(now())
+
   @@index([candidateId])
   @@index([postId])
   @@index([scheduledAt])
@@ -622,7 +631,8 @@ model LiveRoom {
   productCount  Int       @default(0)
   startTime     DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime @default(now())
+  updatedAt     DateTime  @default(now())
+
   @@index([status])
   @@index([userId, platform])
 }
@@ -651,7 +661,7 @@ model Material {
   content        String?
   title          String?
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime @default(now())
+  updatedAt      DateTime  @default(now())
   fileType       String?
   fileUrl        String?
   status         String    @default("unused")
@@ -725,7 +735,8 @@ model Order {
   description   String?
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime @default(now())
+  updatedAt     DateTime  @default(now())
+
   @@index([agentId, status])
   @@index([createdAt])
   @@index([userId, status])
@@ -745,7 +756,7 @@ model Payment {
   remark        String?
   paidAt        DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime @default(now())
+  updatedAt     DateTime  @default(now())
   period        String    @default("monthly")
   planId        String?
   Agent         Agent?    @relation(fields: [agentId], references: [id])
@@ -758,16 +769,19 @@ model Payment {
 }
 
 model RecruitmentCommunication {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   userId          String
   candidateId     String
   postId          String?
-  channel         String   @default("platform")
-  direction       String   @default("outbound")
+  channel         String    @default("platform")
+  direction       String    @default("outbound")
   content         String
-  aiGenerated     Boolean  @default(false)
-  readByCandidate Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  aiGenerated     Boolean   @default(false)
+  readByCandidate Boolean   @default(false)
+  deliveryStatus  String    @default("local")
+  deliveryError   String?
+  deliveredAt     DateTime?
+  createdAt       DateTime  @default(now())
 
   @@index([candidateId], map: "RecruitmentCommunication_candidateId_fkey")
   @@index([createdAt])
@@ -786,7 +800,7 @@ model RecruitmentPost {
   headcount          Int?                 @default(1)
   status             String               @default("recruiting")
   createdAt          DateTime             @default(now())
-  updatedAt          DateTime @default(now())
+  updatedAt          DateTime             @default(now())
   candidateCount     Int                  @default(0)
   description        String?
   education          String?
@@ -814,7 +828,7 @@ model RecruitmentProcess {
   scheduledAt       DateTime?
   completedAt       DateTime?
   createdAt         DateTime          @default(now())
-  updatedAt         DateTime @default(now())
+  updatedAt         DateTime          @default(now())
   RecruitmentPost   RecruitmentPost   @relation(fields: [jobId], references: [id], onDelete: Cascade)
   RecruitmentResume RecruitmentResume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
 
@@ -839,7 +853,7 @@ model RecruitmentResume {
   aiScore            Int?
   aiAnalysis         String?
   createdAt          DateTime             @default(now())
-  updatedAt          DateTime @default(now())
+  updatedAt          DateTime             @default(now())
   RecruitmentProcess RecruitmentProcess[]
   RecruitmentPost    RecruitmentPost      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   User               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -893,7 +907,7 @@ model ScriptTemplate {
   content         String
   category        String
   createdAt       DateTime          @default(now())
-  updatedAt       DateTime @default(now())
+  updatedAt       DateTime          @default(now())
   isAI            Boolean           @default(false)
   name            String
   scenario        String
@@ -915,6 +929,7 @@ model Setting {
   value     String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
+
   @@unique([userId, key])
 }
 
@@ -961,7 +976,7 @@ model ShareCommission {
   settledAt     DateTime?
   remark        String?      @db.Text
   createdAt     DateTime     @default(now())
-  updatedAt     DateTime @default(now())
+  updatedAt     DateTime     @default(now())
   ShareRecord   ShareRecord? @relation(fields: [shareRecordId], references: [id])
   User          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -998,7 +1013,7 @@ model ShareQrCode {
   qrCodeUrl    String?
   scanCount    Int           @default(0)
   title        String
-  updatedAt    DateTime @default(now())
+  updatedAt    DateTime      @default(now())
   videoCover   String?
   videoUrl     String?
   ShareEffect  ShareEffect[]
@@ -1018,7 +1033,7 @@ model ShareRecord {
   scannedAt       DateTime          @default(now())
   scannerId       String?
   status          String            @default("scanned")
-  updatedAt       DateTime @default(now())
+  updatedAt       DateTime          @default(now())
   ShareCommission ShareCommission[]
   ShareQrCode     ShareQrCode?      @relation(fields: [qrCodeId], references: [id])
   User            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1028,25 +1043,25 @@ model ShareRecord {
 }
 
 model SocialAccount {
-  id            String        @id @default(uuid())
-  userId        String
-  platform      String
-  avatar        String?
-  accessToken   String?
-  refreshToken  String?
-  status        String        @default("active")
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime @default(now())
-  accountId     String?
-  accountName   String?
-  agentId       String?
-  config        Json?
-  cookies       String?         @db.Text
-  headers       String?
-  lastSyncAt    DateTime?
-  syncError     String?
-  tokenExpiry   DateTime?
-  isConnected   Boolean         @default(false)
+  id              String            @id @default(uuid())
+  userId          String
+  platform        String
+  avatar          String?
+  accessToken     String?
+  refreshToken    String?
+  status          String            @default("active")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+  accountId       String?
+  accountName     String?
+  agentId         String?
+  config          Json?
+  cookies         String?           @db.Text
+  headers         String?
+  lastSyncAt      DateTime?
+  syncError       String?
+  tokenExpiry     DateTime?
+  isConnected     Boolean           @default(false)
   CommentDelivery CommentDelivery[]
 
   @@index([agentId])
@@ -1055,19 +1070,19 @@ model SocialAccount {
 
 // 跟评发送记录（失败反馈闭环）
 model CommentDelivery {
-  id          String   @id @default(uuid())
-  userId      String
-  agentId     String?
-  accountId   String?
-  platform    String   // douyin/kuaishou/xiaohongshu
-  targetUrl   String
-  targetTitle String?
-  content     String   @db.Text
-  status      String   @default("success") // success/deleted/limited/folded/failed
-  failReason  String?
-  createdAt   DateTime @default(now())
+  id            String         @id @default(uuid())
+  userId        String
+  agentId       String?
+  accountId     String?
+  platform      String // douyin/kuaishou/xiaohongshu
+  targetUrl     String
+  targetTitle   String?
+  content       String         @db.Text
+  status        String         @default("success") // success/deleted/limited/folded/failed
+  failReason    String?
+  createdAt     DateTime       @default(now())
   SocialAccount SocialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
-  User        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  User          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, platform, createdAt])
   @@index([accountId])
@@ -1076,15 +1091,15 @@ model CommentDelivery {
 
 // 话术模板库（话术去重用）
 model CommentTemplate {
-  id        String   @id @default(uuid())
-  userId    String
-  platform  String   // douyin/kuaishou/xiaohongshu
-  content   String   @db.Text
-  hash      String   // 内容指纹，用于去重
-  type      String   @default("ai") // ai/manual/template
-  usedCount Int      @default(0)
+  id         String    @id @default(uuid())
+  userId     String
+  platform   String // douyin/kuaishou/xiaohongshu
+  content    String    @db.Text
+  hash       String // 内容指纹，用于去重
+  type       String    @default("ai") // ai/manual/template
+  usedCount  Int       @default(0)
   lastUsedAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([userId, platform])
   @@index([hash])
@@ -1099,7 +1114,7 @@ model Ticket {
   status         String           @default("pending")
   featureCode    String?          @db.VarChar(50)
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime @default(now())
+  updatedAt      DateTime         @default(now())
   agentId        String?
   assigneeId     String?
   assigneeName   String?
@@ -1136,54 +1151,56 @@ model TicketResponse {
 }
 
 model User {
-  id                  String                  @id @default(uuid())
-  phone               String                  @unique
-  password            String
-  name                String?
-  avatar              String?
-  role                String                  @default("customer")
-  status              String                  @default("active")
-  createdAt           DateTime                @default(now())
-  updatedAt           DateTime @default(now())
-  expireAt            DateTime?
-  fee                 Decimal                 @default(0.00) @db.Decimal(10, 2)
-  lastPaidAt          DateTime?
-  monthlyPaid         Decimal                 @default(0.00) @db.Decimal(10, 2)
-  totalPaid           Decimal                 @default(0.00) @db.Decimal(10, 2)
-  pushPlatform        String?
-  pushToken           String?
-  pushTokenUpdatedAt  DateTime?
-  company             String?
-  package             String                  @default("pro") @db.VarChar(50)
-  lastLoginAt         DateTime?
-  email               String?
-  AcquisitionData     AcquisitionData[]
-  AcquisitionLead     AcquisitionLead[]
-  AcquisitionSource   AcquisitionSource[]
-  AcquisitionTask     AcquisitionTask[]
-  AdminLog            AdminLog[]
-  Agent               Agent?
-  Candidate           Candidate[]
-  ConversationLog     ConversationLog[]
-  DataCollectionTask  DataCollectionTask[]
-  DigitalHuman        DigitalHuman[]
-  Employee            Employee[]
-  LeadFollowup        LeadFollowup[]
-  Material            Material[]
-  Notification        Notification[]
-  Payment             Payment[]
-  RecruitmentPost     RecruitmentPost[]
-  RecruitmentResume   RecruitmentResume[]
-  ScriptTemplate      ScriptTemplate[]
-  ShareCommission     ShareCommission[]
-  ShareQrCode         ShareQrCode[]
-  ShareRecord         ShareRecord[]
-  UserAgentRelation   UserAgentRelation?
-  UserFeatureSwitch   UserFeatureSwitch[]
-  CommentDelivery     CommentDelivery[]
-  VideoClone          VideoClone[]
-  VideoTask           VideoTask[]
-  VoiceClone          VoiceClone[]
+  id                 String               @id @default(uuid())
+  phone              String               @unique
+  password           String
+  name               String?
+  avatar             String?
+  role               String               @default("customer")
+  status             String               @default("active")
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @default(now())
+  expireAt           DateTime?
+  fee                Decimal              @default(0.00) @db.Decimal(10, 2)
+  lastPaidAt         DateTime?
+  monthlyPaid        Decimal              @default(0.00) @db.Decimal(10, 2)
+  totalPaid          Decimal              @default(0.00) @db.Decimal(10, 2)
+  pushPlatform       String?
+  pushToken          String?
+  pushTokenUpdatedAt DateTime?
+  company            String?
+  package            String               @default("pro") @db.VarChar(50)
+  lastLoginAt        DateTime?
+  email              String?
+  AcquisitionData    AcquisitionData[]
+  AcquisitionLead    AcquisitionLead[]
+  AcquisitionSource  AcquisitionSource[]
+  AcquisitionTask    AcquisitionTask[]
+  AdminLog           AdminLog[]
+  Agent              Agent?
+  Candidate          Candidate[]
+  ConversationLog    ConversationLog[]
+  DataCollectionTask DataCollectionTask[]
+  DigitalHuman       DigitalHuman[]
+  Employee           Employee[]
+  LeadFollowup       LeadFollowup[]
+  Material           Material[]
+  Notification       Notification[]
+  Payment            Payment[]
+  RecruitmentPost    RecruitmentPost[]
+  RecruitmentResume  RecruitmentResume[]
+  ScriptTemplate     ScriptTemplate[]
+  ShareCommission    ShareCommission[]
+  ShareQrCode        ShareQrCode[]
+  ShareRecord        ShareRecord[]
+  UserAgentRelation  UserAgentRelation?
+  UserFeatureSwitch  UserFeatureSwitch[]
+  CommentDelivery    CommentDelivery[]
+  VideoClone         VideoClone[]
+  VideoTask          VideoTask[]
+  VoiceClone         VoiceClone[]
+  AutoCommentTask    AutoCommentTask[]
+  AutoCommentRecord  AutoCommentRecord[]
 }
 
 model UserAgentRelation {
@@ -1238,7 +1255,7 @@ model VideoTask {
   videoUrl        String?
   thumbnailUrl    String?
   createdAt       DateTime       @default(now())
-  updatedAt       DateTime @default(now())
+  updatedAt       DateTime       @default(now())
   backgroundMusic String?
   completedAt     DateTime?
   errorMessage    String?
@@ -1265,7 +1282,7 @@ model VideoTemplate {
   usageCount Int         @default(0)
   config     Json?
   createdAt  DateTime    @default(now())
-  updatedAt  DateTime @default(now())
+  updatedAt  DateTime    @default(now())
   VideoTask  VideoTask[]
 
   @@index([style])
@@ -1305,4 +1322,37 @@ model BusinessPlan {
   @@index([scenarioId])
 }
 
+model AutoCommentTask {
+  id                String              @id @default(uuid())
+  userId            String
+  name              String
+  platform          String              @default("douyin")
+  targetUrls        Json?
+  keywords          Json?
+  intervalMinutes   Int                 @default(60)
+  dailyLimit        Int                 @default(20)
+  active            Boolean             @default(false)
+  lastRunAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @default(now())
+  AutoCommentRecord AutoCommentRecord[]
+  User              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([platform, active])
+}
+
+model AutoCommentRecord {
+  id              String          @id @default(uuid())
+  taskId          String
+  targetUrl       String?
+  deliveryId      String?
+  status          String          @default("pending")
+  message         String?
+  createdAt       DateTime        @default(now())
+  AutoCommentTask AutoCommentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  User            User?           @relation(fields: [userId], references: [id])
+  userId          String?
+
+  @@index([taskId, createdAt])
+}

@@ -96,6 +96,40 @@ interface CommentSelectors {
   accountName: string;    // 登录后账号昵称选择器（提取账号信息用）
 }
 
+/** 候选人搜索配置 */
+export interface TalentSearchConfig {
+  keywords: string[];
+  cookies?: any[];
+  accountName?: string;
+  maxResults?: number;
+}
+
+/** 候选人私信配置 */
+export interface TalentChatConfig {
+  targetUrl: string;      // 候选人详情/聊天页 URL
+  content: string;        // 打招呼/沟通消息
+  cookies?: any[];
+  accountName?: string;
+}
+
+/** 人才搜索选择器（页面结构变更时优先调整此处） */
+const TALENT_SELECTORS: Record<string, { item: string; name: string; jobTitle: string; company: string; meta: string }> = {
+  bosszhipin: {
+    item: '.geek-card, .talent-item, [class*="geek-card"]',
+    name: '.name, .geek-name, [class*="name"]',
+    jobTitle: '.job-title, .geek-job, [class*="job-title"]',
+    company: '.company, .geek-company, [class*="company"]',
+    meta: '.info, .geek-info, [class*="info"]',
+  },
+  zhilian: {
+    item: '.resume-list__item, .joblist-box__item',
+    name: '.name, .resume-name, .title',
+    jobTitle: '.job-title, .joblist-box__iteminfo__title',
+    company: '.company, .company_name',
+    meta: '.info, .resume-info',
+  },
+};
+
 // ─── 平台配置 ────────────────────────────────
 
 export const PLATFORM_LOGIN_CONFIGS: Record<string, PlatformLoginConfig> = {
@@ -608,6 +642,131 @@ class PlaywrightService {
   }
 
   /**
+   * 招聘平台候选人搜索（智能招聘真实采集）
+   * 打开人才搜索页 → 提取候选人卡片 → 返回标准化候选人列表
+   */
+  async searchTalent(platform: string, config: TalentSearchConfig): Promise<CollectionResult> {
+    if (platform !== 'bosszhipin' && platform !== 'zhilian') {
+      return { success: false, message: `平台 ${platform} 暂不支持候选人采集`, items: [] };
+    }
+    if (!config.keywords || config.keywords.length === 0) {
+      return { success: false, message: 'keywords 不能为空', items: [] };
+    }
+
+    await this.init();
+    const context = await this.browser!.newContext({
+      viewport: { width: 1440, height: 900 },
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    });
+
+    const cookies = config.cookies && config.cookies.length > 0
+      ? config.cookies
+      : this.loadCookies(PLATFORM_LOGIN_CONFIGS[platform].cookieFileName);
+    if (cookies.length > 0) {
+      await context.addCookies(cookies).catch(() => {});
+    }
+
+    const page = await context.newPage();
+    try {
+      const items: any[] = [];
+      const maxTotal = config.maxResults || 20;
+      for (const keyword of config.keywords.slice(0, 3)) {
+        const url = this.buildTalentSearchUrl(platform, keyword);
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.waitForTimeout(4000);
+        const keywordItems = await this.extractTalentCards(page, platform, maxTotal - items.length);
+        items.push(...keywordItems);
+        if (items.length >= maxTotal) break;
+      }
+      if (items.length === 0) {
+        return { success: false, message: '未搜索到候选人，请确认招聘平台账号已登录或调整搜索条件', items: [] };
+      }
+      return { success: true, message: `搜索到 ${items.length} 位候选人`, items };
+    } catch (error: any) {
+      return { success: false, message: `候选人搜索失败: ${error.message}`, items: [] };
+    } finally {
+      await page.close().catch(() => {});
+      await context.close().catch(() => {});
+    }
+  }
+
+  /**
+   * 向候选人发送私信/打招呼（智能招聘真实沟通）
+   * 打开候选人页 → 定位消息输入框 → 输入 → 发送 → 校验
+   */
+  async sendTalentMessage(platform: string, config: TalentChatConfig): Promise<CommentPublishResult> {
+    if (platform !== 'bosszhipin' && platform !== 'zhilian') {
+      return { success: false, message: `平台 ${platform} 暂不支持私信发送` };
+    }
+
+    await this.init();
+    const context = await this.browser!.newContext({
+      viewport: { width: 1440, height: 900 },
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    });
+
+    const cookies = config.cookies && config.cookies.length > 0
+      ? config.cookies
+      : this.loadCookies(PLATFORM_LOGIN_CONFIGS[platform].cookieFileName);
+    if (cookies.length > 0) {
+      await context.addCookies(cookies).catch(() => {});
+    }
+
+    const page = await context.newPage();
+    try {
+      await page.goto(config.targetUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      await page.waitForTimeout(4000);
+
+      const inputSelectors = [
+        '.chat-input textarea',
+        'textarea[placeholder*="聊"]',
+        'textarea[placeholder*="消息"]',
+        '.message-editor textarea',
+        '.msg-input',
+        'textarea',
+      ];
+
+      let input = await this.findFirst(page, inputSelectors);
+      if (!input) {
+        // 未直接进入聊天窗口，先点击"立即沟通/打招呼"
+        const chatBtn = await page.$('button:has-text("立即沟通"), button:has-text("聊一聊"), button:has-text("打招呼")').catch(() => null);
+        if (chatBtn) {
+          await chatBtn.click().catch(() => {});
+          await page.waitForTimeout(2500);
+          input = await this.findFirst(page, inputSelectors);
+        }
+      }
+      if (!input) {
+        return { success: false, message: '未找到消息输入框，页面结构可能已变更' };
+      }
+
+      await input.click().catch(() => {});
+      await input.fill(config.content).catch(() => {});
+      await page.waitForTimeout(800);
+
+      const sendBtn = await page.$('button:has-text("发送"), .chat-send, button:has-text("发送消息")').catch(() => null);
+      if (sendBtn) {
+        await sendBtn.click().catch(() => {});
+      } else {
+        await page.keyboard.press('Enter').catch(() => {});
+      }
+      await page.waitForTimeout(2500);
+
+      const inputValue = await input.inputValue().catch(() => '');
+      const bubbleVisible = await page.$(`[class*="chat-bubble"] :text("${config.content.slice(0, 10)}"), [class*="message"] :text("${config.content.slice(0, 10)}")`).catch(() => null);
+      if (inputValue.length === 0 || bubbleVisible) {
+        return { success: true, message: '私信已发送' };
+      }
+      return { success: false, message: '私信可能未发送成功，请人工检查' };
+    } catch (error: any) {
+      return { success: false, message: `私信发送失败: ${error.message}` };
+    } finally {
+      await page.close().catch(() => {});
+      await context.close().catch(() => {});
+    }
+  }
+
+  /**
    * 数据采集：招聘平台职位采集(BOSS直聘/智联)，其他平台明确拒绝
    */
   async collectData(platform: string, config: AcquisitionConfig): Promise<CollectionResult> {
@@ -645,6 +804,59 @@ class PlaywrightService {
     } finally {
       await page.close().catch(() => {});
     }
+  }
+
+  /**
+   * 在多个选择器中查找第一个命中的元素
+   */
+  private async findFirst(page: Page, selectors: string[]): Promise<any> {
+    for (const sel of selectors) {
+      const el = await page.$(sel).catch(() => null);
+      if (el) return el;
+    }
+    return null;
+  }
+
+  /**
+   * 构建人才搜索URL（招聘候选人搜索）
+   */
+  private buildTalentSearchUrl(platform: string, keyword: string): string {
+    const encoded = encodeURIComponent(keyword);
+    if (platform === 'bosszhipin') {
+      return `https://www.zhipin.com/web/hr/geek-search?query=${encoded}&city=101010100`;
+    }
+    return `https://sou.zhaopin.com/?jl=489&kw=${encoded}`;
+  }
+
+  /**
+   * 从人才搜索页提取候选人卡片
+   */
+  private async extractTalentCards(page: Page, platform: string, max: number): Promise<any[]> {
+    const sel = TALENT_SELECTORS[platform];
+    const cards = await page.$$(sel.item).catch(() => [] as any[]);
+    const items: any[] = [];
+    for (const card of cards.slice(0, max)) {
+      const read = async (selector: string): Promise<string> => {
+        const el = await card.$(selector).catch(() => null);
+        return (el ? (await el.textContent().catch(() => '') || '') : '').trim();
+      };
+      const metaText = await read(sel.meta);
+      // meta 形如 "3-5年 | 本科 | 北京"，拆出经验/学历/城市
+      const metaParts = metaText.split(/[|·\|]/).map(s => s.trim()).filter(Boolean);
+      items.push({
+        source: platform,
+        sourceType: 'talent',
+        name: await read(sel.name),
+        jobTitle: await read(sel.jobTitle),
+        company: await read(sel.company),
+        experience: metaParts[0] || '',
+        education: metaParts[1] || '',
+        location: metaParts[2] || '',
+        meta: metaText,
+        sourceUrl: page.url(),
+      });
+    }
+    return items;
   }
 
   /**

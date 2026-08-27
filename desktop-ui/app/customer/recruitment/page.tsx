@@ -170,6 +170,7 @@ export default function RecruitmentPage() {
         <Space>
           <Button icon={<SendOutlined />} onClick={() => router.push('/customer/recruitment/publish')}>发布岗位</Button>
           <Button icon={<RobotOutlined />} onClick={() => router.push('/customer/recruitment/auto')}>自动招聘</Button>
+          <Button icon={<UserSwitchOutlined />} onClick={() => router.push('/customer/recruitment/candidates')}>候选人库</Button>
           <Button icon={<GlobalOutlined />} onClick={() => router.push('/customer/recruitment/platforms')}>平台管理</Button>
           <Button icon={<ReloadOutlined />} onClick={() => { fetchJobs(); fetchStats(); }}>刷新</Button>
         </Space>
@@ -181,7 +182,9 @@ export default function RecruitmentPage() {
           <Card><Statistic title="开放岗位" value={stats.activeJobs} prefix={<TeamOutlined />} valueStyle={{ color: '#6d28d9' }} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card><Statistic title="候选人总数" value={stats.totalCandidates} prefix={<UserSwitchOutlined />} valueStyle={{ color: '#52c41a' }} /></Card>
+          <Card hoverable onClick={() => router.push('/customer/recruitment/candidates')}>
+            <Statistic title="候选人总数" value={stats.totalCandidates} prefix={<UserSwitchOutlined />} valueStyle={{ color: '#52c41a' }} />
+          </Card>
         </Col>
         <Col xs={12} sm={6}>
           <Card><Statistic title="待面试" value={stats.scheduledInterviews} prefix={<CalendarOutlined />} valueStyle={{ color: '#fa8c16' }} /></Card>
@@ -247,10 +250,10 @@ export default function RecruitmentPage() {
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card hoverable onClick={() => router.push('/customer/recruitment/platforms')} style={{ textAlign: 'center', borderRadius: 8 }}>
-            <GlobalOutlined style={{ fontSize: 36, color: '#13c2c2', marginBottom: 12 }} />
-            <Title level={5}>平台管理</Title>
-            <Text type="secondary">管理已接入的招聘平台</Text>
+          <Card hoverable onClick={() => router.push('/customer/recruitment/candidates')} style={{ textAlign: 'center', borderRadius: 8 }}>
+            <UserSwitchOutlined style={{ fontSize: 36, color: '#13c2c2', marginBottom: 12 }} />
+            <Title level={5}>候选人库</Title>
+            <Text type="secondary">查看真实搜索的候选人并跟进</Text>
           </Card>
         </Col>
       </Row>

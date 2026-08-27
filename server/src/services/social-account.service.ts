@@ -250,8 +250,10 @@ export function getPlatformName(platform: string): string {
     xiaohongshu: '小红书',
     weibo: '微博',
     boss: 'BOSS直聘',
+    bosszhipin: 'BOSS直聘',
     lagou: '拉勾网',
     zhipin: '智联招聘',
+    zhilian: '智联招聘',
     zhihu: '知乎',
     bilibili: 'B站'
   };
