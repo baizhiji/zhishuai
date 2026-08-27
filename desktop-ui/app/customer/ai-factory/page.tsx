@@ -220,189 +220,207 @@ export default function AIFactoryPage() {
     await syncApiKeysFromServer();
 
     setGenerating(true);
-    setProgress(0);
+    setProgress(5);
     setProgressText('正在分析爆款基因，构思创作方案...');
     setGeneratedContent(null);
     setGeneratedImages([]);
     setGeneratedVideos([]);
     setViralScoreForTask(null);
 
-    // P0：移除随机假进度，改为单调缓增 + 分阶段真实文案提示
+    // 阶段进度动画：直到完成前缓慢推进到 90%，完成后置 100%
     const progressInterval = setInterval(() => {
-      setProgress(prev => (prev >= 88 ? prev : prev + 1));
-    }, 600);
+      setProgress(prev => (prev >= 90 ? prev : Math.min(prev + 1, 90)));
+    }, 2000);
+
+    // 5 分钟总超时保护，避免模型 API 无响应时前端永久卡住
+    const GENERATION_TIMEOUT_MS = 5 * 60 * 1000;
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
     try {
-      const topicForAnalysis = values.topic || values.description || values.productName || (typeof values.theme === 'string' ? values.theme : '');
-      let viralAnalysis: { score: number; rating: string; tips: string[]; keywords: string[] } | null = null;
-      if (topicForAnalysis && topicForAnalysis.length >= 4) {
-        try {
-          const analysisRes = await analyzeViralTopic(topicForAnalysis, values.platform || 'douyin');
-          if (analysisRes.success && analysisRes.data) {
-            const vScore = analysisRes.data.viralScore?.total || 0;
-            const rating = vScore >= 32 ? 'S级——极高爆款潜力' : vScore >= 26 ? 'A级——较强爆款潜力' : vScore >= 20 ? 'B级——中等潜力' : 'C级——需重新策划';
-            const tips: string[] = [];
-            const gene = analysisRes.data.geneAnalysis;
-            if (gene?.hooks?.length) tips.push(`爆款Hook：${gene.hooks.slice(0, 3).join(' / ')}`);
-            if (gene?.emotions?.length) tips.push(`情绪驱动：${gene.emotions.join('、')}`);
-            if (gene?.structure) tips.push(`结构节奏：${gene.structure}`);
-            viralAnalysis = { score: vScore, rating, tips, keywords: analysisRes.data.geneAnalysis?.keywords || [] };
+      await Promise.race([
+        (async () => {
+          const topicForAnalysis = values.topic || values.description || values.productName || (typeof values.theme === 'string' ? values.theme : '');
+          let viralAnalysis: { score: number; rating: string; tips: string[]; keywords: string[] } | null = null;
+          if (topicForAnalysis && topicForAnalysis.length >= 4) {
+            try {
+              setProgressText('正在分析爆款基因，构思创作方案...');
+              const analysisRes = await analyzeViralTopic(topicForAnalysis, values.platform || 'douyin');
+              if (analysisRes.success && analysisRes.data) {
+                const vScore = analysisRes.data.viralScore?.total || 0;
+                const rating = vScore >= 32 ? 'S级——极高爆款潜力' : vScore >= 26 ? 'A级——较强爆款潜力' : vScore >= 20 ? 'B级——中等潜力' : 'C级——需重新策划';
+                const tips: string[] = [];
+                const gene = analysisRes.data.geneAnalysis;
+                if (gene?.hooks?.length) tips.push(`爆款Hook：${gene.hooks.slice(0, 3).join(' / ')}`);
+                if (gene?.emotions?.length) tips.push(`情绪驱动：${gene.emotions.join('、')}`);
+                if (gene?.structure) tips.push(`结构节奏：${gene.structure}`);
+                viralAnalysis = { score: vScore, rating, tips, keywords: analysisRes.data.geneAnalysis?.keywords || [] };
+              }
+            } catch { /* 分析失败，继续生成 */ }
           }
-        } catch { /* 分析失败，继续生成 */ }
-      }
 
-      const cfg = contentCategoryConfig[activeCategory];
-      const count = values.count || 1;
-      const results: string[] = [];
-      const imgResults: string[] = [];
-      const videoResults: string[] = [];
+          const cfg = contentCategoryConfig[activeCategory];
+          const count = values.count || 1;
+          const results: string[] = [];
+          const imgResults: string[] = [];
+          const videoResults: string[] = [];
 
-      for (let i = 0; i < count; i++) {
-        // 快速模式（蓝皮书 1.5：快速模式默认仅生成脚本，完整生成默认全链路）
-        if (quickMode) {
-          const prompt = buildTextPrompt(activeCategory, values, viralAnalysis);
-          const result = await generateText({ prompt, maxTokens: values.wordCount || 800 }, getTaskKey(activeCategory));
-          if (result.success) results.push(result.data as string);
-          setProvider(result.provider);
-          setModel(result.model);
-          setProgressText(`正在生成${cfg.label}（第 ${i + 1}/${count} 项）...`);
-          setProgress(Math.round(((i + 1) / count) * 95));
-          continue;
-        }
-        // P0-2：全类目优先走多阶段流水线（此前流水线从未被接线，仅直连单次调用）
-        const taskKey = getTaskKey(activeCategory);
-        const pipelinePrompt = cfg.type === 'image'
-          ? buildImagePrompt(activeCategory, values, viralAnalysis)
-          : cfg.type === 'video'
-            ? buildVideoPrompt(activeCategory, values, viralAnalysis)
-            : buildTextPrompt(activeCategory, values, viralAnalysis);
-
-        let pipelined = false;
-        try {
-          const pipeline = await generateWithLocalPipeline(taskKey, pipelinePrompt);
-          if (pipeline.success && pipeline.data) {
-            const pData = pipeline.data;
-            const finalOutput = pData.finalOutput || '';
-            const tasks = pData.tasks || [];
-
-            // 提取图片 URL（[图片N] https://...）
-            for (const m of finalOutput.matchAll(/\[图片\d+\]\s*(https?:\/\/[^\s\]]+)/g)) {
-              imgResults.push(m[1]);
+          for (let i = 0; i < count; i++) {
+            // 快速模式（蓝皮书 1.5：快速模式默认仅生成脚本，完整生成默认全链路）
+            if (quickMode) {
+              setProgressText(`正在生成${cfg.label}（第 ${i + 1}/${count} 项）...`);
+              const prompt = buildTextPrompt(activeCategory, values, viralAnalysis);
+              const result = await generateText({ prompt, maxTokens: values.wordCount || 800 }, getTaskKey(activeCategory));
+              if (result.success) results.push(result.data as string);
+              setProvider(result.provider);
+              setModel(result.model);
+              setProgress(Math.round(((i + 1) / count) * 95));
+              continue;
             }
-            // 提取视频 URL（【生成视频】https://...）
-            const videoMatch = finalOutput.match(/【生成视频】\s*(https?:\/\/[^\s\]]+)/);
-            if (videoMatch) { results.push(videoMatch[1]); videoResults.push(videoMatch[1]); }
+            // P0-2：全类目优先走多阶段流水线（此前流水线从未被接线，仅直连单次调用）
+            const taskKey = getTaskKey(activeCategory);
+            const pipelinePrompt = cfg.type === 'image'
+              ? buildImagePrompt(activeCategory, values, viralAnalysis)
+              : cfg.type === 'video'
+                ? buildVideoPrompt(activeCategory, values, viralAnalysis)
+                : buildTextPrompt(activeCategory, values, viralAnalysis);
 
-            // 文本：取最后一个成功文本阶段的完整输出
-            const textPhaseSet = new Set(['draft', 'anti_ai_rewrite', 'style_calibration', 'platform_adapt']);
-            const textTasks = tasks.filter((t: any) => t.success && textPhaseSet.has(t.phase));
-            const finalText = textTasks.length ? textTasks[textTasks.length - 1].output || '' : '';
-            if (finalText && cfg.type !== 'image') results.push(finalText);
+            let pipelined = false;
+            try {
+              setProgressText(`正在多阶段流水线生成${cfg.label}...`);
+              const pipeline = await generateWithLocalPipeline(taskKey, pipelinePrompt);
+              if (pipeline.success && pipeline.data) {
+                const pData = pipeline.data;
+                const finalOutput = pData.finalOutput || '';
+                const tasks = pData.tasks || [];
 
-            const lastSuccess = [...tasks].reverse().find((t: any) => t.success);
-            if (lastSuccess) { setProvider(lastSuccess.provider); setModel(lastSuccess.modelName); }
-            pipelined = true;
-          } else {
-            message.warning(pipeline.data?.message || '流水线未产出结果，请检查 API Key 配置');
-            break;
-          }
-        } catch (e: any) {
-          console.warn('[AI工厂] 流水线不可用，回退单次直连:', e?.message);
-        }
+                // 提取图片 URL（[图片N] https://...）
+                for (const m of finalOutput.matchAll(/\[图片\d+\]\s*(https?:\/\/[^\s\]]+)/g)) {
+                  imgResults.push(m[1]);
+                }
+                // 提取视频 URL（【生成视频】https://...）
+                const videoMatch = finalOutput.match(/【生成视频】\s*(https?:\/\/[^\s\]]+)/);
+                if (videoMatch) { results.push(videoMatch[1]); videoResults.push(videoMatch[1]); }
 
-        if (pipelined) { setProgress(Math.round(((i + 1) / count) * 95)); continue; }
+                // 文本：取最后一个成功文本阶段的完整输出
+                const textPhaseSet = new Set(['draft', 'anti_ai_rewrite', 'style_calibration', 'platform_adapt']);
+                const textTasks = tasks.filter((t: any) => t.success && textPhaseSet.has(t.phase));
+                const finalText = textTasks.length ? textTasks[textTasks.length - 1].output || '' : '';
+                if (finalText && cfg.type !== 'image') results.push(finalText);
 
-        if (cfg.type === 'image') {
-          setProgressText('正在生成图片，通常需要 1-3 分钟...');
-          const prompt = buildImagePrompt(activeCategory, values, viralAnalysis);
-          const result = await generateImage({ prompt, negativePrompt: values.negativePrompt, size: values.size, n: values.count }, getTaskKey(activeCategory));
-          if (result.success && result.data) {
-            const urls = Array.isArray(result.data) ? result.data : [result.data as string];
-            urls.forEach(u => imgResults.push(u as string));
-          }
-          setProvider(result.provider);
-          setModel(result.model);
-        } else if (cfg.type === 'video') {
-          setProgressText('正在生成视频，通常需要 3-10 分钟...');
-          const prompt = buildVideoPrompt(activeCategory, values, viralAnalysis);
-          const isSmartEdit = activeCategory === ContentCategory.SMART_EDIT;
-          const materialUrls = values.files?.map((f: any) => f.url || f.name).filter(Boolean) || [];
-          const result = await generateVideo({
-            prompt,
-            images: materialUrls,
-            imageUrl: values.imageUrl,
-            clips: isSmartEdit ? materialUrls : undefined,
-            duration: values.duration || 30, size: values.size,
-            voiceover: values.voiceover, subtitle: values.subtitle, bgm: values.bgm,
-            overlayBanners: values.overlayBanners || [], bannerStyle: values.bannerStyle,
-          }, getTaskKey(activeCategory));
-          if (result.success && result.data) { results.push(result.data as string); videoResults.push(result.data as string); }
-          setProvider(result.provider);
-          setModel(result.model);
-        } else if (cfg.type === 'mixed') {
-          const textPrompt = buildTextPrompt(activeCategory, values, viralAnalysis);
-          const textResult = await generateText({ prompt: textPrompt, maxTokens: values.wordCount || 500 }, getTaskKey(activeCategory));
-          if (textResult.success) results.push(textResult.data as string);
-          if (activeCategory === ContentCategory.XIAOHONGSHU || activeCategory === ContentCategory.ECOMMERCE_DETAIL) {
-            const imgPrompt = buildImagePrompt(activeCategory, values, viralAnalysis);
-            const imgResult = await generateImage({ prompt: imgPrompt, size: values.size }, getTaskKey(activeCategory));
-            if (imgResult.success && imgResult.data) {
-              const urls = Array.isArray(imgResult.data) ? imgResult.data : [imgResult.data as string];
-              urls.forEach(u => imgResults.push(u as string));
+                const lastSuccess = [...tasks].reverse().find((t: any) => t.success);
+                if (lastSuccess) { setProvider(lastSuccess.provider); setModel(lastSuccess.modelName); }
+                pipelined = true;
+              } else {
+                message.warning(pipeline.data?.message || '流水线未产出结果，请检查 API Key 配置');
+                break;
+              }
+            } catch (e: any) {
+              console.warn('[AI工厂] 流水线不可用，回退单次直连:', e?.message);
             }
+
+            if (pipelined) { setProgress(Math.round(((i + 1) / count) * 95)); continue; }
+
+            if (cfg.type === 'image') {
+              setProgressText('正在生成图片，通常需要 1-3 分钟...');
+              const prompt = buildImagePrompt(activeCategory, values, viralAnalysis);
+              const result = await generateImage({ prompt, negativePrompt: values.negativePrompt, size: values.size, n: values.count }, getTaskKey(activeCategory));
+              if (result.success && result.data) {
+                const urls = Array.isArray(result.data) ? result.data : [result.data as string];
+                urls.forEach(u => imgResults.push(u as string));
+              }
+              setProvider(result.provider);
+              setModel(result.model);
+            } else if (cfg.type === 'video') {
+              setProgressText('正在生成视频，通常需要 3-10 分钟...');
+              const prompt = buildVideoPrompt(activeCategory, values, viralAnalysis);
+              const isSmartEdit = activeCategory === ContentCategory.SMART_EDIT;
+              const materialUrls = values.files?.map((f: any) => f.url || f.name).filter(Boolean) || [];
+              const result = await generateVideo({
+                prompt,
+                images: materialUrls,
+                imageUrl: values.imageUrl,
+                clips: isSmartEdit ? materialUrls : undefined,
+                duration: values.duration || 30, size: values.size,
+                voiceover: values.voiceover, subtitle: values.subtitle, bgm: values.bgm,
+                overlayBanners: values.overlayBanners || [], bannerStyle: values.bannerStyle,
+              }, getTaskKey(activeCategory));
+              if (result.success && result.data) { results.push(result.data as string); videoResults.push(result.data as string); }
+              setProvider(result.provider);
+              setModel(result.model);
+            } else if (cfg.type === 'mixed') {
+              setProgressText(`正在生成${cfg.label}文案...`);
+              const textPrompt = buildTextPrompt(activeCategory, values, viralAnalysis);
+              const textResult = await generateText({ prompt: textPrompt, maxTokens: values.wordCount || 500 }, getTaskKey(activeCategory));
+              if (textResult.success) results.push(textResult.data as string);
+              if (activeCategory === ContentCategory.XIAOHONGSHU || activeCategory === ContentCategory.ECOMMERCE_DETAIL) {
+                const imgPrompt = buildImagePrompt(activeCategory, values, viralAnalysis);
+                const imgResult = await generateImage({ prompt: imgPrompt, size: values.size }, getTaskKey(activeCategory));
+                if (imgResult.success && imgResult.data) {
+                  const urls = Array.isArray(imgResult.data) ? imgResult.data : [imgResult.data as string];
+                  urls.forEach(u => imgResults.push(u as string));
+                }
+              }
+              setProvider(textResult?.provider || '');
+              setModel(textResult?.model || '');
+            } else {
+              setProgressText(`正在生成${cfg.label}文案...`);
+              const prompt = buildTextPrompt(activeCategory, values, viralAnalysis);
+              const result = await generateText({ prompt, maxTokens: values.wordCount || 500 }, getTaskKey(activeCategory));
+              if (result.success) results.push(result.data as string);
+              setProvider(result.provider);
+              setModel(result.model);
+            }
+            setProgress(Math.round(((i + 1) / count) * 95));
           }
-          setProvider(textResult?.provider || '');
-          setModel(textResult?.model || '');
-        } else {
-          const prompt = buildTextPrompt(activeCategory, values, viralAnalysis);
-          const result = await generateText({ prompt, maxTokens: values.wordCount || 500 }, getTaskKey(activeCategory));
-          if (result.success) results.push(result.data as string);
-          setProvider(result.provider);
-          setModel(result.model);
-        }
-        setProgress(Math.round(((i + 1) / count) * 95));
-      }
 
-      clearInterval(progressInterval);
-      setProgress(100);
-      setProgressText('生成完成，正在整理结果...');
+          if (timeoutTimer) clearTimeout(timeoutTimer);
+          clearInterval(progressInterval);
+          setProgress(100);
+          setProgressText('生成完成，正在整理结果...');
 
-      if (results.length > 0) setGeneratedContent(results.join('\n\n---\n\n'));
-      if (imgResults.length > 0) setGeneratedImages(imgResults);
-      if (videoResults.length > 0) setGeneratedVideos(videoResults);
+          if (results.length > 0) setGeneratedContent(results.join('\n\n---\n\n'));
+          if (imgResults.length > 0) setGeneratedImages(imgResults);
+          if (videoResults.length > 0) setGeneratedVideos(videoResults);
 
-      if (results.length === 0 && imgResults.length === 0) {
-        message.warning('生成完成但未获得结果，请检查API Key配置');
-        return;
-      }
+          if (results.length === 0 && imgResults.length === 0) {
+            message.warning('生成完成但未获得结果，请检查API Key配置');
+            return;
+          }
 
-      saveHistory({
-        id: `gen_${Date.now()}`, category: activeCategory,
-        content: [...results, ...imgResults].join('\n'),
-        config: values, timestamp: Date.now(), status: 'success', provider, model,
-      });
+          saveHistory({
+            id: `gen_${Date.now()}`, category: activeCategory,
+            content: [...results, ...imgResults].join('\n'),
+            config: values, timestamp: Date.now(), status: 'success', provider, model,
+          });
 
-      // P0：生成成功后自动同步到内容中心（静默，不打扰用户）
-      try {
-        const finalText = [...results, ...imgResults].join('\n\n---\n\n');
-        await apiClient.post('/materials', {
-          title: values.description || values.productName || cfg.label,
-          type: activeCategory,
-          content: finalText || `AI生成${cfg.label}图片/视频`,
-          thumbnail: imgResults[0] || undefined,
-          fileUrl: imgResults[0] || videoResults[0] || undefined,
-          fileType: imgResults.length ? 'image' : videoResults.length ? 'video' : undefined,
-          images: imgResults.length > 0 ? imgResults : undefined,
-        });
-      } catch { /* 自动保存失败不影响生成主流程 */ }
+          // P0：生成成功后自动同步到内容中心（静默，不打扰用户）
+          try {
+            const finalText = [...results, ...imgResults].join('\n\n---\n\n');
+            await apiClient.post('/materials', {
+              title: values.description || values.productName || cfg.label,
+              type: activeCategory,
+              content: finalText || `AI生成${cfg.label}图片/视频`,
+              thumbnail: imgResults[0] || undefined,
+              fileUrl: imgResults[0] || videoResults[0] || undefined,
+              fileType: imgResults.length ? 'image' : videoResults.length ? 'video' : undefined,
+              images: imgResults.length > 0 ? imgResults : undefined,
+            });
+          } catch { /* 自动保存失败不影响生成主流程 */ }
 
-      message.success(`${cfg.label}生成完成！${estimateCost([...results, ...imgResults].join(''))}`);
-      if (viralAnalysis) setViralScoreForTask(viralAnalysis);
+          message.success(`${cfg.label}生成完成！${estimateCost([...results, ...imgResults].join(''))}`);
+          if (viralAnalysis) setViralScoreForTask(viralAnalysis);
+        })(),
+        new Promise<void>((_, reject) => {
+          timeoutTimer = setTimeout(() => reject(new Error('生成超时：模型接口长时间无响应，请检查网络或 API Key 配置后重试')), GENERATION_TIMEOUT_MS);
+        }),
+      ]);
     } catch (error: any) {
       clearInterval(progressInterval);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       message.error(`生成失败: ${error.message || '未知错误'}`);
       saveHistory({ id: `gen_${Date.now()}`, category: activeCategory, content: '', config: values, timestamp: Date.now(), status: 'failed' });
     } finally {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       setGenerating(false);
     }
   };

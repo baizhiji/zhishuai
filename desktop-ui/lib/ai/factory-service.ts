@@ -165,6 +165,20 @@ export async function syncApiKeysFromServer(): Promise<void> {
 
 // ─── 底层 HTTP 调用 ─────────────────────────
 
+const CHAT_TIMEOUT_MS = 30000; // 30s
+const IMAGE_TIMEOUT_MS = 60000; // 60s
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number = IMAGE_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { ...init, signal: controller.signal });
+    return resp;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function callChatAPI(
   provider: AiProvider, modelId: string, messages: any[],
   params: { temperature?: number; maxTokens?: number; topP?: number;
@@ -183,11 +197,11 @@ async function callChatAPI(
   if (params.frequencyPenalty != null) body.frequency_penalty = params.frequencyPenalty;
   if (params.presencePenalty != null) body.presence_penalty = params.presencePenalty;
 
-  const resp = await fetch(url, {
+  const resp = await fetchWithTimeout(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-  });
+  }, CHAT_TIMEOUT_MS);
   if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
   const json = await resp.json();
   return json.choices?.[0]?.message?.content || '';
@@ -216,7 +230,7 @@ async function callImageAPI(
     };
     if (params.negativePrompt) body.input.negative_prompt = params.negativePrompt;
 
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -234,7 +248,7 @@ async function callImageAPI(
   if (provider === 'tencent') {
     const url = `${info.baseUrl}${info.imageEndpoint}`;
     const body = { model: modelId, prompt, n: params.n || 1, size: params.size || '1024x1024' };
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -255,7 +269,7 @@ async function callImageAPI(
     };
     if (params.n && params.n > 1) body.n = params.n;
     if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -297,7 +311,7 @@ async function callVideoAPI(
       input: { prompt },
       parameters: { resolution, ratio, duration: params.duration || 5 },
     };
-    const resp = await fetch(url, {
+    const resp = await fetchWithTimeout(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
