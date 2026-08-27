@@ -1,0 +1,227 @@
+# ============================================================
+# 智枢AI SaaS — NGINX 安全加固配置
+# 部署路径: /etc/nginx/sites-available/baizhiji.net
+# certbot 管理 SSL 证书
+# ============================================================
+
+# 限流区域定义
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=5r/m;
+limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+
+# HTTP → HTTPS 重定向 (certbot ACME challenge 除外)
+server {
+    listen 80;
+    listen [::]:80;
+    server_name baizhiji.net www.baizhiji.net;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; allow all; }
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name baizhiji.net www.baizhiji.net;
+
+    # SSL (certbot 管理)
+    ssl_certificate     /etc/letsencrypt/live/baizhiji.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/baizhiji.net/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
+    # 隐藏版本号
+    server_tokens off;
+
+    # === 安全头部 ===
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-DNS-Prefetch-Control "off" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; font-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://api.baizhiji.net wss:; media-src 'self'; frame-src 'self';" always;
+
+    # 连接限制
+    limit_conn conn_limit 50;
+
+    # Gzip
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss image/svg+xml;
+
+    client_max_body_size 50M;
+
+    # 桌面安装包下载目录
+    location /downloads/ {
+        alias /var/www/zhishuai/downloads/;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+        add_header Cache-Control "public, max-age=3600";
+        add_header Content-Disposition "attachment";
+
+        location ~* \.(exe|msi)$ {
+            add_header Cache-Control "public, max-age=86400";
+            add_header Content-Disposition "attachment";
+        }
+
+        location = /downloads/latest.json {
+            add_header Access-Control-Allow-Origin *;
+            add_header Cache-Control "no-cache";
+        }
+    }
+    # === API 路由 (含限流) ===
+    location /api/ {
+        limit_req zone=api_limit burst=20 nodelay;
+
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        chunked_transfer_encoding on;
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 60s;
+    }
+
+    # 认证端点更严格限流
+    location ~ ^/api/auth/(login|send-code|send-reset-code|register|reset-password) {
+        limit_req zone=auth_limit burst=2 nodelay;
+
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        chunked_transfer_encoding on;
+    }
+
+    # 上传文件
+    location /uploads/ {
+        alias /var/www/zhishuai/server/uploads/;
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+        access_log off;
+    }
+
+    # 健康检查端点转发（供监控探活，避免被下线页拦截）
+    location ~ ^/(health|ready|live|metrics)$ {
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 5s;
+    }
+
+    # 前端
+    # 在线网页版已下线（产品形态：桌面安装版 + APK），根路径返回下载引导页
+    location / {
+        default_type text/html;
+        return 200 '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>智枢AI</title></head><body style="font-family:sans-serif;background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center;padding:40px"><h1 style="color:#1677ff;margin-bottom:12px">智枢AI</h1><p style="color:#666">在线网页版已下线，请下载桌面安装版使用。</p><p><a href="/downloads/" style="color:#1677ff">前往下载中心</a></p></div></body></html>';
+    }
+
+    # Next.js 静态资源缓存
+
+    # 禁止访问敏感文件
+    location ~ /\. {
+        deny all;
+        return 404;
+    }
+    location ~ \.(env|sql|log|yml|yaml)$ {
+        deny all;
+        return 404;
+    }
+}
+
+# ============================================================
+# API 子域名 (HTTPS)
+# ============================================================
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name api.baizhiji.net;
+
+    ssl_certificate     /etc/letsencrypt/live/api.baizhiji.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.baizhiji.net/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers on;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    server_tokens off;
+
+    # API 专用安全头
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "no-referrer" always;
+
+    # CORS
+    add_header 'Access-Control-Allow-Origin' 'https://baizhiji.net' always;
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, PATCH, DELETE, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Request-ID' always;
+    add_header 'Access-Control-Allow-Credentials' 'true' always;
+
+    limit_req zone=api_limit burst=20 nodelay;
+    client_max_body_size 50M;
+
+    location / {
+        if ($request_method = 'OPTIONS') {
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' 0;
+            add_header 'Access-Control-Max-Age' 86400;
+            return 204;
+        }
+
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_buffering off;
+        proxy_cache off;
+        chunked_transfer_encoding on;
+        proxy_connect_timeout 60s;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 60s;
+    }
+
+    # 认证端点更严格限流
+    location ~ ^/api/auth/(login|send-code|send-reset-code|register|reset-password) {
+        limit_req zone=auth_limit burst=2 nodelay;
+        proxy_pass http://127.0.0.1:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

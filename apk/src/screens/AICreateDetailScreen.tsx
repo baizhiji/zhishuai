@@ -25,6 +25,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import PageHeader from '../components/PageHeader';
 import VideoPlayer from '../components/VideoPlayer';
+import BatchGenerateHint from '../components/BatchGenerateHint';
 
 // 导入服务
 import {
@@ -102,6 +103,7 @@ export default function AICreateDetailScreen() {
 
   // 生成状态
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingStage, setGeneratingStage] = useState('');
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [generatedUrls, setGeneratedUrls] = useState<string[]>([]);
 
@@ -258,12 +260,14 @@ export default function AICreateDetailScreen() {
     }
 
     setIsGenerating(true);
+    setGeneratingStage('正在准备创作方案...');
     setGeneratedContent(null);
     setGeneratedUrls([]);
 
     // 快速模式（蓝皮书 1.5：快速模式默认仅生成脚本/文案，完整生成默认全链路）
     if (quickMode) {
       try {
+        setGeneratingStage('正在生成文案，请稍候...');
         const res = await generateText({
           category,
           description,
@@ -284,7 +288,21 @@ export default function AICreateDetailScreen() {
     }
 
     try {
+      // P0：生成成功后自动同步到内容中心（静默，不打扰用户）
+      const autoSave = async (text: string, urls: string[]) => {
+        try {
+          await saveToMaterials(
+            category,
+            `${config.label}_${description.trim().slice(0, 15) || '生成内容'}`,
+            text || 'AI生成的图片/视频素材',
+            urls
+          );
+        } catch {
+          // 自动保存失败不影响生成主流程
+        }
+      };
       if (config.type === 'image') {
+        setGeneratingStage('正在生成图片，通常需要 1-3 分钟...');
         const res = await generateImage({
           category,
           description,
@@ -292,8 +310,11 @@ export default function AICreateDetailScreen() {
           size,
           extraValues,
         });
-        setGeneratedUrls(res.output.results.map((r: any) => r.url));
+        const urls = res.output.results.map((r: any) => r.url);
+        setGeneratedUrls(urls);
+        void autoSave('', urls);
       } else if (config.type === 'video') {
+        setGeneratingStage('正在生成视频，通常需要 3-10 分钟...');
         // 用户上传了视频时，先上传到服务器作为素材（智能剪辑收集全部素材拼接成片，其余类目取第一个作底片）
         const uploadedVideos = uploadedFiles.filter(f => f.type === 'video');
         let uploadedVideoUrl = '';
@@ -343,8 +364,11 @@ export default function AICreateDetailScreen() {
           videoUrl: uploadedVideoUrl || undefined,
           clips: clipUrls.length > 0 ? clipUrls : undefined,
         });
-        setGeneratedUrls([res.output.url]);
+        const videoUrl = res.output.url;
+        setGeneratedUrls([videoUrl]);
+        void autoSave('', [videoUrl]);
       } else {
+        setGeneratingStage('正在生成文案...');
         const res = await generateText({
           category,
           description,
@@ -358,6 +382,7 @@ export default function AICreateDetailScreen() {
         // 图文类目（小红书图文/电商详情页）：文案生成后自动配图，能力对齐电脑版 mixed 全链路
         if (config.type === 'mixed') {
           try {
+            setGeneratingStage('正在为图文生成配图，通常需要 1-3 分钟...');
             const imgRes = await generateImage({
               category,
               description,
@@ -366,10 +391,18 @@ export default function AICreateDetailScreen() {
               extraValues,
             });
             const urls = (imgRes.output.results || []).map((r: any) => r.url).filter(Boolean);
-            if (urls.length > 0) setGeneratedUrls(urls);
+            if (urls.length > 0) {
+              setGeneratedUrls(urls);
+              void autoSave(res.output.text, urls);
+            } else {
+              void autoSave(res.output.text, []);
+            }
           } catch (e) {
             // 配图失败不阻塞文案产出
+            void autoSave(res.output.text, []);
           }
+        } else {
+          void autoSave(res.output.text, []);
         }
       }
     } catch (error) {
@@ -377,19 +410,21 @@ export default function AICreateDetailScreen() {
       Alert.alert('错误', '内容生成失败，请重试');
     } finally {
       setIsGenerating(false);
+      setGeneratingStage('');
     }
   }, [category, config, description, style, count, requirements, size, duration, subtitle, voiceover, bgm, overlayBanners, bannerStyle, quickMode, extraValues, uploadedFiles, validateExtraFields]);
 
-  // 保存到内容中心
-  const handleSave = useCallback(async (content?: string) => {
+  // 保存到内容中心（支持纯媒体/图文混合内容）
+  const handleSave = useCallback(async (content?: string, mediaUrls?: string[]) => {
     const text = (content ?? generatedContent ?? '').trim();
-    if (!text) {
+    const urls = mediaUrls && mediaUrls.length > 0 ? mediaUrls : generatedUrls;
+    if (!text && urls.length === 0) {
       Alert.alert('提示', '暂无内容可保存');
       return;
     }
     const title = `${config.label}_${description.trim().slice(0, 15) || '生成内容'}`;
     try {
-      const ok = await saveToMaterials(category, title, text);
+      const ok = await saveToMaterials(category, title, text || 'AI生成的图片/视频素材', urls);
       if (ok) {
         Alert.alert('成功', '内容已保存到内容中心');
       } else {
@@ -399,7 +434,7 @@ export default function AICreateDetailScreen() {
       console.error('保存到内容中心失败:', error);
       Alert.alert('错误', '保存失败，请重试');
     }
-  }, [category, config.label, description, generatedContent]);
+  }, [category, config.label, description, generatedContent, generatedUrls]);
 
   // 复制内容到剪贴板
   const handleCopy = useCallback(async (content?: string) => {
@@ -663,11 +698,22 @@ export default function AICreateDetailScreen() {
                   style={styles.uploadedFileItem}
                   onPress={() => handleRemoveFile(index)}
                 >
-                  <Ionicons
-                    name={file.type === 'document' ? 'document-text' : file.type === 'image' ? 'image' : 'videocam'}
-                    size={16}
-                    color="#6D28D9"
-                  />
+                  {file.type === 'image' ? (
+                    <Image source={{ uri: file.uri }} style={styles.uploadedFileThumb} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={file.type === 'document' ? 'document-text' : 'videocam'}
+                        size={16}
+                        color="#6D28D9"
+                      />
+                      {file.type === 'video' && (
+                        <View style={styles.uploadedFileBadge}>
+                          <Ionicons name="play" size={10} color="#fff" />
+                        </View>
+                      )}
+                    </>
+                  )}
                   <Text style={styles.uploadedFileName} numberOfLines={1}>
                     {file.name}
                   </Text>
@@ -684,6 +730,9 @@ export default function AICreateDetailScreen() {
             <Ionicons name="add-circle-outline" size={22} color="#6D28D9" />
             <Text style={styles.uploadSelectorText}>上传文档/图片/视频</Text>
           </TouchableOpacity>
+          <Text style={styles.uploadHint}>
+            支持 JPG/PNG 图片、MP4 视频、PDF/Word/TXT 文档；单个文件 ≤ 100MB，最多 10 个
+          </Text>
         </View>
       )}
 
@@ -925,6 +974,9 @@ export default function AICreateDetailScreen() {
               )}
             </View>
 
+            {/* 手机端单条生成提示 */}
+            <BatchGenerateHint />
+
             {/* 生成按钮 */}
             <TouchableOpacity
               style={[styles.generateBtn, isGenerating && styles.generateBtnDisabled]}
@@ -932,7 +984,10 @@ export default function AICreateDetailScreen() {
               disabled={isGenerating}
             >
               {isGenerating ? (
-                <ActivityIndicator color="#fff" />
+                <>
+                  <ActivityIndicator color="#fff" />
+                  {generatingStage ? <Text style={styles.generateBtnStage}>{generatingStage}</Text> : null}
+                </>
               ) : (
                 <>
                   <Ionicons name="sparkles" size={20} color="#fff" />
@@ -969,11 +1024,17 @@ export default function AICreateDetailScreen() {
                 </View>
                 {generatedUrls.map((url, index) => (
                   <View key={index} style={styles.mediaContainer}>
-                    {config.type === 'image' || config.type === 'mixed' ? (
-                      <Image source={{ uri: url }} style={styles.generatedImage} resizeMode="contain" />
-                    ) : (
-                      <VideoPlayer uri={url} />
-                    )}
+                    <View style={styles.mediaWrap}>
+                      {config.type === 'image' || config.type === 'mixed' ? (
+                        <Image source={{ uri: url }} style={styles.generatedImage} resizeMode="contain" />
+                      ) : (
+                        <VideoPlayer uri={url} />
+                      )}
+                      <View style={styles.aiBadge}>
+                        <Ionicons name="sparkles" size={10} color="#fff" />
+                        <Text style={styles.aiBadgeText}>智枢AI生成</Text>
+                      </View>
+                    </View>
                     <View style={styles.resultActions}>
                       <TouchableOpacity style={styles.actionBtn} onPress={() => handleSave(url)}>
                         <Ionicons name="bookmark-outline" size={18} color="#6D28D9" />
@@ -1230,6 +1291,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
   },
+  generateBtnStage: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#fff',
+  },
   resultCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -1277,6 +1343,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#f1f5f9',
   },
+  mediaWrap: {
+    position: 'relative',
+  },
+  aiBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(109, 40, 217, 0.85)',
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  aiBadgeText: {
+    fontSize: 10,
+    color: '#fff',
+    fontWeight: '600',
+  },
   fieldTip: {
     fontSize: 12,
     color: '#94a3b8',
@@ -1306,6 +1392,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6D28D9',
   },
+  uploadedFileThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    backgroundColor: '#E9D5FF',
+  },
+  uploadedFileBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#6D28D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   uploadSelector: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1321,6 +1424,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6D28D9',
     fontWeight: '500',
+  },
+  uploadHint: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 6,
   },
   imageUrlSelector: {
     flexDirection: 'row',

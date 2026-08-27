@@ -71,6 +71,21 @@ export default function MaterialsScreen() {
   const getCategoryInfo = (category: string) =>
     contentCategoryConfig[category as ContentCategory] || { label: category, icon: 'document', color: '#64748b', type: 'text' as const };
 
+  // 解析多图列表：usagePlatforms 为 JSON 数组字符串（生成结果多图暂存），兼容已解析数组
+  const parseImageList = (m: Material): string[] => {
+    try {
+      const raw = (m as any).usagePlatforms;
+      if (Array.isArray(raw)) return raw.filter((u: unknown) => typeof u === 'string');
+      if (typeof raw === 'string' && raw.trim().startsWith('[')) {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter((u: unknown) => typeof u === 'string') : [];
+      }
+    } catch {
+      // 解析失败忽略
+    }
+    return [];
+  };
+
   // 预览素材
   const handlePreview = (material: LocalMaterial) => {
     setSelectedMaterial(material);
@@ -420,7 +435,11 @@ export default function MaterialsScreen() {
               >
                 <Text style={[styles.filterOptionText, filterCategory === 'all' && styles.filterOptionTextActive]}>全部</Text>
               </TouchableOpacity>
-              {Object.entries(contentCategoryConfig).map(([key, config]) => (
+              {Object.entries(contentCategoryConfig)
+                // 过滤预留项与旧遗留类目（AI短剧/漫剧、图片/电商详情页/短视频/数字人短视频）
+                .filter(([, c]) => !(c as any)?.comingSoon)
+                .filter(([key]) => !['image', 'ecommerce', 'video', 'digital-human'].includes(key))
+                .map(([key, config]) => (
                 <TouchableOpacity 
                   key={key}
                   style={[styles.filterOption, filterCategory === key && styles.filterOptionActive]} 
@@ -493,9 +512,23 @@ export default function MaterialsScreen() {
 
                 <Text style={styles.previewTitle}>{selectedMaterial.title}</Text>
 
-                {selectedMaterial.thumbnail && (
-                  <Image source={{ uri: selectedMaterial.thumbnail }} style={styles.previewImage} />
-                )}
+                {(() => {
+                  // 优先展示多图列表（生成结果暂存于 usagePlatforms），其次单张缩略图
+                  const imgs = parseImageList(selectedMaterial);
+                  const list = imgs.length > 0 ? imgs : (selectedMaterial.thumbnail ? [selectedMaterial.thumbnail] : []);
+                  if (list.length === 0) return null;
+                  return (
+                    <View style={list.length > 1 ? styles.previewImages : undefined}>
+                      {list.map((uri, i) => (
+                        <Image
+                          key={i}
+                          source={{ uri }}
+                          style={list.length > 1 ? styles.previewImageMulti : styles.previewImage}
+                        />
+                      ))}
+                    </View>
+                  );
+                })()}
 
                 <Text style={styles.previewText}>{selectedMaterial.content}</Text>
 
@@ -571,6 +604,8 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 40 },
   previewModalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '90%' },
+  previewImages: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
+  previewImageMulti: { width: '48%', height: 160, borderRadius: 8, backgroundColor: '#f1f5f9' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
   modalTitle: { fontSize: 17, fontWeight: '600', color: '#1e293b' },
   filterTitle: { fontSize: 14, fontWeight: '600', color: '#374151', marginHorizontal: 16, marginTop: 16, marginBottom: 10 },

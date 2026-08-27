@@ -100,11 +100,17 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { title, type, content, thumbnail, fileType, fileUrl } = req.body;
+    const { title, type, content, thumbnail, fileType, fileUrl, images } = req.body;
     if (!title || !type) {
       res.status(400).json({ success: false, error: '缺少必填字段 title/type' });
       return;
     }
+
+    // 支持多图生成结果：images 数组优先，fileUrl/thumbnail 兜底
+    const imageList: string[] = Array.isArray(images)
+      ? images.filter((u: unknown) => typeof u === 'string' && u.length > 0)
+      : [];
+    const firstMedia = imageList[0] || (fileUrl ? String(fileUrl) : undefined);
 
     const material = await prisma.material.create({
       data: {
@@ -112,9 +118,11 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
         title: String(title),
         type: String(type),
         content: content ? String(content) : undefined,
-        thumbnail: thumbnail ? String(thumbnail) : undefined,
-        fileType: fileType ? String(fileType) : undefined,
-        fileUrl: fileUrl ? String(fileUrl) : undefined,
+        thumbnail: thumbnail ? String(thumbnail) : imageList[0] || undefined,
+        fileType: fileType ? String(fileType) : imageList.length ? 'image' : undefined,
+        fileUrl: firstMedia || undefined,
+        // 多图素材的完整图片列表暂存于 usagePlatforms（JSON 数组字符串，不影响现有字段语义）
+        usagePlatforms: imageList.length > 1 ? JSON.stringify(imageList) : undefined,
         status: 'unused',
       },
     });

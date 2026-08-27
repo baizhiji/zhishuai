@@ -683,9 +683,15 @@ function buildRequestBody(category: ContentCategory, params: GenerateTextParams)
       return { ...base, count: params.count || 5, style: params.style };
     case ContentCategory.TAGS:
       return { ...base, count: params.count || 10 };
-    default:
-      // AI 创作工厂文本生成：显式携带 contentType 触发后端"爆款内容创意"逻辑
+    case ContentCategory.XIAOHONGSHU:
+      // 小红书图文：对齐电脑版走小红书标准文案逻辑，不携带 contentType（避免落入"创意蓝图"）
+      return { ...base, style: params.style, wordCount: params.wordCount };
+    case ContentCategory.CONTENT_CREATIVITY:
+      // 内容创意：显式携带 contentType 触发后端"爆款内容创意"逻辑
       return { ...base, style: params.style, wordCount: params.wordCount, contentType: 'content_creativity' };
+    default:
+      // 标准文案生成：不携带 contentType，走后端对应 platform 的标准文案逻辑
+      return { ...base, style: params.style, wordCount: params.wordCount };
   }
 }
 
@@ -718,7 +724,7 @@ export async function generateImage(params: GenerateImageParams): Promise<{ outp
   try {
     const extra = buildExtraFieldsPrompt(params.extraValues);
     const response = await apiClient.post('/ai-chat/image', {
-      prompt: `生成一张${params.style || '写实'}风格的图片，主题：${params.description}${extra}`,
+      prompt: `生成一张${params.style || '写实'}风格的图片，主题：${params.description}。画面中不要出现任何文字、水印、LOGO、图标或遮挡物，保持画面干净整洁。${extra}`,
       size: params.size || '2048x2048',
     });
     const imageUrl = response?.url || response?.imageUrl || response?.data?.url || '';
@@ -895,14 +901,26 @@ function buildTextPrompt(params: GenerateTextParams): string {
   }
 }
 
-// 保存到内容中心
+// 保存到内容中心（支持附带图片/视频媒体 URL）
 export async function saveToMaterials(
   category: ContentCategory,
   title: string,
-  content: string
+  content: string,
+  mediaUrls: string[] = []
 ): Promise<boolean> {
-  const response = await apiClient.post('/materials', { type: category, title, content });
-  return Boolean((response as any)?.id);
+  const body: Record<string, unknown> = { type: category, title, content };
+  const images = mediaUrls.filter((u) => /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u));
+  const videos = mediaUrls.filter((u) => /\.(mp4|mov|webm)(\?|$)/i.test(u));
+  // 兜底：无扩展名的 CDN 签名地址也视为图片，避免生成结果丢失
+  if (images.length === 0 && videos.length === 0 && mediaUrls.length > 0) {
+    images.push(...mediaUrls);
+  }
+  if (images.length > 0) body.images = images;
+  if (videos.length > 0) body.fileUrl = videos[0];
+  if (images.length > 0) body.thumbnail = images[0];
+  const response = await apiClient.post('/materials', body);
+  const data = (response as any)?.data ?? response;
+  return Boolean(data?.id);
 }
 
 // 获取创作历史（本地缓存）

@@ -1,4 +1,43 @@
 
+## 2026-08-27 会话：AI 创作工厂 8 项 P0 体验问题全量修复 | 后端已部署验证
+- 问题清单 docs/PROBLEM_ANALYSIS_2026-08-27.md，8 项全部修复：
+  1. 客服二维码不显示 → APK SupportQRScreen 相对路径拼绝对 URL（上轮已修）
+  2. 上传素材无预览 → APK 列表缩略图（图片缩略/视频播放角标）+ 电脑端 Upload onPreview 新窗口预览
+  3. 上传无说明 → APK 增加 uploadHint 文案（格式/大小/数量限制）；电脑端 Upload 下方说明
+  4. 生成结果不在内容中心 → 两端生成成功后自动静默保存到 /materials；手动保存按钮支持纯媒体；后端 /materials POST 支持 images 数组；APK saveToMaterials 按扩展名分流图片/视频，CDN 无扩展名 URL 兜底为图片；APK 内容中心预览弹窗渲染多图（usagePlatforms 暂存 JSON 数组）
+  5. 内容中心筛选含旧类目 → APK MaterialsScreen 过滤 comingSoon 预留项 + 旧遗留类目（image/ecommerce/video/digital-human）
+  6. 无真实进度 → 电脑端移除随机假进度（Math.random），改为单调缓增（≤88%）+ 分阶段文案（分析爆款基因/生成图片/视频/第N项）；APK 生成按钮转圈 + 阶段文案（generatingStage）
+  7. 小红书图文只有图片 → 文本形态已修（buildRequestBody 小红书不传 contentType 避免落"创意蓝图"，走标准文案）；配图 prompt 已含"画面不要出现任何文字"；素材参与配图放弃（生图链路纯文本 prompt 不支持参考图，需改造多引擎）
+  8. 水印不对 → 两端生成结果媒体右上角"智枢AI生成"品牌角标（图片+视频）
+- 验证：apk/desktop-ui/server 三端 tsc --noEmit 全通过，lint 0 错误
+- 部署：仅 server/src/routes/materials.ts 变更 → scp 上传 + pm2 restart zhishuai-api ✅；verify-login 远端运行 admin 200/已删代理商 401/自助注册 403，客户 401 为已知账号过期（memory 89365807，与本次无关）
+- 未提交（用户未要求）
+
+## 2026-08-26 会话（续）：重建测试账号 + 商用前真机验证清单
+- 背景：用户质疑"提交推送≠可商用"（此前多次"说能用实际用就出错"）。如实回答：API 层/构建流水线已通，但桌面端安装启动、APK 真机、短信/OAuth/支付、角色账号从未验证，不能打包票
+- 第一件事（账号重建）：agent=18100090667/123456（百智集，level=national）确认**一直存在可用**（此前验证报告误记为"仅 admin"）；customer=13800000001 已重建：走真实商用流程 POST /api/admin/customers（需 admin token）挂到百智集名下，name=演示客户，expireAt=2099-12-31 永久，密码 123456，登录实测 200
+- verify-login.sh 联动更新：customer 期望从"已删除 401"改为"200 且必检 exit 1"；注释同步。CI 部署在 git pull 后运行仓库脚本，随提交自动生效（服务器本地旧脚本无需手动同步）
+- 实测（本地 curl 公网）：admin 200 / agent 200 / customer 200 / 已删代理商 13900000099 401 / 自助注册 403（"暂不支持自主注册"）——首次测注册返 503 系连续打 auth 端点触发 nginx limit_req(burst=2) 限流，非故障
+- 第二件事：docs/COMMERCIAL_LAUNCH_CHECKLIST_2026-08-26.md 生成——基于三端真实菜单树/页面（admin 11 菜单、agent 7 菜单、customer 15 菜单、APK 17 屏幕），8 节：安装启动/三角色走查/APK 走查/第三方链路(短信/OAuth/支付/模型)/提交推送前置检查/商用判定标准。删除/清空/清除类操作（删除分享码、删除岗位、清空对话、清空日志等）全部标注【业务功能】如实走查，不得当 bug
+- 教训：PowerShell→ssh 管道中文经控制台编码(GBK)转换必乱码；Invoke-RestMethod 传中文 name 也乱码。根治=JS 脚本用 unicode 转义（\u6f14\u793a\u5ba2\u6237）纯 ASCII 传输后服务器端写入。scp/base64 复杂命令审批易超时
+- 未提交（用户未要求）
+
+## 2026-08-26 会话（续）：全功能验证报告问题按优先级全部修复
+- 背景：docs/VERIFICATION_REPORT_2026-08-26.md（43 个生产 API 实测 + 三端代码交叉核对）列出的 P1×2 + P2 问题全部处理完毕
+- P1 死代码清理：删除 desktop-ui/services/materials.ts（内部 getMaterialStats 调不存在的 /api/materials/stats）、desktop-ui/services/recruitment.ts（内部 getResumes/createResume/updateResumeStatus 调不存在的 /api/recruitment/resumes，后端实际为 /api/recruitment/candidates）。两文件全文件无任何页面 import（页面直接走 apiClient/request），desktop-ui tsc --noEmit 0 错误、lint 0 错误
+- P2 真相修正 + 修复：后端 health.ts 本就存在（/health、/ready、/live、/metrics，挂载 app.use('/')）；api.baizhiji.net 子域全量代理天然可用（实测 200 JSON）；但主域 baizhiji.net 的 nginx 生效配置（/etc/nginx/sites-enabled/baizhiji.net 安全加固版，8/16 更新，certbot SSL，监听 443）location / 下线页拦截了这些路径，实测返回下线页 HTML
+- 修复：在生效配置 443 server 的 location / 之前插入 `location ~ ^/(health|ready|live|metrics)$` → 127.0.0.1:3001（5s 超时）；nginx -t 通过 + reload；实测主域 /health /ready /live /metrics 全部返回后端 JSON 200，下线页与 /downloads/ 不受影响
+- 关键教训：生产生效配置不在仓库（deploy/nginx/zhishuai.conf 系 80 端口旧版、未链接 sites-enabled，setup-nginx.sh 同步的是 zhishuai.conf 属配置漂移）。已将远端生效配置完整存档到 deploy/nginx/baizhiji.net，并同步修改 setup-nginx.sh 改部署 baizhiji.net（清理旧 zhishuai.conf/api-baizhiji.net 引用），杜绝下次部署覆盖修复
+- 未提交（用户未要求）
+
+## 2026-08-26 会话（续）：桌面端 API 域名兜底修复（客服二维码上传 404）— 影响面核查与修正
+- 背景：用户指出桌面端客服二维码上传失败（此前修过 absUrl，本次 0bde08b 又动全局文件被质疑影响其他功能）。已做完整影响面核查：
+- 0bde08b 改动内容：utils/env.ts 的 API_ORIGIN 增加桌面端兜底（未配置 NEXT_PUBLIC_API_BASE_URL 时回退域名）；lib/api.ts baseURL 改用 API_ORIGIN。API_ORIGIN 消费者=utils/request.ts、lib/request.ts(API_PREFIX)、lib/api.ts、absUrl(ai-chat.ts/factory-service.ts)，即全部 API 请求
+- 影响面结论（已实测）：①本地构建（有 .env.local=https://baizhiji.net）env 优先，兜底分支不执行，行为与改动前完全一致→零影响；②CI 构建（desktop-build 无 env）改前 baseURL='/api' 相对路径→tauri://localhost 404，改后打兜底域名→修复；③tsc --noEmit 0 错误、lint 0 错误
+- 实测服务器：DNS api.baizhiji.net/baizhiji.net 均解析 150.109.60.130；nginx sites-enabled 实际只有 baizhiji.net + default-http（无独立 api 子域配置，api 域名走 default_server）；https 两域名 TLS 均通（Let's Encrypt 证书）；baizhiji.net 登录测试返回 503 系连续请求触发 nginx auth_limit/api_limit 限流保护（错误日志 16:06/16:07 可见），非服务故障；api 域名走 default_server 无 limit_req，返回后端 JSON 解析 400
+- 修正措施：①CI workflow ci.yml 的 desktop-build 步骤显式注入 NEXT_PUBLIC_API_BASE_URL=https://baizhiji.net（与 .env.local/.env.example 一致，CI 产物与本地行为完全一致）；②env.ts 兜底域名由 https://api.baizhiji.net 改为 https://baizhiji.net（统一走主域名，有专用证书+nginx server+限流保护）
+- 教训：修复局部问题（二维码上传）不应动全局文件；优先 CI 显式注入 env 而非代码兜底；本地 PowerShell curl.exe 传 JSON body 引号会损坏，应用变量或单引号
+
 ## 2026-08-26 会话（续）：修复重置密码接口与 UI 不一致 bug（后端改为固定 123456）
 - 用户确认重置密码主路径=管理员/代理商后台操作（非短信验证码）；自助重置页 forgot-password 存在但登录页无入口（孤岛页面）
 - 发现真 bug：后端重置实际生成随机密码（admin-agents.ts Math.random 固定 + agent.ts 不传 newPassword 时随机），但前端 UI（admin/tenants + agent/customers）均提示"重置为 123456"，且总后台取错返回字段（取 data?.newPassword，后端返回 data.password）→ 重置后客户拿 123456 登录必失败

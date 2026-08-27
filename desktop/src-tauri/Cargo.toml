@@ -1,6 +1,6 @@
 [package]
 name = "zhishuai-desktop"
-version = "3.2.5"
+version = "3.2.7"
 description = "智枢AI 桌面安装版"
 authors = ["智枢AI"]
 edition = "2021"

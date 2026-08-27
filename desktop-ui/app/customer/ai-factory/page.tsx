@@ -127,6 +127,7 @@ export default function AIFactoryPage() {
   const [generating, setGenerating] = useState(false);
   const [quickMode, setQuickMode] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
   const [generatedContent, setGeneratedContent] = useState<string | null>(null);
   const [savingToCenter, setSavingToCenter] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
@@ -217,14 +218,16 @@ export default function AIFactoryPage() {
 
     setGenerating(true);
     setProgress(0);
+    setProgressText('正在分析爆款基因，构思创作方案...');
     setGeneratedContent(null);
     setGeneratedImages([]);
     setGeneratedVideos([]);
     setViralScoreForTask(null);
 
+    // P0：移除随机假进度，改为单调缓增 + 分阶段真实文案提示
     const progressInterval = setInterval(() => {
-      setProgress(prev => (prev >= 90 ? prev : prev + Math.random() * 15));
-    }, 300);
+      setProgress(prev => (prev >= 88 ? prev : prev + 1));
+    }, 600);
 
     try {
       const topicForAnalysis = values.topic || values.description || values.productName || (typeof values.theme === 'string' ? values.theme : '');
@@ -259,6 +262,7 @@ export default function AIFactoryPage() {
           if (result.success) results.push(result.data as string);
           setProvider(result.provider);
           setModel(result.model);
+          setProgressText(`正在生成${cfg.label}（第 ${i + 1}/${count} 项）...`);
           setProgress(Math.round(((i + 1) / count) * 95));
           continue;
         }
@@ -306,6 +310,7 @@ export default function AIFactoryPage() {
         if (pipelined) { setProgress(Math.round(((i + 1) / count) * 95)); continue; }
 
         if (cfg.type === 'image') {
+          setProgressText('正在生成图片，通常需要 1-3 分钟...');
           const prompt = buildImagePrompt(activeCategory, values, viralAnalysis);
           const result = await generateImage({ prompt, negativePrompt: values.negativePrompt, size: values.size, n: values.count }, getTaskKey(activeCategory));
           if (result.success && result.data) {
@@ -315,6 +320,7 @@ export default function AIFactoryPage() {
           setProvider(result.provider);
           setModel(result.model);
         } else if (cfg.type === 'video') {
+          setProgressText('正在生成视频，通常需要 3-10 分钟...');
           const prompt = buildVideoPrompt(activeCategory, values, viralAnalysis);
           const isSmartEdit = activeCategory === ContentCategory.SMART_EDIT;
           const materialUrls = values.files?.map((f: any) => f.url || f.name).filter(Boolean) || [];
@@ -356,6 +362,7 @@ export default function AIFactoryPage() {
 
       clearInterval(progressInterval);
       setProgress(100);
+      setProgressText('生成完成，正在整理结果...');
 
       if (results.length > 0) setGeneratedContent(results.join('\n\n---\n\n'));
       if (imgResults.length > 0) setGeneratedImages(imgResults);
@@ -371,6 +378,20 @@ export default function AIFactoryPage() {
         content: [...results, ...imgResults].join('\n'),
         config: values, timestamp: Date.now(), status: 'success', provider, model,
       });
+
+      // P0：生成成功后自动同步到内容中心（静默，不打扰用户）
+      try {
+        const finalText = [...results, ...imgResults].join('\n\n---\n\n');
+        await apiClient.post('/materials', {
+          title: values.description || values.productName || cfg.label,
+          type: activeCategory,
+          content: finalText || `AI生成${cfg.label}图片/视频`,
+          thumbnail: imgResults[0] || undefined,
+          fileUrl: imgResults[0] || videoResults[0] || undefined,
+          fileType: imgResults.length ? 'image' : videoResults.length ? 'video' : undefined,
+          images: imgResults.length > 0 ? imgResults : undefined,
+        });
+      } catch { /* 自动保存失败不影响生成主流程 */ }
 
       message.success(`${cfg.label}生成完成！${estimateCost([...results, ...imgResults].join(''))}`);
       if (viralAnalysis) setViralScoreForTask(viralAnalysis);
@@ -545,9 +566,22 @@ export default function AIFactoryPage() {
             </Form.Item>
             {cfg.needUpload && (
               <Form.Item label="上传素材" name="files">
-                <Upload multiple listType="picture-card" beforeUpload={() => false} maxCount={10}>
+                <Upload
+                  multiple
+                  listType="picture-card"
+                  beforeUpload={() => false}
+                  maxCount={10}
+                  onPreview={(file) => {
+                    const url = (file as any)?.url || (file as any)?.thumbUrl || '';
+                    if (url) window.open(url, '_blank');
+                    else message.info('视频/文档上传后可在服务器中查看');
+                  }}
+                >
                   <div><PlusOutlined /><div style={{ marginTop: 8 }}>上传</div></div>
                 </Upload>
+                <div style={{ fontSize: 12, color: '#999', marginTop: 8 }}>
+                  支持 JPG/PNG 图片、MP4 视频、PDF/Word/TXT 文档；单个文件 ≤ 100MB，最多 10 个
+                </div>
               </Form.Item>
             )}
             {cfg.needImageUrl && (
@@ -634,7 +668,7 @@ export default function AIFactoryPage() {
         {generating && (
           <Card style={{ marginTop: 16, borderRadius: 12 }}>
             <Progress percent={Math.round(progress)} status="active" />
-            <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>AI正在为您创作{cfg.label}，请稍候...</Text>
+            <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>{progressText || `AI正在为您创作${cfg.label}，请稍候...`}</Text>
           </Card>
         )}
         {!generating && (generatedContent || generatedImages.length > 0) && (
@@ -643,7 +677,14 @@ export default function AIFactoryPage() {
               <div style={{ marginBottom: 16 }}>
                 <Image.PreviewGroup>
                   <Row gutter={[8, 8]}>
-                    {generatedImages.map((url, i) => <Col key={i} span={generatedImages.length === 1 ? 24 : 12}><Image src={url} alt={`生成图片${i + 1}`} style={{ borderRadius: 8 }} /></Col>)}
+                    {generatedImages.map((url, i) => (
+                      <Col key={i} span={generatedImages.length === 1 ? 24 : 12}>
+                        <div style={{ position: 'relative' }}>
+                          <Image src={url} alt={`生成图片${i + 1}`} style={{ borderRadius: 8 }} />
+                          <span style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(109,40,217,0.85)', color: '#fff', fontSize: 11, padding: '2px 8px', borderRadius: 4, zIndex: 1 }}>智枢AI生成</span>
+                        </div>
+                      </Col>
+                    ))}
                   </Row>
                 </Image.PreviewGroup>
               </div>
@@ -651,7 +692,10 @@ export default function AIFactoryPage() {
             {generatedVideos.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 {generatedVideos.map((url, i) => (
-                  <video key={i} src={url} controls playsInline style={{ width: '100%', maxHeight: 420, borderRadius: 8, background: '#000', marginBottom: 8 }} />
+                  <div key={i} style={{ position: 'relative' }}>
+                    <video src={url} controls playsInline style={{ width: '100%', maxHeight: 420, borderRadius: 8, background: '#000', marginBottom: 8 }} />
+                    <span style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(109,40,217,0.85)', color: '#fff', fontSize: 11, padding: '2px 8px', borderRadius: 4 }}>智枢AI生成</span>
+                  </div>
                 ))}
               </div>
             )}
@@ -659,13 +703,16 @@ export default function AIFactoryPage() {
             <Divider />
             <Space wrap>
               <Button icon={<SaveOutlined />} loading={savingToCenter} onClick={async () => {
-                if (!generatedContent) return;
                 setSavingToCenter(true);
                 try {
                   await apiClient.post('/materials', {
-                    title: form.getFieldValue('description') || cfg.label,
+                    title: form.getFieldValue('description') || form.getFieldValue('productName') || cfg.label,
                     type: activeCategory,
-                    content: generatedContent,
+                    content: generatedContent || `AI生成${cfg.label}图片/视频`,
+                    thumbnail: generatedImages[0] || undefined,
+                    fileUrl: generatedImages[0] || generatedVideos[0] || undefined,
+                    fileType: generatedImages.length ? 'image' : generatedVideos.length ? 'video' : undefined,
+                    images: generatedImages.length > 0 ? generatedImages : undefined,
                   });
                   message.success('已保存到内容中心');
                 } catch {

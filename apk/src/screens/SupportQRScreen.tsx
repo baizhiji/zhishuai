@@ -35,8 +35,14 @@ export default function SupportQRScreen() {
       const data = result.data ?? result;
       const url = data?.url ?? data?.qrCodeUrl ?? '';
 
-      if (response.ok && url) {
-        setQrCodeUrl(url);
+      // 后端可能返回相对路径(/uploads/xxx)，原生 Image 必须拼接完整 URL
+      const fullUrl =
+        url && !/^https?:\/\//i.test(url)
+          ? `${baseUrl}${url.startsWith('/') ? url : `/${url}`}`
+          : url;
+
+      if (response.ok && fullUrl) {
+        setQrCodeUrl(fullUrl);
       } else {
         setError('暂无客服二维码，请稍后再试');
       }

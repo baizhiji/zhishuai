@@ -23,17 +23,20 @@ echo "✓ 配置目录与 /var/www/zhishuai/downloads 已就绪"
 
 # 3. 同步项目中的 nginx 配置
 echo "[3/4] 同步 nginx 配置..."
-# 禁用旧配置，避免与 zhishuai.conf 中的 server_name 冲突
+# 生产实际生效配置为 baizhiji.net（安全加固版，含 SSL/限流/健康检查转发）
+# 禁用旧配置，避免 server_name 冲突
 sudo rm -f /etc/nginx/sites-available/api.baizhiji.net
 sudo rm -f /etc/nginx/sites-enabled/api.baizhiji.net
+sudo rm -f /etc/nginx/sites-available/zhishuai.conf
+sudo rm -f /etc/nginx/sites-enabled/zhishuai.conf
 
 APP_DIR=/var/www/zhishuai
-sudo cp "$APP_DIR/deploy/nginx/zhishuai.conf" /etc/nginx/sites-available/zhishuai.conf
+sudo cp "$APP_DIR/deploy/nginx/baizhiji.net" /etc/nginx/sites-available/baizhiji.net
 echo "✓ 配置文件已同步"
 
 # 4. 启用配置并重载Nginx
 echo "[4/4] 启用配置并重载Nginx..."
-sudo ln -sf /etc/nginx/sites-available/zhishuai.conf /etc/nginx/sites-enabled/zhishuai.conf
+sudo ln -sf /etc/nginx/sites-available/baizhiji.net /etc/nginx/sites-enabled/baizhiji.net
 sudo nginx -t && sudo systemctl reload nginx
 echo "✓ Nginx配置已启用"
 

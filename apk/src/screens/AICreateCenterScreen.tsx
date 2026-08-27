@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import PageHeader from '../components/PageHeader';
+import BatchGenerateHint from '../components/BatchGenerateHint';
 
 // 导入服务
 import { ContentCategory, contentCategoryConfig } from '../services/content.service';
@@ -51,6 +52,7 @@ export default function AICreateCenterScreen() {
     <View style={styles.container}>
       <PageHeader title="AI创作中心" showBack={false} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <BatchGenerateHint />
         <View style={styles.typeGrid}>
           {CONTENT_TYPES.map(type => {
             const cfg = contentCategoryConfig[type.id];

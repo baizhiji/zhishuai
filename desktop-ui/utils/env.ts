@@ -17,7 +17,7 @@ export const isDesktop: boolean =
 /** 后端 API 域名根（不含 /api 前缀） */
 export const API_ORIGIN: string =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
-  (isDesktop ? 'https://api.baizhiji.net' : '');
+  (isDesktop ? 'https://baizhiji.net' : '');
 
 /** 桌面版完整 API 前缀（lib/request 用，如 https://api.zhishuai.example/api） */
 export const API_PREFIX: string = API_ORIGIN
