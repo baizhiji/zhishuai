@@ -1,4 +1,16 @@
 
+## 2026-08-27 会话（续4）：桌面版 AI 工厂生成卡 88% 修复 | 3.2.9 已发布
+- 问题：用户截图 AI 创作工厂生成卡在 88%（"正在分析爆款基因，构思创作方案..."），持续约 1 小时无进展
+- 根因：前端 `desktop-ui/lib/ai/factory-service.ts` 中的 `callChatAPI` 使用原生 `fetch` 没有超时控制；当某个模型 API 长时间无响应时，请求永久 pending，前端 `await` 卡死，进度条停在 88%。同时进度条是假进度 setInterval，不会真实反映阶段
+- 修复：
+  - `callChatAPI` 增加 `fetchWithTimeout`（AbortController，30 秒超时）
+  - `callImageAPI`/`callVideoAPI` 等图像/视频请求默认 60 秒超时
+  - `desktop-ui/app/customer/ai-factory/page.tsx` 增加整体 5 分钟 `Promise.race` 总超时保护，并改为缓慢真实推进的进度动画
+- 版本：desktop 三处版本号 3.2.8 → 3.2.9（package.json / src-tauri/tauri.conf.json / src-tauri/Cargo.toml）
+- 部署：提交 `b554661`，AppVersion 表登记 3.2.9（buildNumber 329），archive 3.2.8
+- 下载：https://baizhiji.net/downloads/zhishuai_3.2.9_x64-setup.exe
+- 注意：3.2.8 打开时会检测到 3.2.9 更新并提示升级；安装 3.2.9 后 AI 工厂生成会在 30 秒/5 分钟超时后给出明确错误提示，不再永久卡死
+
 ## 2026-08-27 会话（续3）：手机端登录报错修复 | APK 1.2.3 已发布
 - 问题：用户截图"登录失败 undefined is not a function"，输入 13166262006/20061218 后触发
 - 根因：APK 的 `tokenStorage.ts` 在 React Native 真机上把 `(global as any).localStorage` 设为空对象 `{}`；当运行环境存在 `window === global` polyfill 时，`window.localStorage.setItem` 是 undefined，登录成功保存 token/userInfo 时调用即抛 TypeError
