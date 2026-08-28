@@ -9,6 +9,7 @@
 - 【桌面版 3.4.0 发布】desktop-ui `npm run build`（69 静态页）→ `node scripts/release.mjs --version 3.4.0 --bundle nsis` 本地签名构建成功（SHA256 703f0ccc...，3.5MB）→ exe/sig 复制 ASCII 名（PowerShell Copy-Item 处理中文文件名，cmd copy 会失败）→ scp 上传服务器 /var/www/zhishuai/downloads/ → 服务器 latest.json 更新为 3.4.0（CI 不更新 latest.json，需手动，URL 用 ASCII 名 zhishuai_3.4.0_x64-setup.exe）→ register_desktop_340.js 登记（NODE_PATH=server/node_modules 执行 mysql2），并修复 releasedAt 为 NULL 的问题（UPDATE SET releasedAt=NOW()）
 - 【APK 1.3.0 受阻】EAS 云构建失败：Free plan 本月 Android 构建配额已用完（下次可用 2026-09-01）；本地无 JDK/Android SDK 无法本地构建。版本号已升级，9/1 后可 EAS 构建或升级计划。等待用户决策
 - 验证：公网 latest.json=3.4.0、zhishuai_3.4.0_x64-setup.exe HTTP 200（3.5MB）、AppVersion windows released=3.4.0/340
+- 【CI 最终结论】GitHub Actions run 86（head bdec6cf）全部 job success：Lint/TypeCheck(3)、Security Audit(3)、Build(2)、Desktop Build(Windows)、Deploy Desktop Installer to Server、Deploy to Production（含 prisma db push + pm2 restart + verify-login.sh 三种角色登录通过）。run 84/85 被 cancel 属 concurrency 正常行为（新 push 取消旧运行）。服务器 /health=200、/downloads/latest.json=200
 - 教训：Windows 上 ssh/scp 可用（~/.ssh/id_rsa 已配置）；execute_command 环境 PowerShell/cmd 混用，中文参数易乱码，优先 cmd /c 包裹 + ASCII 文件名；服务器 mysql2 查询需 NODE_PATH=/var/www/zhishuai/server/node_modules
 
 ## 2026-08-28 会话（续13）：【数据总览】数据真实性核查 + 修复 3 处非真实数据
