@@ -33,19 +33,21 @@ import {
   createSession,
   getAccounts,
   getAccountStats,
-  getPlatforms,
   getSessionStatus,
   refreshAccount,
   unbindAccount,
 } from '@/services/social-account';
-import type { AccountStats, LoginSession, Platform, SocialAccount } from '@/services/social-account';
+import type { AccountStats, LoginSession, SocialAccount } from '@/services/social-account';
 
-/** 平台视觉标识（key 与后端统一） */
+/** 平台视觉标识（key 与后端统一，一个平台仅一个入口） */
 const PLATFORM_STYLE: Record<string, { name: string; color: string; bg: string; desc: string }> = {
-  douyin: { name: '抖音', color: '#161823', bg: '#eef0f2', desc: '扫码登录抖音创作者中心' },
-  kuaishou: { name: '快手', color: '#FF4906', bg: '#fff0ea', desc: '扫码登录快手网页版' },
-  xiaohongshu: { name: '小红书', color: '#FF2442', bg: '#ffeef1', desc: '扫码登录小红书网页版' },
+  douyin: { name: '抖音', color: '#161823', bg: '#eef0f2', desc: '扫码登录抖音创作者中心，支持多账号矩阵' },
+  kuaishou: { name: '快手', color: '#FF4906', bg: '#fff0ea', desc: '扫码登录快手网页版，支持多账号矩阵' },
+  xiaohongshu: { name: '小红书', color: '#FF2442', bg: '#ffeef1', desc: '扫码登录小红书网页版，支持多账号矩阵' },
 };
+
+/** 固定平台入口，避免后端返回重复 platform key 导致同平台出现多个授权卡片 */
+const SUPPORTED_PLATFORM_KEYS = Object.keys(PLATFORM_STYLE);
 
 const POLL_INTERVAL = 3000;
 
@@ -53,7 +55,6 @@ export default function AcquisitionAccountsPage() {
   const { user } = useAuth();
   const userId = user?.id || '';
 
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [stats, setStats] = useState<AccountStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,8 +95,7 @@ export default function AcquisitionAccountsPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [plat] = await Promise.all([getPlatforms(), loadAccounts(), loadStats()]);
-      setPlatforms(plat || []);
+      await Promise.all([loadAccounts(), loadStats()]);
     } catch (e: any) {
       message.error(e?.message || '加载失败');
     } finally {
@@ -309,23 +309,18 @@ export default function AcquisitionAccountsPage() {
         </Col>
       </Row>
 
-      {/* 平台授权卡片 */}
+      {/* 平台授权卡片：每个平台仅一个入口，入口内可授权多个账号 */}
       <Typography.Title level={5} style={{ marginTop: 8 }}>
         选择平台扫码授权
       </Typography.Title>
       <Row gutter={16}>
-        {(platforms.length > 0 ? platforms : Object.keys(PLATFORM_STYLE).map((key) => ({ key, name: PLATFORM_STYLE[key].name }))).map(
-          (platform) => {
-            const style = PLATFORM_STYLE[platform.key] || PLATFORM_STYLE.douyin;
-            const accs = accountsByPlatform(platform.key);
+        {SUPPORTED_PLATFORM_KEYS.map((key) => {
+          const style = PLATFORM_STYLE[key];
+          const accs = accountsByPlatform(key);
             const first = accs[0];
             return (
-              <Col xs={24} sm={12} lg={6} key={platform.key} style={{ marginBottom: 16 }}>
-                <Card
-                  hoverable
-                  styles={{ body: { padding: 20 } }}
-                  style={{ height: '100%' }}
-                >
+              <Col xs={24} sm={12} lg={6} key={key} style={{ marginBottom: 16 }}>
+                <Card hoverable styles={{ body: { padding: 20 } }} style={{ height: '100%' }}>
                   <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
                     <span
                       style={{
@@ -388,7 +383,7 @@ export default function AcquisitionAccountsPage() {
                   </div>
 
                   <Space wrap>
-                    <Button type="primary" icon={<QrcodeOutlined />} onClick={() => handleAuthorize(platform.key)}>
+                    <Button type="primary" icon={<QrcodeOutlined />} onClick={() => handleAuthorize(key)}>
                       {accs.length > 0 ? '添加账号' : '立即授权'}
                     </Button>
                     {first && (
@@ -400,8 +395,7 @@ export default function AcquisitionAccountsPage() {
                 </Card>
               </Col>
             );
-          }
-        )}
+          })}
       </Row>
 
       {/* 已绑定账号列表 */}

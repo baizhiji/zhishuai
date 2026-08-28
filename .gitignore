@@ -20,6 +20,7 @@
 
 # 3. desktop-ui目录下的忽略项（桌面版界面源码，Next.js 静态导出）
 desktop-ui/.next
+desktop-ui/.next_bak_*
 desktop-ui/node_modules
 # 敏感配置
 desktop-ui/.env

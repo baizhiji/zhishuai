@@ -1,4 +1,29 @@
 
+## 2026-08-28 会话（续15）：AI 创作工厂全链路系统性审计 + 修复（根除 localStorage 依赖）
+- 用户情绪激烈：要求全面检查所有功能，质疑"已配置 Key 却报未配置"反复发生 + 担心模型配置被改乱
+- 【根因确认】AI 创作工厂原架构=前端直连：生成时从 localStorage 读 Key 直连第三方 API，服务端数据库 Key 仅靠 syncApiKeysFromServer() 尽力同步；同步链路任一环失败（历史 provider 命名不匹配/清缓存/接口异常）→ "服务端3/3就绪、生成却报未配置"，且旧代码把所有失败统一 catch 成"未配置 API Key"，极具误导
+- 【系统性修复，全部写入 desktop-ui/lib/ai/factory-service.ts】
+  1. generateImage → 后端代理 /api/ai-chat/image（后端读数据库 Key，火山→腾讯→阿里降级）
+  2. callImageAPI（流水线图片阶段）→ 同上后端代理（原为三套直连逻辑）
+  3. callChatAPI（流水线全部文本阶段）→ 后端代理 /api/ai-chat/chat
+  4. generateText → 后端代理 /api/ai-chat/chat
+  5. 新增 getEffectiveApiKeys()：服务端 /api/ai-config/keys?raw=1 优先 + 5min 内存缓存 + localStorage 兜底；PROVIDER_ALIAS_TO_KEY 兼容 dashscope/tokenhub/ark 与 tencent/alibaba/volcano 两种命名
+  6. generateWithLocalPipeline / generateVideo / analyzeViralTopic → 改用 await getEffectiveApiKeys()
+  7. callVideoAPI 数字人分支：localStorage 硬读 → getEffectiveApiKeys().alibaba（最后一个硬编码点）
+  8. generateWithPipeline → 直连本地流水线（原请求 /api/ai-config/pipeline 端点不存在，白跑 404）
+  9. syncApiKeysFromServer provider 映射扩充兼容历史值
+- 【核验结论】模型配置未被改乱：后端 ai-model-router 腾讯6模型+阿里4模型带完整降级链；前端 category-config 47 模型/3 供应商/11 内容类型流水线全部完整
+- 【后端可用端点确认】/api/ai-chat/chat、/image 存在；/api/ai-chat/video 是视频理解非生成；/api/video-voice/synthesize、/api/video-edit/compose 存在；后端 ai-client 有 textToSpeech/generateVideo 能力但未暴露路由（视频/TTS 仍前端直连+服务端同步 Key）
+- 验证：tsc --noEmit 0 错误、0 lint、npm run build 成功（69 静态页）
+- 生效方式：桌面安装版需重新打包（CI desktop-build 或本地 release.mjs），已 push 后 CI 自动发布 downloads/
+- 教训：改"已配置却报未配置"必须整条链路（服务端存储→同步→前端读取→直连点）全局治理，禁止单点修补
+- 【3.5.0 已打包并发布】用户质问"至今没生成成功"→ 确认根因：用户电脑装的仍是旧版安装包（旧直连代码）。已本地打包 3.5.0（desktop/package.json、tauri.conf.json、Cargo.toml 版本号 3.4.0→3.5.0；npm run build:desktop-ui → release.mjs 打包成功 3.5MB 已签名，SHA256 5a136f86...）
+- 发布操作：exe 复制 ASCII 名 zhishuai_3.5.0_x64-setup.exe scp 到服务器 /var/www/zhishuai/downloads/；latest.json 手改 version=3.5.0 + URL=ASCII 名（release.mjs 的 --version 解析有 bug：空格分隔参数时 args.version=undefined 回落 3.0.0，需手动修正）；AppVersion 表登记 3.5.0（scripts/register_desktop_350.js，含 signature/sha256/changelog）+ 补 releasedAt（fix_350_releasedat.js，续14 教训）
+- 验证：公网 exe HTTP 200；/api/version/desktop/latest.json 返回 3.5.0；服务器 ai-chat.ts（/chat /image）与本地一致且进程 8/28 09:43 已重启加载
+- 服务器关键验证：ai-chat.ts 修改时间 8/24 23:34（本地此后未改过 server）→ 后端零改动，代理路由已就绪
+- 用户操作路径：旧版客户端打开→自动更新提示→装 3.5.0；或直接下载 https://baizhiji.net/downloads/zhishuai_3.5.0_x64-setup.exe
+- 待办：git commit+push（含 factory-service.ts 全部修复 + 版本号 3.5.0 + 登记脚本 + SESSION_MEMORY）
+
 ## 2026-08-28 会话（续14）：打包发布桌面版 3.4.0 + git 提交推送
 - 用户指令：把"打包发布新版本"和"git 提交推送"两步都完成
 - 版本号升级：桌面版 3.3.0→3.4.0（desktop/package.json、tauri.conf.json、Cargo.toml）；APK 1.2.3→1.3.0（apk/package.json、app.json versionCode 8→9）

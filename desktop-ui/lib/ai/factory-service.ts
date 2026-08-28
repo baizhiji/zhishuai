@@ -138,6 +138,62 @@ function getAuthToken(): string {
 }
 
 /**
+ * 服务端 provider（数据库存储值）→ 前端 AiProvider 的映射。
+ * 兼容归一化值（dashscope/tokenhub/ark）与历史原始值（tencent/alibaba/volcano），
+ * 避免因 provider 命名不匹配导致 Key 同步不上。
+ */
+const PROVIDER_ALIAS_TO_KEY: Record<string, 'tencent' | 'alibaba' | 'volcano'> = {
+  tokenhub: 'tencent',
+  tencent: 'tencent',
+  dashscope: 'alibaba',
+  alibaba: 'alibaba',
+  ark: 'volcano',
+  volcano: 'volcano',
+};
+
+let effectiveKeysCache: Record<AiProvider, string> | null = null;
+let effectiveKeysCacheTime = 0;
+
+/**
+ * 获取有效的 API Keys：优先从服务端拉取（用户数据库配置，3/3 已就绪），
+ * 失败时回退 localStorage 缓存。
+ * 彻底解决「服务端已配置、本地不同步导致生成报未配置」的问题。
+ */
+async function getEffectiveApiKeys(): Promise<Record<AiProvider, string>> {
+  const localKeys = getUserApiKeys();
+  if (typeof window === 'undefined') return localKeys;
+
+  // 5 分钟内使用缓存，避免每次生成都请求
+  if (effectiveKeysCache && Date.now() - effectiveKeysCacheTime < 5 * 60 * 1000) {
+    return effectiveKeysCache;
+  }
+
+  try {
+    const token = getAuthToken();
+    if (!token) return localKeys;
+    const res = await fetch(absUrl('/api/ai-config/keys?raw=1'), {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json = await res.json();
+    if (json.success && Array.isArray(json.data)) {
+      const keys: Record<AiProvider, string> = { tencent: '', alibaba: '', volcano: '' };
+      for (const item of json.data) {
+        const provider = PROVIDER_ALIAS_TO_KEY[item.provider];
+        if (!provider || !item.apiKey) continue;
+        keys[provider] = item.apiKey;
+        try {
+          localStorage.setItem(PROVIDER_INFO[provider].storageKey, item.apiKey);
+        } catch { /* ignore */ }
+      }
+      effectiveKeysCache = keys;
+      effectiveKeysCacheTime = Date.now();
+      return keys;
+    }
+  } catch { /* ignore */ }
+  return localKeys;
+}
+
+/**
  * 从服务端同步用户已配置的 API Key 到 localStorage。
  * 解决「服务端已保存 Key、测试通过，但当前环境 localStorage 缺失（换环境/清缓存）导致生成失败」的问题。
  */
@@ -151,14 +207,9 @@ export async function syncApiKeysFromServer(): Promise<void> {
     });
     const json = await res.json();
     if (!json.success || !Array.isArray(json.data)) return;
-    const storageMap: Record<string, string> = {
-      dashscope: 'api_key_alibaba',
-      tokenhub: 'api_key_tencent',
-      ark: 'api_key_volcano',
-    };
     for (const item of json.data) {
-      const keyName = storageMap[item.provider];
-      if (keyName && item.apiKey) localStorage.setItem(keyName, item.apiKey);
+      const provider = PROVIDER_ALIAS_TO_KEY[item.provider];
+      if (provider && item.apiKey) localStorage.setItem(PROVIDER_INFO[provider].storageKey, item.apiKey);
     }
   } catch { /* 同步失败不阻塞生成流程 */ }
 }
@@ -183,108 +234,63 @@ async function callChatAPI(
   provider: AiProvider, modelId: string, messages: any[],
   params: { temperature?: number; maxTokens?: number; topP?: number;
             frequencyPenalty?: number; presencePenalty?: number } = {},
-  apiKey: string
+  _apiKey: string
 ): Promise<string> {
-  const info = PROVIDER_INFO[provider];
-  const url = `${info.baseUrl}${info.chatEndpoint}`;
-  const body: any = {
-    model: modelId,
-    messages,
-    max_tokens: params.maxTokens || 2000,
-    temperature: params.temperature ?? 0.7,
-  };
-  if (params.topP != null) body.top_p = params.topP;
-  if (params.frequencyPenalty != null) body.frequency_penalty = params.frequencyPenalty;
-  if (params.presencePenalty != null) body.presence_penalty = params.presencePenalty;
+  // v4.1：改为后端代理调用 /api/ai-chat/chat，后端从数据库读取用户配置的 API Key。
+  // 旧实现从 localStorage 读 Key 直连第三方，服务端 Key 不同步时导致「已配置却报未配置」。
+  const token = getAuthToken();
+  if (!token) throw new Error('未登录，请先登录');
 
-  const resp = await fetchWithTimeout(url, {
+  const resp = await fetchWithTimeout(absUrl('/api/ai-chat/chat'), {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      messages,
+      stream: false,
+      modelKey: 'auto',
+      preferProvider: provider === 'alibaba' ? 'aliyun' : provider === 'tencent' ? 'tencent' : undefined,
+    }),
   }, CHAT_TIMEOUT_MS);
-  if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
+
+  if (!resp.ok) {
+    let errMsg = `AI服务调用失败（HTTP ${resp.status}）`;
+    try { const j = await resp.json(); errMsg = j.error || j.message || errMsg; } catch { /* ignore */ }
+    throw new Error(errMsg);
+  }
   const json = await resp.json();
-  return json.choices?.[0]?.message?.content || '';
+  const content = json.data?.message || '';
+  if (!content) throw new Error('AI服务未返回内容，请稍后重试');
+  return content;
 }
 
 async function callImageAPI(
   provider: AiProvider, modelId: string, prompt: string,
   params: { negativePrompt?: string; n?: number; size?: string },
-  apiKey: string
+  _apiKey: string
 ): Promise<string[]> {
-  const info = PROVIDER_INFO[provider];
+  // v4.1：统一走后端代理 /api/ai-chat/image，后端从数据库读取用户配置的 API Key，
+  // 并按「火山方舟 → 腾讯云 → 阿里云」自动择优与降级。彻底解决前端 Key 同步问题。
+  const token = getAuthToken();
+  if (!token) throw new Error('未登录，请先登录');
 
-  if (provider === 'alibaba') {
-    // Qwen-Image 系列模型走 multimodal-generation 端点（同步，无需 X-DashScope-Async）
-    const isQwenImage = modelId.startsWith('qwen-image');
-    const endpoint = isQwenImage ? info.multimodalImageEndpoint : info.imageEndpoint;
-    const url = `${info.baseUrl}${endpoint}`;
-
-    // 阿里云百炼图片生成统一使用 multimodal-generation messages 格式
-    const body: any = {
-      model: modelId,
-      input: {
-        messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }],
-      },
-      parameters: { size: params.size || '1024*1024', n: params.n || 1 },
-    };
-    if (params.negativePrompt) body.input.negative_prompt = params.negativePrompt;
-
-    const resp = await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
-    const json = await resp.json();
-    // 阿里云百炼图片返回 output.choices[].message.content[].image
-    const contents = json.output?.choices?.[0]?.message?.content || [];
-    const urls = contents.filter((c: any) => c.image).map((c: any) => c.image);
-    if (urls.length) return urls;
-    // 兼容旧版 results 格式
-    return (json.output?.results || []).map((r: any) => r.url);
-  }
-
-  if (provider === 'tencent') {
-    const url = `${info.baseUrl}${info.imageEndpoint}`;
-    const body = { model: modelId, prompt, n: params.n || 1, size: params.size || '1024x1024' };
-    const resp = await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
-    const json = await resp.json();
-    return (json.data || []).map((r: any) => r.url);
-  }
-
-  if (provider === 'volcano') {
-    // 火山方舟：Seedream 图像生成，OpenAI 兼容格式
-    const url = `${info.baseUrl}${info.imageEndpoint}`;
-    const body: any = {
-      model: modelId,
+  const resp = await fetchWithTimeout(absUrl('/api/ai-chat/image'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
       prompt,
-      size: params.size || '1024x1024',
-      response_format: 'url',
-    };
-    if (params.n && params.n > 1) body.n = params.n;
-    if (params.negativePrompt) body.negative_prompt = params.negativePrompt;
-    const resp = await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    if (!resp.ok) throw new Error(`${info.label} (${resp.status}): ${await resp.text()}`);
-    const json = await resp.json();
-    // 返回 data[].url 或 data[].b64_json
-    const urls = (json.data || [])
-      .map((r: any) => r.url || (r.b64_json ? `data:image/png;base64,${r.b64_json}` : ''))
-      .filter(Boolean);
-    if (urls.length) return urls;
-    throw new Error(`${info.label}: 图片生成未返回 URL`);
-  }
+      size: params.size,
+    }),
+  }, CHAT_TIMEOUT_MS);
 
-  throw new Error(`不支持的 provider: ${provider}`);
+  if (!resp.ok) {
+    let errMsg = `图片生成失败（HTTP ${resp.status}）`;
+    try { const j = await resp.json(); errMsg = j.error || j.message || errMsg; } catch { /* ignore */ }
+    throw new Error(errMsg);
+  }
+  const json = await resp.json();
+  const urls = json.data?.urls || (json.data?.imageUrl ? [json.data.imageUrl] : []);
+  if (Array.isArray(urls) && urls.length) return urls;
+  throw new Error('图片生成未返回图片 URL，请稍后重试');
 }
 
 async function callVideoAPI(
@@ -371,9 +377,7 @@ async function callVideoAPI(
       if (!imageUrl) {
         throw new Error('数字人需要上传一张人物照片作为形象');
       }
-      const aliKey = typeof window !== 'undefined'
-        ? localStorage.getItem(PROVIDER_INFO.alibaba.storageKey) || ''
-        : '';
+      const aliKey = (await getEffectiveApiKeys()).alibaba || '';
       if (!aliKey) {
         throw new Error('数字人需要阿里云百炼 API Key 先合成配音音频');
       }
@@ -564,7 +568,7 @@ export async function generateWithLocalPipeline(
     return { success: false, data: { message: `未知类目: ${slug}` } };
   }
 
-  const apiKeys = getUserApiKeys();
+  const apiKeys = await getEffectiveApiKeys();
   const tasks: PipelineTaskResult[] = [];
   let accumulatedText = userInput;
   const startTime = Date.now();
@@ -1227,65 +1231,54 @@ async function callDialectVoiceover(
 // ─── 单模型直连模式 ─────────────────────────
 
 /**
- * 生成文本（单模型直连）
+ * 生成文本（走后端代理，后端从数据库读取用户配置的 API Key 并自动择优/降级）
  */
 export async function generateText(
   params: GenerateTextParams,
   slug?: ContentTypeSlug
 ): Promise<GenerateResult> {
-  const apiKeys = getUserApiKeys();
-
-  if (slug) {
-    const config = getCategoryConfig(slug);
-    if (config) {
-      // 找到文案阶段的主模型
-      const textPhase = config.phases.find(p =>
-        ['draft', 'anti_ai_rewrite', 'viral_analysis'].includes(p.phase));
-      if (textPhase) {
-        const modelInfo = MODEL_INFO[textPhase.primaryModel];
-        if (modelInfo && apiKeys[modelInfo.provider]) {
-          try {
-            const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [
-              ...(params.systemPrompt ? [{ role: 'system' as const, content: params.systemPrompt }] : []),
-              { role: 'user' as const, content: params.prompt },
-            ], { temperature: params.temperature, maxTokens: params.maxTokens, topP: params.topP, frequencyPenalty: params.frequencyPenalty, presencePenalty: params.presencePenalty }, apiKeys[modelInfo.provider]);
-            return { success: true, data: content, provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
-          } catch {
-            // fall through to multi-provider fallback
-          }
-        }
-      }
-    }
+  const token = getAuthToken();
+  if (!token) {
+    return { success: false, error: '未登录，请先登录', provider: '', model: '' };
   }
 
-  // 通用回退：尝试所有已配置的 Key
-  const providers: AiProvider[] = ['tencent', 'alibaba', 'volcano'];
-  for (const p of providers) {
-    if (!apiKeys[p]) continue;
-    const modelId = p === 'tencent' ? 'deepseek-v4-pro-202606'
-      : p === 'alibaba' ? 'qwen3.8-max'
-      : 'doubao-seed-2-1-pro-260628';
-    const displayName = p === 'tencent' ? 'DeepSeek V4 Pro'
-      : p === 'alibaba' ? 'Qwen 3.8 Max'
-      : 'Doubao Seed 2.1 Pro';
-    try {
-      const content = await callChatAPI(p, modelId, [
-        ...(params.systemPrompt ? [{ role: 'system' as const, content: params.systemPrompt }] : []),
-        { role: 'user' as const, content: params.prompt },
-      ], { temperature: params.temperature, maxTokens: params.maxTokens, topP: params.topP, frequencyPenalty: params.frequencyPenalty, presencePenalty: params.presencePenalty }, apiKeys[p]);
-      return { success: true, data: content, provider: PROVIDER_INFO[p].label, model: displayName };
-    } catch {
-      continue;
-    }
-  }
+  const messages: { role: 'system' | 'user'; content: string }[] = [
+    ...(params.systemPrompt ? [{ role: 'system' as const, content: params.systemPrompt }] : []),
+    { role: 'user' as const, content: params.prompt },
+  ];
 
-  // 未配置 API Key，提示用户先配置
-  return {
-    success: false,
-    error: '请先在「系统设置 → API Key」中配置阿里云百炼、腾讯云 TokenHub 或火山方舟任一 API Key，即可使用 AI 创作功能',
-    provider: '',
-    model: '',
-  };
+  try {
+    const resp = await fetchWithTimeout(absUrl('/api/ai-chat/chat'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        messages,
+        stream: false,
+        modelKey: 'auto',
+        preferProvider: undefined,
+      }),
+    }, CHAT_TIMEOUT_MS);
+
+    if (!resp.ok) {
+      let errMsg = `AI服务调用失败（HTTP ${resp.status}）`;
+      try { const j = await resp.json(); errMsg = j.error || j.message || errMsg; } catch { /* ignore */ }
+      return { success: false, error: errMsg, provider: '', model: '' };
+    }
+
+    const json = await resp.json();
+    const content = json.data?.message || '';
+    if (!content) {
+      return { success: false, error: 'AI服务未返回内容，请稍后重试', provider: '', model: '' };
+    }
+    return {
+      success: true,
+      data: content,
+      provider: json.data?.provider === 'aliyun' ? '阿里云百炼' : json.data?.provider === 'tencent' ? '腾讯云TokenHub' : 'AI',
+      model: json.data?.modelName || 'auto',
+    };
+  } catch (error: any) {
+    return { success: false, error: `AI服务调用失败：${error.message || '网络错误'}`, provider: '', model: '' };
+  }
 }
 
 /**
@@ -1447,58 +1440,61 @@ function extractVoiceText(text: string): string {
 }
 
 /**
- * 生成图片（单模型直连）
+ * 生成图片（走后端代理，避免前端直连第三方 API 的 CORS/密钥暴露问题）
+ * 后端会自动在火山方舟 → 腾讯云 → 阿里云之间择优降级
  */
 export async function generateImage(
   params: GenerateImageParams,
   slug?: ContentTypeSlug
 ): Promise<GenerateResult> {
-  const apiKeys = getUserApiKeys();
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('图片生成失败：未登录，请先登录');
+  }
+
   const negative = params.negativePrompt || buildNegativePrompt(params.imageType || 'general');
   const enhancedPrompt = enhanceImagePrompt(params.prompt, params.imageType || 'general');
+  // 将负向提示词拼入最终 prompt，后端接口目前只接收 prompt/size
+  const finalPrompt = negative ? `${enhancedPrompt}\n\n排除：${negative}` : enhancedPrompt;
 
-  if (slug) {
-    const config = getCategoryConfig(slug);
-    if (config) {
-      const imgPhase = config.phases.find(p => p.phase === 'image_generate');
-      if (imgPhase) {
-        const modelInfo = MODEL_INFO[imgPhase.primaryModel];
-        if (modelInfo && apiKeys[modelInfo.provider]) {
-          try {
-            const urls = await callImageAPI(modelInfo.provider, modelInfo.modelId, enhancedPrompt, { negativePrompt: negative, n: params.n, size: params.size }, apiKeys[modelInfo.provider]);
-            return { success: true, data: urls.length === 1 ? urls[0] : urls, provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
-          } catch {
-            // try fallback model
-            if (imgPhase.fallbackModel) {
-              const fbInfo = MODEL_INFO[imgPhase.fallbackModel];
-              if (fbInfo && apiKeys[fbInfo.provider]) {
-                try {
-                  const urls = await callImageAPI(fbInfo.provider, fbInfo.modelId, enhancedPrompt, { negativePrompt: negative, n: params.n, size: params.size }, apiKeys[fbInfo.provider]);
-                  return { success: true, data: urls.length === 1 ? urls[0] : urls, provider: PROVIDER_INFO[fbInfo.provider].label, model: fbInfo.displayName };
-                } catch { /* fall through */ }
-              }
-            }
-          }
-        }
-      }
+  try {
+    const resp = await fetch(absUrl('/api/ai-chat/image'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        prompt: finalPrompt,
+        size: params.size || '1024x1024',
+        n: params.n || 1,
+      }),
+    });
+
+    const json = await resp.json().catch(() => ({ error: '服务端返回格式异常' }));
+    if (!resp.ok || json.success === false || json.error) {
+      throw new Error(json.error || json.message || `图片生成失败（HTTP ${resp.status}）`);
     }
-  }
 
-  // 通用回退
-  const pref: { p: AiProvider; model: string; name: string }[] = [
-    { p: 'tencent', model: 'hy-image-v3.0', name: '混元 Image 3.0' },
-    { p: 'alibaba', model: 'wan2.7-image-pro', name: 'WAN 2.7 Image Pro' },
-    { p: 'volcano', model: 'doubao-seedream-5-0-pro-260628', name: 'Doubao Seedream 5.0 Pro' },
-  ];
-  for (const { p, model, name } of pref) {
-    if (!apiKeys[p]) continue;
-    try {
-      const urls = await callImageAPI(p, model, enhancedPrompt, { negativePrompt: negative, n: params.n, size: params.size }, apiKeys[p]);
-      return { success: true, data: urls.length === 1 ? urls[0] : urls, provider: PROVIDER_INFO[p].label, model: name };
-    } catch { continue; }
-  }
+    const imageUrl = json.data?.imageUrl || json.data?.url;
+    const urls = json.data?.urls || (imageUrl ? [imageUrl] : []);
+    if (!imageUrl && urls.length === 0) {
+      throw new Error('图片生成失败：服务端未返回图片 URL');
+    }
 
-  throw new Error('图片生成失败：未配置可用的图片生成 API Key（腾讯混元/阿里通义/火山方舟），请在设置中配置');
+    return {
+      success: true,
+      data: urls.length === 1 ? urls[0] : urls,
+      provider: json.data?.provider || '后端代理',
+      model: json.data?.model || '多引擎自动择优',
+    };
+  } catch (error: any) {
+    const msg = error.message || '未知错误';
+    if (msg.includes('未配置') || msg.includes('API Key')) {
+      throw new Error(`图片生成失败：${msg}，请在「设置-API设置」中配置可用的图片生成 API Key（腾讯混元/阿里通义/火山方舟）`);
+    }
+    throw new Error(`图片生成失败：${msg}`);
+  }
 }
 
 /**
@@ -1508,7 +1504,7 @@ export async function generateVideo(
   params: GenerateVideoParams,
   slug?: ContentTypeSlug
 ): Promise<GenerateResult> {
-  const apiKeys = getUserApiKeys();
+  const apiKeys = await getEffectiveApiKeys();
 
   // 智能剪辑：优先服务端 FFmpeg 拼接成片（交付最终 MP4），无素材时走多阶段流水线方案
   if (slug === 'smartEdit') {
@@ -1710,25 +1706,7 @@ export async function generateWithPipeline(
   contentType: string,
   userInput: string
 ): Promise<PipelineResponse & { fallbackUsed: boolean }> {
-  // 先尝试服务端流水线
-  const token = getAuthToken();
-  if (token) {
-    try {
-      const resp = await fetch(absUrl('/api/ai-config/pipeline'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ contentType, userInput }),
-      });
-      if (resp.ok) {
-        const result: PipelineResponse = await resp.json();
-        return { ...result, fallbackUsed: false };
-      }
-    } catch (e) {
-      console.warn('[Pipeline] 服务端流水线不可用，使用本地流水线');
-    }
-  }
-
-  // 降级到本地流水线
+  // v4.1：服务端流水线端点不存在，直接使用本地流水线（多阶段协同 + 后端 AI 代理）
   const localResult = await generateWithLocalPipeline(contentType as ContentTypeSlug, userInput);
   return { ...localResult, fallbackUsed: true };
 }
@@ -1877,7 +1855,7 @@ function extractJsonFromText(text: string): Record<string, unknown> | null {
 
 export async function analyzeViralTopic(topic: string, platform = 'douyin', targetAudience?: string): Promise<{ success: boolean; data?: ViralAnalysisResult }> {
   // P0-3：改为本地 LLM 爆款基因分析（原实现请求的 /api/content-creativity/analyze 服务端端点不存在）
-  const apiKeys = getUserApiKeys();
+  const apiKeys = await getEffectiveApiKeys();
   const providers: AiProvider[] = ['tencent', 'alibaba', 'volcano'];
   const modelIds: Record<AiProvider, string> = {
     tencent: 'deepseek-v4-pro-202606',
