@@ -1,4 +1,14 @@
 
+## 2026-08-28 会话（续16）：桌面版图片生成超时根因修复 + 发布 3.6.0
+- 【根因实锤】nginx access.log 用户 IP 58.247.218.79 两次 POST /api/ai-chat/image 均 499（13:15:28/13:15:58）：前端 callImageAPI 用 CHAT_TIMEOUT_MS=30s 调图片接口 → AbortController 中止 → nginx 记 499 → page.tsx:339 catch 吞掉 → 回退直连 generateImage 也失败 → 407 行"生成完成但未获得结果"。服务端链路本身正常（diag_ark 证明 200 出图）
+- 【修复 1：前端超时】desktop-ui/lib/ai/factory-service.ts：新增 IMAGE_TIMEOUT_MS=300000（5min，图片需1-3分钟）；callImageAPI 改用 IMAGE_TIMEOUT_MS；generateImage fetch 改 fetchWithTimeout(..., IMAGE_TIMEOUT_MS)
+- 【修复 2：nginx 代理超时】deploy/nginx/baizhiji.net：proxy_read_timeout 120s→300s、proxy_send_timeout 60s→300s（主域名 /api/ 96-97 行 + api.baizhiji.net 213-214 行；健康检查 5s 保持不变）；已 scp 服务器 /etc/nginx/sites-available/ + ln -sf + nginx -t + reload 生效（验证 grep 300s 通过）
+- 【修复 3：同步移除平台兜底 Key】server/src/services/ai-client.ts + server/.env.example：删除 PLATFORM_FALLBACK_KEYS 兜底逻辑（产品决策：客户必须自配 Key，不使用系统兜底）
+- 【版本 3.5.0→3.6.0】tauri.conf.json/package.json/Cargo.toml + desktop-ui/next.config.js NEXT_PUBLIC_APP_VERSION 3.2.0→3.6.0
+- 已 commit 57a80aa + push main（CI desktop-build 自动打包上传 downloads/）；本地 desktop-ui/server 均 npx tsc --noEmit 通过
+- 待办：CI 完成后 scp scripts/register_desktop_360.js 到服务器执行登记（自动读 exe 算 SHA256 + 读 .sig 签名，无需硬编码）；发布后验证 latest.json=3.6.0
+- 经验：本次 nginx 配置发布未走 setup-nginx.sh，直接 scp sites-available + ln -sf 即可（CI deploy job 只 git pull 不更新 nginx 配置）
+
 ## 2026-08-28 会话（续15）：AI 创作工厂全链路系统性审计 + 修复（根除 localStorage 依赖）
 - 用户情绪激烈：要求全面检查所有功能，质疑"已配置 Key 却报未配置"反复发生 + 担心模型配置被改乱
 - 【根因确认】AI 创作工厂原架构=前端直连：生成时从 localStorage 读 Key 直连第三方 API，服务端数据库 Key 仅靠 syncApiKeysFromServer() 尽力同步；同步链路任一环失败（历史 provider 命名不匹配/清缓存/接口异常）→ "服务端3/3就绪、生成却报未配置"，且旧代码把所有失败统一 catch 成"未配置 API Key"，极具误导
