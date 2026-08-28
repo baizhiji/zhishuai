@@ -6,8 +6,10 @@
 - 【修复 3：同步移除平台兜底 Key】server/src/services/ai-client.ts + server/.env.example：删除 PLATFORM_FALLBACK_KEYS 兜底逻辑（产品决策：客户必须自配 Key，不使用系统兜底）
 - 【版本 3.5.0→3.6.0】tauri.conf.json/package.json/Cargo.toml + desktop-ui/next.config.js NEXT_PUBLIC_APP_VERSION 3.2.0→3.6.0
 - 已 commit 57a80aa + push main（CI desktop-build 自动打包上传 downloads/）；本地 desktop-ui/server 均 npx tsc --noEmit 通过
-- 待办：CI 完成后 scp scripts/register_desktop_360.js 到服务器执行登记（自动读 exe 算 SHA256 + 读 .sig 签名，无需硬编码）；发布后验证 latest.json=3.6.0
+- 【3.6.0 发布完成】CI run 33147351663 success（Lint/TypeCheck/Security/Build/Deploy to Production/Desktop Build 全绿）；exe+sig 已上传 downloads/；register_desktop_360.js 登记（自动算 SHA256 717c272d... + 读 sig）；fix_360_releasedat.js 补 releasedAt（续14 教训复用）
+- 验证通过：/api/version/desktop/latest.json?currentVersion=3.5.0 → 返回 3.6.0（含 notes）；zhishuai_3.6.0_x64-setup.exe HTTP 200（3672490 字节）；currentVersion=3.6.0 → 204 无更新
 - 经验：本次 nginx 配置发布未走 setup-nginx.sh，直接 scp sites-available + ln -sf 即可（CI deploy job 只 git pull 不更新 nginx 配置）
+- 经验2：PowerShell 内联 node -e 转义必失败，一律本地写 .js 再 scp 执行（同 .sh 模式）
 
 ## 2026-08-28 会话（续15）：AI 创作工厂全链路系统性审计 + 修复（根除 localStorage 依赖）
 - 用户情绪激烈：要求全面检查所有功能，质疑"已配置 Key 却报未配置"反复发生 + 担心模型配置被改乱
