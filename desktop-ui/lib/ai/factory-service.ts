@@ -216,8 +216,8 @@ export async function syncApiKeysFromServer(): Promise<void> {
 
 // ─── 底层 HTTP 调用 ─────────────────────────
 
-const CHAT_TIMEOUT_MS = 30000; // 30s
-const IMAGE_TIMEOUT_MS = 60000; // 60s
+const CHAT_TIMEOUT_MS = 30000; // 30s（文本对话）
+const IMAGE_TIMEOUT_MS = 300000; // 300s = 5min（图片生成火山方舟/腾讯云/阿里云平均需 1-3 分钟）
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number = IMAGE_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
@@ -280,7 +280,7 @@ async function callImageAPI(
       prompt,
       size: params.size,
     }),
-  }, CHAT_TIMEOUT_MS);
+  }, IMAGE_TIMEOUT_MS);
 
   if (!resp.ok) {
     let errMsg = `图片生成失败（HTTP ${resp.status}）`;
@@ -1458,7 +1458,7 @@ export async function generateImage(
   const finalPrompt = negative ? `${enhancedPrompt}\n\n排除：${negative}` : enhancedPrompt;
 
   try {
-    const resp = await fetch(absUrl('/api/ai-chat/image'), {
+    const resp = await fetchWithTimeout(absUrl('/api/ai-chat/image'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1469,7 +1469,7 @@ export async function generateImage(
         size: params.size || '1024x1024',
         n: params.n || 1,
       }),
-    });
+    }, IMAGE_TIMEOUT_MS);
 
     const json = await resp.json().catch(() => ({ error: '服务端返回格式异常' }));
     if (!resp.ok || json.success === false || json.error) {
