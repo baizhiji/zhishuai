@@ -137,6 +137,16 @@ const PROVIDER_BASE_URLS: Record<string, string> = {
 };
 
 /**
+ * 平台兜底 API Key（SaaS 统一计费，客户无需自行配置）
+ * 优先读取客户自己配置的 Key；未配置时自动使用平台兜底 Key
+ */
+const PLATFORM_FALLBACK_KEYS: Record<string, string | undefined> = {
+  tencent: process.env.PLATFORM_TENCENT_API_KEY,
+  alibaba: process.env.PLATFORM_ALIBABA_API_KEY,
+  volcano: process.env.PLATFORM_VOLCANO_API_KEY,
+};
+
+/**
  * 服务商存储值别名映射：标准命名（tencent/alibaba/volcano）→ 数据库 ApiKey 表可能存储的值
  * 兼容历史数据（tokenhub/dashscope/ark），修复电脑版配置的 Key 无法被后端代理查到的问题
  */
@@ -344,7 +354,7 @@ export class AIClient {
 
   /**
    * 获取用户配置的 API Key 和 Base URL
-   * 策略：客户必须自行配置 API Key，不使用系统兜底 Key。
+   * 策略：优先使用客户自行配置的 Key；未配置时使用平台兜底 Key（SaaS 统一计费）。
    * 按优先级尝试：用户指定的 > tencent > alibaba > volcano
    */
   private async resolveApiCredentials(
@@ -370,7 +380,21 @@ export class AIClient {
       }
     }
 
-    throw new Error('没有可用的 API 密钥。请客户在设置中自行配置腾讯云 TokenHub、阿里云百炼或火山方舟的 API Key。');
+    // 4. 客户未配置 Key 时，使用平台兜底 Key（SaaS 模式）
+    for (const provider of providerOrder) {
+      const fallbackKey = PLATFORM_FALLBACK_KEYS[provider];
+      if (fallbackKey) {
+        const baseUrl = PROVIDER_BASE_URLS[provider];
+        return {
+          apiKey: fallbackKey,
+          baseUrl: `${baseUrl}/chat/completions`.replace('/chat/completions/chat/completions', '/chat/completions'),
+          provider,
+          keyId: null,
+        };
+      }
+    }
+
+    throw new Error('没有可用的 API 密钥。请联系管理员配置平台兜底 Key，或在设置中自行配置腾讯云 TokenHub、阿里云百炼或火山方舟的 API Key。');
   }
 
   /**
