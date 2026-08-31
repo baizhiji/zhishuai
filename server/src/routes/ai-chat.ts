@@ -430,7 +430,8 @@ router.post('/vision', authMiddleware, async (req: Request, res: Response) => {
 router.post('/image', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const { prompt, size = '1024x1024' } = req.body;
+    const { prompt, size: rawSize = '1024x1024' } = req.body;
+    const size = rawSize.replace(/\*/g, 'x');
 
     if (!prompt) {
       res.status(400).json({ error: '提示词不能为空' });

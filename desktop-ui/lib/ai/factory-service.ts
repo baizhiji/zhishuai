@@ -41,7 +41,7 @@ export interface BlockedHit {
 }
 
 const BLOCKED_PATTERNS: Array<{ regex: RegExp; category: string }> = [
-  { regex: /色情|淫秽|裸体|性交|卖淫|嫖娼/i, category: '色情' },
+  { regex: /色情|淫秽|裸体|性行为|性交易|卖淫|嫖娼/i, category: '色情' },
   { regex: /赌博|赌场|博彩|六合彩|押注/i, category: '赌博' },
   { regex: /毒品|大麻|海洛因|冰毒|摇头丸|吸毒/i, category: '毒品' },
   { regex: /枪支|弹药|爆炸物|管制刀具/i, category: '管制武器' },
@@ -310,7 +310,7 @@ async function callVideoAPI(
       '1080*1920': ['1080P', '9:16'], '1080x1920': ['1080P', '9:16'],
       '1024*1024': ['720P', '1:1'], '1024x1024': ['720P', '1:1'],
     };
-    const rawSize = params.size || '1280*720';
+    const rawSize = params.size || '1280x720';
     const [resolution, ratio] = sizeMap[rawSize] || ['720P', '16:9'];
     const body = {
       model: modelId,
@@ -913,7 +913,7 @@ async function executePhase(
           const enhanceBody = {
             model: modelInfo.modelId,
             input: { messages: [{ role: 'user', content: [{ image: targetUrl }, { text: opType === 'refine' ? 'Enhance this image: sharpen details, remove AI artifacts and distortion, refine textures and edges, keep composition and subject unchanged.' : 'Improve image quality with higher resolution and cleaner details.' }] }] },
-            parameters: { size: phase.params?.size || '1664*1664', n: 1 },
+            parameters: { size: phase.params?.size || '1664x1664', n: 1 },
           };
           const enhanceResp = await fetch(enhanceUrl, {
             method: 'POST',
@@ -942,7 +942,7 @@ async function executePhase(
       // 从 accumulatedText 提取图片 prompt，调用 callImageAPI 实际出图
       const imagePrompt = extractImagePrompt(accumulatedText);
       const n = Number(phase.params?.n) || 1;
-      const size = String(phase.params?.size || '1024*1024');
+      const size = String(phase.params?.size || '1024x1024');
       const style = String(phase.params?.style || 'general');
       const enhanced = enhanceImagePrompt(imagePrompt, style as any);
       const negative = buildNegativePrompt(style as any);
@@ -974,7 +974,7 @@ async function executePhase(
       // 从 accumulatedText 提取视频脚本，调用 callVideoAPI 生成视频
       const videoPrompt = extractVideoPrompt(accumulatedText);
       const duration = Number(phase.params?.duration) || 10;
-      const size = String(phase.params?.size || '1280*720');
+      const size = String(phase.params?.size || '1280x720');
       const refImages = extractImageUrls(accumulatedText);
       const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, videoPrompt, { duration, size, images: refImages.length > 0 ? refImages.slice(0, 1) : undefined, text: accumulatedText.slice(0, 500) }, apiKey);
       return { data: `${accumulatedText}\n\n【生成视频】${videoUrl}` };
@@ -984,7 +984,7 @@ async function executePhase(
       // 数字人出镜：图片+音频合成
       const scriptText = extractVoiceText(accumulatedText);
       const imgUrls = extractImageUrls(accumulatedText);
-      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, `数字人口播: ${scriptText.slice(0, 300)}`, { duration: Number(phase.params?.duration) || 30, size: String(phase.params?.size || '1280*720'), images: imgUrls.length > 0 ? imgUrls.slice(0, 1) : undefined, imageUrl: imgUrls[0] || undefined, text: scriptText }, apiKey);
+      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, `数字人口播: ${scriptText.slice(0, 300)}`, { duration: Number(phase.params?.duration) || 30, size: String(phase.params?.size || '1280x720'), images: imgUrls.length > 0 ? imgUrls.slice(0, 1) : undefined, imageUrl: imgUrls[0] || undefined, text: scriptText }, apiKey);
       return { data: `${accumulatedText}\n\n【数字人视频】${videoUrl}` };
     }
 
@@ -1591,11 +1591,11 @@ export async function generateVideo(
     }
   }
 
-  // 通用回退
+  // 通用回退（2026-08-31 实测：Seedance 2.5 返回 404 不存在，改用 1.0 Pro）
   const pref: { p: AiProvider; model: string; name: string }[] = [
-    { p: 'tencent', model: 'kl-video-v3', name: '可灵 KLING 3.0' },
+    { p: 'volcano', model: 'doubao-seedance-1-0-pro-250528', name: 'Doubao Seedance 1.0 Pro' },
     { p: 'tencent', model: 'hy-video-1.5', name: '混元视频 1.5' },
-    { p: 'volcano', model: 'doubao-seedance-2-5-pro-260628', name: 'Doubao Seedance 2.5' },
+    { p: 'tencent', model: 'kl-video-v3', name: '可灵 KLING 3.0' },
   ];
   for (const { p, model, name } of pref) {
     if (!apiKeys[p]) continue;

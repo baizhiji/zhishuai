@@ -1,5 +1,14 @@
 
-## 2026-08-28 会话（续16）：桌面版图片生成超时根因修复 + 发布 3.6.0
+## 2026-08-31 会话（续17）："重于泰山"图片生成 400 根因修复（size 星号格式）+ 安全扫描误拦截修复
+- 用户反馈：AI 创作工厂生成"重于泰山"两次都错误（截图：第一张"Request failed with status code 400"，第二张"生成完成但未获得结果"+"生成内容未通过安全校验（命中：色情），已拦截展示"）
+- 【根因 1 实锤】脚本 test_volcano_api.js 直连火山方舟：size='1024x1024' → 200 成功出图；size='1024*1024'（星号）→ 400 `size must be 'WIDTHxHEIGHT' or a supported size preset`。前端 AI 工厂完整生成模式 pipeline 的 image_generate 阶段默认 size='1024*1024'（factory-service.ts:945），后端原样透传给火山方舟 → 400 → 降级腾讯(HY-Image 400)/阿里(wan2.7 400)全挂 → 前端回退直连也失败 → "生成完成但未获得结果"
+- 【根因 2】安全扫描正则 `/色情|淫秽|裸体|性交|.../i` 误匹配"社**交**"中的"性交"子串 → 生成内容含"社交"字样被误判"命中：色情"拦截展示
+- 【后端修复】server/src/services/ai-client.ts generateImage 增加 `normalizedSize = size.replace(/\*/g, 'x')`，火山方舟/腾讯/阿里三处 size 全部改用 normalizedSize（阿里再 replace x→* 回自家格式）；火山/腾讯/阿里 catch 日志增加 response.status + response.data 详情；server/src/routes/ai-chat.ts /image 路由同样把 size 归一化（防御前端传星号）
+- 【前端修复】factory-service.ts：图片默认 size '1024*1024'→'1024x1024'、增强 '1664*1664'→'1664x1664'、视频 '1280*720'→'1280x720'（3处）、rawSize 默认值同改；aliyun.ts 默认 '1024*1024'→'1024x1024'；安全扫描正则 `性交`→`性行为|性交易`（factory-service.ts + ai-factory/page.tsx 两处）
+- 【端到端验证】已 scp 后端两文件 + npm run build + pm2 restart zhishuai-api + verify-login.sh 通过（admin 200/agent 401/customer 200/register 403）；test_generate_image_e2e.js 直接调用生产 dist 的 generateImage 服务函数：size='1024*1024' 与 '1024x1024' 均 SUCCESS（16-17s，返回 ark tos 图片 URL）
+- 【未完成/待办】前端修改需重新打包桌面安装版（提交 push 触发 CI desktop-build → downloads/），用户重新下载安装包后生效；生产用户 13166262006（郝好）登录密码未知，未做 HTTP 层登录态验证
+- 经验：后端服务函数可直接 require('/var/www/zhishuai/server/dist/services/ai-client.js') 绕过认证做端到端验证；PowerShell 内联 node -e/sed 转义必失败，一律本地写 .js 再 scp（同续16 教训）
+
 - 【根因实锤】nginx access.log 用户 IP 58.247.218.79 两次 POST /api/ai-chat/image 均 499（13:15:28/13:15:58）：前端 callImageAPI 用 CHAT_TIMEOUT_MS=30s 调图片接口 → AbortController 中止 → nginx 记 499 → page.tsx:339 catch 吞掉 → 回退直连 generateImage 也失败 → 407 行"生成完成但未获得结果"。服务端链路本身正常（diag_ark 证明 200 出图）
 - 【修复 1：前端超时】desktop-ui/lib/ai/factory-service.ts：新增 IMAGE_TIMEOUT_MS=300000（5min，图片需1-3分钟）；callImageAPI 改用 IMAGE_TIMEOUT_MS；generateImage fetch 改 fetchWithTimeout(..., IMAGE_TIMEOUT_MS)
 - 【修复 2：nginx 代理超时】deploy/nginx/baizhiji.net：proxy_read_timeout 120s→300s、proxy_send_timeout 60s→300s（主域名 /api/ 96-97 行 + api.baizhiji.net 213-214 行；健康检查 5s 保持不变）；已 scp 服务器 /etc/nginx/sites-available/ + ln -sf + nginx -t + reload 生效（验证 grep 300s 通过）

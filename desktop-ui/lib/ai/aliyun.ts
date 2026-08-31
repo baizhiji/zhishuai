@@ -127,7 +127,7 @@ class AliyunBailianClient {
             prompt: request.prompt,
           },
           parameters: {
-            size: request.size || '1024*1024',
+            size: request.size || '1024x1024',
             n: request.n || 1,
           },
         }),

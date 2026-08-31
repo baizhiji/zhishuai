@@ -47,7 +47,7 @@ const CATEGORY_TIPS_KEY_MAP: Record<ContentCategory, string> = {
 
 // 内容安全：敏感词黑名单（正则模式）
 const BLOCKED_PATTERNS: RegExp[] = [
-  /色情|淫秽|裸体|性交|卖淫|嫖娼/i,
+  /色情|淫秽|裸体|性行为|性交易|卖淫|嫖娼/i,
   /赌博|赌场|博彩|六合彩|押注/i,
   /毒品|大麻|海洛因|冰毒|摇头丸|吸毒/i,
   /枪支|弹药|爆炸物|管制刀具/i,

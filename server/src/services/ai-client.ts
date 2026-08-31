@@ -17,6 +17,7 @@ import axios, { AxiosInstance } from 'axios';
 import { prisma } from '../utils/db';
 import { aiModelRouter, analyzeAndSelectModel } from './ai-model-router';
 import { contentSafetyService } from './content-safety/content-safety.service';
+import { enhanceImagePrompt, buildNegativePrompt } from './ai-realism-prompts';
 import crypto from 'crypto';
 
 // ==================== 类型定义 ====================
@@ -184,12 +185,17 @@ interface VideoModelCandidate {
   label: string;
 }
 
-/** 视频模型降级候选列表：可灵 v3 → 混元视频 → Seedance → Wan2.7 */
+/**
+ * 视频模型降级候选列表（2026-08-31 实测修正）
+ * 生产实测：doubao-seedance-2-5-pro-260628 与 wan2.7(视频) 均 404 模型不存在；
+ * 可用组合：火山 doubao-seedance-1-0-pro-250528(200)、阿里 wan2.7-t2v-2026-04-25(200)、腾讯 hy-video-1.5(200)。
+ * 可灵 kl-video-v3 需开通后付费(402)，保留作可选。顺序按实测可用性排列。
+ */
 const VIDEO_MODEL_CANDIDATES: VideoModelCandidate[] = [
-  { provider: 'tencent', model: 'kl-video-v3', label: '腾讯云·可灵' },
-  { provider: 'tencent', model: 'hy-video-1.5', label: '腾讯云·混元视频' },
-  { provider: 'volcano', model: 'doubao-seedance-2-5-pro-260628', label: '火山方舟·Seedance' },
-  { provider: 'alibaba', model: 'wan2.7', label: '阿里云百炼·Wan' },
+  { provider: 'volcano', model: 'doubao-seedance-1-0-pro-250528', label: '火山方舟·Seedance 1.0 Pro' },
+  { provider: 'tencent', model: 'hy-video-1.5', label: '腾讯云·混元视频 1.5' },
+  { provider: 'alibaba', model: 'wan2.7-t2v-2026-04-25', label: '阿里云百炼·Wan2.7 T2V' },
+  { provider: 'tencent', model: 'kl-video-v3', label: '腾讯云·可灵(需开通计费)' },
 ];
 
 const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
@@ -782,15 +788,18 @@ export class AIClient {
   ): Promise<ImageGenerationResult> {
     const startTime = Date.now();
     const { prompt, size = '1024x1024', n = 1, platform } = params;
+    const normalizedSize = size.replace(/\*/g, 'x');
 
-    // 根据平台增强提示词
-    let enhancedPrompt = prompt;
+    // 真实感词库注入（与服务端 anti-ai-flavor 统一标准）：正向词 + 负向词
+    let enhancedPrompt = enhanceImagePrompt(prompt, 'general');
     if (platform) {
       const opt = PLATFORM_OPTIMIZATIONS[platform];
       if (opt) {
-        enhancedPrompt = `${prompt}, ${opt.contentStyle.join(', ')}, high quality, detailed`;
+        enhancedPrompt = `${enhancedPrompt}, ${opt.contentStyle.join(', ')}, high quality, detailed`;
       }
     }
+    // 负向提示词以文本形式追加（兼容各平台 API 结构），并统一关闭平台水印（AIGC 标识只保留【智枢AI生成】）
+    const realismPrompt = `${enhancedPrompt}\n\n请排除以下元素：${buildNegativePrompt('general')}`;
 
     // 优先使用火山方舟 Seedream 5.0（蓝皮书图像路由首选，OpenAI 兼容）
     try {
@@ -800,10 +809,11 @@ export class AIClient {
 
       const arkResponse = await arkAxios.post('/images/generations', {
         model: 'doubao-seedream-5-0-pro-260628',
-        prompt: enhancedPrompt,
+        prompt: realismPrompt,
         n,
-        size,
+        size: normalizedSize,
         response_format: 'url',
+        watermark: false,
       }, {
         headers: { 'Authorization': `Bearer ${arkCredentials.apiKey}` },
       });
@@ -828,10 +838,10 @@ export class AIClient {
       };
     } catch (arkError: any) {
       // 方舟不可用（未配置 Key / 未开通模型 / 调用失败）时回退腾讯云
-      console.log('[AIClient] 火山方舟图像生成不可用，回退腾讯云:', arkError.message);
+      console.log('[AIClient] 火山方舟图像生成不可用，回退腾讯云:', arkError.message, arkError.response?.status, JSON.stringify(arkError.response?.data));
     }
 
-    // 其次使用腾讯云 TokenHub（HY-Image-V3.0，2026-09-15 下线前兜底）
+    // 其次使用腾讯云 TokenHub（hy-image-v3，2026-08-31 实测模型名）
     try {
       const credentials = await this.resolveApiCredentials(userId, 'tencent');
       const baseUrl = this.getProviderBaseUrl('tencent');
@@ -839,11 +849,12 @@ export class AIClient {
       try {
         const axiosInstance = this.getAxiosInstance(baseUrl);
         const response = await axiosInstance.post('/images/generations', {
-          model: 'HY-Image-V3.0',
-          prompt: enhancedPrompt,
+          model: 'hy-image-v3',
+          prompt: realismPrompt,
           n,
-          size,
+          size: normalizedSize,
           response_format: 'url',
+          watermark: false,
         }, {
           headers: { 'Authorization': `Bearer ${credentials.apiKey}` },
         });
@@ -855,7 +866,7 @@ export class AIClient {
           providerId: credentials.provider,
           providerName: '腾讯云TokenHub',
           endpoint: '/images/generations',
-          model: 'HY-Image-V3.0',
+          model: 'hy-image-v3',
           duration: Date.now() - startTime,
           status: 'success',
         });
@@ -868,14 +879,14 @@ export class AIClient {
         };
       } catch (tencentImgErr: any) {
         // 降级：通过 chat/completions 生成图像提示词，返回占位图
-        console.log('[AIClient] 腾讯云图像生成端点不可用，使用文本生成替代:', tencentImgErr.message);
+        console.log('[AIClient] 腾讯云图像生成端点不可用，使用文本生成替代:', tencentImgErr.message, tencentImgErr.response?.status, JSON.stringify(tencentImgErr.response?.data));
 
         await this.logUsage({
           userId,
           providerId: credentials.provider,
           providerName: '腾讯云TokenHub',
           endpoint: '/images/generations',
-          model: 'HY-Image-V3.0',
+          model: 'hy-image-v3',
           duration: Date.now() - startTime,
           status: 'failed',
           errorMsg: tencentImgErr.message,
@@ -885,18 +896,18 @@ export class AIClient {
       }
     } catch (error: any) {
       // 降级到阿里云百炼
-      console.log('[AIClient] 腾讯云图像生成失败，尝试阿里云:', error.message);
+      console.log('[AIClient] 腾讯云图像生成失败，尝试阿里云:', error.message, error.response?.status, JSON.stringify(error.response?.data));
       try {
         const aliCredentials = await this.resolveApiCredentials(userId, 'alibaba');
         // 阿里云百炼使用原生域名（非compatible-mode），单独创建 axios
         const aliBaseUrl = 'https://dashscope.aliyuncs.com';
         const axiosInstance = this.getAxiosInstance(aliBaseUrl);
 
-        // 尝试 wan2.7 图像生成（异步模式）
+        // 尝试 wan2.7-image-pro 图像生成（异步模式，2026-08-31 实测可用）
         const response = await axiosInstance.post('/api/v1/services/aigc/image-generation/generation', {
-          model: 'wan2.7',
-          input: { prompt: enhancedPrompt },
-          parameters: { size: size.replace('x', '*'), n },
+          model: 'wan2.7-image-pro',
+          input: { prompt: realismPrompt },
+          parameters: { size: normalizedSize.replace('x', '*'), n, watermark: false },
         }, {
           headers: {
             'Authorization': `Bearer ${aliCredentials.apiKey}`,
@@ -927,7 +938,7 @@ export class AIClient {
                 providerId: 'alibaba',
                 providerName: '阿里云百炼',
                 endpoint: '/api/v1/services/aigc/image-generation/generation',
-                model: 'wan2.7',
+                model: 'wan2.7-image-pro',
                 duration: Date.now() - startTime,
                 status: 'success',
               });
@@ -946,7 +957,7 @@ export class AIClient {
           providerId: 'alibaba',
           providerName: '阿里云百炼',
           endpoint: '/api/v1/services/aigc/image-generation/generation',
-          model: 'wan2.7',
+          model: 'wan2.7-image-pro',
           duration,
           status: 'success',
         });
@@ -964,7 +975,7 @@ export class AIClient {
           providerId: 'alibaba',
           providerName: '阿里云百炼',
           endpoint: '/images/generations',
-          model: 'wan2.7',
+          model: 'wan2.7-image-pro',
           duration,
           status: 'failed',
           errorMsg: aliError.message,

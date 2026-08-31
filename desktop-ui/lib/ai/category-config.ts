@@ -402,11 +402,11 @@ export const MODEL_INFO: Record<string, ModelInfo> = {
     role: '图像编辑 / 局部重绘 / 风格迁移',
     cost: 'high',
   },
-  // 视频模型
-  'doubao-seedance-2.5': {
-    registryKey: 'doubao-seedance-2.5',
-    modelId: 'doubao-seedance-2-5-pro-260628',
-    displayName: 'Doubao Seedance 2.5',
+  // 视频模型（2026-08-31 实测：doubao-seedance-2-5-pro-260628 返回 404 不存在，改用 1.0 Pro）
+  'doubao-seedance-1.0-pro': {
+    registryKey: 'doubao-seedance-1.0-pro',
+    modelId: 'doubao-seedance-1-0-pro-250528',
+    displayName: 'Doubao Seedance 1.0 Pro',
     provider: 'volcano',
     role: '文生视频 / 图生视频 / 镜头生成',
     cost: 'premium',
