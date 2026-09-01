@@ -33,7 +33,7 @@ const nextConfig = {
   // 环境变量
   env: {
     NEXT_PUBLIC_APP_NAME: '智枢AI',
-    NEXT_PUBLIC_APP_VERSION: '3.6.1',
+    NEXT_PUBLIC_APP_VERSION: '3.6.2',
   },
 
   // Webpack配置

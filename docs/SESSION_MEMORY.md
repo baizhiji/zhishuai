@@ -1,3 +1,9 @@
+## 2026-09-01 会话（续30）：四问题修复提交 + 部署 + 桌面版 3.6.2 发布
+- 【提交】commit ed945d3 `fix: 四问题全量修复（AI模型实测化 + 内容中心三缺陷）+ 部署脚本中文字体`（39 文件）；bump commit 续（4 文件版本 3.6.1→3.6.2：tauri.conf.json / Cargo.toml / desktop package.json / next.config.js）
+- 【部署】push 后 CI（run #33486290138 → #新）自动执行：lint+typecheck 6 job 全绿 → Build(server/desktop-ui) ✓ → Deploy to Production ✓（服务器 git pull ed945d3 + npm ci + prisma db push + pm2 restart zhishuai-api + verify-login.sh 通过）→ desktop-build 3.6.2 → deploy-desktop 发布安装包到 /var/www/zhishuai/downloads/
+- 【验证】生产服务器 150.109.60.130：`/var/www/zhishuai` 代码 ed945d3 ✓；zhishuai-api pm2 online（fork/tsx）✓；`GET /health` 健康检查正常（注意：健康路径是 /health 而非 /api/health，后者 404 属正常）；downloads/ 已有 3.6.1 及历史安装包，3.6.2 构建完成后自动发布
+- 【遗留】scripts/ 下 50+ 一次性诊断脚本未提交（保持工作区未跟踪）；desktop-build 构建完成需人工确认安装包 3.6.2 已落到 downloads/ 且 latest.json 更新
+
 ## 2026-09-01 会话（续29）：四问题全量修复 —— 全链路模型替换为实测模型 + 内容中心三缺陷修复
 - 【背景】用户要求把检查发现的四个问题全部修复完善，强调"昨天实测三个模型服务商都没问题，必须调用最新真实的AI模型，不得再用理论式模型配置"
 - 【问题1 APK 端旧模型残留】①`apk/src/services/ai-model-router.ts`：hunyuan_instruct id hy3→kimi-k3、hunyuan_thinking id hy3→deepseek-v4-pro-202606（fallback 改 kimi_k2）、qwen_turbo id qwen3.7-flash→qwen3.8-max、qwen_plus id qwen3.7-plus→qwen3.8-max；②`apk/src/services/ai-chat.service.ts` 展示列表删除 qwen3.7-flash、hy3 两项（RECOMMENDED_MODELS 已实测无残留）
