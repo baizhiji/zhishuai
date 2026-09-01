@@ -325,16 +325,16 @@ const BUSINESS_MODEL_CONFIG = {
     },
   },
   // 模型链路（按商业能力从强到次强排序，依次尝试、自动降级）
-  // 主  : 腾讯 GLM-5.2（1M 上下文 Agent 级，商业方案首选）
-  // 备1 : 阿里 DeepSeek-V4-Pro（深度推理）
-  // 备2 : 腾讯 混元Hy3（思考）
-  // 备3 : 阿里 Qwen3.7-Plus（专业内容）
+  // 主  : 腾讯 DeepSeek V4 Pro（结构化分析/大纲，实测首选）
+  // 备1 : 阿里 Qwen3.8 Max（高质量创作/复杂推理）
+  // 备2 : 腾讯 Kimi K3（长文/摘要，1M 上下文）
+  // 备3 : 火山方舟 GLM-5.2（字幕/去AI化/中英双语，1M 上下文）
   // 备4 : 火山方舟 豆包 Seed 2.1 Pro（第三服务商兜底，OpenAI 兼容）
   modelChain: [
-    { provider: 'tencent', model: 'glm-5.2', name: 'GLM-5.2' },
-    { provider: 'aliyun', model: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
-    { provider: 'tencent', model: 'hy3', name: '混元Hy3' },
-    { provider: 'aliyun', model: 'qwen3.7-plus', name: 'Qwen3.7-Plus' },
+    { provider: 'tencent', model: 'deepseek-v4-pro-202606', name: 'DeepSeek V4 Pro' },
+    { provider: 'aliyun', model: 'qwen3.8-max', name: 'Qwen3.8 Max' },
+    { provider: 'tencent', model: 'kimi-k3', name: 'Kimi K3' },
+    { provider: 'volcano', model: 'glm-5-2', name: 'GLM-5.2（方舟）' },
     { provider: 'volcano', model: 'doubao-seed-2-1-pro-260628', name: '豆包 Seed 2.1 Pro' },
   ],
 } as const;
@@ -390,7 +390,7 @@ const BUSINESS_QUALITY_BOOST = `
 
 /**
  * 调用 AI 模型（商业助手专属模型链路，自动降级）
- * - 依次尝试模型链路中的每个模型（GLM-5.2 → DeepSeek-V4-Pro → 混元Hy3 → Qwen3.7-Plus → 豆包Seed2.1）
+ * - 依次尝试模型链路中的每个模型（DeepSeek V4 Pro → Qwen3.8 Max → Kimi K3 → GLM-5.2 → 豆包Seed2.1）
  * - 每个模型优先读取用户在该服务商配置的 API Key（复用电脑端配置，手机端无需单独配置）
  * - 服务商无 Key 或调用失败时自动降级到下一个模型
  */

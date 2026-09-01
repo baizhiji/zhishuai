@@ -35,6 +35,27 @@ const upload = multer({
   },
 });
 
+/**
+ * 服务端兜底：把多图素材的 usagePlatforms（JSON 数组字符串）解析为 images 数组，
+ * 保证电脑端 / 手机端等新老客户端都能取到完整图片列表。
+ */
+function toClientMaterial(material: any) {
+  let extraImages: string[] = [];
+  try {
+    const parsed =
+      typeof material.usagePlatforms === 'string'
+        ? JSON.parse(material.usagePlatforms)
+        : material.usagePlatforms;
+    if (Array.isArray(parsed)) {
+      extraImages = parsed.filter((u: unknown) => typeof u === 'string' && u.length > 0);
+    }
+  } catch {
+    // 忽略非法 JSON，回退到单图字段
+  }
+  const images = extraImages.length > 0 ? extraImages : material.fileUrl ? [material.fileUrl] : [];
+  return { ...material, images };
+}
+
 // 获取最近素材
 router.get('/recent', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -51,7 +72,7 @@ router.get('/recent', authMiddleware, async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      data: { list: materials, total, recentCount: materials.length },
+      data: { list: materials.map(toClientMaterial), total, recentCount: materials.length },
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -89,7 +110,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      data: { list: materials, total, page: Number(page), pageSize: Number(pageSize) },
+      data: { list: materials.map(toClientMaterial), total, page: Number(page), pageSize: Number(pageSize) },
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

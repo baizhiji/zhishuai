@@ -46,7 +46,7 @@ async function resolveApiKey(userId: string): Promise<string | null> {
 }
 
 const TOKENHUB_BASE = 'https://tokenhub.tencentmaas.com/v1';
-const TTS_MODEL = 'hunyuan-tts-1.5'; // 混元TTS模型
+const TTS_MODEL = 'minimax-speech-2.8-hd'; // MiniMax 语音（腾讯 TokenHub sync_tts，2026-08-31 客户账号实测模型）
 
 // ============================================
 // 声音克隆
@@ -164,30 +164,35 @@ router.post('/preview', authMiddleware, async (req: Request, res: Response) => {
       return;
     }
 
-    // 调用腾讯云TokenHub TTS
+    // 调用腾讯云TokenHub MiniMax sync_tts（实测端点）
     try {
-      const response = await fetch(`${TOKENHUB_BASE}/audio/speech`, {
+      const response = await fetch(`${TOKENHUB_BASE}/wand/minimax-tts/sync_tts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`,
-          'X-TC-Provider': 'tokenhub',
         },
         body: JSON.stringify({
           model: TTS_MODEL,
-          input: text,
-          voice: voiceId || 'default',
-          speed: speed,
-          response_format: 'mp3',
+          text,
+          voice_setting: { voice_id: voiceId || 'minimax_55e81114-ce7e-4ca1', speed: Number(speed) || 1, vol: Number(volume) || 1, pitch: 0 },
+          audio_setting: { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 },
+          output_format: 'url',
         }),
       });
 
-      if (!response.ok) {
-        const err: any = await response.json().catch(() => ({}));
-        throw new Error(err.error?.message || `TTS调用失败: ${response.status}`);
+      const ttsJson: any = await response.json().catch(() => ({}));
+      if (!response.ok || ttsJson?.base_resp?.status_code !== 0) {
+        throw new Error(ttsJson?.base_resp?.status_msg || ttsJson?.message || `TTS调用失败: ${response.status}`);
       }
 
-      const audioBuffer = Buffer.from(await response.arrayBuffer());
+      const audioUrl = ttsJson?.data?.audio;
+      if (!audioUrl) {
+        throw new Error('TTS未返回音频URL');
+      }
+
+      const audioResp = await fetch(audioUrl);
+      const audioBuffer = Buffer.from(await audioResp.arrayBuffer());
       const filename = `tts-${Date.now()}.mp3`;
       const filePath = path.join(uploadDir, filename);
       fs.writeFileSync(filePath, audioBuffer);
@@ -197,7 +202,7 @@ router.post('/preview', authMiddleware, async (req: Request, res: Response) => {
         data: {
           audioUrl: `/uploads/voice-clone/${filename}`,
           text,
-          duration: text.length * 0.25, // 估算时长
+          duration: (ttsJson?.extra_info?.audio_length || 0) / 1000,
           format: 'mp3',
           ttsProvider: 'tokenhub',
         },
@@ -309,19 +314,19 @@ async function generateVideoAsync(videoId: string, apiKey: string, text: string,
     // 更新进度 10%
     await prisma.videoClone.update({ where: { id: videoId }, data: { progress: 10 } });
 
-    // 第一步：TTS语音合成
-    const ttsResponse = await fetch(`${TOKENHUB_BASE}/audio/speech`, {
+    // 第一步：TTS语音合成（TokenHub MiniMax sync_tts，实测端点）
+    const ttsResponse = await fetch(`${TOKENHUB_BASE}/wand/minimax-tts/sync_tts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'X-TC-Provider': 'tokenhub',
       },
       body: JSON.stringify({
         model: TTS_MODEL,
-        input: text,
-        voice: voiceId || 'default',
-        response_format: 'mp3',
+        text,
+        voice_setting: { voice_id: voiceId || 'minimax_55e81114-ce7e-4ca1', speed: 1, vol: 1, pitch: 0 },
+        audio_setting: { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 },
+        output_format: 'url',
       }),
     });
 

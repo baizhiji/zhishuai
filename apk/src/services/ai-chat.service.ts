@@ -26,7 +26,7 @@ export interface ChatRequest {
 export interface ModelInfo {
   id: string;
   name: string;
-  provider: 'aliyun' | 'tencent';
+  provider: 'aliyun' | 'tencent' | 'volcano';
   providerName: string;
   type: 'text' | 'vision' | 'video' | 'reasoning' | 'agent';
   description: string;
@@ -204,48 +204,48 @@ export const aiChatService = new AIChatService();
 
 // ============ 模型选择辅助函数 ============
 
-// 推荐的模型类型
+// 推荐的模型类型（对齐实测版《AI模型配置最终版》统一标准）
 export const RECOMMENDED_MODELS = {
-  // 日常对话 - 腾讯云混元
+  // 日常对话 - 腾讯云 Kimi K3
   daily: {
-    model: 'hunyuan-2.0-instruct-20251111',
+    model: 'kimi-k3',
     provider: 'tencent',
-    name: '混元日常',
-    description: '日常对话、智能问答',
+    name: 'Kimi K3 长文',
+    description: '日常对话、智能问答、长文本',
   },
-  // 专业文案 - 阿里云千问
+  // 专业文案 - 阿里云 Qwen3.8 Max
   copywriting: {
-    model: 'qwen-plus',
+    model: 'qwen3.8-max',
     provider: 'aliyun',
-    name: '千问专业',
-    description: '专业文案、长文本生成',
+    name: 'Qwen3.8 Max',
+    description: '专业文案、长文本生成、复杂推理',
   },
   // 长文本 - Kimi
   longText: {
-    model: 'kimi-k2.6',
+    model: 'kimi-k3',
     provider: 'tencent',
-    name: 'Kimi长文',
+    name: 'Kimi K3 长文',
     description: '超长文本、报告生成',
   },
-  // 深度推理 - DeepSeek R1
+  // 深度推理 - 腾讯 DeepSeek V4 Pro（实测版归属腾讯 TokenHub）
   reasoning: {
-    model: 'deepseek-r1-0528',
-    provider: 'aliyun',
-    name: 'DeepSeek思考',
-    description: '深度思考、复杂推理',
-  },
-  // 图片理解 - GLM多模态
-  vision: {
-    model: 'glm-5v-turbo',
+    model: 'deepseek-v4-pro-202606',
     provider: 'tencent',
-    name: 'GLM视觉',
+    name: 'DeepSeek V4 Pro',
+    description: '深度思考、复杂推理、结构化分析',
+  },
+  // 图片理解 - 混元视觉
+  vision: {
+    model: 'hy-vision-2.0-instruct',
+    provider: 'tencent',
+    name: '混元视觉2.0',
     description: '图片理解、图表分析',
   },
-  // 视频理解 - 腾讯视频理解
+  // 视频理解 - 腾讯 YT-VITA 1.5
   video: {
-    model: 'youtu-vita',
+    model: 'yt-vita-1-5',
     provider: 'tencent',
-    name: '视频解析',
+    name: 'YT-VITA 视频理解',
     description: '视频理解、内容提取',
   },
 };
@@ -255,80 +255,73 @@ export function getRecommendedModel(taskType: keyof typeof RECOMMENDED_MODELS) {
   return RECOMMENDED_MODELS[taskType];
 }
 
-// 所有可用模型列表
+// 所有可用模型列表（对齐实测版《AI模型配置最终版》统一标准）
 export const ALL_MODELS: ModelInfo[] = [
   // 阿里云百炼
   {
-    id: 'qwen-turbo',
-    name: 'qwen-turbo',
-    provider: 'aliyun',
-    providerName: '阿里云百炼',
-    type: 'text',
-    description: '日常对话、快速响应',
-  },
-  {
-    id: 'qwen-plus',
-    name: 'qwen-plus',
-    provider: 'aliyun',
-    providerName: '阿里云百炼',
-    type: 'text',
-    description: '专业文案、长文本生成',
-  },
-  {
-    id: 'deepseek-r1-0528',
-    name: 'DeepSeek R1',
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8 Max',
     provider: 'aliyun',
     providerName: '阿里云百炼',
     type: 'reasoning',
-    description: '深度思考、复杂推理',
+    description: '高质量创作/复杂推理 — 实测质量优先',
+  },
+  {
+    id: 'qwen-long',
+    name: '千问长文',
+    provider: 'aliyun',
+    providerName: '阿里云百炼',
+    type: 'text',
+    description: '超长文本处理、长文档分析',
   },
   // 腾讯云TokenHub
   {
-    id: 'hunyuan-2.0-instruct-20251111',
-    name: '混元指令版',
-    provider: 'tencent',
-    providerName: '腾讯云TokenHub',
-    type: 'text',
-    description: '日常对话、智能问答',
-  },
-  {
-    id: 'hunyuan-2.0-thinking-20251109',
-    name: '混元思考版',
-    provider: 'tencent',
-    providerName: '腾讯云TokenHub',
-    type: 'reasoning',
-    description: '复杂推理、数学问题',
-  },
-  {
-    id: 'kimi-k2.6',
-    name: 'Kimi K2.6',
+    id: 'kimi-k3',
+    name: 'Kimi K3 长文',
     provider: 'tencent',
     providerName: '腾讯云TokenHub',
     type: 'text',
     description: '超长文本、报告生成',
   },
   {
-    id: 'glm-5',
-    name: 'GLM-5',
+    id: 'deepseek-v4-pro-202606',
+    name: 'DeepSeek V4 Pro',
     provider: 'tencent',
     providerName: '腾讯云TokenHub',
-    type: 'agent',
-    description: 'Agent任务、代码生成',
+    type: 'reasoning',
+    description: '结构化分析/大纲/评审/合规 — 实测质量优先',
   },
   {
-    id: 'glm-5v-turbo',
-    name: 'GLM-5V Turbo',
+    id: 'hy-vision-2.0-instruct',
+    name: '混元视觉2.0',
     provider: 'tencent',
     providerName: '腾讯云TokenHub',
     type: 'vision',
     description: '图片理解、多模态',
   },
   {
-    id: 'youtu-vita',
-    name: 'youtu-vita',
+    id: 'yt-vita-1-5',
+    name: 'YT-VITA 视频理解',
     provider: 'tencent',
     providerName: '腾讯云TokenHub',
     type: 'video',
     description: '视频理解、视频分析',
+  },
+  // 火山方舟
+  {
+    id: 'glm-5-2',
+    name: 'GLM-5.2（方舟）',
+    provider: 'volcano',
+    providerName: '火山方舟',
+    type: 'agent',
+    description: '字幕/去AI化/中英双语（1M上下文）+ Agent/代码 — 实测质量优先',
+  },
+  {
+    id: 'doubao-seed-2-1-pro-260628',
+    name: 'Doubao Seed 2.1 Pro',
+    provider: 'volcano',
+    providerName: '火山方舟',
+    type: 'reasoning',
+    description: '创作/推理/视频理解/多模态 — 实测质量优先',
   },
 ];

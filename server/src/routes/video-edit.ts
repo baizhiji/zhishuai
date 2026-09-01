@@ -87,6 +87,59 @@ function writeAssFile(filePath: string, text: string, width: number, height: num
   fs.writeFileSync(filePath, ass, 'utf-8');
 }
 
+/** 候选中文字体路径（drawtext 渲染【智枢AI生成】角标必需，按优先级探测） */
+function findCjkFont(): string | null {
+  const candidates = [
+    // 项目内置字体（OFL 许可，可将思源黑体/文泉驿放入 server/assets/fonts/）
+    path.join(process.cwd(), 'assets', 'fonts', 'NotoSansSC-Regular.otf'),
+    path.join(process.cwd(), 'assets', 'fonts', 'NotoSansCJK-Regular.ttc'),
+    path.join(process.cwd(), 'assets', 'fonts', 'wqy-microhei.ttc'),
+    path.join(process.cwd(), 'assets', 'fonts', 'wqy-zenhei.ttc'),
+    path.join(process.cwd(), 'uploads', 'fonts', 'NotoSansSC-Regular.otf'),
+    // Linux 常见 CJK 字体
+    '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+    '/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc',
+    '/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc',
+    '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+    '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc',
+    '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
+    '/usr/share/fonts/truetype/arphic/uming.ttc',
+    // Windows
+    'C:/Windows/Fonts/msyh.ttc',
+    'C:/Windows/Fonts/simhei.ttf',
+    'C:/Windows/Fonts/simsun.ttc',
+    // macOS
+    '/System/Library/Fonts/PingFang.ttc',
+    '/System/Library/Fonts/STHeiti Light.ttc',
+  ];
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) return p; } catch { /* ignore */ }
+  }
+  return null;
+}
+
+/** 转义 drawtext 滤镜中的字体路径（冒号为选项分隔符必须转义） */
+function escapeFilterPath(p: string): string {
+  return p.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, '\\\'');
+}
+
+/**
+ * 叠加【智枢AI生成】角标：右下角半透明黑底白字（重编码 libx264，音频无损复制）
+ */
+async function overlayAigcBadge(ffmpeg: string, input: string, output: string, width: number, height: number): Promise<void> {
+  const font = findCjkFont();
+  if (!font) throw new Error('未检测到中文字体，无法叠加【智枢AI生成】角标（请在服务器安装 fonts-noto-cjk，或将开源中文字体放入 server/assets/fonts/）');
+  const fontSize = Math.max(18, Math.round(height * 0.032));
+  const pad = Math.max(8, Math.round(fontSize * 0.55));
+  const margin = Math.max(10, Math.round(fontSize * 0.85));
+  const vf = `drawtext=fontfile=${escapeFilterPath(font)}:text='【智枢AI生成】':fontcolor=white:fontsize=${fontSize}:box=1:boxcolor=black@0.55:boxborderw=${pad}:x=w-text_w-${margin}:y=h-text_h-${Math.round(margin * 1.2)}`;
+  await execFileAsync(
+    ffmpeg,
+    ['-y', '-i', input, '-vf', vf, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-c:a', 'copy', '-movflags', '+faststart', output],
+    { timeout: 600000, maxBuffer: 128 * 1024 * 1024 }
+  );
+}
+
 /**
  * POST /api/video-edit/compose
  * body: { clips: string[]; subtitleText?: string; bgmUrl?: string; size?: string; fps?: number }
@@ -124,7 +177,7 @@ router.post('/compose', authMiddleware, async (req: Request, res: Response) => {
   const workId = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
   const workDir = path.join(UPLOAD_DIR, workId);
   fs.mkdirSync(workDir, { recursive: true });
-  const outPath = path.join(UPLOAD_DIR, `${workId}.mp4`);
+  let outPath = path.join(UPLOAD_DIR, `${workId}.mp4`);
 
   try {
     // 1. 下载全部素材
@@ -188,6 +241,16 @@ router.post('/compose', authMiddleware, async (req: Request, res: Response) => {
       );
     }
 
+    // 6. 叠加【智枢AI生成】角标（v4.2：视频成片强制 AIGC 显著标识；缺中文字体时降级不阻断成片）
+    const aigcPath = path.join(UPLOAD_DIR, `${workId}-aigc.mp4`);
+    try {
+      await overlayAigcBadge(ffmpeg, outPath, aigcPath, width, height);
+      fs.rmSync(outPath, { force: true });
+      outPath = aigcPath;
+    } catch (e: any) {
+      console.warn('[video-edit] AIGC 角标叠加跳过（不影响成片，请安装中文字体 fonts-noto-cjk）:', e?.message || e);
+    }
+
     fs.rmSync(workDir, { recursive: true, force: true });
 
     res.json({ success: true, data: { videoUrl: `/uploads/video-edit/${path.basename(outPath)}` } });
@@ -196,6 +259,52 @@ router.post('/compose', authMiddleware, async (req: Request, res: Response) => {
     fs.rmSync(workDir, { recursive: true, force: true });
     fs.rmSync(outPath, { force: true });
     res.status(500).json({ success: false, error: { message: err?.message || '智能剪辑成片失败' } });
+  }
+});
+
+/**
+ * POST /api/video-edit/aigc-badge
+ * body: { videoUrl: string }
+ * 说明：下载远端视频 → 叠加【智枢AI生成】角标 → 返回新视频 URL。
+ * 用于 AI 工厂视频类目（短视频/企业宣传/产品宣传/探店/真人MV/萌宠卡通/数字人）成片统一 AIGC 显著标识（v4.2）。
+ */
+router.post('/aigc-badge', authMiddleware, async (req: Request, res: Response) => {
+  const { videoUrl } = req.body || {};
+  if (typeof videoUrl !== 'string' || !/^https?:\/\//i.test(videoUrl)) {
+    return res.status(400).json({ success: false, error: { message: 'videoUrl 必须为 http/https 协议' } });
+  }
+  const ffmpeg = await detectFfmpeg();
+  if (!ffmpeg) {
+    return res.status(503).json({ success: false, error: { message: '服务端未检测到 FFmpeg，无法叠加 AIGC 角标' } });
+  }
+  if (!findCjkFont()) {
+    return res.status(422).json({ success: false, error: { message: '服务端缺少中文字体，无法叠加【智枢AI生成】角标。请在服务器执行 sudo apt install -y fonts-noto-cjk，或将开源中文字体放入 server/assets/fonts/' } });
+  }
+
+  const workId = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+  const workDir = path.join(UPLOAD_DIR, workId);
+  fs.mkdirSync(workDir, { recursive: true });
+  const srcPath = path.join(workDir, 'src.bin');
+  const outPath = path.join(UPLOAD_DIR, `${workId}.mp4`);
+
+  try {
+    // 1. 下载视频
+    await downloadFile(videoUrl, srcPath);
+    // 2. 探测分辨率（ffmpeg -i 无输出文件时以非零码退出，从 stderr 解析首帧尺寸）
+    const probe: any = await execFileAsync(ffmpeg, ['-hide_banner', '-i', srcPath], { timeout: 30000, maxBuffer: 16 * 1024 * 1024 }).catch((e: any) => e);
+    const dimMatch = /(\d{2,5})x(\d{2,5})/.exec(probe?.stderr || '');
+    const width = dimMatch ? parseInt(dimMatch[1], 10) : 1280;
+    const height = dimMatch ? parseInt(dimMatch[2], 10) : 720;
+    // 3. 叠加角标
+    await overlayAigcBadge(ffmpeg, srcPath, outPath, width, height);
+
+    fs.rmSync(workDir, { recursive: true, force: true });
+    res.json({ success: true, data: { videoUrl: `/uploads/video-edit/${path.basename(outPath)}` } });
+  } catch (err: any) {
+    console.error('[video-edit] AIGC 角标叠加失败:', err?.message || err);
+    fs.rmSync(workDir, { recursive: true, force: true });
+    fs.rmSync(outPath, { force: true });
+    res.status(500).json({ success: false, error: { message: err?.message || 'AIGC 角标叠加失败' } });
   }
 });
 

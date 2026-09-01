@@ -11,111 +11,117 @@
 
 // ==================== 模型配置 ====================
 
-// 腾讯云TokenHub模型列表
+// 腾讯云TokenHub模型列表（对齐服务端统一标准，2026-08 在售模型）
 export const TENCENT_MODELS = {
   // 日常对话模型
   hunyuan_instruct: {
-    id: 'hunyuan-2.0-instruct-20251111',
-    name: '混元日常',
+    id: 'kimi-k3',
+    name: 'Kimi K3 日常',
     provider: 'tencent',
     type: 'chat',
     priority: 1, // 优先级（1最高）
     cost: 'low', // 费用等级
     maxTokens: 8192,
-    description: '日常对话、智能问答、快速响应',
+    description: '日常对话、智能问答、快速响应 — 实测质量优先',
     keywords: ['你好', '在吗', '帮忙', '怎么', '如何', '是什么', '为什么', '聊天'],
+    fallback: 'qwen_turbo',
   },
   hunyuan_thinking: {
-    id: 'hunyuan-2.0-thinking-20251109',
-    name: '混元思考',
+    id: 'deepseek-v4-pro-202606',
+    name: 'DeepSeek V4 Pro 思考',
     provider: 'tencent',
     type: 'reasoning',
     priority: 2,
     cost: 'medium',
     maxTokens: 32768,
-    description: '复杂推理、数学问题、深度思考',
+    description: '复杂推理、数学问题、深度思考 — 实测质量优先',
     keywords: ['分析', '推理', '计算', '证明', '思考', '逻辑'],
+    fallback: 'kimi_k2',
   },
   
   // 超长文本模型
   kimi_k2: {
-    id: 'kimi-k2.6',
-    name: 'Kimi长文',
+    id: 'kimi-k3',
+    name: 'Kimi K3 长文',
     provider: 'tencent',
     type: 'long_text',
-    priority: 2,
+    priority: 1,
     cost: 'medium',
     maxTokens: 128000, // 128K tokens
-    description: '超长文本、报告生成、文档处理',
-    keywords: ['报告', '总结', '文章', '论文', '文档', '小说', '长文', '超长'],
+    description: '长篇文本处理/摘要/改写 — 质量优先',
+    keywords: ['报告', '总结', '文章', '论文', '文档', '小说', '长文', '万字', '摘要'],
+    fallback: 'qwen_38_max',
   },
-  
-  // Agent任务模型
-  glm_5: {
-    id: 'glm-5',
-    name: 'GLM-5 Agent',
+
+  // 深度分析模型（实测版：DeepSeek V4 Pro 归属腾讯 TokenHub）
+  deepseek_v4_pro_tc: {
+    id: 'deepseek-v4-pro-202606',
+    name: 'DeepSeek V4 Pro',
     provider: 'tencent',
-    type: 'agent',
-    priority: 3,
+    type: 'reasoning',
+    priority: 1,
     cost: 'medium',
-    maxTokens: 32768,
-    description: 'Agent任务、代码生成、任务执行',
-    keywords: ['代码', '编程', '开发', '任务', '执行', '自动化', '脚本'],
+    maxTokens: 64000,
+    description: '结构化分析/大纲/评审/合规 — 质量优先',
+    keywords: ['深度', '推理', '分析', '思考', '复杂', '数学', '证明', '评审', '合规', '大纲', '结构化'],
+    fallback: 'qwen_38_max',
   },
   
   // 图像理解模型
   glm_5v: {
-    id: 'glm-5v-turbo',
-    name: 'GLM视觉',
+    id: 'hy-vision-2.0-instruct',
+    name: '混元视觉2.0',
     provider: 'tencent',
     type: 'vision',
-    priority: 2,
+    priority: 1,
     cost: 'medium',
     maxTokens: 8192,
-    description: '图片理解、图表分析、多模态理解',
+    description: '图像理解/OCR/图表分析 — 质量优先',
     keywords: ['图片', '图像', '看图', '图表', '截图', '照片', '分析图片'],
+    fallback: 'glm_5',
   },
   
-  // 视频理解模型
+  // 视频理解模型（实测版：YT-VITA 1.5 归属腾讯）
   youtu_vita: {
-    id: 'youtu-vita',
-    name: '视频解析',
+    id: 'yt-vita-1-5',
+    name: 'YT-VITA 视频理解',
     provider: 'tencent',
     type: 'video',
-    priority: 2,
+    priority: 1,
     cost: 'high',
     maxTokens: 16384,
-    description: '视频理解、视频分析、内容提取',
+    description: '视频理解/素材理解/剪辑点识别',
     keywords: ['视频', '抖音', '快手', '小红书视频', 'B站', '分析视频', '视频链接'],
+    fallback: null,
   },
 }
 
-// 阿里云百炼模型列表
+// 阿里云百炼模型列表（对齐实测版《AI模型配置最终版》统一标准）
 export const ALIYUN_MODELS = {
   qwen_turbo: {
-    id: 'qwen-turbo',
-    name: '千问快速',
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8快速',
     provider: 'aliyun',
     type: 'chat',
     priority: 1,
     cost: 'low',
     maxTokens: 8192,
-    description: '日常对话、快速响应、高性价比',
+    description: '日常对话、快速响应 — 实测质量优先',
     keywords: ['你好', '在吗', '简单', '快速', '问问'],
     fallback: 'hunyuan_instruct', // 备用模型
   },
   
   qwen_plus: {
-    id: 'qwen-plus',
-    name: '千问专业',
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8专业',
     provider: 'aliyun',
     type: 'professional',
     priority: 2,
     cost: 'medium',
     maxTokens: 32768,
-    description: '专业文案、营销内容、长文本',
+    description: '专业文案、营销内容 — 实测质量优先',
     keywords: ['文案', '营销', '推广', '策划', '方案', '专业', '详细'],
-    fallback: 'glm_5',
+    fallback: 'qwen_38_max',
   },
   
   qwen_long: {
@@ -131,17 +137,46 @@ export const ALIYUN_MODELS = {
     fallback: 'kimi_k2',
   },
   
-  deepseek_r1: {
-    id: 'deepseek-r1-0528',
-    name: 'DeepSeek思考',
+  // 高质量创作/复杂推理模型（实测版：Qwen 3.8 Max 归属阿里百炼）
+  qwen_38_max: {
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8 Max',
     provider: 'aliyun',
-    type: 'reasoning',
+    type: 'professional',
+    priority: 1,
+    cost: 'medium',
+    maxTokens: 128000,
+    description: '高质量创作/复杂推理 — 实测质量优先',
+    keywords: ['文案', '营销', '推广', '策划', '方案', '创作', '写作', '创意', '内容'],
+    fallback: 'deepseek_v4_pro_tc',
+  },
+}
+
+// 火山方舟模型列表（实测版：GLM-5.2 / Doubao Seed 2.1 Pro 归属火山方舟）
+export const VOLCANO_MODELS = {
+  glm_5: {
+    id: 'glm-5-2',
+    name: 'GLM-5.2（方舟）',
+    provider: 'volcano',
+    type: 'agent',
     priority: 2,
     cost: 'medium',
-    maxTokens: 64000,
-    description: '深度思考、复杂推理、数学问题',
-    keywords: ['深度', '推理', '分析', '思考', '复杂', '数学', '证明'],
-    fallback: 'hunyuan_thinking',
+    maxTokens: 32768,
+    description: '字幕/去AI化/中英双语（1M上下文） + Agent/代码 — 实测质量优先',
+    keywords: ['代码', '编程', '开发', '任务', '执行', '字幕', '去AI化', '中英', '翻译', '超长'],
+    fallback: 'kimi_k2',
+  },
+  doubao_seed_2_1_pro: {
+    id: 'doubao-seed-2-1-pro-260628',
+    name: 'Doubao Seed 2.1 Pro',
+    provider: 'volcano',
+    type: 'chat',
+    priority: 1,
+    cost: 'low',
+    maxTokens: 8192,
+    description: '创作/推理/视频理解/多模态 — 实测质量优先',
+    keywords: ['创作', '推理', '多模态', '视频理解', '兜底'],
+    fallback: 'qwen_38_max',
   },
 }
 
@@ -149,6 +184,7 @@ export const ALIYUN_MODELS = {
 export const ALL_MODELS = {
   ...TENCENT_MODELS,
   ...ALIYUN_MODELS,
+  ...VOLCANO_MODELS,
 }
 
 // ==================== 任务类型定义 ====================
@@ -185,6 +221,10 @@ export class AIModelRouter {
     })
     // 阿里云模型
     Object.keys(ALIYUN_MODELS).forEach(key => {
+      this.availableModels.add(key)
+    })
+    // 火山方舟模型
+    Object.keys(VOLCANO_MODELS).forEach(key => {
       this.availableModels.add(key)
     })
   }
@@ -251,7 +291,7 @@ export class AIModelRouter {
   /**
    * 根据任务类型选择最优模型
    */
-  selectModel(taskType: TaskType, preferProvider?: 'tencent' | 'aliyun'): string {
+  selectModel(taskType: TaskType, preferProvider?: 'tencent' | 'aliyun' | 'volcano'): string {
     const candidates = this.getCandidateModels(taskType, preferProvider)
     
     if (candidates.length === 0) {
@@ -272,7 +312,7 @@ export class AIModelRouter {
   /**
    * 获取候选模型列表（按优先级排序）
    */
-  private getCandidateModels(taskType: TaskType, preferProvider?: 'tencent' | 'aliyun'): string[] {
+  private getCandidateModels(taskType: TaskType, preferProvider?: 'tencent' | 'aliyun' | 'volcano'): string[] {
     const candidates: { key: string; priority: number; cost: string }[] = []
 
     // 遍历所有模型，找出符合任务类型的
@@ -397,6 +437,7 @@ export class AIModelRouter {
       byProvider: {
         tencent: 0,
         aliyun: 0,
+        volcano: 0,
       },
       byType: {} as Record<string, number>,
     }
@@ -424,7 +465,7 @@ export const aiModelRouter = new AIModelRouter()
  */
 export function selectModelForTask(
   taskType: TaskType, 
-  preferProvider?: 'tencent' | 'aliyun'
+  preferProvider?: 'tencent' | 'aliyun' | 'volcano'
 ): { modelKey: string; modelName: string; provider: string } {
   const modelKey = aiModelRouter.selectModel(taskType, preferProvider)
   return {
@@ -439,7 +480,7 @@ export function selectModelForTask(
  */
 export function analyzeAndSelectModel(
   userInput: string,
-  preferProvider?: 'tencent' | 'aliyun'
+  preferProvider?: 'tencent' | 'aliyun' | 'volcano'
 ): { 
   taskType: TaskType
   modelKey: string

@@ -28,7 +28,7 @@ async function resolveApiKey(userId: string): Promise<{ key: string; model: stri
     const thKey = await getPrimaryApiKey(userId, 'tokenhub');
     if (thKey?.apiKey) return {
       key: thKey.apiKey,
-      model: 'hunyuan-2.0-instruct-20251111',
+      model: 'deepseek-v4-pro-202606',
       baseUrl: 'https://tokenhub.tencentmaas.com/v1',
       headers: { 'X-TC-Provider': 'tokenhub' },
     };
@@ -38,7 +38,7 @@ async function resolveApiKey(userId: string): Promise<{ key: string; model: stri
     const dsKey = await getPrimaryApiKey(userId, 'dashscope');
     if (dsKey?.apiKey) return {
       key: dsKey.apiKey,
-      model: 'qwen-plus',
+      model: 'qwen3.8-max',
       baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       headers: {},
     };

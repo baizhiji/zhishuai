@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View,
   Text,
@@ -62,12 +63,36 @@ const STYLE_OPTIONS = [
   { label: '幽默', value: '幽默' },
 ];
 
+/** 自动保存失败时的本地待补存队列 key（下次进入生成页自动补存到内容中心） */
+const PENDING_SYNC_KEY = 'ai-factory-pending-sync-mobile';
+
 export default function AICreateDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<RouteProp<RootStackParamList, 'AICreateDetail'>>();
   const { category } = route.params;
 
   const config = contentCategoryConfig[category];
+
+  // 挂载时补存上次因网络/接口异常未保存到内容中心的生成结果
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(PENDING_SYNC_KEY);
+        if (!raw) return;
+        const pending = JSON.parse(raw);
+        if (!Array.isArray(pending) || pending.length === 0) return;
+        const rest = [...pending];
+        const batch = rest.splice(0, 5);
+        for (const item of batch) {
+          await saveToMaterials(item.category, item.title, item.content, item.urls);
+        }
+        await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(rest));
+        if (batch.length > 0) Alert.alert('提示', `已自动补存 ${batch.length} 条生成结果到内容中心`);
+      } catch {
+        // 补存失败保留队列，下次再试
+      }
+    })();
+  }, []);
 
   // 通用字段
   const [description, setDescription] = useState('');
@@ -297,8 +322,23 @@ export default function AICreateDetailScreen() {
             text || 'AI生成的图片/视频素材',
             urls
           );
-        } catch {
-          // 自动保存失败不影响生成主流程
+        } catch (saveErr) {
+          // 自动保存失败：暂存本地待补存队列，下次进入自动重试，不打断生成主流程
+          try {
+            const raw = await AsyncStorage.getItem(PENDING_SYNC_KEY);
+            const pending: Array<Record<string, unknown>> = raw ? JSON.parse(raw) : [];
+            pending.push({
+              category,
+              title: `${config.label}_${description.trim().slice(0, 15) || '生成内容'}`,
+              content: text || 'AI生成的图片/视频素材',
+              urls,
+            });
+            await AsyncStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending.slice(-20)));
+            console.warn('[ai-factory] 自动保存到内容中心失败，已暂存本地待补存:', saveErr);
+            Alert.alert('提示', '生成成功，但保存到内容中心失败，已暂存本地，下次进入将自动补存');
+          } catch {
+            console.error('[ai-factory] 自动保存失败且暂存本地失败:', saveErr);
+          }
         }
       };
       if (config.type === 'image') {

@@ -96,15 +96,19 @@ export interface ModelInfo {
  * 全部参与模型的注册信息（蓝皮书提及的 15 个核心模型）
  */
 /**
- * P1-7 闲置模型标注：以下 key 当前未被 CATEGORY_PIPELINES 任何阶段引用（既非 primaryModel 也非 fallbackModel），
+ * P1-7 闲置模型标注 + 三云路由（P0）更新：
+ * 以下 key 当前未被 CATEGORY_PIPELINES 任何阶段引用（既非 primaryModel 也非 fallbackModel / tertiaryModel），
  * 属于"备用/预留"资源。它们不参与流水线执行，但保留定义以兼容旧版本直连调用与未来扩展。
  * 如需清理瘦身，可直接删除以下 key 及其对象定义：
  * qwen3.7-max, qwen-max-aly, qwen3.7-plus, hy-image-lite, qwen-image-3.0-pro,
- * hy-video-1.5, yt-video-2.0, hy-vision-2.0, vd-video-q3-turbo, happyhorse-1.1-t2v,
+ * yt-video-2.0, vd-video-q3-turbo, happyhorse-1.1-t2v,
  * doubao-seed-2.1-turbo, doubao-seed-2.0-pro, doubao-seed-1.6, doubao-seed-1.6-thinking,
- * doubao-seed-2.0-lite, doubao-seedream-5.0-pro, doubao-seedream-5.0-lite,
- * doubao-seedream-4.0, doubao-seededit-3.0-i2i, doubao-seedance-2.5, doubao-voice-clone-2.0,
- * deepseek-v4-volcano, kimi-k2.7, minimax-m3, minimax-music-v2.6, fun-music-v1
+ * doubao-seed-2.0-lite, doubao-seedream-5.0-lite, doubao-seedream-4.0, doubao-seedance-2.5,
+ * doubao-voice-clone-2.0, deepseek-v4-volcano, kimi-k2.7, minimax-m3
+ * ── 已从闲置清单移出（P0 三云路由已编入产线）──
+ * hy-video-1.5（video_generate fallback）、doubao-seedream-5.0-pro（image_generate fallback）、
+ * doubao-seededit-3.0-i2i（image_enhance/video_edit fallback）、doubao-seedance-1.0-pro（video_generate tertiary）、
+ * minimax-music-v3.0 / minimax-music-v2.6（bgm_generate 真生成 primary/fallback，腾讯 TokenHub）、qwen-vl-max（视觉复核三级兜底，新注册）
  */
 export const MODEL_INFO: Record<string, ModelInfo> = {
   // === 文案产线模型 ===
@@ -246,8 +250,16 @@ export const MODEL_INFO: Record<string, ModelInfo> = {
     modelId: 'hy-vision-2.0-instruct',
     displayName: '混元 Vision 2.0',
     provider: 'tencent',
-    role: '产品视觉分析 / 质量评审',
+    role: '图片视觉安全复核（NSFW/敏感内容多模态检测）/ 产品视觉分析',
     cost: 'medium',
+  },
+  'qwen-vl-max': {
+    registryKey: 'qwen-vl-max',
+    modelId: 'qwen-vl-max',
+    displayName: '千问视觉 Max',
+    provider: 'alibaba',
+    role: '图片视觉安全复核三级兜底（多模态理解，三云路由：混元Vision → 豆包多模态 → 千问视觉）',
+    cost: 'high',
   },
 
   // === v3.0 新增模型 ===
@@ -308,14 +320,23 @@ export const MODEL_INFO: Record<string, ModelInfo> = {
     cost: 'high',
   },
 
-  // TTS
+  // TTS / 声音复刻（实测 v4.4：腾讯 TokenHub minimax-tts 链路）
+  // 2026-08-31 客户账号实测：sync_tts 端点 PASS（minimax-speech-2.8-hd）；sync_clone 端点用于声音复刻
   'minimax-speech-2.8-hd': {
     registryKey: 'minimax-speech-2.8-hd',
-    modelId: 'MiniMax/speech-2.8-hd',
+    modelId: 'minimax-speech-2.8-hd',
     displayName: 'MiniMax Speech 2.8 HD',
-    provider: 'alibaba',
-    role: '高保真语音合成 / 品牌配音克隆 / 多情感语音',
+    provider: 'tencent',
+    role: '高保真语音合成 / 品牌配音 / 多情感语音（腾讯 TokenHub，实测 PASS）',
     cost: 'medium',
+  },
+  'minimax-voice-clone': {
+    registryKey: 'minimax-voice-clone',
+    modelId: 'minimax-voice-clone',
+    displayName: 'MiniMax 音色复刻',
+    provider: 'tencent',
+    role: '声音复刻（腾讯 TokenHub sync_clone：上传参考音频 → 生成自定义 voice_id 复用）',
+    cost: 'high',
   },
 
   // === v4.0 新增：火山方舟模型（蓝皮书附录 A.3 全文） ===
@@ -420,13 +441,13 @@ export const MODEL_INFO: Record<string, ModelInfo> = {
     role: '语音合成 / 多音色配音',
     cost: 'medium',
   },
-  // 声音复刻
+  // 声音复刻（火山方舟无 TTS/复刻端点，实测方舟 /audio/speech 404 —— 火山语音为独立 openspeech 服务需 appid/token，当前不可用）
   'doubao-voice-clone-2.0': {
     registryKey: 'doubao-voice-clone-2.0',
     modelId: 'doubao-voice-clone-2-0',
-    displayName: '声音复刻 2.0',
+    displayName: '声音复刻 2.0（火山）',
     provider: 'volcano',
-    role: '声音复刻 / 品牌音色定制',
+    role: '声音复刻 / 品牌音色定制（火山 openspeech 独立服务，方舟 API Key 不可用，勿用）',
     cost: 'high',
   },
   // 视频理解模型（智能剪辑素材理解）
@@ -472,21 +493,30 @@ export const MODEL_INFO: Record<string, ModelInfo> = {
     role: '创意文案 / 情感表达',
     cost: 'high',
   },
-  // BGM 音乐模型（蓝皮书 §4.1 智能剪辑第6阶段）
+  // BGM 音乐模型（实测 v4.4：腾讯 TokenHub MiniMax Music 真生成链路）
+  // 2026-08-31 客户账号实测：minimax-music-v3.0 PASS（/v1/wand/minimax-music/generation 同步返回音频URL）
+  'minimax-music-v3.0': {
+    registryKey: 'minimax-music-v3.0',
+    modelId: 'minimax-music-v3.0',
+    displayName: 'MiniMax Music V3.0',
+    provider: 'tencent',
+    role: 'BGM 配乐生成（真音乐生成 · 腾讯 TokenHub，实测 PASS）',
+    cost: 'high',
+  },
   'minimax-music-v2.6': {
     registryKey: 'minimax-music-v2.6',
-    modelId: 'MiniMax/music-v2.6',
+    modelId: 'minimax-music-v2.6',
     displayName: 'MiniMax Music V2.6',
-    provider: 'alibaba',
-    role: 'BGM 配乐生成 / 情绪化背景音乐',
+    provider: 'tencent',
+    role: 'BGM 配乐生成 / 情绪化背景音乐（腾讯 TokenHub，v3.0 不可用时兜底）',
     cost: 'high',
   },
   'fun-music-v1': {
     registryKey: 'fun-music-v1',
     modelId: 'fun-music-v1',
-    displayName: 'Fun Music V1',
-    provider: 'volcano',
-    role: 'BGM 配乐备选 / 轻快背景音乐',
+    displayName: 'Fun Music V1（百聆）',
+    provider: 'alibaba',
+    role: 'BGM 配乐备选（阿里百炼 · 需控制台开通邀测权限，当前 403）',
     cost: 'medium',
   },
 
@@ -520,6 +550,7 @@ export type PipelinePhase =
   | 'image_enhance'        // 图片质量增强/超分/去伪影（v3.1 新增）
   | 'dialect_voiceover'    // 方言配音（v3.1 新增：四川话/东北话/上海话/闽南话/河南话/粤语）
   | 'compliance_check'     // 合规筛查
+  | 'visual_review'        // 图片视觉安全复核（混元 Vision 2.0 多模态检测，v4.1 新增）
   // 智能剪辑产线阶段（v4.0 新增，蓝皮书 §4.1）
   | 'edit_plan'            // 需求解析 / 剪辑脚本（DeepSeek-V4-Pro/Qwen3.8-Max）
   | 'clip_analysis'        // 素材理解 / 剪辑点识别（YT-VITA/Doubao-Seed-2.1-Pro 视频理解）
@@ -534,6 +565,8 @@ export interface PhaseConfig {
   primaryModel: string;
   /** 备用模型（同 provider 降级或跨 provider 降级） */
   fallbackModel?: string;
+  /** 三级兜底模型（三云路由：primary → fallback → tertiary，火山方舟进入此级） */
+  tertiaryModel?: string;
   /** 该阶段的参数覆盖 */
   params?: Record<string, any>;
   /** 启用条件 */
@@ -570,19 +603,20 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
     description: '生成小红书风格的图文内容，包含高质量文案和配图',
     pipeline: 'text',
     phases: [
-      { phase: 'viral_analysis', label: '爆款意图分析', primaryModel: 'deepseek-v4-pro-tc', params: { temperature: 0.5 }, enabled: true },
+      { phase: 'viral_analysis', label: '爆款意图分析', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', tertiaryModel: 'doubao-seed-2.1-pro', params: { temperature: 0.5 }, enabled: true },
       { phase: 'outline', label: '结构化大纲', primaryModel: 'deepseek-v4-pro-tc', params: { temperature: 0.6 }, enabled: true },
       { phase: 'draft', label: '初稿生成（高温创意）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.88, top_p: 0.92, frequency_penalty: 0.3 }, enabled: true },
       { phase: 'anti_ai_rewrite', label: '反AI化重写（小红书口语化）', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.75, systemPrompt: 'xiaohongshu' }, enabled: true },
-      { phase: 'image_generate', label: '配图生成（4张选最优）', primaryModel: 'qwen-image-max', fallbackModel: 'z-image-turbo', params: { n: 4, size: '2048x2048', style: 'xhs_lifestyle' }, enabled: true },
-      { phase: 'image_enhance', label: '图片质量增强（去AI伪影/细节锐化）', primaryModel: 'qwen-image-edit', fallbackModel: 'z-image-turbo', params: { operation: 'refine', sharpen: true, deartifact: true }, enabled: true },
-      { phase: 'compliance_check', label: '图文合规安全审查', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'ad_law,content_safety,copyright' }, enabled: true },
+      { phase: 'image_generate', label: '配图生成（4张选最优）', primaryModel: 'qwen-image-max', fallbackModel: 'doubao-seedream-5.0-pro', params: { n: 4, size: '2048x2048', style: 'xhs_lifestyle' }, enabled: true },
+      { phase: 'image_enhance', label: '图片质量增强（去AI伪影/细节锐化）', primaryModel: 'qwen-image-edit', fallbackModel: 'doubao-seededit-3.0-i2i', params: { operation: 'refine', sharpen: true, deartifact: true }, enabled: true },
+      { phase: 'visual_review', label: '图片视觉安全复核（混元Vision检测违规内容）', primaryModel: 'hy-vision-2.0', fallbackModel: 'doubao-seed-2.1-pro', tertiaryModel: 'qwen-vl-max', enabled: true },
+      { phase: 'compliance_check', label: '图文合规安全审查（含AIGC显式标识）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'ad_law,content_safety,copyright', aigcFlag: true }, enabled: true },
       { phase: 'quality_review', label: '质量交叉评审', primaryModel: 'deepseek-v4-pro-tc', params: { temperature: 0.2 }, enabled: true },
       { phase: 'style_calibration', label: '风格校准（定稿润色）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
       { phase: 'platform_adapt', label: '小红书格式适配', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'qwen-image-max', 'z-image-turbo'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'qwen-image-max', 'z-image-turbo', 'qwen-image-edit', 'hy-vision-2.0', 'doubao-seed-2.1-pro', 'doubao-seedream-5.0-pro', 'doubao-seededit-3.0-i2i', 'qwen-vl-max'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 2. 图片生成（蓝皮书 V2.1：6阶段）==========
@@ -595,14 +629,16 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
     phases: [
       { phase: 'visual_strategy', label: '视觉策略分析', primaryModel: 'deepseek-v4-pro-tc', params: { temperature: 0.5 }, enabled: true },
       { phase: 'viral_analysis', label: '爆款视觉风格对标', primaryModel: 'deepseek-v4-pro-tc', params: { temperature: 0.6 }, enabled: true },
+      { phase: 'anti_ai_rewrite', label: '真人摄影感策略改写（去AI味）', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.72, systemPrompt: 'photography' }, enabled: true },
       { phase: 'image_prompt', label: '双轨Prompt生成（正向+负向）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.7 }, enabled: true },
-      { phase: 'image_generate', label: '多模型并行出图（每模型4张）', primaryModel: 'qwen-image-max', fallbackModel: 'z-image-turbo', params: { n: 4, size: '2048x2048' }, enabled: true },
-      { phase: 'image_enhance', label: '图片质量增强（去AI伪影/超分/细节锐化）', primaryModel: 'qwen-image-edit', fallbackModel: 'z-image-turbo', params: { operation: 'refine', sharpen: true, deartifact: true, upscale: true }, enabled: true },
+      { phase: 'image_generate', label: '多模型并行出图（每模型4张）', primaryModel: 'qwen-image-max', fallbackModel: 'doubao-seedream-5.0-pro', tertiaryModel: 'hy-image-v3', params: { n: 4, size: '2048x2048' }, enabled: true },
+      { phase: 'image_enhance', label: '图片质量增强（去AI伪影/超分/细节锐化）', primaryModel: 'qwen-image-edit', fallbackModel: 'doubao-seededit-3.0-i2i', params: { operation: 'refine', sharpen: true, deartifact: true, upscale: true }, enabled: true },
       { phase: 'image_select', label: '质量评审 + 择优输出', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
+      { phase: 'visual_review', label: '图片视觉安全复核（混元Vision检测违规内容）', primaryModel: 'hy-vision-2.0', fallbackModel: 'doubao-seed-2.1-pro', tertiaryModel: 'qwen-vl-max', enabled: true },
       { phase: 'compliance_check', label: '内容安全筛查', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'copyright,nsfw,toxic' }, enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'qwen-image-max', 'z-image-turbo', 'hy-image-v3'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'qwen-image-max', 'z-image-turbo', 'qwen-image-edit', 'hy-image-v3', 'hy-vision-2.0', 'doubao-seedream-5.0-pro', 'doubao-seededit-3.0-i2i', 'doubao-seed-2.1-pro', 'qwen-vl-max'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 3. 电商详情页（蓝皮书 V2.1：9阶段）==========
@@ -617,16 +653,17 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       { phase: 'outline', label: '详情页结构大纲', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       { phase: 'draft', label: '文案初稿生成', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.85 }, enabled: true },
       { phase: 'anti_ai_rewrite', label: '反AI化重写（电商口语化/英文国际化可用Kimi）', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.75, systemPrompt: 'ecommerce' }, enabled: true },
-      { phase: 'image_generate', label: '商品主图生成', primaryModel: 'wan2.7-image-pro-aly', fallbackModel: 'hy-image-v3', params: { style: 'product_white_bg', size: '800x800' }, enabled: true },
-      { phase: 'image_generate', label: '详情图生成（场景图+卖点图）', primaryModel: 'qwen-image-max', fallbackModel: 'z-image-turbo', params: { n: 6, style: 'ecommerce' }, enabled: true },
-      { phase: 'image_enhance', label: '商品图像增强（去伪影/细节锐化/色彩校准）', primaryModel: 'qwen-image-edit', fallbackModel: 'z-image-turbo', params: { operation: 'refine', sharpen: true, deartifact: true, colorCalibration: true }, enabled: true },
-      { phase: 'compliance_check', label: '广告法合规筛查', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'ad_law,false_claims' }, enabled: true },
+      { phase: 'image_generate', label: '商品主图生成', primaryModel: 'wan2.7-image-pro-aly', fallbackModel: 'hy-image-v3', tertiaryModel: 'doubao-seedream-5.0-pro', params: { style: 'product_white_bg', size: '800x800' }, enabled: true },
+      { phase: 'image_generate', label: '详情图生成（场景图+卖点图）', primaryModel: 'qwen-image-max', fallbackModel: 'doubao-seedream-5.0-pro', params: { n: 6, style: 'ecommerce' }, enabled: true },
+      { phase: 'image_enhance', label: '商品图像增强（去伪影/细节锐化/色彩校准）', primaryModel: 'qwen-image-edit', fallbackModel: 'doubao-seededit-3.0-i2i', params: { operation: 'refine', sharpen: true, deartifact: true, colorCalibration: true }, enabled: true },
+      { phase: 'visual_review', label: '商品图视觉安全复核（混元Vision检测违规内容）', primaryModel: 'hy-vision-2.0', fallbackModel: 'doubao-seed-2.1-pro', tertiaryModel: 'qwen-vl-max', enabled: true },
+      { phase: 'compliance_check', label: '广告法合规筛查（含AIGC显式标识）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'ad_law,false_claims', aigcFlag: true }, enabled: true },
       { phase: 'quality_review', label: '转化力评审', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       { phase: 'style_calibration', label: '风格校准（卖点精准化）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
       { phase: 'platform_adapt', label: '平台格式裁剪', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'wan2.7-image-pro-aly', 'qwen-image-max', 'z-image-turbo'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'wan2.7-image-pro-aly', 'qwen-image-max', 'z-image-turbo', 'qwen-image-edit', 'hy-image-v3', 'hy-vision-2.0', 'doubao-seedream-5.0-pro', 'doubao-seededit-3.0-i2i', 'doubao-seed-2.1-pro', 'qwen-vl-max'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 4. 短视频（v3.0：AI导演模式 — 原自由创意短片，唯一出口）==========
@@ -643,20 +680,20 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       { phase: 'anti_ai_rewrite', label: '叙事节奏反AI化重写（真人创作者视角）', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.78, systemPrompt: 'cinema' }, enabled: true },
       // 视觉产线（3阶段）
       { phase: 'script_generate', label: '6镜头分镜视觉化', primaryModel: 'qwen-image-max', fallbackModel: 'z-image-turbo', params: { n: 6 }, enabled: true },
-      { phase: 'video_generate', label: '6镜头视频生成', primaryModel: 'vd-video-q3-pro', fallbackModel: 'kling-video-v3', params: { duration: 30, fps: 30, quality: '4k' }, enabled: true },
+      { phase: 'video_generate', label: '6镜头视频生成', primaryModel: 'vd-video-q3-pro', fallbackModel: 'kling-video-v3', tertiaryModel: 'doubao-seedance-1.0-pro', params: { duration: 30, fps: 30, quality: '4k', realismType: 'portrait' }, enabled: true },
       { phase: 'image_select', label: '镜头质量评审 + 择优', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       // 音频产线（2阶段）
       { phase: 'brand_voice_clone', label: '品牌配音克隆合成', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'qwen-audio-3.0-tts-plus', params: { emotion: 'narrative' }, enabled: true },
-      { phase: 'subtitle_generate', label: '中英双语字幕生成', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { language: 'bilingual', format: 'srt', style: 'cinema' }, enabled: true },
-      { phase: 'bgm_generate', label: 'BGM配乐选曲方案', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { mood: 'auto', duration: 30 }, enabled: true },
+      { phase: 'subtitle_generate', label: '中英双语字幕生成', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', tertiaryModel: 'glm-5.2', params: { language: 'bilingual', format: 'srt', style: 'cinema' }, enabled: true },
+      { phase: 'bgm_generate', label: 'BGM配乐生成（真音乐生成 MiniMaxMusic 腾讯TokenHub）', primaryModel: 'minimax-music-v3.0', fallbackModel: 'minimax-music-v2.6', params: { mood: 'auto', duration: 30 }, enabled: true },
       // 合规 + 终审（3阶段）
       { phase: 'compliance_check', label: '版权合规筛查（音乐/图像/字体）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'copyright,music,image,font' }, enabled: true },
       { phase: 'style_calibration', label: '叙事节奏微调', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.6 }, enabled: true },
-      { phase: 'quality_review', label: '终版艺术感评审', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
+      { phase: 'quality_review', label: '终版艺术感评审', primaryModel: 'deepseek-v4-pro-tc', params: { reviewType: 'realism' }, enabled: true },
       { phase: 'platform_adapt', label: '多平台格式输出', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'vd-video-q3-pro', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-image-max'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'vd-video-q3-pro', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-image-max', 'z-image-turbo', 'qwen-audio-3.0-tts-plus', 'doubao-seedance-1.0-pro', 'minimax-voice-clone', 'glm-5.2', 'minimax-music-v3.0', 'minimax-music-v2.6'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 5. 智能剪辑（v4.0：蓝皮书 §4.1 九阶段 — 素材剪辑成片）==========
@@ -668,13 +705,14 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
     pipeline: 'video',
     phases: [
       // 1. 需求解析 / 剪辑脚本
-      { phase: 'edit_plan', label: '需求解析 + 剪辑脚本', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { temperature: 0.7 }, enabled: true },
+      { phase: 'edit_plan', label: '需求解析 + 剪辑脚本', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', tertiaryModel: 'doubao-seed-2.1-pro', params: { temperature: 0.7 }, enabled: true },
+      { phase: 'anti_ai_rewrite', label: '剪辑脚本口语化（去AI味/真人语感）', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.75, systemPrompt: 'edit_script' }, enabled: true },
       // 2. 素材理解 / 剪辑点识别（视频理解模型）
       { phase: 'clip_analysis', label: '素材理解 + 剪辑点识别', primaryModel: 'yt-vita-1.5', fallbackModel: 'doubao-seed-2.1-pro', params: { granularity: 'shot' }, enabled: true },
       // 3. 镜头排序 / 卡点编排
       { phase: 'shot_order', label: '镜头排序 + 卡点编排', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { temperature: 0.6 }, enabled: true },
       // 4. 配音合成
-      { phase: 'tts_generate', label: '配音合成', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'doubao-seed-audio-1.0', params: { style: 'narrative_edit', emotion: 'auto' }, enabled: true },
+      { phase: 'tts_generate', label: '配音合成', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'qwen-audio-3.0-tts-plus', params: { style: 'narrative_edit', emotion: 'auto' }, enabled: true },
       // 5. 字幕生成
       { phase: 'subtitle_generate', label: '字幕生成', primaryModel: 'kimi-k3', fallbackModel: 'glm-5.2', params: { language: 'bilingual', format: 'srt', style: 'edit' }, enabled: true },
       // 6. BGM 配乐
@@ -686,7 +724,7 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       // 9. 合规终审 + AIGC 标识
       { phase: 'compliance_check', label: '合规终审 + AIGC 标识', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'copyright,music,image,font', aigcFlag: true }, enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'minimax-speech-2.8-hd'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'yt-vita-1.5', 'doubao-seed-2.1-pro', 'minimax-voice-clone', 'glm-5.2'],
     requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
@@ -702,16 +740,16 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       { phase: 'outline', label: '品牌故事大纲', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       { phase: 'draft', label: '脚本初稿（理念→使命感→成就→愿景）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.8 }, enabled: true },
       { phase: 'anti_ai_rewrite', label: '真人化重写（去官方腔）', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.72, systemPrompt: 'enterprise' }, enabled: true },
-      { phase: 'video_generate', label: '品牌画面生成', primaryModel: 'kling-video-v3', params: { duration: 30, fps: 30, quality: '1080p', style: 'cinematic' }, enabled: true },
+      { phase: 'video_generate', label: '品牌画面生成', primaryModel: 'kling-video-v3', fallbackModel: 'hy-video-1.5', tertiaryModel: 'doubao-seedance-1.0-pro', params: { duration: 30, fps: 30, quality: '1080p', style: 'cinematic', realismType: 'enterprise' }, enabled: true },
       { phase: 'compliance_check', label: '合规筛查（企业数据/荣誉/认证）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'corporate_data,copyright' }, enabled: true },
       { phase: 'subtitle_generate', label: '中英双语字幕生成', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { language: 'bilingual', format: 'srt', style: 'corporate' }, enabled: true },
       { phase: 'tts_generate', label: '品牌专业配音 (MiniMax)', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'qwen-audio-3.0-tts-plus', params: { style: 'professional_warm', emotion: 'authoritative' }, enabled: true },
-      { phase: 'quality_review', label: '品牌调性评审', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
+      { phase: 'quality_review', label: '品牌调性评审', primaryModel: 'deepseek-v4-pro-tc', params: { reviewType: 'realism' }, enabled: true },
       { phase: 'style_calibration', label: '风格校准（品牌语感统一）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
       { phase: 'platform_adapt', label: '多平台版本输出（官网/视频号/LinkedIn）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'hy-video-1.5', 'doubao-seedance-1.0-pro', 'minimax-voice-clone'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 6. 产品宣传视频（蓝皮书 V2.1：12阶段全链路）==========
@@ -731,20 +769,20 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       { phase: 'image_generate', label: '产品关键帧生成', primaryModel: 'wan2.7-image-pro-aly', fallbackModel: 'qwen-image-max', params: { n: 8, style: 'product_keyframe' }, enabled: true },
       { phase: 'image_select', label: '关键帧择优', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       // 视频产线（2阶段）
-      { phase: 'video_generate', label: '图生视频（8镜头生成）', primaryModel: 'kling-video-v3', params: { duration: 30, fps: 30, quality: '1080p' }, enabled: true },
-      { phase: 'video_edit', label: '视频产品形态修复（形态一致性/异常物清理）', primaryModel: 'happyhorse-1.0-video-edit', params: { operation: 'repair', detect: 'morph_artifacts+object_ghosts' }, enabled: true },
+      { phase: 'video_generate', label: '图生视频（8镜头生成）', primaryModel: 'kling-video-v3', fallbackModel: 'hy-video-1.5', tertiaryModel: 'doubao-seedance-1.0-pro', params: { duration: 30, fps: 30, quality: '1080p', realismType: 'product' }, enabled: true },
+      { phase: 'video_edit', label: '视频产品形态修复（形态一致性/异常物清理）', primaryModel: 'happyhorse-1.0-video-edit', fallbackModel: 'doubao-seededit-3.0-i2i', params: { operation: 'repair', detect: 'morph_artifacts+object_ghosts' }, enabled: true },
       { phase: 'compliance_check', label: '帧间一致性检查（产品形态/颜色/材质）', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       // 字幕 + 配音合成（2阶段）
       { phase: 'subtitle_generate', label: '中英双语字幕生成', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { language: 'bilingual', format: 'srt', style: 'product_sales' }, enabled: true },
       { phase: 'tts_generate', label: '带货配音合成 (MiniMax)', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'qwen-audio-3.0-tts-plus', params: { style: 'energetic_sales', emotion: 'persuasive' }, enabled: true },
       // 终审（2阶段）
-      { phase: 'quality_review', label: '转化力评审', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
+      { phase: 'quality_review', label: '转化力评审', primaryModel: 'deepseek-v4-pro-tc', params: { reviewType: 'realism' }, enabled: true },
       { phase: 'style_calibration', label: '风格校准（带货感精准化）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
       { phase: 'platform_adapt', label: '平台格式适配', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
       { phase: 'compliance_check', label: '广告法终审', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'ad_law,false_claims,copyright' }, enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'wan2.7-image-pro-aly', 'qwen-image-max', 'happyhorse-1.0-video-edit'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'wan2.7-image-pro-aly', 'qwen-image-max', 'happyhorse-1.0-video-edit', 'hy-video-1.5', 'doubao-seedance-1.0-pro', 'doubao-seededit-3.0-i2i', 'minimax-voice-clone'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 7. 探店视频（蓝皮书 V2.1：8阶段）==========
@@ -758,16 +796,16 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       { phase: 'viral_analysis', label: '探店爆款对标分析', primaryModel: 'deepseek-v4-pro-tc', params: { temperature: 0.6 }, enabled: true },
       { phase: 'draft', label: '探店脚本初稿（环境→招牌→体验→价格→建议）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.88 }, enabled: true },
       { phase: 'anti_ai_rewrite', label: '真人探店口语化（有好有坏才可信）', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.82, systemPrompt: 'review' }, enabled: true },
-      { phase: 'video_generate', label: '探店环境画面生成', primaryModel: 'kling-video-v3', params: { fps: 30, quality: '1080p', style: 'realistic_vlog' }, enabled: true },
+      { phase: 'video_generate', label: '探店环境画面生成', primaryModel: 'kling-video-v3', fallbackModel: 'hy-video-1.5', tertiaryModel: 'doubao-seedance-1.0-pro', params: { fps: 30, quality: '1080p', style: 'realistic_vlog', realismType: 'scene' }, enabled: true },
       { phase: 'compliance_check', label: '帧间检查+广告标识别', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       { phase: 'subtitle_generate', label: '中英双语字幕生成', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { language: 'bilingual', format: 'srt', style: 'vlog' }, enabled: true },
       { phase: 'tts_generate', label: '第一视角自然配音 (MiniMax)', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'qwen-audio-3.0-tts-plus', params: { style: 'casual_vlog', emotion: 'lively' }, enabled: true },
-      { phase: 'quality_review', label: '真实感评审', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
+      { phase: 'quality_review', label: '真实感评审', primaryModel: 'deepseek-v4-pro-tc', params: { reviewType: 'realism' }, enabled: true },
       { phase: 'style_calibration', label: '风格校准（探店韵味）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
       { phase: 'platform_adapt', label: '平台适配（抖音/小红书/大众点评）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'hy-video-1.5', 'doubao-seedance-1.0-pro', 'minimax-voice-clone'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 8. 真人MV视频（蓝皮书 V2.1：10阶段）==========
@@ -782,18 +820,18 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       { phase: 'draft', label: 'MV创意脚本（前奏→主歌→副歌→间奏→尾奏）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.9 }, enabled: true },
       { phase: 'anti_ai_rewrite', label: '艺术表达润色', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.78, systemPrompt: 'creative' }, enabled: true },
       { phase: 'image_generate', label: '关键帧视觉生成', primaryModel: 'qwen-image-max', fallbackModel: 'z-image-turbo', params: { n: 12, style: 'cinematic_music_video' }, enabled: true },
-      { phase: 'video_generate', label: '图生视频（关键帧串联）', primaryModel: 'kling-video-v3', params: { duration: 60, fps: 30, quality: '1080p', style: 'music_video' }, enabled: true },
-      { phase: 'video_edit', label: '视频镜头瑕疵修复（人物一致性/画面异常物清理）', primaryModel: 'happyhorse-1.0-video-edit', params: { operation: 'repair', detect: 'morph_artifacts+object_ghosts+face_consistency' }, enabled: true },
+      { phase: 'video_generate', label: '图生视频（关键帧串联）', primaryModel: 'kling-video-v3', fallbackModel: 'hy-video-1.5', tertiaryModel: 'doubao-seedance-1.0-pro', params: { duration: 60, fps: 30, quality: '1080p', style: 'music_video', realismType: 'mv' }, enabled: true },
+      { phase: 'video_edit', label: '视频镜头瑕疵修复（人物一致性/画面异常物清理）', primaryModel: 'happyhorse-1.0-video-edit', fallbackModel: 'doubao-seededit-3.0-i2i', params: { operation: 'repair', detect: 'morph_artifacts+object_ghosts+face_consistency' }, enabled: true },
       { phase: 'compliance_check', label: '人物一致性检查', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
       { phase: 'subtitle_generate', label: '中英双语字幕 + 歌词同步', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { language: 'bilingual', format: 'srt', style: 'music_video', lyricTiming: true }, enabled: true },
       { phase: 'tts_generate', label: '人声+伴奏混音 (MiniMax)', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'qwen-audio-3.0-tts-plus', params: { style: 'sung', emotion: 'expressive' }, enabled: true },
-      { phase: 'quality_review', label: '艺术感评审', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
+      { phase: 'quality_review', label: '艺术感评审', primaryModel: 'deepseek-v4-pro-tc', params: { reviewType: 'realism' }, enabled: true },
       { phase: 'style_calibration', label: '风格校准（MV艺术表达优化）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
       { phase: 'compliance_check', label: '版权合规终审（音乐/肖像/字体）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'copyright,portrait_right' }, enabled: true },
       { phase: 'platform_adapt', label: '全平台格式输出', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'qwen-image-max', 'z-image-turbo', 'happyhorse-1.0-video-edit'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'qwen-image-max', 'z-image-turbo', 'happyhorse-1.0-video-edit', 'hy-video-1.5', 'doubao-seedance-1.0-pro', 'doubao-seededit-3.0-i2i', 'minimax-voice-clone'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 9. 萌宠卡通短视频（蓝皮书 V2.1：8阶段）==========
@@ -808,15 +846,15 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       { phase: 'draft', label: '创意脚本生成', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.92 }, enabled: true },
       { phase: 'anti_ai_rewrite', label: '可爱风润色', primaryModel: 'qwen3.8-max', fallbackModel: 'kimi-k3', params: { temperature: 0.8, systemPrompt: 'cute' }, enabled: true },
       { phase: 'image_generate', label: '卡通素材生成（角色/场景/道具）', primaryModel: 'qwen-image-max', fallbackModel: 'z-image-turbo', params: { n: 6, style: 'cute_cartoon' }, enabled: true },
-      { phase: 'video_generate', label: '动画视频生成', primaryModel: 'kling-video-v3', params: { duration: 15, fps: 30, quality: '1080p', style: 'animation' }, enabled: true },
+      { phase: 'video_generate', label: '动画视频生成', primaryModel: 'kling-video-v3', fallbackModel: 'hy-video-1.5', tertiaryModel: 'doubao-seedance-1.0-pro', params: { duration: 15, fps: 30, quality: '1080p', style: 'animation' }, enabled: true },
       { phase: 'subtitle_generate', label: '中英双语字幕生成', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { language: 'bilingual', format: 'srt', style: 'cartoon' }, enabled: true },
-      { phase: 'tts_generate', label: '萌趣配音+音效', primaryModel: 'qwen-audio-3.0-tts-plus', params: { style: 'cute_energetic' }, enabled: true },
+      { phase: 'tts_generate', label: '萌趣配音+音效', primaryModel: 'qwen-audio-3.0-tts-plus', fallbackModel: 'minimax-speech-2.8-hd', params: { style: 'cute_energetic' }, enabled: true },
       { phase: 'compliance_check', label: '内容安全（儿童适配/无虐待）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'child_safety,animal_cruelty' }, enabled: true },
       { phase: 'style_calibration', label: '风格校准（萌系表达优化）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
       { phase: 'quality_review', label: '趣味性评审', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'qwen-audio-3.0-tts-plus', 'qwen-image-max', 'z-image-turbo'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'kling-video-v3', 'qwen-audio-3.0-tts-plus', 'minimax-speech-2.8-hd', 'qwen-image-max', 'z-image-turbo', 'hy-video-1.5', 'doubao-seedance-1.0-pro', 'minimax-voice-clone'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
   // ========== 10. 数字人短视频（蓝皮书 V2.1：9阶段）==========
@@ -834,23 +872,38 @@ export const CATEGORY_PIPELINES: CategoryPipeline[] = [
       // 情绪标注（1阶段）
       { phase: 'compliance_check', label: '情绪标记注入（[微笑][严肃][惊喜][思考]）', primaryModel: 'deepseek-v4-pro-tc', params: { task: 'emotion_tagging' }, enabled: true },
       // 数字人出镜（1阶段）
-      { phase: 'digital_human', label: '数字人出镜合成（眨眼2-4s/头部微动3-8°）', primaryModel: 'yt-video-humanactor', params: { blinkRandom: true, headMovement: true }, enabled: true },
+      { phase: 'digital_human', label: '数字人出镜合成（眨眼2-4s/头部微动3-8°）', primaryModel: 'yt-video-humanactor', fallbackModel: 'kling-video-v3', params: { blinkRandom: true, headMovement: true, realismType: 'digital-human' }, enabled: true },
       // 配音（1阶段）
       { phase: 'subtitle_generate', label: '中英双语字幕生成', primaryModel: 'deepseek-v4-pro-tc', fallbackModel: 'qwen3.8-max', params: { language: 'bilingual', format: 'srt', style: 'talk_show' }, enabled: true },
       { phase: 'tts_generate', label: '自然配音合成 (MiniMax)', primaryModel: 'minimax-speech-2.8-hd', fallbackModel: 'qwen-audio-3.0-tts-plus', params: { speedVariation: 0.05, pitchVariation: 0.03, emotion: 'natural', subtitleSync: true }, enabled: true },
       // 合规+终审（3阶段）
-      { phase: 'compliance_check', label: '合规筛查（肖像/政治/辟谣）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'portrait,content_safety,rumor' }, enabled: true },
+      { phase: 'compliance_check', label: '合规筛查（肖像/政治/辟谣，含AIGC显式标识）', primaryModel: 'deepseek-v4-pro-tc', params: { checkType: 'portrait,content_safety,rumor', aigcFlag: true }, enabled: true },
       { phase: 'style_calibration', label: '风格校准（口播自然度优化）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', params: { temperature: 0.65 }, enabled: true },
-      { phase: 'quality_review', label: '拟真度评审（口型/表情/恐怖谷）', primaryModel: 'deepseek-v4-pro-tc', enabled: true },
+      { phase: 'quality_review', label: '拟真度评审（口型/表情/恐怖谷）', primaryModel: 'deepseek-v4-pro-tc', params: { reviewType: 'realism' }, enabled: true },
       { phase: 'platform_adapt', label: '平台标注+格式适配（AI标识/时长/分辨率）', primaryModel: 'qwen3.8-max', fallbackModel: 'deepseek-v4-pro-tc', enabled: true },
     ],
-    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'yt-video-humanactor', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus'],
-    requiresProviders: ['tencent', 'alibaba'],
+    requiredModels: ['deepseek-v4-pro-tc', 'qwen3.8-max', 'kimi-k3', 'yt-video-humanactor', 'kling-video-v3', 'minimax-speech-2.8-hd', 'qwen-audio-3.0-tts-plus', 'minimax-voice-clone'],
+    requiresProviders: ['tencent', 'alibaba', 'volcano'],
   },
 
 ];
 
 // ─── 辅助查找函数 ──────────────────────────────────
+
+/**
+ * 全局默认兜底模型链（阶段未配置 fallbackModel/tertiaryModel 时自动生效）
+ * 原则：三云互备（腾讯 TokenHub / 阿里百炼 / 火山方舟）——单一服务商故障/欠费/限流时产线不中断。
+ * 链式结构：数组首位为一级兜底，其后依次为更远兜底（对应三级路由）。
+ * 仅在 primaryModel 缺 Key 或调用失败时触发，正常路径不受影响。
+ */
+export const DEFAULT_FALLBACK_MODELS: Record<string, string[]> = {
+  // ── 文案/分析/评审类：腾讯 DeepSeek → 阿里 Qwen → 火山豆包（三级互备，覆盖全产线 DeepSeek/Qwen 阶段）──
+  'deepseek-v4-pro-tc': ['qwen3.8-max', 'doubao-seed-2.1-pro'],
+  'qwen3.8-max': ['deepseek-v4-pro-tc', 'doubao-seed-2.1-pro'],
+  'kimi-k3': ['qwen3.8-max', 'glm-5.2'],
+  // ── 视频生成类：可灵 → 混元视频 1.5（腾讯）→ 火山 Seedance 1.0 Pro（三级互备）──
+  'kling-video-v3': ['hy-video-1.5', 'doubao-seedance-1.0-pro'],
+};
 
 export function getCategoryConfig(slug: string): CategoryPipeline | undefined {
   return CATEGORY_PIPELINES.find(c => c.slug === slug);

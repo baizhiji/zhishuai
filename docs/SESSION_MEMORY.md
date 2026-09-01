@@ -1,3 +1,142 @@
+## 2026-09-01 会话（续29）：四问题全量修复 —— 全链路模型替换为实测模型 + 内容中心三缺陷修复
+- 【背景】用户要求把检查发现的四个问题全部修复完善，强调"昨天实测三个模型服务商都没问题，必须调用最新真实的AI模型，不得再用理论式模型配置"
+- 【问题1 APK 端旧模型残留】①`apk/src/services/ai-model-router.ts`：hunyuan_instruct id hy3→kimi-k3、hunyuan_thinking id hy3→deepseek-v4-pro-202606（fallback 改 kimi_k2）、qwen_turbo id qwen3.7-flash→qwen3.8-max、qwen_plus id qwen3.7-plus→qwen3.8-max；②`apk/src/services/ai-chat.service.ts` 展示列表删除 qwen3.7-flash、hy3 两项（RECOMMENDED_MODELS 已实测无残留）
+- 【问题2 服务端独立功能旧模型】①`services/ai-model-router.ts` 同 APK 四处替换；②`services/multimodal.service.ts` qwen-max→qwen3.8-max；③`services/ai-workflow.ts` 5 处 qwen-max→qwen3.8-max；④`routes/hot-topics.ts` hunyuan-2.0-instruct-20251111→deepseek-v4-pro-202606、qwen-plus→qwen3.8-max；⑤`routes/ai.ts` defaultModel qwen-plus→qwen3.8-max；⑥`routes/video-voice.ts` 口播文案候选 qwen3.7-max→qwen3.8-max；⑦`services/model-registry.ts` 7 处降级链指向理论模型全部改为实测（glm-5.2/glm-5v-turbo/qwen3.5-plus-tc/hy-vision-2.0/deepseek-r1-aly/qwen3.5-omni-plus 的 fallback→qwen3.8-max 或 kimi-k3，qwen3.8-max 自身 crossProviderFallback hy3→kimi-k3）
+- 【问题2 电脑端】`desktop-ui/lib/ai/factory-service.ts` 口播文案候选 qwen3.7-max→qwen3.8-max；`desktop-ui/lib/ai/aliyun.ts` 默认模型 qwen-plus→qwen3.8-max
+- 【问题3 运营助手】复核 `services/business-assistant.service.ts` 已用实测链（deepseek-v4-pro-202606/qwen3.8-max/kimi-k3），无需修改
+- 【问题4a 内容中心图片不显示】①`server/routes/materials.ts` 新增 toClientMaterial：返回列表时把 usagePlatforms(JSON) 解析为 images 数组（/ 与 /recent 均兜底，兼容新老客户端）；②`desktop-ui/app/customer/materials/page.tsx` 前端 parseImages 双保险（优先 images、回退 usagePlatforms、再回退 fileUrl）
+- 【问题4b 内容中心不自动刷新】①电脑端 materials/page.tsx 挂载后监听 window focus + document visibilitychange 自动重载；②手机端 `apk/src/screens/MaterialsScreen.tsx` 改用 useIsFocused，每次切入内容中心 Tab 自动刷新
+- 【问题4c 自动保存静默失败】①`desktop-ui/app/customer/ai-factory/page.tsx`：保存失败不再静默——结果暂存 localStorage 队列(PENDING_SYNC_KEY) + message.warning 提示 + 页面挂载时 flushPendingSync 自动补存（成功提示）；②`apk/src/screens/AICreateDetailScreen.tsx`：autoSave 失败暂存 AsyncStorage 队列 + Alert 提示 + 挂载时自动补存
+- 【验证】server / desktop-ui / apk 三端 npx tsc --noEmit 均 0 错误；lint 干净；apk/src 搜索 hy3/qwen3.7 0 命中；server chatCompletion 调用方全部实测模型
+- 【未做】未 commit/push，未部署远端（待用户确认）
+
+## 2026-09-01 会话（续28）：APK 端本地模型清单同步至统一标准
+- 【背景】用户确认电脑版（desktop-ui）与服务端（server）模型配置已改后，要求 APK 端本地代码一并同步
+- 【影响分析】APK 端模型相关仅 2 个文件：①`apk/src/services/ai-model-router.ts`（死代码，APK 内无任何引用）；②`apk/src/services/ai-chat.service.ts`（RECOMMENDED_MODELS/ALL_MODELS 导出，仅作参考/展示，无 UI 引用）。实际生成链路全部走服务端代理（/ai-chat/*、/ai-enhanced/*），服务端已同步
+- 【修改①】`apk/src/services/ai-model-router.ts`：TENCENT_MODELS 模型 ID 全部更新为在售标准（hunyuan-2.0-instruct-20251111→hy3、hunyuan-2.0-thinking-20251109→hy3、kimi-k2.6→kimi-k3、glm-5→glm-5.2、glm-5v-turbo→hy-vision-2.0-instruct、youtu-vita 保留），ALIYUN_MODELS 同步（qwen-turbo→qwen3.7-flash、qwen-plus→qwen3.7-plus、deepseek-r1-0528→deepseek-v4-pro、qwen-long 保留），补齐 fallback 字段与 service 侧一致
+- 【修改②】`apk/src/services/ai-chat.service.ts`：RECOMMENDED_MODELS 六类目模型更新（daily=hy3、copywriting=qwen3.7-plus、longText=kimi-k3、reasoning=deepseek-v4-pro、vision=hy-vision-2.0-instruct、video=youtu-vita）；ALL_MODELS 更新为 9 个在售模型（删旧增 qwen-long）
+- 【验证】apk npx tsc --noEmit 0 错误、lint 干净；数字人模型 yt-video-humanactor 确认服务端 model-registry 合法保留不动
+- 【未做】未 commit/push（待用户确认）
+
+## 2026-09-01 会话（续27）：AI 模型配置文档统一 —— 删除理论版、保留实测版唯一权威文档
+- 【背景】用户要求：AI 模型配置文档此前有多个版本但均未实测，全部删除，用大部分实测的配置替换为一版最终文档
+- 【已删除 4 份理论/过时配置文档】①`docs/AI创作工厂模型配置总蓝皮书.md`（V3.1 双平台 90+ 模型理论版，AI 自撰非真实需求）②`docs/智枢AISaaS系统AI模型配置总蓝皮书.md`（V2.1 三服务商理论版，含 Seedance 2.5 等已实测 404 的模型）③`docs/ai-factory-model-standard.md`（V3.0，基于已过时 web/lib/ 路径与旧模型名）④`docs/ai_model_three_provider_routing_plan_v1.md`（规划方案，已全部落地执行完毕）
+- 【新建最终版】`docs/AI模型配置最终版.md`（V1.0）：以实测后 `desktop-ui/lib/ai/category-config.ts` 为唯一事实来源，内容含：三服务商接入（腾讯 TokenHub/阿里百炼/火山方舟 + baseUrl + 端点）、模型注册表（✅PASS/❌FAIL/⚠️未实测三色标注，含实测记录）、11 类目逐阶段 primary/fallback/tertiary 三级路由表、全局默认兜底链、五大横切能力、2026-08-31 真实接口实测记录、已知限制与遗留事项（SeedEdit 权限 / fun-music 邀测 / 3 条未实测链路 / 品牌音色 sync_clone）、变更记录
+- 【引用同步】`docs/开发需求/智枢AI_开发需求大纲_真实版.md` 4 处"蓝皮书"引用全部改为指向 `docs/AI模型配置最终版.md`（文档头依据/关联文档、智能剪辑架构承载、第 7 章标题+完整规格、文末 API 契约参照）
+- 【保留（历史存档）】`audit_category_capability.md`、`research_report_ai_factory_overall_diagnosis.md`、`research_report_ai_factory_per_category_audit.md`、`ai-config-audit-report-2026-08-23.md`、`AI配置与功能核查报告_20260824.md`、`AI创作工厂两端功能核查报告_20260824.md`、`四大功能模块与APK商业助手能力核查报告_20260824.md`、`验证报告-2026-08-13.md`、`智枢AI_SaaS_五维度诊断总结论.md` 等审计/核查/调研报告为历史记录，引用旧蓝皮书处保留原样不追改
+- 【验证】代码/配置无对被删文档的引用（server/desktop-ui 搜索 0 命中）；`docs/开发需求/智枢AI_开发需求大纲_真实版.md` 全文已无"蓝皮书"残留指向旧文档
+- 【未做】未 commit/push（待用户确认）
+
+## 2026-08-31 会话（续25）：P1 链路真实接口实测（客户账号 13166262006）+ 代码修正落地
+- 【背景】用户提供客户账号 13166262006（userId=501c7b7a-9fd7-4cca-99dd-1f3ae068b75b，名"郝好"，三云 Key 已配）实测 P1 补链路：①SeedEdit 图像编辑 ②BGM 真生成（③TTS/声音复刻延后）
+- 【实测结论】scripts/diag_p1_verify.ts（v4，服务器 tsx 跑通）：
+  - ✅ K 三云 Key 有效；C1 火山 doubao-seed-2-1-pro 文本 PASS；C2 火山 seedream-5.0-pro 图像 PASS
+  - ✅ C3 阿里 qwen-image-edit 图像编辑 PASS —— 正确格式：POST dashscope/api/v1/services/aigc/multimodal-generation/generation + body `{model:'qwen-image-edit', input:{messages:[{role:'user',content:[{image:URL},{text:指令}]}]}, parameters:{n:1,watermark:false}}`；**基础版不支持 size 参数**（旧实现带 size 需去除）
+  - ✅ B4 腾讯 TokenHub minimax-music-v3.0 音乐生成 PASS —— 正确格式：POST `https://tokenhub.tencentmaas.com/v1/wand/minimax-music/generation`（同步返回，无需轮询）+ body `{model:'minimax-music-v3.0', prompt, is_instrumental:true, output_format:'url', audio_setting:{sample_rate:44100,bitrate:256000,format:'mp3'}, aigc_watermark:false}`；响应 `data.audio`（COS url，12h 有效），实测时长 121.6s
+  - ✅ B1b 腾讯 minimax-speech-2.8-hd TTS PASS（第3点预验证）：POST /v1/wand/minimax-tts/sync_tts，response data.audio + extra_info.audio_length
+  - ❌ B3 阿里 MiniMax Music：阿里百炼无此模型（400 Model not exist，全候选遍历确认）——MiniMax Music 只在腾讯 TokenHub 上架（minimax-music-v2.6/v3.0）与 MiniMax 官方平台
+  - ❌ B4 阿里 fun-music-v1：403 Access denied —— 模型存在（百聆）但需百炼控制台申请邀测开通
+  - ❌ B2 火山 doubao-seededit-3-0-i2i-250628：404 does not exist or no access —— model ID 正确（/models 列表存在、AI Hub 收录），**需客户在火山方舟控制台开通该模型权限**（非代码问题；/images/generations + image URL 格式已按官方文档修正）
+  - ❌ 火山 TTS：方舟 /audio/speech 404；火山语音是独立 openspeech 服务（appid/token），不走方舟 API Key
+- 【代码落地 v4.4】desktop-ui/lib/ai/category-config.ts：①新增 minimax-music-v3.0 注册（provider tencent，实测 PASS）；②minimax-music-v2.6 修正 modelId='minimax-music-v2.6' + provider alibaba→tencent；③fun-music-v1 修正 provider volcano→alibaba（标注需邀测开通）；④智能剪辑 bgm_generate primary→minimax-music-v3.0、fallback→minimax-music-v2.6；⑤requiredModels 同步替换。factory-service.ts：①isMusicGen 判断加 minimax-music-v3.0；②callMusicGeneration 重写为腾讯 TokenHub 官方同步端点（v1/wand/minimax-music/generation）+ 保留阿里 fun-music 兼容分支，删除错误的火山分支；③image_enhance 火山分支 /images/edits → /images/generations + image URL + size/n/response_format/watermark；④qwen-image-edit parameters 去掉 size；⑤callVideoEdit 火山分支端点同步改 /images/generations
+- 【验证】desktop-ui npx tsc --noEmit 0 错误、lint 干净
+- 【遗留（需用户决策/操作）】①客户开通火山方舟 doubao-seededit-3-0-i2i-250628 权限后复测 SeedEdit；②客户开通百炼 fun-music 邀测后可用作 BGM 备选；③未 commit/push，未部署（desktop-ui 为桌面安装包，需构建发布）
+
+## 2026-08-31 会话（续26）：P1 第3点 TTS/声音复刻链路落地（腾讯 TokenHub minimax-tts）
+- 【实测】TokenHub MiniMax 音色复刻官方格式（文档 135798）：POST `https://tokenhub.tencentmaas.com/v1/wand/minimax-tts/sync_clone`，model 固定 `minimax-voice-clone`；请求 `audio_url`（mp3/m4a/wav，10s-5min，≤20MB）或 `audio_data`(base64)、`tts_model`(试听模型如 minimax-speech-2.8-hd)、可选 `text`(试听文本≤1000)、`voice_id`(自定义)、`output_format`=url；响应 `voice_id` + `demo_audio` + `base_resp.status_code=0`；复刻音色 7 天未使用自动删除，复刻费在首次使用音色合成时收取
+- 【落地 v4.4】desktop-ui/lib/ai/category-config.ts：①minimax-speech-2.8-hd 归属 alibaba→tencent、modelId 'MiniMax/speech-2.8-hd'→'minimax-speech-2.8-hd'（实测证明在腾讯 TokenHub 而非阿里百炼）；②新增 minimax-voice-clone 注册（provider tencent）；③doubao-voice-clone-2.0（火山）role 标注不可用（火山语音为独立 openspeech 服务，方舟 API Key 无 TTS 端点）；④8 处 tts_generate/brand_voice_clone fallback 由 doubao-seed-audio-1.0（火山实测 404）→ qwen-audio-3.0-tts-plus（阿里），萌宠产线 fallback 改 minimax-speech-2.8-hd；⑤8 处 requiredModels 中 doubao-seed-audio-1.0 → minimax-voice-clone
+- 【落地】factory-service.ts：①tts_generate 腾讯分支端点由错误图像端点 `/v1/images/generations` 修正为 `/v1/wand/minimax-tts/sync_tts`（实测 PASS：model=minimax-speech-2.8-hd + text + voice_setting{voice_id,speed,vol,pitch} + audio_setting{sample_rate:32000,bitrate:128000,format:mp3,channel:1} + output_format:url，响应 data.audio）；②brand_voice_clone 新增腾讯分支（sync_tts + voice_id 品牌音色）；③火山 TTS 分支注释标注实测不可用
+- 【验证】desktop-ui lint 0 错误、tsc --noEmit 通过
+- 【落地（server 端同步修正）】①routes/voice-clone.ts 预览 TTS 块（POST /preview）由错误端点 /audio/speech+旧 body（input/voice/response_format）修正为 /wand/minimax-tts/sync_tts + sync_tts 格式（voice_setting/audio_setting/output_format:url），解析 ttsJson.data.audio 下载保存、duration 用 extra_info.audio_length/1000；②services/ai-client.ts textToSpeech 腾讯降级分支由 /audio/speech+hunyuan-tts+arraybuffer 修正为 /wand/minimax-tts/sync_tts+minimax-speech-2.8-hd+JSON（data.audio 二次下载转 dataUrl），成功/失败 logUsage 同步更新；③services/model-registry.ts minimax-speech-2.8-hd 归属 aliyun→tencent、modelId 'MiniMax/speech-2.8-hd'→'minimax-speech-2.8-hd'、fallbackKey→null+crossProviderFallback qwen-audio-3.0-tts-plus（ai-models.ts 已无引用无需改）
+- 【验证】server npx tsc --noEmit 0 错误、lint 干净
+- 【全量审计复核（续26 收尾）】重新运行 scripts/audit_category_capability.ts 验证 11 类目 → 发现并修复 2 处 requiredModels 缺失（续26 fallback 调整时未同步）：①smartEdit requiredModels 补 qwen-audio-3.0-tts-plus；②cartoonVideo requiredModels 补 minimax-speech-2.8-hd；修复后审计"无配置问题"，desktop-ui tsc 通过
+- 【遗留】①火山 SeedEdit 需客户开通权限后复测；②品牌音色正式使用需先经 sync_clone 生成 voice_id（数字人页面 /api/voice-clone/voices 管理）；③未 commit/push、未构建部署（desktop-ui 为桌面安装包，需构建发布）
+
+## 2026-08-31 会话（续24）：三服务商多模型路由（M6）全量落地 —— 火山方舟接入 11 类目
+- 【背景】用户要求执行《docs/ai_model_three_provider_routing_plan_v1.md》方案：火山方舟作为第三服务商，全部类目 primary/fallback/tertiary 三级路由 + 服务端横切兜底
+- 【P0 配置层 category-config.ts】①PhaseConfig 新增 tertiaryModel 字段；②MODEL_INFO 新注册 qwen-vl-max（阿里视觉复核兜底）；③DEFAULT_FALLBACK_MODELS 由 string 改为 Record<string,string[]> 链式兜底；④10 个实际类目全部补齐三级：视频生成类目（短视频/企业/产品/探店/真人MV/萌宠）video_generate 加 fallbackModel:'hy-video-1.5'(腾讯)+tertiaryModel:'doubao-seedance-1.0-pro'(火山)，video_edit 加 doubao-seededit-3.0-i2i(火山)，6 个 tts_generate fallback 由 qwen-audio-3.0-tts-plus 改 doubao-seed-audio-1.0(火山)，smartEdit.edit_plan 加 doubao-seed-2.1-pro(火山)，xiaohongshu 等图片类目 image_enhance fallback 改 doubao-seededit-3.0-i2i、visual_review 加 doubao-seed-2.1-pro+qwen-vl-max；⑤requiredModels 全部增补火山模型、requiresProviders 全部加 'volcano'
+- 【执行层 factory-service.ts】①generateWithLocalPipeline 新增 tryFallbackChain：缺 Key/异常时按"阶段 fallback → 阶段 tertiary → 全局默认链"逐一尝试（去重、排除 primary），成功记录[降级]标记；②视频生成辅助函数同步三级链；③image_enhance 加火山分支（/images/edits）、brand_voice_clone 加火山 TTS 分支（/audio/speech）、callVideoEdit 按 provider 区分端点；④bgm_generate 新增 callMusicGeneration 真音乐生成（阿里 MiniMax Music 异步提交+轮询 / 火山 Fun Music submit+poll），失败自动降级 LLM 文本选曲（管线不中断）
+- 【服务端】①ai-chat.service.ts MODEL_CONFIG 加 volcano 条目（baseUrl=ark.cn-beijing.volces.com/api/v3，模型 doubao-seed-2-1-pro-260628 文本/推理/视觉复用）；②callAIProvider provider 类型扩展 'aliyun'|'tencent'|'volcano'；③routes/ai-chat.ts 本地 MODEL_CONFIG/callAIProvider 同步；④/vision-review 视觉安全复核改为"混元 Vision(腾讯)→豆包 Seed 2.1 Pro(火山)"双路由，任一路成功即返回（响应含 provider 字段）
+- 【脚本】scripts/analyze_model_config.ts 适配数组化 DEFAULT_FALLBACK_MODELS（取链首）+ tertiaryModel 纳入硬单点/模型统计/provider 依赖分布
+- 【验证】诊断结果：硬单点 0 处；腾讯/阿里/火山各覆盖 11/11 类目；desktop-ui + server 两端 npx tsc --noEmit 均 0 错误、lint 干净
+- 【遗留（需用户验证/决策）】①P2 端到端验证需真实三云 Key 逐类目跑通；②BGM 真生成（/audio/music 类）、SeedEdit 图像编辑（/images/edits）、声音复刻（火山 /audio/speech）接口格式为按既有端点推断实现，需真实 Key 实测确认，失败均内置保底降级不阻断；③未 commit/push，未部署远端（待用户确认）
+
+## 2026-08-31 会话（续23）：AI 模型配置健康度诊断 + 双云容灾兜底提升
+- 【背景】用户问"AI模型配置还有什么问题没？需要提升吗"→ 写 scripts/analyze_model_config.ts 全量扫描
+- 【诊断发现】①硬单点 58 处（无 fallback）：deepseek-v4-pro-tc 33 处（全类目爆款/大纲/合规/评审）、kling-video-v3 5 处视频生成、hy-vision-2.0 3 处、happyhorse 2 处、TTS 1 处 ②腾讯+阿里各被 11/11 类目依赖，火山仅 smartEdit 用到 3 个模型 ③26 个注册模型闲置（含 doubao-seedance 1.0 Pro、deepseek-v4-volcano、hy-video-1.5 等实测可用模型）④deepseek-v4-pro-tc 被引用 80 次、qwen3.8-max 51 次，两者是绝对核心
+- 【提升：全局默认兜底 DEFAULT_FALLBACK_MODELS】category-config.ts 新增跨 Provider 互备映射：deepseek-v4-pro-tc↔qwen3.8-max、kimi-k3→qwen3.8-max、kling-video-v3→hy-video-1.5（实测 200）；factory-service.ts 三处 fallback 判断（缺Key 617 / 异常 654 / 视频 1802）改为 `phase.fallbackModel ?? DEFAULT_FALLBACK_MODELS[primaryModel]`，一处配置覆盖全部单点
+- 【效果】硬单点 58→6 处，剩余 6 处均有执行层降级保护（visual_review 不阻断、video_edit 返原片、TTS 返文本），属安全单点
+- 【验证】兜底模型 server 端全部支持（hy-video-1.5 本在执行层通用回退列表）；desktop-ui tsc 0 错误、lint 干净
+- 【遗留未做（需用户决策）】①清理 26 个闲置模型或启用为兜底 ②"经济模式"：非质量敏感阶段切 doubao-seed-2.1-turbo/qwen3.7-plus 降成本 ③执行层 429 限流指数退避重试 ④模型版本滚动升级策略 ⑤火山方舟加入 requiresProviders（启用火山兜底的前提）
+
+## 2026-08-31 会话（续22）：补齐上轮评估的 3 个缺口 + 重查 11 类目对 9 项要求覆盖
+- 【背景】用户要求把上轮评价中的 3 个缺口全部完善：①AIGC 标识在文本类目不完整 ②"所有内容去AI化"未到 100%（image/smartEdit 缺反AI化阶段）③真人出镜链路（数字人/MV）缺降级保护
+- 【缺口1：AIGC 文本标识】category-config.ts：xiaohongshu、ecommerce、digitalHuman 的 compliance_check 加 params.aigcFlag:true（走既有 appendAIGCLabel 追加"本内容由智枢AI生成"）；执行层图片/视频 FFmpeg/canvas 角标本就全覆盖，至此文本+图片+视频三层 AIGC 标识体系闭环
+- 【缺口2：反AI化 11/11】category-config.ts：image 类目在 viral_analysis 与 image_prompt 之间插入 anti_ai_rewrite（label:真人摄影感策略改写，systemPrompt:'photography'）；smartEdit 在 edit_plan 之后插入 anti_ai_rewrite（label:剪辑脚本口语化，systemPrompt:'edit_script'）；image requiredModels 补 kimi-k3；factory-service.ts ANTI_AI_SYSTEM_PROMPTS 新增 photography（商业摄影师视角）、edit_script（真人剪辑师口吻）两个角色
+- 【缺口3：真人出镜降级】digitalHuman 的 digital_human 阶段加 fallbackModel:'kling-video-v3'（yt-video-humanactor 失败自动降级图生视频）；requiredModels 补 kling-video-v3、requiresProviders 加 volcano；happyhorse（video_edit）执行层已内置失败降级（返回原视频不中断成片），审计报告说明更新
+- 【质量评审识别修正】audit_category_capability.ts：质量评审判定从仅 quality_review 阶段扩展为"quality_review 或 image_select(label 含质量评审)"——image 类目 image_select 本就是"质量评审 + 择优输出"，如实计入
+- 【重查结果】反AI化 11/11、合规筛查 11/11、质量评审 10/11（smartEdit 纯用户素材剪辑无生成质量环节，不适用）、AIGC 显式标识 4/11 配置层（+执行层角标实际全量）、实拍重拍闭环 6 个 AI 生成视频类目、无配置问题
+- 【验证】desktop-ui npx tsc --noEmit 0 错误；lint 干净；审计脚本跑通
+- 【遗留】未 commit/push，未部署远端（待用户确认）
+
+## 2026-08-31 会话（续21）：视频成片全部叠加【智枢AI生成】角标（v4.2 帧内烧录）
+- 【背景】用户要求"视频成片也全部都带【智枢AI生成】角标"。此前视频侧仅做文本声明（appendAIGCLabel 追加"本视频由智枢AI生成"文字），图片侧已有 canvas 角标 overlayImageAIGCBadge，视频画面内无固化角标
+- 【方案】服务端 FFmpeg 后处理打标（浏览器 canvas 无法处理视频帧，故不在前端做）：复用 video-edit.ts 既有 ffmpeg-static + detectFfmpeg() 基础设施，用 drawtext 滤镜把角标永久烧录进视频帧（右下角半透明黑底白字）
+- 【server/src/routes/video-edit.ts +109 行】：
+  1. findCjkFont()：按优先级探测中文字体——server/assets/fonts/ 内置 → Linux 系统字体（Noto CJK / WQY）→ Windows（微软雅黑/黑体）→ macOS（PingFang）；缺失返回 null
+  2. escapeFilterPath()：字体路径含冒号时转义为 \:（drawtext 选项分隔符）
+  3. overlayAigcBadge(ffmpeg, input, output, w, h)：fontSize=max(18, h*0.032)，drawtext text='【智枢AI生成】' fontcolor=white box=1 boxcolor=black@0.55 boxborderw=pad x=w-text_w-margin y=h-text_h-margin*1.2；编码 -c:v libx264 -preset veryfast -crf 23 -c:a copy -movflags +faststart
+  4. /compose 端点：BGM 混流后新增第6步叠加角标（outPath 改 let；aigcPath 成功删除原文件替换 outPath，失败 console.warn 降级不阻断）
+  5. 新增 POST /api/video-edit/aigc-badge：authMiddleware → 校验 videoUrl http/https（防 SSRF）→ detectFfmpeg（503）→ findCjkFont（422 提示装 fonts-noto-cjk）→ 下载 → ffmpeg -i 探测分辨率（stderr 正则）→ overlayAigcBadge → 返回 { videoUrl: '/uploads/video-edit/xxx.mp4' }
+- 【desktop-ui/lib/ai/factory-service.ts +37 行】：
+  1. 新增 overlayVideoAIGCBadge(videoUrl)：带 token 调 /api/video-edit/aigc-badge（180s 超时），成功返回 { url, badged:true }（相对路径 absUrl 转绝对），失败返回 { url: 原视频, badged:false, error }（降级不阻断）
+  2. video_generate case：生成后调打标，输出【生成视频】${url}（已叠加智枢AI生成角标/角标叠加失败原因）
+  3. digital_human case：同样接入
+  4. quality_review 自动重拍链路：重拍拿到 rawUrl 后先过 overlayVideoAIGCBadge，成功用打标 URL，失败保留原视频
+- 【deploy/deploy.sh】：依赖检查阶段新增中文字体自动安装——fc-list :lang=zh 检测 → 无则 apt-get install -y fonts-noto-cjk，失败回退 fonts-wqy-zenhei
+- 【覆盖范围】四条视频产出路径全覆盖：video_generate 主链路、digital_human 链路、quality_review 自动重拍链路、智能剪辑 /compose 成片链路（覆盖 8 个视频类目：短视频/企业宣传/产品宣传/探店/真人MV/萌宠卡通/数字人/智能剪辑）
+- 【合规】与图片角标 overlayImageAIGCBadge、文本标识 AIGC_LABEL_TEXT 构成完整 AIGC 标识体系（《人工智能生成合成内容标识办法》）
+- 【验证】desktop-ui + server 两端 npx tsc --noEmit 均 0 错误（含最后一次重拍链路修改）；lint 干净
+- 【遗留】未 commit/push；未部署远端（需先 apt install fonts-noto-cjk，deploy.sh 已自动处理；待用户确认）
+
+## 2026-08-31 会话（续20）：完善"补齐后仍需注意的 3 个点"——实拍重拍闭环 + 图片视觉安全复核 + 自动化审计脚本
+- 【背景】上一轮补齐 11 类目欠缺能力并给出评价报告后，用户要求把评价中提出的 3 个遗留点全部完善
+- 【点1：实拍重拍闭环】4 个视频类目（shortVideo/enterpriseVideo/productVideo/digitalHuman）的 quality_review 补 params:{reviewType:'realism'}；执行层 factory-service quality_review 分支已支持评审未通过自动重拍（最多 2 次，评审意见注入重拍 prompt 形成修复闭环，重拍后复评通过才验收）；video_generate/digital_human 分支已记录 lastVideoShoot 快照供重拍。至此 6 个 AI 生成视频类目全量覆盖（另 2 个视频类目不需要：cartoonVideo 卡通类无真人实拍感、smartEdit 剪辑的是真实素材）
+- 【点2：图片视觉安全复核】hy-vision-2.0（混元 Vision 2.0）已在 MODEL_INFO 注册（role=图片视觉安全复核 NSFW/多模态检测）并移除闲置标注；3 个图片类目（xiaohongshu/image/ecommerce）流水线插入 visual_review 阶段（primaryModel: hy-vision-2.0），requiredModels 同步补入；PipelinePhase 新增 'visual_review' 类型；执行层 factory-service 新增 case 'visual_review'：extractImageUrls 提取图片 URL → POST /api/ai-chat/vision-review（最多 6 张）→ 正则命中"汇总判定：存在违规/未通过/需整改"则中断流水线（合规零容忍）；模型不可用/网络异常降级为不阻断（仍依赖平台侧拦截）
+- 【点3：服务端视觉复核路由】server/src/routes/ai-chat.ts 新增 POST /vision-review（authMiddleware）：仅允许 http(s) URL（防 SSRF，单次最多 6 张）→ resolveApiKey(userId,'tencent') → visionSystem 审查提示词（逐张输出"图片N：通过/需整改"，末行"汇总判定：全部通过/存在违规"）→ callAIProvider('tencent','hy-vision-2.0-instruct')，OpenAI 格式 image_url content 数组原样透传（无文本化丢失）
+- 【点4：自动化审计脚本】scripts/audit_category_capability.ts（用法：cd server && npx tsx ../scripts/audit_category_capability.ts）：遍历 11 类目校验 ①阶段 primary/fallbackModel 是否在 MODEL_INFO 注册 ②requiredModels 是否覆盖 phases 实际引用 ③横切能力矩阵（反AI化/合规/质量评审/实拍重拍闭环/视觉复核/AIGC标识/视频拍摄/字幕/配音）④模型使用热度+闲置模型识别 ⑤建议实测模型清单；报告自动写入 docs/audit_category_capability.md
+- 【审计暴露并修复】首次运行发现 10 处 requiredModels 覆盖不一致并全部补齐：xiaohongshu 缺 qwen-image-edit；image 缺 qwen-image-edit；ecommerce 缺 hy-image-v3+qwen-image-edit；shortVideo 缺 z-image-turbo+qwen-audio-3.0-tts-plus；smartEdit 缺 yt-vita-1.5+doubao-seed-2.1-pro+doubao-seed-audio-1.0+glm-5.2；闲置模型 doubao-seedance-1.0-pro 补入"可清理"标注（category-config 注释 + 审计脚本 UNUSED_ANNOTATION 两处同步）
+- 【最终审计结果】无配置问题（全部模型已注册、requiredModels 覆盖完整）；实拍重拍闭环 6 个 AI 视频类目；视觉复核 3 个图片类目；AIGC 显式标识 smartEdit 1 个
+- 【验证】desktop-ui + server 两端 npx tsc --noEmit 均 0 错误；lint 干净；审计脚本跑通 0 配置问题
+- 【遗留】未 commit/push，未部署远端（待用户确认）
+
+## 2026-08-31 会话（续19）：11 类目 × 8 项要求逐类目核查 + 视频真实感（真人实拍）缺口全量补齐
+- 【背景】用户要求按 11 个类目逐项核对"五大横切 + 真人实拍/出镜"达标情况，并补齐不达标项
+- 【核查结论】5 类目全达标（小红书图文/图片生成/电商详情页/萌宠卡通/数字人）；5 类目主体达标但有缺口（短视频/企业宣传/产品宣传/探店/真人MV）；智能剪辑字幕无专项口语化。根因：视频生成执行层缺"真人实拍感"词库注入（图片侧两端均有，视频侧没有）
+- 【补齐修改（4 文件 + 160 行）】：
+  1. server/src/services/ai-realism-prompts.ts：新增视频真实感词库 REALISM_VIDEO_POSITIVE / VIDEO_REALISM_NEGATIVE / VIDEO_REALISM_SPECIFICS（portrait/product/scene/digital-human/mv/enterprise 六类型）+ buildVideoRealismPrompt()
+  2. server/src/services/ai-client.ts：VideoGenerationParams 增加 realismType 字段；generateVideo 入口按 realismType 注入"画面质感要求"词库（服务端直调方如 APK 可用）
+  3. desktop-ui/lib/ai/factory-service.ts：video_generate / digital_human 分支注入 realismType 词库；quality_review 支持 reviewType:'realism' 实拍感专项审查；buildVideoPrompt 增加 slug 参数按类目配置注入（直连路径）；getSubtitlePrompt styleMap 增加 edit 风格（智能剪辑字幕口语化）
+  4. desktop-ui/lib/ai/category-config.ts：6 个视频类目加 realismType（shortVideo→portrait / enterpriseVideo→enterprise / productVideo→product / storeTour→scene / personMv→mv / digitalHuman→digital-human）；storeTour+personMv 的 quality_review 加 reviewType:'realism'
+- 【验证】desktop-ui 与 server 两端 npx tsc --noEmit 均 0 错误；lint 干净。前端直连本地注入、服务端 realismType 独立注入，无双重注入
+- 【遗留】未 commit/push，未部署远端（待用户确认）
+
+## 2026-08-31 会话（续18）：客户 13166262006（郝好）手机端生成链路全打通 —— 视频三处根因修复 + 三平台模型实测
+- 【背景】客户 13166262006 提供三平台 Key（腾讯 tokenhub / 阿里 dashscope / 火山 ark），此前手机端仅能生成小红书图文与图片且内容不达标；本次目标：确认生成流水线真实配置到位、视频链路能真实完整生成
+- 【三平台模型名实测】（probe_text_models.js + verify_fix_13166262006.js 直连）：
+  - 图片：火山 doubao-seedream-5-0-pro-260628（200 出图，最优）→ 阿里 wan2.7-image-pro（异步受理）→ 腾讯 hy-image-v3（未开通后付费 402，保留候选不命中）
+  - 视频：火山 doubao-seedance-1-0-pro-250528 / 腾讯 hy-video-1.5 / 阿里 wan2.7-t2v-2026-04-25 提交均 200
+  - 文本：腾讯 hy3/kimi-k3/glm-5.2/deepseek-v4-pro；阿里 qwen-plus 全系可用；客户火山未开通文本模型（全 404）
+  - 可灵 kl-video-v3 402（未开通付费额度，预期内）
+- 【视频链路三处根因修复】server/src/services/ai-client.ts callVideoGeneration：
+  1. baseUrl 误用 credentials.baseUrl（带 /chat/completions 后缀，为文本设计）→ 改用 getProviderBaseUrl(provider) 纯基础 URL，否则拼出 .../chat/completions/v1/api/video/submit 404
+  2. 跨平台 Key 误用 generateVideo 传入的默认 provider（tencent）Key → 每个候选按 provider 重新 resolveApiCredentials(userId, provider)，否则火山 401 / 阿里 InvalidApiKey；返回值改为 {url, keyId}，成功/失败更新对应 keyId 统计（usedKeyId 追踪）
+  3. 腾讯 size 星号格式 → submitTencentVideo `(opts.size || '1280x720').replace(/\*/g, 'x')`
+  - 错误日志增强：失败日志附 `err.response.data`（前 260 字符）
+- 【端到端验证】scripts/verify_e2e_131.js 登录生产 API（13166262006/20061218）→ 小红书图文 200（content_len=80）→ 图片 200（volces.com 真实图片 URL）→ 视频 200（dashscope-a717 OSS mp4 真实生成）；视频超时 120s→330s
+- 【部署验证】bash scripts/verify-login.sh：管理员 200 / 代理商 401（密码过时已知）/ 客户 200 / 自助注册 403
+- 经验：同一 Key 不能跨平台复用；不同 provider 的 Key 互调 401/InvalidApiKey；日志表名是 ApiUsageLog（不是 UsageLog）；scripts 目录无 node_modules，服务器脚本必须 require('/var/www/zhishuai/server/node_modules/...')
+- 遗留：本地 ai-client.ts 修复未 commit/push（待用户确认）
 
 ## 2026-08-31 会话（续17）："重于泰山"图片生成 400 根因修复（size 星号格式）+ 安全扫描误拦截修复
 - 用户反馈：AI 创作工厂生成"重于泰山"两次都错误（截图：第一张"Request failed with status code 400"，第二张"生成完成但未获得结果"+"生成内容未通过安全校验（命中：色情），已拦截展示"）

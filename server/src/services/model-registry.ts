@@ -139,7 +139,7 @@ const TENCENT_TEXT_MODELS: Record<string, ModelDefinition> = {
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
     bestFor: ['Agent任务', '超长上下文', '代码生成', '工具调用'],
     fallbackKey: 'glm-5',
-    crossProviderFallback: 'qwen3.7-plus',
+    crossProviderFallback: 'qwen3.8-max',
   },
   'glm-5': {
     key: 'glm-5', modelId: 'glm-5', name: 'GLM-5',
@@ -160,7 +160,7 @@ const TENCENT_TEXT_MODELS: Record<string, ModelDefinition> = {
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
     bestFor: ['图片理解', '图表分析', 'OCR', '视觉问答'],
     fallbackKey: 'hy-vision-2.0',
-    crossProviderFallback: 'qwen3.7-max',
+    crossProviderFallback: 'qwen3.8-max',
   },
 
   // === Kimi 系列 ===
@@ -205,7 +205,7 @@ const TENCENT_TEXT_MODELS: Record<string, ModelDefinition> = {
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: false,
     bestFor: ['创意文案', '内容创作', '营销策划'],
     fallbackKey: 'qwen3.5-flash-tc',
-    crossProviderFallback: 'qwen-max-aly',
+    crossProviderFallback: 'qwen3.8-max',
   },
   'qwen3.5-flash-tc': {
     key: 'qwen3.5-flash-tc', modelId: 'qwen3.5-flash', name: 'Qwen 3.5 Flash (991K)',
@@ -437,7 +437,7 @@ const TENCENT_VISION_MODELS: Record<string, ModelDefinition> = {
     supportsStream: true, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['图像理解', 'OCR', '图表分析', 'STEM推理'],
     fallbackKey: 'glm-5v-turbo',
-    crossProviderFallback: 'qwen3.7-max',
+    crossProviderFallback: 'qwen3.8-max',
   },
   'hy-vision-1.5-thinking': {
     key: 'hy-vision-1.5-thinking', modelId: 'hunyuan-t1-vision-20250916', name: '混元视觉 深度思考',
@@ -502,8 +502,8 @@ const ALIYUN_TEXT_MODELS: Record<string, ModelDefinition> = {
     recommendedTemp: { min: 0.3, max: 1.0 },
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: true,
     bestFor: ['高质量创作', '复杂分析', '视觉理解', '多模态任务', '沉浸编程'],
-    fallbackKey: 'qwen3.7-max',
-    crossProviderFallback: 'hy3',
+    fallbackKey: null as any,
+    crossProviderFallback: 'kimi-k3',
   },
   'qwen3.7-max': {
     key: 'qwen3.7-max', modelId: 'qwen3.7-max', name: 'Qwen 3.7 Max',
@@ -591,7 +591,7 @@ const ALIYUN_TEXT_MODELS: Record<string, ModelDefinition> = {
     recommendedTemp: { min: 0.1, max: 0.5 },
     supportsStream: true, supportsFunctionCalling: false, supportsThinking: true,
     bestFor: ['深度推理', '数学计算', '逻辑分析'],
-    fallbackKey: 'qwen3.7-plus',
+    fallbackKey: 'qwen3.8-max',
     crossProviderFallback: 'deepseek-v4-pro-tc',
   },
 };
@@ -663,13 +663,14 @@ const ALIYUN_MULTIMODAL_MODELS: Record<string, ModelDefinition> = {
     fallbackKey: null as any,
   },
   'minimax-speech-2.8-hd': {
-    key: 'minimax-speech-2.8-hd', modelId: 'MiniMax/speech-2.8-hd', name: 'MiniMax 语音 2.8 HD',
-    provider: 'aliyun', capability: 'audio_tts',
+    key: 'minimax-speech-2.8-hd', modelId: 'minimax-speech-2.8-hd', name: 'MiniMax 语音 2.8 HD',
+    provider: 'tencent', capability: 'audio_tts',
     priority: 1, cost: 'medium', maxContext: 4000, maxOutput: 0,
     recommendedTemp: { min: 0, max: 0 },
     supportsStream: true, supportsFunctionCalling: false, supportsThinking: false,
     bestFor: ['高保真语音合成', '数字人配音', '有声书', '多情感语音'],
-    fallbackKey: 'qwen-audio-3.0-tts-plus',
+    fallbackKey: null as any,
+    crossProviderFallback: 'qwen-audio-3.0-tts-plus',
   },
 
   // === HappyHorse 视频系列 (阿里云百炼) ===
@@ -721,7 +722,7 @@ const ALIYUN_MULTIMODAL_MODELS: Record<string, ModelDefinition> = {
     recommendedTemp: { min: 0.3, max: 0.8 },
     supportsStream: true, supportsFunctionCalling: true, supportsThinking: false,
     bestFor: ['全模态对话', '语音输入+图像理解', '多模态交互'],
-    fallbackKey: 'qwen3.7-max',
+    fallbackKey: 'qwen3.8-max',
   },
   'qwen3.5-omni-plus-realtime': {
     key: 'qwen3.5-omni-plus-realtime', modelId: 'qwen3.5-omni-plus-realtime', name: '千问全模态实时',

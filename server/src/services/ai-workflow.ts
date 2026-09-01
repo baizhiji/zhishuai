@@ -52,7 +52,7 @@ async function contentProductionWorkflow(
 主题：${params.topic}`;
 
   const planResult = await chatCompletion(userId, {
-    model: 'qwen-max',
+    model: 'qwen3.8-max',
     messages: [{ role: 'system', content: '你是有10年经验的中文内容策划专家。输出结构化、实用、可执行的方案。' }, { role: 'user', content: planPrompt }],
     temperature: 0.7,
     max_tokens: 1500,
@@ -75,7 +75,7 @@ ${planResult}
 请按"标题→正文→标签→引导"的顺序输出。`;
 
   const contentResult = await chatCompletion(userId, {
-    model: 'qwen-max',
+    model: 'qwen3.8-max',
     messages: [{ role: 'system', content: '你是中文内容创作专家，输出高质量、可直接发布的内容。' }, { role: 'user', content: contentPrompt }],
     temperature: 0.8,
     max_tokens: 2048,
@@ -115,7 +115,7 @@ async function recruitmentWorkflow(
 5. 团队介绍（150字左右）`;
 
   const jdResult = await chatCompletion(userId, {
-    model: 'qwen-max',
+    model: 'qwen3.8-max',
     messages: [{ role: 'system', content: '你是资深HR，擅长撰写吸引优质候选人的招聘JD。' }, { role: 'user', content: jdPrompt }],
     temperature: 0.6,
     max_tokens: 1500,
@@ -132,7 +132,7 @@ ${jdResult}
 2. 每题包含：问题、考察点、理想回答要点、评分标准(1-5分)`;
 
   const interviewResult = await chatCompletion(userId, {
-    model: 'qwen-max',
+    model: 'qwen3.8-max',
     messages: [{ role: 'system', content: '你是资深技术面试官，擅长设计有区分度的面试题。' }, { role: 'user', content: interviewPrompt }],
     temperature: 0.6,
     max_tokens: 1500,
@@ -165,7 +165,7 @@ async function customerAcquisitionWorkflow(
 5. 跟进话术（已读不回后的二次触达）`;
 
   const result = await chatCompletion(userId, {
-    model: 'qwen-max',
+    model: 'qwen3.8-max',
     messages: [{ role: 'system', content: '你是顶级销售文案专家，擅长撰写高转化率的获客话术。每种话术独立成段，标注清楚话术类型。' }, { role: 'user', content: prompt }],
     temperature: 0.8,
     max_tokens: 1500,

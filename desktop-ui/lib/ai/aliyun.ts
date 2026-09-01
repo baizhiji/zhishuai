@@ -75,7 +75,7 @@ class AliyunBailianClient {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: request.model || 'qwen-plus',
+          model: request.model || 'qwen3.8-max',
           input: {
             messages: [
               {

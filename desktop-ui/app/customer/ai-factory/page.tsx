@@ -96,6 +96,9 @@ interface GenerationRecord {
   model?: string;
 }
 
+/** 自动保存失败时的本地待补存队列 key（下次进入页面自动补存到内容中心） */
+const PENDING_SYNC_KEY = 'ai-factory-pending-sync';
+
 interface FactoryCard {
   category: ContentCategory;
   label: string;
@@ -168,7 +171,36 @@ export default function AIFactoryPage() {
         localStorage.setItem('ai-factory-history', JSON.stringify(merged));
       })
       .catch(() => { /* 离线时继续用本地缓存 */ });
+    // 补存上次因网络/接口异常未保存到内容中心的生成结果
+    flushPendingSync();
   }, []);
+
+  /** 将本地待补存队列中的生成结果补存到内容中心 */
+  const flushPendingSync = async () => {
+    try {
+      const raw = localStorage.getItem(PENDING_SYNC_KEY);
+      if (!raw) return;
+      const pending = JSON.parse(raw);
+      if (!Array.isArray(pending) || pending.length === 0) return;
+      const rest = [...pending];
+      const batch = rest.splice(0, 5);
+      for (const item of batch) {
+        await apiClient.post('/materials', {
+          title: item.title,
+          type: item.type,
+          content: item.content,
+          thumbnail: item.thumbnail,
+          fileUrl: item.fileUrl,
+          fileType: item.fileType,
+          images: item.images,
+        });
+      }
+      localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(rest));
+      if (batch.length > 0) message.success(`已自动补存 ${batch.length} 条生成结果到内容中心`);
+    } catch {
+      // 补存失败保留队列，下次进入页面再试
+    }
+  };
 
   const saveHistory = (record: GenerationRecord) => {
     const newHistory = [record, ...generationHistory].slice(0, 50);
@@ -427,7 +459,27 @@ export default function AIFactoryPage() {
               fileType: imgResults.length ? 'image' : videoResults.length ? 'video' : undefined,
               images: imgResults.length > 0 ? imgResults : undefined,
             });
-          } catch { /* 自动保存失败不影响生成主流程 */ }
+          } catch (saveErr) {
+            // 自动保存失败：暂存本地待补存队列，下次进入页面自动重试，不打断生成主流程
+            try {
+              const pending: Array<Record<string, unknown>> = JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || '[]');
+              pending.push({
+                title: values.description || values.productName || cfg.label,
+                type: activeCategory,
+                content: [...results, ...imgResults].join('\n\n---\n\n') || `AI生成${cfg.label}图片/视频`,
+                thumbnail: imgResults[0] || undefined,
+                fileUrl: imgResults[0] || videoResults[0] || undefined,
+                fileType: imgResults.length ? 'image' : videoResults.length ? 'video' : undefined,
+                images: imgResults.length > 0 ? imgResults : undefined,
+              });
+              localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(pending.slice(-20)));
+              console.warn('[ai-factory] 自动保存到内容中心失败，已暂存本地待补存:', saveErr);
+              message.warning('生成成功，但保存到内容中心失败，已暂存本地，下次进入将自动补存');
+            } catch {
+              // localStorage 异常时降级为仅日志
+              console.error('[ai-factory] 自动保存失败且暂存本地失败:', saveErr);
+            }
+          }
 
           message.success(`${cfg.label}生成完成！${estimateCost([...results, ...imgResults].join(''))}`);
           if (viralAnalysis) setViralScoreForTask(viralAnalysis);

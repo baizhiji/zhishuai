@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, Modal, Image, Share, ActivityIndicator } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library';
@@ -47,9 +48,12 @@ export default function MaterialsScreen() {
     }
   }, []);
 
+  const isFocused = useIsFocused();
+
+  // 每次进入内容中心 Tab 都重新拉取，确保 AI 工厂生成后能看到最新结果
   useEffect(() => {
-    fetchMaterials();
-  }, [fetchMaterials]);
+    if (isFocused) fetchMaterials();
+  }, [isFocused, fetchMaterials]);
 
   // 筛选素材
   const filteredMaterials = materials.filter(m => {

@@ -79,33 +79,49 @@ const DIAGNOSIS_SYSTEM_PROMPT = `你是【智枢AI诊断专家】，拥有全行
 
 请以专业诊断顾问的身份，为用户提供全面、深入、可执行的诊断分析。`;
 
+// 诊断分析模型链（实测版：腾讯 DeepSeek V4 Pro 优先 → 阿里 Qwen3.8 Max → 火山 Doubao Seed 2.1 Pro 兜底）
 const DIAGNOSIS_MODEL_CONFIG = {
-  deepAnalysis: 'deepseek-v4-pro',
+  deepAnalysis: 'deepseek-v4-pro-202606',
   longReport: 'kimi-k3',
-  quickDiagnosis: 'hy3',
+  quickDiagnosis: 'qwen3.8-max',
+  chain: [
+    { provider: 'tencent', model: 'deepseek-v4-pro-202606' },
+    { provider: 'aliyun', model: 'qwen3.8-max' },
+    { provider: 'volcano', model: 'doubao-seed-2-1-pro-260628' },
+  ],
 };
 
-// 模型配置（对齐蓝皮书统一标准，2026-08 在售模型）
+// 模型配置（对齐实测版《AI模型配置最终版》统一标准，2026-09 实测模型）
 const MODEL_CONFIG = {
   aliyun: {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     models: {
-      daily: { id: 'qwen3.7-flash', name: 'qwen3.7-flash', type: 'text' },
-      copywriting: { id: 'qwen3.7-plus', name: 'qwen3.7-plus', type: 'text' },
-      longText: { id: 'qwen-long', name: 'qwen-long', type: 'text' },
-      reasoning: { id: 'deepseek-v4-pro', name: 'deepseek-v4-pro', type: 'reasoning' },
+      daily: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'text' },
+      copywriting: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'text' },
+      longText: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'text' },
+      reasoning: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'reasoning' },
     }
   },
   tencent: {
     baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     models: {
-      daily: { id: 'hy3', name: 'hy3', type: 'text' },
-      thinking: { id: 'hy3', name: 'hy3', type: 'reasoning' },
+      daily: { id: 'kimi-k3', name: 'kimi-k3', type: 'text' },
+      thinking: { id: 'deepseek-v4-pro-202606', name: 'DeepSeek V4 Pro', type: 'reasoning' },
       longText: { id: 'kimi-k3', name: 'kimi-k3', type: 'text' },
-      agent: { id: 'glm-5.2', name: 'glm-5.2', type: 'agent' },
+      agent: { id: 'kimi-k3', name: 'kimi-k3', type: 'agent' },
       vision: { id: 'hy-vision-2.0-instruct', name: 'hy-vision-2.0-instruct', type: 'vision' },
-      video: { id: 'youtu-vita', name: 'youtu-vita', type: 'video' },
+      video: { id: 'yt-vita-1-5', name: 'yt-vita-1-5', type: 'video' },
       image: { id: 'vidu-image-q2', name: 'Vidu-Image-Q2', type: 'image' },
+    }
+  },
+  // v4.3：火山方舟第三服务商（模型 ID 与前端 category-config.ts 注册一致）
+  volcano: {
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    models: {
+      daily: { id: 'doubao-seed-2-1-pro-260628', name: 'Doubao Seed 2.1 Pro', type: 'text' },
+      thinking: { id: 'doubao-seed-2-1-pro-260628', name: 'Doubao Seed 2.1 Pro', type: 'reasoning' },
+      agent: { id: 'glm-5-2', name: 'GLM-5.2（方舟）', type: 'agent' },
+      vision: { id: 'doubao-seed-2-1-pro-260628', name: 'Doubao Seed 2.1 Pro', type: 'vision' },
     }
   }
 };
@@ -169,16 +185,18 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
       selectedModelKey = modelKey;
       const modelInfo = aiModelRouter.getModelInfo(modelKey);
       if (modelInfo) {
-        provider = (modelInfo.provider === 'aliyun' || modelInfo.provider === 'tencent' ? modelInfo.provider : 'aliyun');
+        provider = (modelInfo.provider === 'aliyun' || modelInfo.provider === 'tencent' || modelInfo.provider === 'volcano'
+          ? modelInfo.provider
+          : 'aliyun');
         modelId = modelInfo.id;
       }
     }
 
     // 获取API Key（优先用户自己的Key）
-    const apiKey = await resolveApiKey(userId, provider as 'aliyun' | 'tencent');
+    const apiKey = await resolveApiKey(userId, provider as 'aliyun' | 'tencent' | 'volcano');
 
     if (!apiKey) {
-      const providerName = provider === 'aliyun' ? '阿里云百炼' : '腾讯云TokenHub';
+      const providerName = provider === 'aliyun' ? '阿里云百炼' : provider === 'volcano' ? '火山方舟' : '腾讯云TokenHub';
       res.status(400).json({ 
         error: 'API Key未配置',
         message: `请先在「API Key管理」页面配置${providerName}的API Key`,
@@ -190,7 +208,7 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
     aiModelRouter.incrementConcurrent(selectedModelKey);
 
     try {
-      const response = await callAIProvider(provider as 'aliyun' | 'tencent', modelId, processedMessages, apiKey, stream);
+      const response = await callAIProvider(provider as 'aliyun' | 'tencent' | 'volcano', modelId, processedMessages, apiKey, stream);
 
       if (stream) {
         res.setHeader('Content-Type', 'text/event-stream');
@@ -225,14 +243,14 @@ router.post('/chat', authMiddleware, async (req: Request, res: Response) => {
       if (fallback) {
         console.log(`降级到备用模型: ${fallback.modelKey}`);
         
-        const fallbackApiKey = await resolveApiKey(userId, fallback.provider as 'aliyun' | 'tencent');
+        const fallbackApiKey = await resolveApiKey(userId, fallback.provider as 'aliyun' | 'tencent' | 'volcano');
 
         if (fallbackApiKey) {
           aiModelRouter.incrementConcurrent(fallback.modelKey);
           
           try {
             const fallbackResponse = await callAIProvider(
-              fallback.provider as 'aliyun' | 'tencent',
+              fallback.provider as 'aliyun' | 'tencent' | 'volcano',
               aiModelRouter.getModelInfo(fallback.modelKey)?.id || fallback.modelKey,
               processedMessages,
               fallbackApiKey,
@@ -299,15 +317,6 @@ router.post('/diagnosis', authMiddleware, async (req: Request, res: Response) =>
       return;
     }
 
-    const apiKey = await resolveApiKey(userId, 'aliyun');
-    if (!apiKey) {
-      res.status(400).json({ 
-        error: 'API Key未配置',
-        message: '请先在「API Key管理」页面配置阿里云百炼API Key'
-      });
-      return;
-    }
-
     let diagnosisPrompt = DIAGNOSIS_SYSTEM_PROMPT + '\n\n## 本次诊断任务\n\n';
     
     if (industry) diagnosisPrompt += `【行业】${industry}\n`;
@@ -329,7 +338,31 @@ router.post('/diagnosis', authMiddleware, async (req: Request, res: Response) =>
       { role: 'user' as const, content: request }
     ];
 
-    const response = await callAIProvider('aliyun', DIAGNOSIS_MODEL_CONFIG.deepAnalysis, messages, apiKey, stream);
+    // 三云降级链：腾讯 DeepSeek V4 Pro → 阿里 Qwen3.8 Max → 火山 Doubao Seed 2.1 Pro
+    const chain = DIAGNOSIS_MODEL_CONFIG.chain as { provider: 'tencent' | 'aliyun' | 'volcano'; model: string }[];
+    let lastError: any = null;
+    let response: any = null;
+    let usedProvider = '';
+    for (const step of chain) {
+      const key = await resolveApiKey(userId, step.provider);
+      if (!key) continue;
+      try {
+        response = await callAIProvider(step.provider, step.model, messages, key, stream);
+        usedProvider = step.provider;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[ai-chat] 诊断降级: ${step.provider}/${step.model} 失败:`, err.message);
+      }
+    }
+
+    if (!response) {
+      res.status(400).json({
+        error: lastError?.message || 'API Key未配置',
+        message: '诊断分析失败：请先在「API Key管理」页面配置腾讯云TokenHub、阿里云百炼或火山方舟任一API Key'
+      });
+      return;
+    }
 
     if (stream) {
       res.setHeader('Content-Type', 'text/event-stream');
@@ -347,6 +380,7 @@ router.post('/diagnosis', authMiddleware, async (req: Request, res: Response) =>
         data: {
           message: response,
           type: 'diagnosis',
+          provider: usedProvider,
           analysisType: analysisType || 'comprehensive',
           industry: industry || '自动识别',
         }
@@ -525,6 +559,12 @@ router.get('/models', authMiddleware, (req: Request, res: Response) => {
       type: model.type, description: model.description,
       maxTokens: (model as any).maxTokens, priority: model.priority, cost: model.cost,
     })),
+    ...(modelsList.volcano || []).map(model => ({
+      key: model.key, id: model.id, name: model.name,
+      provider: 'volcano', providerName: '火山方舟',
+      type: model.type, description: model.description,
+      maxTokens: (model as any).maxTokens, priority: model.priority, cost: model.cost,
+    })),
   ];
 
   res.json({ success: true, data: allModels });
@@ -554,7 +594,7 @@ function detectDiagnosisRequest(messages: ChatMessage[]): boolean {
 
 // ============ 调用AI服务 ============
 async function callAIProvider(
-  provider: 'aliyun' | 'tencent',
+  provider: 'aliyun' | 'tencent' | 'volcano',
   modelId: string,
   messages: ChatMessage[],
   apiKey: string,
@@ -572,7 +612,7 @@ async function callAIProvider(
     requestBody.max_tokens = 2048;
     requestBody.temperature = 0.7;
     requestBody.top_p = 0.95;
-  } else if (provider === 'tencent') {
+  } else if (provider === 'tencent' || provider === 'volcano') {
     requestBody.max_tokens = 2048;
     requestBody.temperature = 0.7;
   }
@@ -624,6 +664,77 @@ async function callAIProvider(
     return data.choices?.[0]?.message?.content || '';
   }
 }
+
+/**
+ * 图片视觉安全复核（内容合规 · 视觉层）
+ * 使用混元 Vision 2.0（hy-vision-2.0-instruct）对图片 URL 做 NSFW/敏感内容检测，
+ * 作为平台侧内容拦截的本地补充。视觉复核属增强能力，前端失败时降级为不阻断。
+ */
+router.post('/vision-review', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { images } = req.body;
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      res.status(400).json({ success: false, error: '缺少图片地址' });
+      return;
+    }
+
+    // 仅允许 http(s) 图片 URL，单次最多 6 张，防止 SSRF 与非预期资源
+    const safeImages = images
+      .filter((u: any) => typeof u === 'string' && /^https?:\/\//.test(u))
+      .slice(0, 6);
+    if (safeImages.length === 0) {
+      res.status(400).json({ success: false, error: '图片地址格式不合法' });
+      return;
+    }
+
+    // v4.3：视觉安全复核三云路由 — 混元 Vision（腾讯）→ 豆包 Seed 2.1 Pro 多模态（火山）兜底
+    const apiKey = await resolveApiKey(userId, 'tencent');
+    const volcanoKey = apiKey ? null : await resolveApiKey(userId, 'volcano');
+    if (!apiKey && !volcanoKey) {
+      res.status(400).json({ success: false, error: 'API Key未配置', message: '请先在「API Key管理」页面配置腾讯云TokenHub或火山方舟的API Key' });
+      return;
+    }
+
+    const visionSystem = `你是一个严格的图片内容安全审查员。逐一审查提供的图片，检查是否包含：色情/裸露、暴力血腥、违法违禁标志、政治敏感内容、烟酒赌博等违规广告元素。对每张图片输出"图片N：通过/需整改+具体问题"，无问题则注明"无违规"。最后一行必须输出汇总判定：全部通过，或 汇总判定：存在违规（第X张：问题简述）。`;
+
+    const userContent: any[] = safeImages.map((url: string, i: number) => ({
+      type: 'image_url',
+      image_url: { url },
+    }));
+    userContent.push({ type: 'text', text: `请审查以上 ${safeImages.length} 张图片是否存在违规内容。` });
+
+    const messages: any[] = [
+      { role: 'system', content: visionSystem },
+      { role: 'user', content: userContent },
+    ];
+
+    if (apiKey) {
+      try {
+        const response = await callAIProvider('tencent', 'hy-vision-2.0-instruct', messages as any, apiKey, false);
+        res.json({ success: true, data: { report: typeof response === 'string' ? response : '', reviewed: safeImages.length, provider: 'tencent' } });
+        return;
+      } catch (primaryErr: any) {
+        // 混元 Vision 失败 → 火山兜底
+        const fallbackKey = volcanoKey || await resolveApiKey(userId, 'volcano');
+        if (fallbackKey) {
+          try {
+            const fb = await callAIProvider('volcano', 'doubao-seed-2-1-pro-260628', messages as any, fallbackKey, false);
+            res.json({ success: true, data: { report: typeof fb === 'string' ? fb : '', reviewed: safeImages.length, provider: 'volcano' } });
+            return;
+          } catch { /* fall through */ }
+        }
+        throw primaryErr;
+      }
+    }
+    const fbResp = await callAIProvider('volcano', 'doubao-seed-2-1-pro-260628', messages as any, volcanoKey!, false);
+    res.json({ success: true, data: { report: typeof fbResp === 'string' ? fbResp : '', reviewed: safeImages.length, provider: 'volcano' } });
+  } catch (err: any) {
+    console.error('[ai-chat] 图片视觉安全复核失败:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // ============ 会话管理（基于Prisma存储）============
 

@@ -42,7 +42,7 @@ const API_CONFIGS = {
   },
   aliyun: {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    defaultModel: 'qwen-plus',
+    defaultModel: 'qwen3.8-max',
   },
 };
 

@@ -67,7 +67,7 @@ export async function processMultimodal(
   }
 
   const result = await chatCompletion(userId, {
-    model: 'qwen-max',
+    model: 'qwen3.8-max',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: prompt },

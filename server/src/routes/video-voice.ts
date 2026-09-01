@@ -139,9 +139,9 @@ const DIALECT_VOICE_MAP: Record<string, { voiceId: string; label: string }> = {
   tianjin: { voiceId: 'Peter', label: '天津话(男)' },
 };
 
-/** 口播文案候选模型（优先级与电脑版一致：阿里 qwen3.7-max → 腾讯 deepseek-v4-pro-202606） */
+/** 口播文案候选模型（优先级与电脑版一致：阿里 qwen3.8-max → 腾讯 deepseek-v4-pro-202606） */
 const VOICEOVER_SCRIPT_CANDIDATES: { provider: 'alibaba' | 'tencent'; modelId: string }[] = [
-  { provider: 'alibaba', modelId: 'qwen3.7-max' },
+  { provider: 'alibaba', modelId: 'qwen3.8-max' },
   { provider: 'tencent', modelId: 'deepseek-v4-pro-202606' },
 ];
 

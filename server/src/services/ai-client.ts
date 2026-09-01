@@ -17,7 +17,7 @@ import axios, { AxiosInstance } from 'axios';
 import { prisma } from '../utils/db';
 import { aiModelRouter, analyzeAndSelectModel } from './ai-model-router';
 import { contentSafetyService } from './content-safety/content-safety.service';
-import { enhanceImagePrompt, buildNegativePrompt } from './ai-realism-prompts';
+import { enhanceImagePrompt, buildNegativePrompt, buildVideoRealismPrompt } from './ai-realism-prompts';
 import crypto from 'crypto';
 
 // ==================== 类型定义 ====================
@@ -170,6 +170,8 @@ export interface VideoGenerationParams {
   text?: string;
   /** 配音音色 */
   voice?: string;
+  /** 视频真实感类型：portrait(真人口播) | product(产品) | scene(实景) | digital-human(数字人) | mv(真人MV) | enterprise(企业宣传) */
+  realismType?: string;
 }
 
 export interface VideoGenerationResult {
@@ -597,9 +599,12 @@ export class AIClient {
     const startTime = Date.now();
     const { messages, temperature = 0.7, max_tokens = 2048, platform, creativity = 0.5 } = params;
 
-    // 1. 分析任务并选择模型
+    // 1. 分析任务并选择模型（兼容多模态 content：数组时仅取 text 片段）
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-    const userInput = lastUserMsg?.content || '';
+    const rawContent = lastUserMsg?.content ?? '';
+    const userInput = Array.isArray(rawContent)
+      ? rawContent.filter((c: any) => c && c.type === 'text').map((c: any) => c.text).join('\n')
+      : String(rawContent);
 
     // 如果显式指定了 provider 或可从 model 推断 provider，优先使用
     let explicitProvider: 'tencent' | 'alibaba' | undefined = params.provider;
@@ -989,7 +994,7 @@ export class AIClient {
   /**
    * 文本转语音 (TTS)
    * 阿里云百炼：multimodal-generation + qwen-tts（input.text 格式，同步返回 audio URL）
-   * 腾讯云 TokenHub：/audio/speech（OpenAI 兼容）
+   * 腾讯云 TokenHub：/wand/minimax-tts/sync_tts（MiniMax speech-2.8-hd，实测端点）
    */
   async textToSpeech(
     userId: string,
@@ -1034,24 +1039,30 @@ export class AIClient {
     } catch (aliError: any) {
       console.log('[AIClient] 阿里云百炼TTS失败，尝试腾讯云:', aliError.message);
 
-      // 降级到腾讯云
+      // 降级到腾讯云（TokenHub MiniMax sync_tts，实测端点）
       try {
         const txCredentials = await this.resolveApiCredentials(userId, 'tencent');
         const baseUrl = this.getProviderBaseUrl('tencent');
         const axiosInstance = this.getAxiosInstance(baseUrl);
 
-        const response = await axiosInstance.post('/audio/speech', {
-          model: 'hunyuan-tts',
-          input: text,
-          voice,
-          speed,
-          response_format: format,
+        const ttsResponse = await axiosInstance.post('/wand/minimax-tts/sync_tts', {
+          model: 'minimax-speech-2.8-hd',
+          text,
+          voice_setting: { voice_id: voice, speed: Number(speed) || 1, vol: 1, pitch: 0 },
+          audio_setting: { sample_rate: 32000, bitrate: 128000, format, channel: 1 },
+          output_format: 'url',
         }, {
-          headers: { 'Authorization': `Bearer ${txCredentials.apiKey}` },
-          responseType: 'arraybuffer',
+          headers: { 'Authorization': `Bearer ${txCredentials.apiKey}`, 'Content-Type': 'application/json' },
         });
 
-        const audioBase64 = Buffer.from(response.data).toString('base64');
+        const ttsJson: any = ttsResponse.data;
+        const audioUrl = ttsJson?.data?.audio || '';
+        if (!audioUrl || ttsJson?.base_resp?.status_code !== 0) {
+          throw new Error(ttsJson?.base_resp?.status_msg || '腾讯云TTS未返回音频URL');
+        }
+
+        const audioResp = await axiosInstance.get(audioUrl, { responseType: 'arraybuffer' });
+        const audioBase64 = Buffer.from(audioResp.data).toString('base64');
         const dataUrl = `data:audio/${format};base64,${audioBase64}`;
 
         const duration = Date.now() - startTime;
@@ -1059,8 +1070,8 @@ export class AIClient {
           userId,
           providerId: txCredentials.provider,
           providerName: '腾讯云TokenHub',
-          endpoint: '/audio/speech',
-          model: 'hunyuan-tts',
+          endpoint: '/wand/minimax-tts/sync_tts',
+          model: 'minimax-speech-2.8-hd',
           duration,
           status: 'success',
         });
@@ -1073,8 +1084,8 @@ export class AIClient {
           userId,
           providerId: 'tencent',
           providerName: '腾讯云TokenHub',
-          endpoint: '/audio/speech',
-          model: 'hunyuan-tts',
+          endpoint: '/wand/minimax-tts/sync_tts',
+          model: 'minimax-speech-2.8-hd',
           duration,
           status: 'failed',
           errorMsg: txError.message,
@@ -1186,6 +1197,10 @@ export class AIClient {
     userId: string,
     params: VideoGenerationParams
   ): Promise<VideoGenerationResult> {
+    // 注入"真人实拍"真实感词库（依据类目 realismType，确保视频产出达到真人拍摄效果）
+    if (params.realismType) {
+      params.prompt = `${params.prompt}\n\n画面质感要求：${buildVideoRealismPrompt(params.realismType)}`;
+    }
     const credentials = await this.resolveApiCredentials(userId, params.provider);
     const provider = credentials.provider as VideoProvider;
 
@@ -1202,10 +1217,12 @@ export class AIClient {
     }
 
     let lastError: Error | null = null;
+    let usedKeyId: string | null = null;
     for (const candidate of candidates) {
       const startedAt = Date.now();
       try {
-        const url = await this.callVideoGeneration(userId, credentials, candidate, params);
+        const { url, keyId } = await this.callVideoGeneration(userId, credentials, candidate, params);
+        usedKeyId = keyId;
         if (!url) {
           throw new Error(`${candidate.label} 未返回视频地址`);
         }
@@ -1218,7 +1235,7 @@ export class AIClient {
           duration: Date.now() - startedAt,
           status: 'success',
         });
-        await this.updateKeyStats(credentials.keyId, true);
+        await this.updateKeyStats(usedKeyId, true);
         return { url, provider: candidate.provider, providerLabel: candidate.label, model: candidate.model };
       } catch (err: any) {
         lastError = err;
@@ -1230,11 +1247,11 @@ export class AIClient {
           model: candidate.model,
           duration: Date.now() - startedAt,
           status: 'failed',
-          errorMsg: err.message,
+          errorMsg: `${err.message}${err.response?.data ? ' | ' + JSON.stringify(err.response.data).slice(0, 260) : ''}`,
         });
       }
     }
-    await this.updateKeyStats(credentials.keyId, false);
+    await this.updateKeyStats(usedKeyId || credentials.keyId, false);
     throw lastError || new Error('视频生成失败：请检查 API Key 或稍后重试');
   }
 
@@ -1246,10 +1263,15 @@ export class AIClient {
     credentials: { apiKey: string; baseUrl: string },
     candidate: VideoModelCandidate,
     params: VideoGenerationParams
-  ): Promise<string> {
+  ): Promise<{ url: string; keyId: string | null }> {
     const { provider, model } = candidate;
-    const { apiKey } = credentials;
-    const baseUrl = credentials.baseUrl || this.getProviderBaseUrl(provider);
+    // 关键：每个候选必须用对应 provider 自己的 API Key。
+    // generateVideo 传入的 credentials 只是默认 provider（tencent）的，跨平台调用会 401 InvalidApiKey。
+    const resolved = await this.resolveApiCredentials(userId, provider);
+    const apiKey = resolved.apiKey;
+    // credentials.baseUrl 是文本调用专用的（带 /chat/completions 后缀），
+    // 视频端点必须用纯基础 URL，否则拼接会变成 .../chat/completions/v1/api/video/submit 导致 404
+    const baseUrl = this.getProviderBaseUrl(provider);
 
     // 数字人模型：必须提供形象图 + 音频（先用 TTS 合成配音）
     if (model === 'yt-video-humanactor') {
@@ -1264,28 +1286,40 @@ export class AIClient {
       if (!tts.url) {
         throw new Error('数字人 TTS 未返回音频 URL');
       }
-      return this.submitTencentVideo(baseUrl, apiKey, model, params.prompt, {
-        imageUrl,
-        audioUrl: tts.url,
-      });
+      return {
+        url: await this.submitTencentVideo(baseUrl, apiKey, model, params.prompt, {
+          imageUrl,
+          audioUrl: tts.url,
+        }),
+        keyId: resolved.keyId,
+      };
     }
 
     if (provider === 'tencent') {
-      return this.submitTencentVideo(baseUrl, apiKey, model, params.prompt, {
-        size: params.size,
-        duration: params.duration,
-        imageUrl: params.imageUrl || params.images?.[0],
-      });
+      return {
+        url: await this.submitTencentVideo(baseUrl, apiKey, model, params.prompt, {
+          size: params.size,
+          duration: params.duration,
+          imageUrl: params.imageUrl || params.images?.[0],
+        }),
+        keyId: resolved.keyId,
+      };
     }
 
     if (provider === 'alibaba') {
-      return this.submitAlibabaVideo(baseUrl, apiKey, model, params.prompt, params);
+      return {
+        url: await this.submitAlibabaVideo(baseUrl, apiKey, model, params.prompt, params),
+        keyId: resolved.keyId,
+      };
     }
 
     if (provider === 'volcano') {
-      return this.submitVolcanoVideo(baseUrl, apiKey, model, params.prompt, {
-        imageUrl: params.imageUrl || params.images?.[0],
-      });
+      return {
+        url: await this.submitVolcanoVideo(baseUrl, apiKey, model, params.prompt, {
+          imageUrl: params.imageUrl || params.images?.[0],
+        }),
+        keyId: resolved.keyId,
+      };
     }
 
     throw new Error(`不支持的 provider: ${provider}`);
@@ -1316,7 +1350,8 @@ export class AIClient {
       model,
       prompt,
       duration: opts.duration || 5,
-      size: opts.size || '1280x720',
+      // 腾讯 TokenHub 只接受 1280x720 格式，前端可能传 1280*720
+      size: (opts.size || '1280x720').replace(/\*/g, 'x'),
     };
     if (opts.imageUrl) {
       submitBody.image_url = opts.imageUrl;

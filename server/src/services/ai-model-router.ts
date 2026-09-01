@@ -16,28 +16,28 @@ import { Request, Response } from 'express';
 // 腾讯云TokenHub模型列表（对齐蓝皮书统一标准，2026-08 在售模型）
 const TENCENT_MODELS = {
   hunyuan_instruct: {
-    id: 'hy3',
-    name: '混元Hy3日常',
+    id: 'kimi-k3',
+    name: 'Kimi K3 日常',
     provider: 'tencent',
     type: 'chat',
     priority: 1,
     cost: 'low',
     maxTokens: 8192,
-    description: '日常对话、智能问答',
+    description: '日常对话、智能问答 — 实测质量优先',
     keywords: ['你好', '在吗', '帮忙', '怎么', '如何', '是什么', '为什么', '聊天'],
     fallback: 'qwen_turbo',
   },
   hunyuan_thinking: {
-    id: 'hy3',
-    name: '混元Hy3思考',
+    id: 'deepseek-v4-pro-202606',
+    name: 'DeepSeek V4 Pro 思考',
     provider: 'tencent',
     type: 'reasoning',
     priority: 2,
     cost: 'medium',
     maxTokens: 32768,
-    description: '复杂推理、数学问题',
+    description: '复杂推理、数学问题 — 实测质量优先',
     keywords: ['分析', '推理', '计算', '证明', '思考', '逻辑'],
-    fallback: 'deepseek_r1',
+    fallback: 'kimi_k2',
   },
   kimi_k2: {
     id: 'kimi-k3',
@@ -47,22 +47,22 @@ const TENCENT_MODELS = {
     priority: 1,
     cost: 'medium',
     maxTokens: 128000,
-    description: '长篇文本处理/摘要/改写 — 蓝皮书质量优先',
+    description: '长篇文本处理/摘要/改写/英文去AI化 — 实测质量优先',
     keywords: ['报告', '总结', '文章', '论文', '文档', '小说', '长文', '万字', '摘要'],
-    fallback: 'glm_5',
+    fallback: 'qwen_38_max',
   },
-  glm_5: {
-    id: 'glm-5.2',
-    name: 'GLM-5.2 Agent',
+  // 深度分析模型（实测版：DeepSeek V4 Pro 归属腾讯 TokenHub）
+  deepseek_v4_pro_tc: {
+    id: 'deepseek-v4-pro-202606',
+    name: 'DeepSeek V4 Pro',
     provider: 'tencent',
-    type: 'agent',
-    priority: 2,
+    type: 'reasoning',
+    priority: 1,
     cost: 'medium',
-    maxTokens: 32768,
-    maxContext: 1000000,
-    description: '极长文本/合同/报告解析（1M上下文） + Agent/代码 — 蓝皮书质量优先',
-    keywords: ['代码', '编程', '开发', '任务', '执行', '合同', '报告解析', '万字', '超长'],
-    fallback: 'kimi_k2',
+    maxTokens: 64000,
+    description: '结构化分析/大纲/评审/合规 — 实测质量优先',
+    keywords: ['深度', '推理', '分析', '思考', '复杂', '数学', '证明', '评审', '合规', '大纲', '结构化'],
+    fallback: 'qwen_38_max',
   },
   glm_5v: {
     id: 'hy-vision-2.0-instruct',
@@ -72,20 +72,20 @@ const TENCENT_MODELS = {
     priority: 1,
     cost: 'medium',
     maxTokens: 8192,
-    description: '图像理解/OCR/图表分析 — 蓝皮书质量优先',
+    description: '图像理解/OCR/图表分析 — 实测质量优先',
     keywords: ['图片', '图像', '看图', '图表', '截图', '照片'],
     fallback: 'glm_5',
   },
   youtu_vita: {
-    id: 'youtu-vita',
-    name: '优图VITA视频理解',
+    id: 'yt-vita-1-5',
+    name: 'YT-VITA 视频理解',
     provider: 'tencent',
     type: 'video',
     priority: 1,
     cost: 'high',
     maxTokens: 16384,
-    description: '视频理解/视频分析 — 蓝皮书质量优先',
-    keywords: ['视频', '抖音', '快手', '小红书视频', 'B站'],
+    description: '视频理解/素材理解/剪辑点识别 — 实测质量优先',
+    keywords: ['视频', '抖音', '快手', '小红书视频', 'B站', '分析视频', '素材理解'],
     fallback: null,
   },
 };
@@ -93,28 +93,28 @@ const TENCENT_MODELS = {
 // 阿里云百炼模型列表
 const ALIYUN_MODELS = {
   qwen_turbo: {
-    id: 'qwen3.7-flash',
-    name: 'Qwen3.7快速',
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8快速',
     provider: 'aliyun',
     type: 'chat',
     priority: 1,
     cost: 'low',
     maxTokens: 8192,
-    description: '日常对话、快速响应',
+    description: '日常对话、快速响应 — 实测质量优先',
     keywords: ['你好', '在吗', '简单', '快速'],
     fallback: 'hunyuan_instruct',
   },
   qwen_plus: {
-    id: 'qwen3.7-plus',
-    name: 'Qwen3.7专业',
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8专业',
     provider: 'aliyun',
     type: 'professional',
     priority: 2,
     cost: 'medium',
     maxTokens: 32768,
-    description: '专业文案、营销内容',
+    description: '专业文案、营销内容 — 实测质量优先',
     keywords: ['文案', '营销', '推广', '策划', '方案'],
-    fallback: 'glm_5',
+    fallback: 'qwen_38_max',
   },
   qwen_long: {
     id: 'qwen-long',
@@ -128,17 +128,47 @@ const ALIYUN_MODELS = {
     keywords: ['超长', '万字', '长文', '长篇小说'],
     fallback: 'kimi_k2',
   },
-  deepseek_r1: {
-    id: 'deepseek-v4-pro',
-    name: 'DeepSeek-V4思考',
+  // 高质量创作/复杂推理模型（实测版：Qwen 3.8 Max 归属阿里百炼）
+  qwen_38_max: {
+    id: 'qwen3.8-max',
+    name: 'Qwen3.8 Max',
     provider: 'aliyun',
-    type: 'reasoning',
+    type: 'professional',
+    priority: 1,
+    cost: 'medium',
+    maxTokens: 128000,
+    description: '高质量创作/复杂推理 — 实测质量优先',
+    keywords: ['文案', '营销', '推广', '策划', '方案', '创作', '写作', '创意', '内容'],
+    fallback: 'deepseek_v4_pro_tc',
+  },
+};
+
+// 火山方舟模型列表（实测版：GLM-5.2 / Doubao Seed 2.1 Pro 归属火山方舟）
+const VOLCANO_MODELS = {
+  glm_5: {
+    id: 'glm-5-2',
+    name: 'GLM-5.2（方舟）',
+    provider: 'volcano',
+    type: 'agent',
     priority: 2,
     cost: 'medium',
-    maxTokens: 64000,
-    description: '深度思考、复杂推理',
-    keywords: ['深度', '推理', '分析', '思考', '复杂', '数学'],
-    fallback: 'hunyuan_thinking',
+    maxTokens: 32768,
+    maxContext: 1000000,
+    description: '字幕/去AI化/中英双语（1M上下文） + Agent/代码 — 实测质量优先',
+    keywords: ['代码', '编程', '开发', '任务', '执行', '字幕', '去AI化', '中英', '翻译', '超长'],
+    fallback: 'kimi_k2',
+  },
+  doubao_seed_2_1_pro: {
+    id: 'doubao-seed-2-1-pro-260628',
+    name: 'Doubao Seed 2.1 Pro',
+    provider: 'volcano',
+    type: 'chat',
+    priority: 1,
+    cost: 'low',
+    maxTokens: 8192,
+    description: '创作/推理/视频理解/多模态 — 实测质量优先',
+    keywords: ['创作', '推理', '多模态', '视频理解', '兜底'],
+    fallback: 'qwen_38_max',
   },
 };
 
@@ -146,6 +176,7 @@ const ALIYUN_MODELS = {
 const ALL_MODELS = {
   ...TENCENT_MODELS,
   ...ALIYUN_MODELS,
+  ...VOLCANO_MODELS,
 };
 
 // ==================== 模型调度器类 ====================
@@ -169,6 +200,9 @@ export class AIModelRouter {
       this.availableModels.add(key);
     });
     Object.keys(ALIYUN_MODELS).forEach(key => {
+      this.availableModels.add(key);
+    });
+    Object.keys(VOLCANO_MODELS).forEach(key => {
       this.availableModels.add(key);
     });
   }
@@ -236,7 +270,7 @@ export class AIModelRouter {
    * 根据任务类型选择最优模型
    * 包含高并发降级逻辑
    */
-  selectModel(taskType: string, preferProvider?: 'tencent' | 'aliyun'): { modelKey: string; provider: string; isFallback: boolean } {
+  selectModel(taskType: string, preferProvider?: 'tencent' | 'aliyun' | 'volcano'): { modelKey: string; provider: string; isFallback: boolean } {
     const candidates = this.getCandidateModels(taskType, preferProvider);
     
     if (candidates.length === 0) {
@@ -282,7 +316,7 @@ export class AIModelRouter {
   /**
    * 获取候选模型列表（按优先级和并发数排序）
    */
-  private getCandidateModels(taskType: string, preferProvider?: 'tencent' | 'aliyun'): string[] {
+  private getCandidateModels(taskType: string, preferProvider?: 'tencent' | 'aliyun' | 'volcano'): string[] {
     const candidates: { key: string; priority: number; cost: string; concurrent: number }[] = [];
 
     Object.entries(ALL_MODELS).forEach(([key, model]) => {
@@ -434,6 +468,7 @@ export class AIModelRouter {
       byProvider: {
         tencent: 0,
         aliyun: 0,
+        volcano: 0,
       },
       byType: {} as Record<string, number>,
       byConcurrent: {} as Record<string, number>,
@@ -461,7 +496,7 @@ export const aiModelRouter = new AIModelRouter();
 /**
  * 快速分析并选择模型
  */
-export function analyzeAndSelectModel(userInput: string, preferProvider?: 'tencent' | 'aliyun') {
+export function analyzeAndSelectModel(userInput: string, preferProvider?: 'tencent' | 'aliyun' | 'volcano') {
   const taskType = aiModelRouter.analyzeTask(userInput);
   const result = aiModelRouter.selectModel(taskType, preferProvider);
   const model = aiModelRouter.getModelInfo(result.modelKey);
@@ -504,6 +539,10 @@ export function getAllModelsList() {
       ...model,
     })),
     aliyun: Object.entries(ALIYUN_MODELS).map(([key, model]) => ({
+      key,
+      ...model,
+    })),
+    volcano: Object.entries(VOLCANO_MODELS).map(([key, model]) => ({
       key,
       ...model,
     })),

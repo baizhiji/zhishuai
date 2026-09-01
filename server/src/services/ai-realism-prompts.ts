@@ -50,6 +50,62 @@ real people in background (blurred), urban environment,
 shot on iPhone 15 Pro, no filter, realistic colors,
 photorealistic, 8K, highly detailed, sharp focus`;
 
+// ─── 视频类真实感词库（真人实拍效果）───────────────────────
+
+/** 视频真实感正向提示词（自动追加到所有 AI 生成视频 prompt 末尾） */
+export const REALISM_VIDEO_POSITIVE = `
+cinematic video, real footage, shot on Arri Alexa,
+natural camera movement, slight handheld micro-shake,
+realistic color grading like professional colorist,
+natural motion blur, 24fps film look, real physics,
+consistent lighting throughout, no morphing artifacts,
+no AI warping, stable face structure, natural body movement`;
+
+/** 视频真实感负向提示词（移除 AI 生成视频的典型特征） */
+export const VIDEO_REALISM_NEGATIVE = `
+morphing artifacts, AI warping, unstable face structure,
+deformed hands, extra fingers, distorted limbs,
+plastic skin, uncanny valley, CGI render, 3D animation,
+glitch, flicker, pixelation, low quality, cartoon, anime,
+unnatural movement, robotic motion, repetitive motion`;
+
+/** 视频类型专属真实感增强 */
+export const VIDEO_REALISM_SPECIFICS: Record<string, string> = {
+  portrait: `person talking naturally, slight head movements,
+natural eye blinking (random intervals, not rhythmic),
+micro-expressions, natural hand gestures,
+real person speaking, visible pores on close-up`,
+  product: `product rotating on turntable, real material reflections,
+natural depth of field shift, macro close-up details,
+real fabric/metal/glass texture visible`,
+  scene: `real location walkthrough, natural camera pan,
+ambient sound environment, real people walking in background,
+natural lighting changes when passing windows/doors`,
+  'digital-human': `photorealistic digital human, indistinguishable from real person,
+natural micro-expressions, realistic eye movement and blinking,
+realistic lip sync with audio, slight head tilt and shoulder movement,
+skin texture with pores, no uncanny valley effect,
+natural lighting on face, subtle shadows from nose and chin,
+random blink timing (2-4 seconds apart, not metronomic)`,
+  mv: `real person singing, natural performance,
+genuine emotion, live performance feel,
+natural lip sync with music, real vocal expression,
+cinematic music video style, artistic but authentic`,
+  enterprise: `professional corporate video, real office environment,
+natural office lighting (fluorescent + window light mix),
+real employees in background (not staged),
+documentary style footage, authentic workplace atmosphere`,
+};
+
+/**
+ * 为视频 prompt 追加真实感增强关键词
+ * videoType: portrait(真人口播出镜) | product(产品) | scene(实景/探店) | digital-human(数字人) | mv(真人MV) | enterprise(企业宣传)
+ */
+export function buildVideoRealismPrompt(videoType: string = 'scene'): string {
+  const specific = VIDEO_REALISM_SPECIFICS[videoType] || '';
+  return `${REALISM_VIDEO_POSITIVE.trim()}, ${specific}`.trim();
+}
+
 export type RealismType = 'portrait' | 'product' | 'scene' | 'general';
 
 /**

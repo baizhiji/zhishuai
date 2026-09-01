@@ -39,7 +39,36 @@ export default function MaterialLibraryPage() {
 
   useEffect(() => {
     loadMaterials();
+    // 页面重新聚焦 / 从后台回到前台时自动刷新，确保 AI 工厂生成后回到本页能看到最新结果
+    const onFocus = () => loadMaterials();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') loadMaterials();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
+
+  const parseImages = (m: Record<string, unknown>): string[] => {
+    if (Array.isArray(m.images)) {
+      return (m.images as string[]).filter(u => typeof u === 'string' && u.length > 0);
+    }
+    const raw = m.usagePlatforms as string | undefined;
+    if (typeof raw === 'string' && raw.length > 0) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((u: unknown) => typeof u === 'string' && u.length > 0);
+        }
+      } catch {
+        // 忽略非法 JSON，回退到单图字段
+      }
+    }
+    return typeof m.fileUrl === 'string' && m.fileUrl ? [m.fileUrl] : [];
+  };
 
   const loadMaterials = async () => {
     setLoading(true);
@@ -54,7 +83,7 @@ export default function MaterialLibraryPage() {
         category: m.type as ContentCategory,
         title: m.title as string,
         content: (m.content as string) || '',
-        images: (m.images as string[]) || [],
+        images: parseImages(m),
         downloadedAt: (m.downloadedAt as string) || undefined,
         timestamp: new Date(m.createdAt as string).getTime(),
       }));

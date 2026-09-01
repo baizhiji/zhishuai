@@ -44,6 +44,13 @@ command -v node >/dev/null 2>&1 || { echo -e "${RED}需要安装 Node.js${NC}"; 
 command -v npm >/dev/null 2>&1 || { echo -e "${RED}需要安装 npm${NC}"; exit 1; }
 command -v pm2 >/dev/null 2>&1 || { echo -e "${YELLOW}未安装 pm2，尝试全局安装...${NC}"; npm install -g pm2; }
 command -v mysqldump >/dev/null 2>&1 || { echo -e "${YELLOW}未找到 mysqldump，数据库备份脚本将不可用${NC}"; }
+# 中文字体（视频 AIGC 角标【智枢AI生成】drawtext 渲染必需）
+if command -v fc-list >/dev/null 2>&1; then
+  if ! fc-list :lang=zh 2>/dev/null | grep -qiE 'noto sans cjk|wqy|droid sans fallback'; then
+    echo -e "${YELLOW}安装中文字体(fonts-noto-cjk)...${NC}"
+    apt-get install -y fonts-noto-cjk >/dev/null 2>&1 || apt-get install -y fonts-wqy-zenhei >/dev/null 2>&1 || echo -e "${YELLOW}中文字体安装失败，AIGC 角标将无法叠加${NC}"
+  fi
+fi
 
 echo -e "${GREEN}[2/7] 检查环境变量...${NC}"
 if [ ! -f "$SERVER_DIR/.env" ]; then

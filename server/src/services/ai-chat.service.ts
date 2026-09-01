@@ -120,11 +120,16 @@ export async function saveMessage(input: SaveMessageInput) {
   });
 }
 
-// ─── 模型配置（对齐蓝皮书统一标准，2026-08 在售模型）───
+// ─── 模型配置（对齐实测版《AI模型配置最终版》统一标准，2026-09 实测模型）───
 export const DIAGNOSIS_MODEL_CONFIG = {
-  deepAnalysis: 'deepseek-v4-pro',
+  deepAnalysis: 'deepseek-v4-pro-202606',
   longReport: 'kimi-k3',
-  quickDiagnosis: 'hy3',
+  quickDiagnosis: 'qwen3.8-max',
+  chain: [
+    { provider: 'tencent', model: 'deepseek-v4-pro-202606' },
+    { provider: 'aliyun', model: 'qwen3.8-max' },
+    { provider: 'volcano', model: 'doubao-seed-2-1-pro-260628' },
+  ],
 };
 
 export const MODEL_CONFIG = {
@@ -132,29 +137,40 @@ export const MODEL_CONFIG = {
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     apiKeyEnv: 'DASHSCOPE_API_KEY',
     models: {
-      daily: { id: 'qwen3.7-flash', name: 'qwen3.7-flash', type: 'text' },
-      copywriting: { id: 'qwen3.7-plus', name: 'qwen3.7-plus', type: 'text' },
-      longText: { id: 'qwen-long', name: 'qwen-long', type: 'text' },
-      reasoning: { id: 'deepseek-v4-pro', name: 'deepseek-v4-pro', type: 'reasoning' },
+      daily: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'text' },
+      copywriting: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'text' },
+      longText: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'text' },
+      reasoning: { id: 'qwen3.8-max', name: 'Qwen3.8 Max', type: 'reasoning' },
     },
   },
   tencent: {
     baseUrl: 'https://tokenhub.tencentmaas.com/v1',
     apiKeyEnv: 'TENCENT_TOKENHUB_API_KEY',
     models: {
-      daily: { id: 'hy3', name: 'hy3', type: 'text' },
-      thinking: { id: 'hy3', name: 'hy3', type: 'reasoning' },
+      daily: { id: 'kimi-k3', name: 'kimi-k3', type: 'text' },
+      thinking: { id: 'deepseek-v4-pro-202606', name: 'DeepSeek V4 Pro', type: 'reasoning' },
       longText: { id: 'kimi-k3', name: 'kimi-k3', type: 'text' },
-      agent: { id: 'glm-5.2', name: 'glm-5.2', type: 'agent' },
+      agent: { id: 'kimi-k3', name: 'kimi-k3', type: 'agent' },
       vision: { id: 'hy-vision-2.0-instruct', name: 'hy-vision-2.0-instruct', type: 'vision' },
-      video: { id: 'youtu-vita', name: 'youtu-vita', type: 'video' },
+      video: { id: 'yt-vita-1-5', name: 'yt-vita-1-5', type: 'video' },
+    },
+  },
+  // v4.3：火山方舟作为第三服务商（P2 服务端路由，模型 ID 与前端 category-config.ts 注册一致）
+  volcano: {
+    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    apiKeyEnv: 'ARK_API_KEY',
+    models: {
+      daily: { id: 'doubao-seed-2-1-pro-260628', name: 'Doubao Seed 2.1 Pro', type: 'text' },
+      reasoning: { id: 'doubao-seed-2-1-pro-260628', name: 'Doubao Seed 2.1 Pro', type: 'reasoning' },
+      agent: { id: 'glm-5-2', name: 'GLM-5.2（方舟）', type: 'agent' },
+      vision: { id: 'doubao-seed-2-1-pro-260628', name: 'Doubao Seed 2.1 Pro', type: 'vision' },
     },
   },
 };
 
 // ─── AI 服务调用 ───
 export async function callAIProvider(
-  provider: 'aliyun' | 'tencent',
+  provider: 'aliyun' | 'tencent' | 'volcano',
   modelId: string,
   messages: ChatMessage[],
   apiKey: string,
@@ -172,7 +188,7 @@ export async function callAIProvider(
     requestBody.max_tokens = 2048;
     requestBody.temperature = 0.7;
     requestBody.top_p = 0.95;
-  } else if (provider === 'tencent') {
+  } else if (provider === 'tencent' || provider === 'volcano') {
     requestBody.max_tokens = 2048;
     requestBody.temperature = 0.7;
   }

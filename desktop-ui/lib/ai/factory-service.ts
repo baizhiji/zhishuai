@@ -12,6 +12,8 @@ import { absUrl } from '@/utils/env';
 import {
   // Provider / Model 元数据
   PROVIDER_INFO, MODEL_INFO,
+  // 全局默认兜底（跨 Provider 双云容灾）
+  DEFAULT_FALLBACK_MODELS,
   // 10 个类目的完整流水线配置
   CATEGORY_PIPELINES,
   getCategoryConfig, hasApiKey, getCategoryKeyCoverage,
@@ -21,6 +23,9 @@ import {
 
 /** 兼容旧名：阶段处理函数使用的模型信息类型 */
 type ModelInfoType = ModelInfo;
+
+/** 视频真实感类型（对应 buildVideoRealismPrompt 六种真人实拍场景） */
+type VideoRealismType = Parameters<typeof buildVideoRealismPrompt>[0];
 
 import {
   HUMAN_TEXT_SYSTEM_PROMPT,
@@ -501,6 +506,8 @@ const ANTI_AI_SYSTEM_PROMPTS: Record<string, string> = {
   creative: `你是一个独立音乐人/导演。你的文案有艺术感但不矫情。用创作人的真实视角来表达，避免空洞的文艺腔。`,
   cute: `你是一个萌宠博主/动画师。你的文案温暖、可爱但不做作。用日常相处的真实细节来打动人。`,
   talk: `你是一个真实的口播博主。你的话术语速自然、有停顿、有口头禅。用日常聊天的语气，不是背稿子的感觉。`,
+  photography: `你是一个经验丰富的商业摄影师。用实拍团队的真实视角重写视觉方案：强调自然光线、真实材质、生活化构图，避免AI绘画那种"完美但虚假"的视觉语言。不用"首先其次最后"等AI腔。`,
+  edit_script: `你是一个专业的视频剪辑师。用真人剪辑师的口吻重写剪辑脚本：语言干脆、接地气、有节奏感，像给同事交代活一样自然，避免AI腔。`,
 };
 
 function getAntiAiPrompt(phase: string): string {
@@ -508,6 +515,19 @@ function getAntiAiPrompt(phase: string): string {
 }
 
 // ─── 核心：多阶段流水线执行 ─────────────────
+
+/**
+ * 最近一次视频拍摄快照（供 quality_review 评审未通过时触发自动重拍）
+ * 注：前端单用户流水线场景，并发生成时以最后一次拍摄为准
+ */
+let lastVideoShoot: {
+  phase: 'video_generate' | 'digital_human';
+  provider: AiProvider;
+  modelId: string;
+  apiKey: string;
+  prompt: string;
+  options: { duration?: number; size?: string; images?: string[]; text?: string; imageUrl?: string };
+} | null = null;
 
 export interface PipelineTaskResult {
   phase: string;
@@ -573,6 +593,57 @@ export async function generateWithLocalPipeline(
   let accumulatedText = userInput;
   const startTime = Date.now();
 
+  /**
+   * 应用单阶段执行结果：累加内容 + 视频自动重拍后的新 URL 合并
+   * （quality_review 触发重拍时通过 _videoRetaken 字段回传新视频地址）
+   */
+  const applyResult = (result: Record<string, unknown> & { data?: string }): void => {
+    if (result.data) accumulatedText = result.data;
+    if (result._videoRetaken) {
+      accumulatedText = accumulatedText.replace(/【生成视频】\S+|【数字人视频】\S+/, String(result._videoRetaken));
+    }
+  };
+
+  /**
+   * 三云路由降级（P0）：按 阶段级 fallback → 阶段级 tertiary → 全局默认兜底链 顺序，
+   * 逐一尝试直到第一个"有 API Key 且执行成功"的模型。链内去重且排除 primary 本身。
+   * 返回 true 表示已成功降级（任务已记录），false 表示整链失败（调用方自行兜底报错）。
+   */
+  const tryFallbackChain = async (
+    phase: PhaseConfig,
+    accumulatedText: string,
+    phaseStart: number,
+    labelPrefix = ''
+  ): Promise<boolean> => {
+    const chain = [
+      phase.fallbackModel,
+      phase.tertiaryModel,
+      ...(DEFAULT_FALLBACK_MODELS[phase.primaryModel] ?? []),
+    ].filter((k): k is string => !!k && k !== phase.primaryModel);
+    const seen = new Set<string>();
+    for (const fbKey of chain) {
+      if (seen.has(fbKey)) continue;
+      seen.add(fbKey);
+      const fbInfo = MODEL_INFO[fbKey];
+      if (!fbInfo || !apiKeys[fbInfo.provider]) continue;
+      try {
+        const result = await executePhase(phase, fbInfo, apiKeys[fbInfo.provider]!, accumulatedText, userInput);
+        if (!result) continue;
+        tasks.push({
+          phase: phase.phase, label: phase.label,
+          success: true, modelName: `${labelPrefix}${fbInfo.displayName}`,
+          provider: PROVIDER_INFO[fbInfo.provider].label,
+          duration: Date.now() - phaseStart,
+          outputPreview: (result.data || '').slice(0, 120),
+          output: result.data,
+        });
+        applyResult(result);
+        return true;
+      } catch { /* 尝试下一个 */ }
+    }
+    return false;
+  };
+
   for (const phase of config.phases) {
     if (!phase.enabled) continue;
     const phaseStart = Date.now();
@@ -584,27 +655,8 @@ export async function generateWithLocalPipeline(
 
     const key = apiKeys[modelInfo.provider];
     if (!key) {
-      // 尝试降级
-      if (phase.fallbackModel) {
-        const fbInfo = MODEL_INFO[phase.fallbackModel];
-        if (fbInfo && apiKeys[fbInfo.provider]) {
-          const result = await executePhase(phase, fbInfo, apiKeys[fbInfo.provider]!, accumulatedText, userInput);
-          if (!result) {
-            tasks.push({ phase: phase.phase, label: phase.label, success: false, modelName: fbInfo.displayName, provider: PROVIDER_INFO[fbInfo.provider].label, duration: Date.now() - phaseStart, outputPreview: '', error: '降级调用失败' });
-            continue;
-          }
-          tasks.push({
-            phase: phase.phase, label: phase.label,
-            success: true, modelName: fbInfo.displayName,
-            provider: PROVIDER_INFO[fbInfo.provider].label,
-            duration: Date.now() - phaseStart,
-            outputPreview: (result.data || '').slice(0, 120),
-            output: result.data,
-          });
-          if (result.data) accumulatedText = result.data;
-          continue;
-        }
-      }
+      // 三云路由降级：阶段级 fallback → 阶段级 tertiary → 全局默认兜底链（逐一尝试到第一个有 Key 且成功）
+      if (await tryFallbackChain(phase, accumulatedText, phaseStart)) continue;
       tasks.push({ phase: phase.phase, label: phase.label, success: false, modelName: modelInfo.displayName, provider: PROVIDER_INFO[modelInfo.provider].label, duration: 0, outputPreview: '', error: `缺少 ${PROVIDER_INFO[modelInfo.provider].label} API Key，请在设置中配置` });
       continue;
     }
@@ -619,27 +671,10 @@ export async function generateWithLocalPipeline(
         outputPreview: (result.data || '').slice(0, 120),
         output: result.data,
       });
-      if (result.data) accumulatedText = result.data;
+      applyResult(result);
     } catch (e: any) {
-      // 尝试降级
-      if (phase.fallbackModel) {
-        const fbInfo = MODEL_INFO[phase.fallbackModel];
-        if (fbInfo && apiKeys[fbInfo.provider]) {
-          try {
-            const result = await executePhase(phase, fbInfo, apiKeys[fbInfo.provider]!, accumulatedText, userInput);
-            tasks.push({
-              phase: phase.phase, label: phase.label,
-              success: true, modelName: `[降级] ${fbInfo.displayName}`,
-              provider: PROVIDER_INFO[fbInfo.provider].label,
-              duration: Date.now() - phaseStart,
-              outputPreview: (result.data || '').slice(0, 120),
-              output: result.data,
-            });
-            if (result.data) accumulatedText = result.data;
-            continue;
-          } catch { /* double fail, fall through */ }
-        }
-      }
+      // 三云路由降级：阶段级 fallback → 阶段级 tertiary → 全局默认兜底链（primary 调用异常时自动切换）
+      if (await tryFallbackChain(phase, accumulatedText, phaseStart, '[降级] ')) continue;
       tasks.push({ phase: phase.phase, label: phase.label, success: false, modelName: modelInfo.displayName, provider: PROVIDER_INFO[modelInfo.provider].label, duration: Date.now() - phaseStart, outputPreview: '', error: e.message });
     }
   }
@@ -665,12 +700,17 @@ export async function generateWithLocalPipeline(
       },
     };
   }
+  // AIGC 显式标识（九项验收 · 第9项）：类目 compliance_check 声明 aigcFlag 时，末尾统一追加标识
+  const needsAIGC = config.phases.some(p =>
+    p.phase === 'compliance_check' && p.enabled && p.params?.aigcFlag === true
+  );
+  const finalOutput = needsAIGC ? appendAIGCLabel(accumulatedText, slug) : accumulatedText;
   return {
     success: successCount > 0,
     data: {
       totalDuration: Date.now() - startTime,
       successCount, totalCount: tasks.length,
-      finalOutput: accumulatedText,
+      finalOutput,
       tasks,
     },
   };
@@ -712,9 +752,45 @@ async function executePhase(
     }
 
     case 'quality_review': {
-      const sysPrompt = `你是一个严苛的内容质量审查员。对比初稿和改写稿，检查是否有AI味残留、是否自然、是否有逻辑错误。输出评审意见和改进建议。`;
-      const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], { ...phaseParams, temperature: params.temperature ?? 0.2 }, apiKey);
-      return { data: content };
+      // reviewType: 'realism' 时按"真人实拍感"专项审查（视频类目验收）
+      const isRealismReview = params.reviewType === 'realism';
+      const sysPrompt = isRealismReview
+        ? `你是一个严苛的视频真实感与内容质量双重审查员。
+【真实感维度】从"真人实拍"角度审查画面：人物形态扭曲、手指异常、五官漂移、运动不自然、塑料感/恐怖谷等AI生成痕迹；人物出镜是否自然真实、口型动作是否协调。
+【内容维度】检查叙事逻辑是否通顺、品牌/产品/卖点信息表达是否清晰准确、是否有AI味残留、是否符合类目调性（如带货转化力/品牌调性/口播自然度）。
+逐条输出评审意见（标注严重程度：致命/严重/一般）和改进建议，最后明确给出是否通过验收的结论。`
+        : `你是一个严苛的内容质量审查员。对比初稿和改写稿，检查是否有AI味残留、是否自然、是否有逻辑错误。输出评审意见和改进建议。`;
+      let content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], { ...phaseParams, temperature: params.temperature ?? 0.2 }, apiKey);
+      // 视频类目：评审未通过自动重拍（最多 2 次），评审意见注入重拍 prompt 形成修复闭环
+      let retakenUrl = '';
+      if (lastVideoShoot && isRealismReview && /未通过|不通过|不合格|验收失败|存在致命|建议重新生成|需重新/.test(content)) {
+        const reviews = [content];
+        let passed = false;
+        for (let retry = 0; retry < 2 && !passed; retry++) {
+          const retryPrompt: string = `${lastVideoShoot.prompt}\n\n【上一版实拍感评审未通过意见（第${retry + 1}次重拍）】\n${reviews[reviews.length - 1]}\n\n请严格根据以上意见修复所有问题，重新生成一版。`;
+          let newUrl = '';
+          try {
+            const rawUrl = await callVideoAPI(lastVideoShoot.provider, lastVideoShoot.modelId, retryPrompt, lastVideoShoot.options, lastVideoShoot.apiKey);
+            // v4.2：重拍视频同样叠加【智枢AI生成】角标（失败降级保留原视频）
+            if (rawUrl) {
+              const badgedRetake = await overlayVideoAIGCBadge(rawUrl);
+              newUrl = badgedRetake.badged ? badgedRetake.url : rawUrl;
+            }
+          } catch { /* 重拍失败，继续下一轮 */ }
+          if (!newUrl) continue;
+          retakenUrl = newUrl;
+          lastVideoShoot = { ...lastVideoShoot, prompt: retryPrompt };
+          const reReview = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: `【重拍后视频】${newUrl}\n\n${accumulatedText}` }], { ...phaseParams, temperature: params.temperature ?? 0.2 }, apiKey);
+          reviews.push(reReview);
+          if (!/未通过|不通过|不合格|验收失败|存在致命|建议重新生成|需重新/.test(reReview)) {
+            passed = true;
+            content = `${reReview}\n\n【自动重拍记录】第 ${retry + 1} 次重拍后通过实拍感验收`;
+          }
+        }
+        if (!passed) content = `${content}\n\n【自动重拍记录】已重拍 2 次仍未通过，保留最近一版供人工复审`;
+      }
+      const retakeLabel = lastVideoShoot?.phase === 'digital_human' ? '【数字人视频】' : '【生成视频】';
+      return { data: content, ...(retakenUrl ? { _videoRetaken: `${retakeLabel}${retakenUrl}` } : {}) };
     }
 
     case 'style_calibration': {
@@ -796,7 +872,45 @@ async function executePhase(
       }
       const sysPrompt = `你是一个内容合规审核员。检查内容是否违反广告法、是否涉及敏感话题、是否存在虚假宣传。如果是智能剪辑成片，还需输出 AIGC 标识文案（蓝皮书要求：成片包含"本视频由AI辅助剪辑"标识）与合规报告。`;
       const content = await callChatAPI(modelInfo.provider, modelInfo.modelId, [{ role: 'system', content: sysPrompt }, { role: 'user', content: accumulatedText }], { ...phaseParams, temperature: 0.1 }, apiKey);
+      // 类目声明 aigcFlag 时，合规报告末尾固化 AIGC 标识结论（与流水线末尾统一打标配套）
+      if (params.aigcFlag === true) {
+        return { data: `${content}\n\n【AIGC 标识】已按监管要求附带显式 AI 生成标识：成片展示"本视频由智枢AI生成，含 AI 辅助编辑成分"` };
+      }
       return { data: content };
+    }
+
+    case 'visual_review': {
+      // 图片视觉安全复核（内容合规 · 视觉层）：混元 Vision 2.0 多模态检测
+      // 作为平台侧内容拦截的本地补充；模型不可用/网络异常时降级为不阻断
+      const imgUrls = extractImageUrls(accumulatedText);
+      if (imgUrls.length === 0) {
+        return { data: '【视觉安全复核】本次无图片产出，跳过' };
+      }
+      try {
+        const token = getAuthToken();
+        if (!token) throw new Error('未登录，请先登录');
+        const resp = await fetchWithTimeout(absUrl('/api/ai-chat/vision-review'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ images: imgUrls.slice(0, 6) }),
+        }, IMAGE_TIMEOUT_MS);
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.message || err.error || `视觉复核失败: ${resp.status}`);
+        }
+        const data = await resp.json();
+        const report: string = data?.data?.report || '';
+        // 结构化判定：模型末尾输出"汇总判定：全部通过 / 存在违规（...）"
+        const risky = /汇总判定\s*[:：]\s*(存在违规|未通过|需整改)/.test(report);
+        if (risky) {
+          // 高危违规：中断流水线（合规零容忍）
+          throw new Error(`图片视觉安全复核未通过：${report.slice(0, 300)}`);
+        }
+        return { data: `【视觉安全复核】已检测 ${data?.data?.reviewed ?? imgUrls.length} 张图片\n${report}` };
+      } catch (e: any) {
+        // 视觉复核属增强能力，失败时降级为不阻断（仍依赖平台侧拦截）
+        return { data: `【视觉安全复核】跳过（${e?.message || '视觉模型暂不可用'}），已依赖平台侧拦截` };
+      }
     }
 
     case 'tts_generate': {
@@ -821,23 +935,29 @@ async function executePhase(
           return { data: `[配音完成] ${audioUrl}` };
         }
       }
-      // Tencent TTS 尝试
+      // 腾讯 TokenHub MiniMax Speech 2.8 HD 同步 TTS（实测 PASS：POST /v1/wand/minimax-tts/sync_tts）
       if (modelInfo.provider === 'tencent') {
-        const ttsUrl = `${PROVIDER_INFO.tencent.baseUrl}${PROVIDER_INFO.tencent.multimodalImageEndpoint}`;
+        const ttsUrl = `${PROVIDER_INFO.tencent.baseUrl}/v1/wand/minimax-tts/sync_tts`;
         try {
           const ttsResp = await fetch(ttsUrl, {
             method: 'POST',
             headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model: modelInfo.modelId, prompt: accumulatedText.slice(0, 500) }),
+            body: JSON.stringify({
+              model: modelInfo.modelId, // minimax-speech-2.8-hd
+              text: accumulatedText.slice(0, 1000),
+              voice_setting: { voice_id: params.voiceId || 'minimax_55e81114-ce7e-4ca1', speed: 1, vol: 1, pitch: 0 },
+              audio_setting: { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 },
+              output_format: 'url',
+            }),
           });
           if (ttsResp.ok) {
             const ttsJson = await ttsResp.json();
-            const audioUrl = ttsJson.data?.[0]?.url || ttsJson.url || '';
-            if (audioUrl) return { data: `[配音完成] ${audioUrl}` };
+            const audioUrl = ttsJson.data?.audio || '';
+            if (ttsJson.base_resp?.status_code === 0 && audioUrl) return { data: `[配音完成] ${audioUrl}` };
           }
         } catch { /* fall through */ }
       }
-      // 火山方舟 TTS（OpenAI 兼容 /audio/speech 端点，返回二进制音频）
+      // 火山方舟 TTS：实测方舟无 /audio/speech 端点（火山语音为独立 openspeech 服务，需 appid/token），该分支基本不命中；保留为历史兼容
       if (modelInfo.provider === 'volcano') {
         const ttsUrl = `${PROVIDER_INFO.volcano.baseUrl}/audio/speech`;
         try {
@@ -863,8 +983,13 @@ async function executePhase(
     }
 
     case 'bgm_generate': {
-      // v3.2：BGM 配乐选曲建议 — 改用 LLM 分析文案情绪，输出专业免版权 BGM 选曲方案
+      // v4.4：BGM 真音乐生成（腾讯 TokenHub MiniMax Music 3.0/2.6）→ 失败自动降级为 LLM 文本选曲
       const dur = Number(phase.params?.duration) || 30;
+      const isMusicGen = ['minimax-music-v2.6', 'fun-music-v1', 'minimax-music-v3.0'].includes(phase.primaryModel);
+      if (isMusicGen) {
+        const musicUrl = await callMusicGeneration(accumulatedText, dur, modelInfo, phaseParams, apiKey);
+        if (musicUrl) return { data: `${accumulatedText}\n\n[BGM 配乐生成] ${musicUrl}` };
+      }
       const bgmResult = await callBGMSuggestionForPhase(accumulatedText, dur, modelInfo, phaseParams, apiKey);
       return { data: bgmResult };
     }
@@ -886,6 +1011,49 @@ async function executePhase(
             const ttsJson = await ttsResp.json();
             const audioUrl = ttsJson.output?.audio?.url || ttsJson.output?.audio_url || ttsJson.output?.url || '';
             if (audioUrl) return { data: `${accumulatedText}\n\n[品牌配音音频] ${audioUrl}` };
+          }
+        } catch { /* fall through */ }
+      }
+      if (modelInfo.provider === 'tencent') {
+        // v4.4：腾讯 TokenHub MiniMax Speech 2.8 HD 品牌配音（sync_tts + voice_id 音色，实测 PASS）
+        try {
+          const ttsUrl = `${PROVIDER_INFO.tencent.baseUrl}/v1/wand/minimax-tts/sync_tts`;
+          const ttsResp = await fetch(ttsUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: modelInfo.modelId, // minimax-speech-2.8-hd
+              text: voiceText.slice(0, 1000),
+              voice_setting: { voice_id: phase.params?.voiceId || 'minimax_55e81114-ce7e-4ca1', speed: 1, vol: 1, pitch: 0 },
+              audio_setting: { sample_rate: 32000, bitrate: 128000, format: 'mp3', channel: 1 },
+              output_format: 'url',
+            }),
+          });
+          if (ttsResp.ok) {
+            const ttsJson = await ttsResp.json();
+            const audioUrl = ttsJson.data?.audio || '';
+            if (ttsJson.base_resp?.status_code === 0 && audioUrl) return { data: `${accumulatedText}\n\n[品牌配音音频] ${audioUrl}` };
+          }
+        } catch { /* fall through */ }
+      }
+      if (modelInfo.provider === 'volcano') {
+        // v4.4：火山方舟 TTS 实测不可用（方舟无 /audio/speech 端点，火山语音为独立 openspeech 服务）；保留为历史兼容
+        try {
+          const ttsUrl = `${PROVIDER_INFO.volcano.baseUrl}/audio/speech`;
+          const ttsResp = await fetch(ttsUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: modelInfo.modelId,
+              input: voiceText.slice(0, 500),
+              voice: phase.params?.voiceId || 'zh_female_shuangkuaisoprano_moon_bigtts',
+              response_format: 'mp3',
+            }),
+          });
+          if (ttsResp.ok) {
+            const blob = await ttsResp.blob();
+            const dataUrl = await blobToDataUrl(blob);
+            if (dataUrl) return { data: `${accumulatedText}\n\n[品牌配音音频] ${dataUrl}` };
           }
         } catch { /* fall through */ }
       }
@@ -913,7 +1081,8 @@ async function executePhase(
           const enhanceBody = {
             model: modelInfo.modelId,
             input: { messages: [{ role: 'user', content: [{ image: targetUrl }, { text: opType === 'refine' ? 'Enhance this image: sharpen details, remove AI artifacts and distortion, refine textures and edges, keep composition and subject unchanged.' : 'Improve image quality with higher resolution and cleaner details.' }] }] },
-            parameters: { size: phase.params?.size || '1664x1664', n: 1 },
+            // qwen-image-edit 基础版不支持 size 参数（实测验证），仅传 n + watermark
+            parameters: { n: 1, watermark: false },
           };
           const enhanceResp = await fetch(enhanceUrl, {
             method: 'POST',
@@ -927,6 +1096,32 @@ async function executePhase(
             if (newUrls.length > 0) return { data: `[增强图片] ${newUrls[0]}\n\n${accumulatedText}` };
             const fbUrls = (enhanceJson.output?.results || []).map((r: any) => r.url);
             if (fbUrls.length > 0) return { data: `[增强图片] ${fbUrls[0]}\n\n${accumulatedText}` };
+          }
+        } catch { /* fallback */ }
+      }
+      if (targetUrl && modelInfo.provider === 'volcano') {
+        // v4.4：火山方舟 SeedEdit 3.0 图像编辑（官方格式：/images/generations + image 参数传 URL）
+        // 注：需客户在方舟控制台开通 doubao-seededit-3-0-i2i-250628 模型权限，否则 404 自动降级
+        try {
+          const enhanceUrl = `${PROVIDER_INFO.volcano.baseUrl}/images/generations`;
+          const opType = phase.params?.operation || 'refine';
+          const enhanceResp = await fetch(enhanceUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: modelInfo.modelId,
+              prompt: opType === 'refine' ? 'Enhance this image: sharpen details, remove AI artifacts and distortion, refine textures and edges, keep composition and subject unchanged.' : 'Improve image quality with higher resolution and cleaner details.',
+              image: targetUrl,
+              size: '1024x1024',
+              n: 1,
+              response_format: 'url',
+              watermark: false,
+            }),
+          });
+          if (enhanceResp.ok) {
+            const enhanceJson = await enhanceResp.json();
+            const newUrls = (enhanceJson.data || []).map((d: any) => d.url).filter(Boolean);
+            if (newUrls.length > 0) return { data: `[增强图片] ${newUrls[0]}\n\n${accumulatedText}` };
           }
         } catch { /* fallback */ }
       }
@@ -947,8 +1142,13 @@ async function executePhase(
       const enhanced = enhanceImagePrompt(imagePrompt, style as any);
       const negative = buildNegativePrompt(style as any);
       const urls = await callImageAPI(modelInfo.provider, modelInfo.modelId, enhanced, { negativePrompt: negative, n, size }, apiKey);
-      const urlLines = urls.map((u, i) => `[图片${i + 1}] ${u}`).join('\n');
-      return { data: `${accumulatedText}\n\n【生成图片 ${urls.length} 张】\n${urlLines}` };
+      // AIGC 标识（九项验收 · 第9项）：出图后叠加【AI生成】角标（canvas 失败降级为文本标注）
+      const urlLines: string[] = [];
+      for (let i = 0; i < urls.length; i++) {
+        const { url, badged } = await overlayImageAIGCBadge(urls[i]);
+        urlLines.push(`[图片${i + 1}] ${url}${badged ? '（已叠加AI生成角标）' : '【智枢AI生成】'}`);
+      }
+      return { data: `${accumulatedText}\n\n【生成图片 ${urls.length} 张】\n${urlLines.join('\n')}` };
     }
 
     case 'image_select': {
@@ -976,16 +1176,31 @@ async function executePhase(
       const duration = Number(phase.params?.duration) || 10;
       const size = String(phase.params?.size || '1280x720');
       const refImages = extractImageUrls(accumulatedText);
-      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, videoPrompt, { duration, size, images: refImages.length > 0 ? refImages.slice(0, 1) : undefined, text: accumulatedText.slice(0, 500) }, apiKey);
-      return { data: `${accumulatedText}\n\n【生成视频】${videoUrl}` };
+      // 注入"真人实拍"真实感词库（由类目配置 realismType 驱动，如 portrait/product/scene/mv/enterprise）
+      const realismType = phase.params?.realismType as VideoRealismType | undefined;
+      const realismPrompt = realismType ? `\n\n画面质感要求：${buildVideoRealismPrompt(realismType)}` : '';
+      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, `${videoPrompt}${realismPrompt}`, { duration, size, images: refImages.length > 0 ? refImages.slice(0, 1) : undefined, text: accumulatedText.slice(0, 500) }, apiKey);
+      // 记录拍摄快照（供 quality_review 评审未通过时自动重拍）
+      lastVideoShoot = { phase: 'video_generate', provider: modelInfo.provider, modelId: modelInfo.modelId, apiKey, prompt: `${videoPrompt}${realismPrompt}`, options: { duration, size, images: refImages.length > 0 ? refImages.slice(0, 1) : undefined, text: accumulatedText.slice(0, 500) } };
+      // v4.2：视频成片统一叠加【智枢AI生成】角标（服务端 FFmpeg 后处理，失败降级保留原视频）
+      const badge = await overlayVideoAIGCBadge(videoUrl);
+      const badgeNote = badge.badged ? '（已叠加智枢AI生成角标）' : `（角标叠加失败：${badge.error || '未知原因'}）`;
+      return { data: `${accumulatedText}\n\n【生成视频】${badge.url} ${badgeNote}` };
     }
 
     case 'digital_human': {
       // 数字人出镜：图片+音频合成
       const scriptText = extractVoiceText(accumulatedText);
       const imgUrls = extractImageUrls(accumulatedText);
-      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, `数字人口播: ${scriptText.slice(0, 300)}`, { duration: Number(phase.params?.duration) || 30, size: String(phase.params?.size || '1280x720'), images: imgUrls.length > 0 ? imgUrls.slice(0, 1) : undefined, imageUrl: imgUrls[0] || undefined, text: scriptText }, apiKey);
-      return { data: `${accumulatedText}\n\n【数字人视频】${videoUrl}` };
+      const realismType = phase.params?.realismType as VideoRealismType | undefined;
+      const realismPrompt = realismType ? `\n\n画面质感要求：${buildVideoRealismPrompt(realismType)}` : '';
+      const videoUrl = await callVideoAPI(modelInfo.provider, modelInfo.modelId, `数字人口播: ${scriptText.slice(0, 300)}${realismPrompt}`, { duration: Number(phase.params?.duration) || 30, size: String(phase.params?.size || '1280x720'), images: imgUrls.length > 0 ? imgUrls.slice(0, 1) : undefined, imageUrl: imgUrls[0] || undefined, text: scriptText }, apiKey);
+      // 记录拍摄快照（供 quality_review 评审未通过时自动重拍）
+      lastVideoShoot = { phase: 'digital_human', provider: modelInfo.provider, modelId: modelInfo.modelId, apiKey, prompt: `数字人口播: ${scriptText.slice(0, 300)}${realismPrompt}`, options: { duration: Number(phase.params?.duration) || 30, size: String(phase.params?.size || '1280x720'), images: imgUrls.length > 0 ? imgUrls.slice(0, 1) : undefined, imageUrl: imgUrls[0] || undefined, text: scriptText } };
+      // v4.2：数字人成片统一叠加【智枢AI生成】角标（失败降级保留原视频）
+      const badge = await overlayVideoAIGCBadge(videoUrl);
+      const badgeNote = badge.badged ? '（已叠加智枢AI生成角标）' : `（角标叠加失败：${badge.error || '未知原因'}）`;
+      return { data: `${accumulatedText}\n\n【数字人视频】${badge.url} ${badgeNote}` };
     }
 
     default:
@@ -1076,6 +1291,7 @@ function getSubtitlePrompt(params: Record<string, unknown>): string {
     music_video: 'MV歌词风格：韵律感、画面感、情感起伏',
     cartoon: '卡通萌趣风格：可爱语气词（"咕噜"、"嘿嘿"）、简单直接',
     talk_show: '口播讲谈风格：自然语流、适当停顿、强调表达',
+    edit: '智能剪辑风格：保留素材原始语气、口语化自然、简洁易读、无AI腔、不刻意堆砌文案',
   };
 
   return `请为以下视频脚本生成${lang === 'bilingual' ? '中英双语' : lang === 'english' ? '英文' : '中文'}SRT字幕。
@@ -1101,25 +1317,25 @@ async function callVideoEdit(
   params: Record<string, unknown>,
   apiKey: string
 ): Promise<{ data: string; _videoEdited: boolean }> {
-  // happyhorse-1.0 在阿里云百炼，是视频编辑API
+  // happyhorse-1.0 在阿里云百炼（/v1/videos/edits）；火山兜底 SeedEdit 走 /images/generations（官方图像编辑格式）
   const baseUrl = PROVIDER_INFO[modelInfo.provider]?.baseUrl || PROVIDER_INFO.alibaba.baseUrl;
 
   try {
-    const resp = await fetch(`${baseUrl}/v1/videos/edits`, {
+    const editUrl = modelInfo.provider === 'volcano'
+      ? `${baseUrl}/images/generations`
+      : `${baseUrl}/v1/videos/edits`;
+    const body = modelInfo.provider === 'volcano'
+      ? { model: modelInfo.modelId, prompt: `修复视频画面瑕疵：${params.detect || 'morph_artifacts'}，保持主体与构图不变。`, image: videoRef, size: '1024x1024', n: 1, response_format: 'url', watermark: false }
+      : { model: modelInfo.modelId, video_url: videoRef, operation: params.operation || 'repair', detect: params.detect || 'morph_artifacts', quality: 'high' };
+    const resp = await fetch(editUrl, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: modelInfo.modelId,
-        video_url: videoRef,
-        operation: params.operation || 'repair',
-        detect: params.detect || 'morph_artifacts',
-        quality: 'high',
-      }),
+      body: JSON.stringify(body),
     });
 
     if (resp.ok) {
       const json = await resp.json();
-      return { data: json.data?.url || videoRef, _videoEdited: true };
+      return { data: json.data?.url || json.output?.url || videoRef, _videoEdited: true };
     }
   } catch { /* fallback */ }
 
@@ -1282,6 +1498,59 @@ export async function generateText(
 }
 
 /**
+ * v4.4：BGM 真音乐生成（腾讯 TokenHub — MiniMax Music 3.0/2.6）
+ * 实测（客户账号 13166262006，2026-08-31）：
+ *   minimax-music-v3.0 → PASS（POST /v1/wand/minimax-music/generation 同步返回音频URL，时长~121s）
+ *   minimax-music-v2.6 → 偶发 server_error（作为 fallback）
+ *   fun-music-v1（阿里百炼）→ 需控制台开通邀测权限（403），保留兼容分支
+ * 返回音频 URL；任何失败返回空串（调用方自动降级为 LLM 文本选曲方案，保证管线不中断）
+ */
+async function callMusicGeneration(
+  textContext: string, duration: number,
+  modelInfo: any, phaseParams: any, apiKey: string
+): Promise<string> {
+  const prompt = `为以下创意短片生成${duration || 30}秒的背景音乐（BGM），风格与情绪须贴合脚本：\n\n${textContext.slice(0, 1200)}`;
+  try {
+    // 腾讯 TokenHub MiniMax Music（官方同步端点，一次返回，无需轮询）
+    if (modelInfo.provider === 'tencent') {
+      const submitUrl = `${PROVIDER_INFO.tencent.baseUrl}/v1/wand/minimax-music/generation`;
+      const submitResp = await fetch(submitUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelInfo.modelId, // minimax-music-v3.0 / minimax-music-v2.6
+          prompt,
+          is_instrumental: true, // 纯音乐 BGM（无歌词）
+          output_format: 'url', // url（12h 有效）/ hex（默认）
+          audio_setting: { sample_rate: 44100, bitrate: 256000, format: 'mp3' },
+          aigc_watermark: false,
+        }),
+      });
+      if (!submitResp.ok) return '';
+      const submitJson = await submitResp.json();
+      if (submitJson.base_resp?.status_code !== 0) return '';
+      return submitJson.data?.audio || submitJson.output?.audio?.url || '';
+    }
+    // 阿里百炼 Fun Music（百聆；需控制台开通邀测权限，未开通时 403 → 返回空串降级）
+    if (modelInfo.provider === 'alibaba') {
+      const submitUrl = `${PROVIDER_INFO.alibaba.baseUrl}/api/v1/services/audio/music/generation`;
+      const submitResp = await fetch(submitUrl, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: modelInfo.modelId, // fun-music-v1
+          input: { prompt, is_instrumental: true, format: 'mp3' },
+        }),
+      });
+      if (!submitResp.ok) return '';
+      const submitJson = await submitResp.json();
+      return submitJson.output?.audio?.url || submitJson.output?.url || '';
+    }
+  } catch { /* fallback */ }
+  return '';
+}
+
+/**
  * v3.2：BGM 配乐选曲建议（管线阶段用）
  * 使用 LLM 深度分析文案情绪曲线，输出专业免版权 BGM 选曲方案
  */
@@ -1390,6 +1659,100 @@ function getMoodSearchKeywords(mood: string): string {
 }
 
 // ─── 管线辅助函数 ────────────────────────────
+
+// ─── AIGC 显式标识（九项验收 · 第9项）────────────────
+
+/** AIGC 标识文案常量（《人工智能生成合成内容标识办法》显著标识要求） */
+const AIGC_LABEL_TEXT = '【智枢AI生成】';
+
+/**
+ * 为最终产出追加 AIGC 显式标识（文本类追加文末声明，视频类追加成片标识）
+ */
+function appendAIGCLabel(text: string, slug: ContentTypeSlug): string {
+  if (!text || text.includes(AIGC_LABEL_TEXT)) return text;
+  const isVideo = slug === 'shortVideo' || slug === 'smartEdit' || slug === 'enterpriseVideo'
+    || slug === 'productVideo' || slug === 'storeTour' || slug === 'personMv'
+    || slug === 'cartoonVideo' || slug === 'digitalHuman';
+  const label = isVideo
+    ? `${AIGC_LABEL_TEXT}本视频由智枢AI生成，含 AI 生成或辅助编辑成分`
+    : `${AIGC_LABEL_TEXT}本内容由智枢AI生成`;
+  return `${text.trimEnd()}\n\n---\n${label}`;
+}
+
+/**
+ * 视频 AIGC 角标叠加（v4.2）：服务端 FFmpeg 后处理，在成片右下角叠加【智枢AI生成】角标。
+ * 失败时降级返回原视频 URL（调用方负责在文本中标注失败原因）。
+ */
+async function overlayVideoAIGCBadge(videoUrl: string): Promise<{ url: string; badged: boolean; error?: string }> {
+  const token = getAuthToken();
+  if (!token) return { url: videoUrl, badged: false, error: '未登录' };
+  try {
+    const resp = await fetchWithTimeout(absUrl('/api/video-edit/aigc-badge'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ videoUrl }),
+    }, 180000); // 下载+转码通常需 1-3 分钟
+    if (!resp.ok) {
+      let msg = `服务返回 HTTP ${resp.status}`;
+      try { const j = await resp.json(); msg = j.error?.message || j.message || msg; } catch { /* ignore */ }
+      return { url: videoUrl, badged: false, error: msg };
+    }
+    const json = await resp.json();
+    const url = json?.data?.videoUrl;
+    if (!url) return { url: videoUrl, badged: false, error: '服务端未返回打标视频' };
+    return { url: url.startsWith('http') ? url : absUrl(url), badged: true };
+  } catch {
+    return { url: videoUrl, badged: false, error: '角标服务请求失败（已保留原视频）' };
+  }
+}
+
+/**
+ * 图片 AIGC 角标叠加：在图片右下角绘制半透明"AI生成"角标。
+ * 浏览器 canvas 实现；非浏览器环境/跨域 CORS 失败时降级为原图返回（调用方负责文本标注）。
+ */
+async function overlayImageAIGCBadge(imageUrl: string): Promise<{ url: string; badged: boolean }> {
+  if (typeof document === 'undefined' || typeof createImageBitmap === 'undefined') {
+    return { url: imageUrl, badged: false };
+  }
+  try {
+    const resp = await fetch(imageUrl);
+    if (!resp.ok) return { url: imageUrl, badged: false };
+    const blob = await resp.blob();
+    const bitmap = await createImageBitmap(blob);
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return { url: imageUrl, badged: false };
+    ctx.drawImage(bitmap, 0, 0);
+    const badgeText = 'AI生成';
+    const fontSize = Math.max(18, Math.round(canvas.width * 0.028));
+    ctx.font = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+    const padX = Math.round(fontSize * 0.7);
+    const textW = Math.ceil(ctx.measureText(badgeText).width) + padX * 2;
+    const badgeH = Math.round(fontSize * 1.9);
+    const margin = Math.max(14, Math.round(canvas.width * 0.02));
+    const x = canvas.width - textW - margin;
+    const y = canvas.height - badgeH - margin;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+    ctx.beginPath();
+    const r = Math.round(badgeH / 2);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + textW, y, x + textW, y + badgeH, r);
+    ctx.arcTo(x + textW, y + badgeH, x, y + badgeH, r);
+    ctx.arcTo(x, y + badgeH, x, y, r);
+    ctx.arcTo(x, y, x + textW, y, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(badgeText, x + textW / 2, y + badgeH / 2 + 1);
+    return { url: canvas.toDataURL('image/jpeg', 0.92), badged: true };
+  } catch {
+    return { url: imageUrl, badged: false };
+  }
+}
 
 /** 从累计文本中提取图片生成 Prompt */
 function extractImagePrompt(text: string): string {
@@ -1555,8 +1918,8 @@ export async function generateVideo(
     throw new Error(`智能剪辑未完成：${failed || pipeline.data.message || '未知错误'}`);
   }
 
-  // 构建增强 prompt（注入字幕/配音/横幅配置）
-  const enhancedPrompt = buildVideoPrompt(params);
+  // 构建增强 prompt（注入字幕/配音/横幅配置 + 真人实拍词库）
+  const enhancedPrompt = buildVideoPrompt(params, slug);
 
   // 真实配音合成：数字人在 API 层已用 audio_url 驱动配音，这里跳过
   const withVoiceover = async (url: string) =>
@@ -1576,14 +1939,19 @@ export async function generateVideo(
             const url = await callVideoAPI(modelInfo.provider, modelInfo.modelId, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[modelInfo.provider]);
             return { success: true, data: await withVoiceover(url), provider: PROVIDER_INFO[modelInfo.provider].label, model: modelInfo.displayName };
           } catch {
-            if (vidPhase.fallbackModel) {
-              const fbInfo = MODEL_INFO[vidPhase.fallbackModel];
-              if (fbInfo && apiKeys[fbInfo.provider]) {
-                try {
-                  const url = await callVideoAPI(fbInfo.provider, fbInfo.modelId, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[fbInfo.provider]);
-                  return { success: true, data: await withVoiceover(url), provider: PROVIDER_INFO[fbInfo.provider].label, model: fbInfo.displayName };
-                } catch { /* fall through */ }
-              }
+            // 视频生成降级：阶段级 fallback → 阶段级 tertiary → 全局默认兜底链（三云路由）
+            const chain = [
+              vidPhase.fallbackModel,
+              vidPhase.tertiaryModel,
+              ...(DEFAULT_FALLBACK_MODELS[vidPhase.primaryModel] ?? []),
+            ].filter((k): k is string => !!k && k !== vidPhase.primaryModel);
+            for (const fbKey of new Set(chain)) {
+              const fbInfo = MODEL_INFO[fbKey];
+              if (!fbInfo || !apiKeys[fbInfo.provider]) continue;
+              try {
+                const url = await callVideoAPI(fbInfo.provider, fbInfo.modelId, enhancedPrompt, { duration: params.duration, size: params.size }, apiKeys[fbInfo.provider]);
+                return { success: true, data: await withVoiceover(url), provider: PROVIDER_INFO[fbInfo.provider].label, model: fbInfo.displayName };
+              } catch { /* fall through */ }
             }
           }
         }
@@ -1609,10 +1977,21 @@ export async function generateVideo(
 }
 
 /**
- * 构建增强视频生成 prompt，注入配音/字幕/横幅/背景音乐配置
+ * 构建增强视频生成 prompt，注入配音/字幕/横幅/背景音乐配置 + 真人实拍词库
  */
-function buildVideoPrompt(params: GenerateVideoParams): string {
+function buildVideoPrompt(params: GenerateVideoParams, slug?: ContentTypeSlug): string {
   const parts = [params.prompt];
+
+  // 注入"真人实拍"真实感词库（依据类目配置的 realismType，保证直连生成也达到真人拍摄效果）
+  if (slug) {
+    const config = getCategoryConfig(slug);
+    const vidPhase = config?.phases.find(p =>
+      ['video_generate', 'digital_human'].includes(p.phase));
+    const realismType = vidPhase?.params?.realismType as VideoRealismType | undefined;
+    if (realismType) {
+      parts.push(`画面质感要求：${buildVideoRealismPrompt(realismType)}`);
+    }
+  }
 
   // 字幕配置
   if (params.subtitle && params.subtitle !== 'none') {
@@ -1760,7 +2139,7 @@ const VOICEOVER_TTS_MODEL = 'qwen3-tts-flash';
 /** 根据视频 prompt 生成 120-220 字自然口语化口播文案 */
 async function generateVoiceoverScript(prompt: string, apiKeys: Record<string, string>): Promise<string> {
   const candidates: { provider: AiProvider; modelId: string }[] = [
-    { provider: 'alibaba', modelId: 'qwen3.7-max' },
+    { provider: 'alibaba', modelId: 'qwen3.8-max' },
     { provider: 'tencent', modelId: 'deepseek-v4-pro-202606' },
   ];
   for (const { provider, modelId } of candidates) {
